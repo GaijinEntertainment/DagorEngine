@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPolyBumpUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>PolyBumpUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1abfc9a1848522f776ca4751c9076cc021" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int PolyBumpUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>PolyBumpUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="83" column="7" bodyfile="polyBumpUtil.cpp" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1ac159f593fd1ceaf0738c98fa00a14831" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * PolyBumpUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>PolyBumpUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="84" column="8" bodyfile="polyBumpUtil.cpp" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1adc9afedde8e1116a451e216436514675" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * PolyBumpUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>PolyBumpUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="85" column="15" bodyfile="polyBumpUtil.cpp" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1ad944c3dd44985f50a9edc3c709363bd5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * PolyBumpUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>PolyBumpUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="89" column="15" bodyfile="polyBumpUtil.cpp" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1a0bf24b278029647ebab425ddaec1542f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID PolyBumpUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>PolyBumpUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="91" column="13" bodyfile="polyBumpUtil.cpp" bodystart="91" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1ad932367b228ed58db5734e3f506d7b3f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID PolyBumpUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>PolyBumpUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="92" column="12" bodyfile="polyBumpUtil.cpp" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1a77e589326ff047bbee01ec2de0f59a0a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * PolyBumpUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>PolyBumpUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="93" column="15" bodyfile="polyBumpUtil.cpp" bodystart="93" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1a3139befbaccf3f025b837ba8182897d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL PolyBumpUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>PolyBumpUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="94" column="8" bodyfile="polyBumpUtil.cpp" bodystart="94" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1adc212ec7fe8dabbc58f37396c25eaf68" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult PolyBumpUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>PolyBumpUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="95" column="12" bodyfile="polyBumpUtil.cpp" bodystart="106" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtilDesc_1a0d4e7058b4a89f4e3d17160fcda4c323" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult PolyBumpUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>PolyBumpUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="96" column="12" bodyfile="polyBumpUtil.cpp" bodystart="141" bodyend="192"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>PolyBumpUtilDesc</label>
+        <link refid="classPolyBumpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>PolyBumpUtilDesc</label>
+        <link refid="classPolyBumpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="polyBumpUtil.cpp" line="80" column="1" bodyfile="polyBumpUtil.cpp" bodystart="81" bodyend="97"/>
+    <listofallmembers>
+      <member refid="classPolyBumpUtilDesc_1a77e589326ff047bbee01ec2de0f59a0a" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>Category</name></member>
+      <member refid="classPolyBumpUtilDesc_1ad932367b228ed58db5734e3f506d7b3f" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classPolyBumpUtilDesc_1adc9afedde8e1116a451e216436514675" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classPolyBumpUtilDesc_1ac159f593fd1ceaf0738c98fa00a14831" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>Create</name></member>
+      <member refid="classPolyBumpUtilDesc_1abfc9a1848522f776ca4751c9076cc021" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classPolyBumpUtilDesc_1a0d4e7058b4a89f4e3d17160fcda4c323" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>Load</name></member>
+      <member refid="classPolyBumpUtilDesc_1a3139befbaccf3f025b837ba8182897d8" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classPolyBumpUtilDesc_1ad944c3dd44985f50a9edc3c709363bd5" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classPolyBumpUtilDesc_1adc212ec7fe8dabbc58f37396c25eaf68" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>Save</name></member>
+      <member refid="classPolyBumpUtilDesc_1a0bf24b278029647ebab425ddaec1542f" prot="public" virt="non-virtual"><scope>PolyBumpUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

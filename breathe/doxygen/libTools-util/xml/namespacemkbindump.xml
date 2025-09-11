@@ -1,0 +1,342 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacemkbindump" kind="namespace" language="C++">
+    <compoundname>mkbindump</compoundname>
+    <innerclass refid="classmkbindump_1_1BinDumpSaveCB" prot="public">mkbindump::BinDumpSaveCB</innerclass>
+    <innerclass refid="classmkbindump_1_1GatherNameMap" prot="public">mkbindump::GatherNameMap</innerclass>
+    <innerclass refid="structmkbindump_1_1PatchTabRef" prot="public">mkbindump::PatchTabRef</innerclass>
+    <innerclass refid="structmkbindump_1_1Ref" prot="public">mkbindump::Ref</innerclass>
+    <innerclass refid="classmkbindump_1_1RoDataBlockBuilder" prot="public">mkbindump::RoDataBlockBuilder</innerclass>
+    <innerclass refid="classmkbindump_1_1RoNameMapBuilder" prot="public">mkbindump::RoNameMapBuilder</innerclass>
+    <innerclass refid="structmkbindump_1_1SharedStorage" prot="public">mkbindump::SharedStorage</innerclass>
+    <innerclass refid="classmkbindump_1_1StrCollector" prot="public">mkbindump::StrCollector</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacemkbindump_1ace92c3a42c1daec166bbc8a627ee57f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class Bitmap</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::build_ro_hier_bitmap</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const Bitmap &amp;bm, int l1_npt, int l2_npt)</argsstring>
+        <name>build_ro_hier_bitmap</name>
+        <qualifiedname>mkbindump::build_ro_hier_bitmap</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const Bitmap &amp;</type>
+          <declname>bm</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>l1_npt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>l2_npt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpHierBitmap.h" line="13" column="7" bodyfile="binDumpHierBitmap.h" bodystart="13" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1acaa5d9cd351b62983829bd17fcf4c345" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::save_tree_bitmap</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const TreeBitmapNode *node)</argsstring>
+        <name>save_tree_bitmap</name>
+        <qualifiedname>mkbindump::save_tree_bitmap</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const TreeBitmapNode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpTreeBitmap.h" line="11" column="7" bodyfile="binDumpTreeBitmap.h" bodystart="11" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1a4e183ac82da7c5b8e44ed2ff072b05a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename NM</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::write_ro_namemap</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const NM &amp;nm)</argsstring>
+        <name>write_ro_namemap</name>
+        <qualifiedname>mkbindump::write_ro_namemap</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const NM &amp;</type>
+          <declname>nm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="145" column="7" bodyfile="binDumpUtil.h" bodystart="145" bodyend="161"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1a5994b6a6434a7b699f7cf95f2be86453" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::write_ro_datablock</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const DataBlock &amp;blk)</argsstring>
+        <name>write_ro_datablock</name>
+        <qualifiedname>mkbindump::write_ro_datablock</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="163" column="7" bodyfile="binDumpUtil.h" bodystart="163" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1ae453e0b0370be1ee3ccfa6fc8ab4a54c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t mkbindump::le2be32</definition>
+        <argsstring>(uint32_t v)</argsstring>
+        <name>le2be32</name>
+        <qualifiedname>mkbindump::le2be32</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>convert integer32 from Little endian to Big endian </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="201" column="11" bodyfile="makeBindump.h" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1af44d3b3b418864993ff0faea3f01dc22" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>uint16_t mkbindump::le2be16</definition>
+        <argsstring>(uint16_t v)</argsstring>
+        <name>le2be16</name>
+        <qualifiedname>mkbindump::le2be16</qualifiedname>
+        <param>
+          <type>uint16_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="202" column="11" bodyfile="makeBindump.h" bodystart="202" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1ad59fe8dac19713bc586e3fe609631814" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::le2be32_s</definition>
+        <argsstring>(void *dest, const void *src, size_t dw_num)</argsstring>
+        <name>le2be32_s</name>
+        <qualifiedname>mkbindump::le2be32_s</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>dw_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="203" column="7" bodyfile="makeBindump.h" bodystart="203" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1a4d211100da508896aa806b7c83063865" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::le2be16_s</definition>
+        <argsstring>(void *dest, const void *src, size_t w_num)</argsstring>
+        <name>le2be16_s</name>
+        <qualifiedname>mkbindump::le2be16_s</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>w_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="215" column="7" bodyfile="makeBindump.h" bodystart="215" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1abe9862cd29e897ea9fc1d77c56911882" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t mkbindump::le2be32_cond</definition>
+        <argsstring>(uint32_t v, bool be)</argsstring>
+        <name>le2be32_cond</name>
+        <qualifiedname>mkbindump::le2be32_cond</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="229" column="11" bodyfile="makeBindump.h" bodystart="229" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1a958b5a83ce5cbfe23088e6c7d02cbe4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>uint16_t mkbindump::le2be16_cond</definition>
+        <argsstring>(uint16_t v, bool be)</argsstring>
+        <name>le2be16_cond</name>
+        <qualifiedname>mkbindump::le2be16_cond</qualifiedname>
+        <param>
+          <type>uint16_t</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="230" column="11" bodyfile="makeBindump.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1a813ebaa5fd01d980bfdd8862f79c653a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::le2be32_s_cond</definition>
+        <argsstring>(void *dest, const void *src, size_t dw_num, bool be)</argsstring>
+        <name>le2be32_s_cond</name>
+        <qualifiedname>mkbindump::le2be32_s_cond</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>dw_num</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="231" column="7" bodyfile="makeBindump.h" bodystart="231" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1ac8b403122bc5fcff705c905a40c114cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::le2be16_s_cond</definition>
+        <argsstring>(void *dest, const void *src, size_t w_num, bool be)</argsstring>
+        <name>le2be16_s_cond</name>
+        <qualifiedname>mkbindump::le2be16_s_cond</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>w_num</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="236" column="7" bodyfile="makeBindump.h" bodystart="236" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacemkbindump_1ab0bfea6a98d8c5278ae87a4ef3ff4632" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * mkbindump::get_target_str</definition>
+        <argsstring>(unsigned targetCode, uint64_t &amp;storage)</argsstring>
+        <name>get_target_str</name>
+        <qualifiedname>mkbindump::get_target_str</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>targetCode</declname>
+        </param>
+        <param>
+          <type>uint64_t &amp;</type>
+          <declname>storage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="764" column="20" bodyfile="makeBindump.h" bodystart="764" bodyend="778"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpHierBitmap.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

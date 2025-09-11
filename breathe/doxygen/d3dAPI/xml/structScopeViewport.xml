@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structScopeViewport" kind="struct" language="C++" prot="public">
+    <compoundname>ScopeViewport</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structScopeViewport_1aaeabf73398c1d68604590b287c179dd1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeViewport::viewX</definition>
+        <argsstring></argsstring>
+        <name>viewX</name>
+        <qualifiedname>ScopeViewport::viewX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="199" column="7" bodyfile="dag_decl.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScopeViewport_1a0bdf8548d782d94eebfba669118d7c3f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeViewport::viewY</definition>
+        <argsstring></argsstring>
+        <name>viewY</name>
+        <qualifiedname>ScopeViewport::viewY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="199" column="13" bodyfile="dag_decl.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScopeViewport_1a1ab0962443ac6c2ccc5824d8aa52f13c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeViewport::viewW</definition>
+        <argsstring></argsstring>
+        <name>viewW</name>
+        <qualifiedname>ScopeViewport::viewW</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="199" column="19" bodyfile="dag_decl.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeViewport::viewH</definition>
+        <argsstring></argsstring>
+        <name>viewH</name>
+        <qualifiedname>ScopeViewport::viewH</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="199" column="25" bodyfile="dag_decl.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScopeViewport_1a1b5cbb4a936917e1cd48f99673c4d67f" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ScopeViewport::viewN</definition>
+        <argsstring></argsstring>
+        <name>viewN</name>
+        <qualifiedname>ScopeViewport::viewN</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="200" column="9" bodyfile="dag_decl.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScopeViewport_1a2058f5dc44aa69df133281243141b800" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ScopeViewport::viewF</definition>
+        <argsstring></argsstring>
+        <name>viewF</name>
+        <qualifiedname>ScopeViewport::viewF</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="200" column="15" bodyfile="dag_decl.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structScopeViewport_1ac3fb6820c0329f8f94d5cd4c6b5ef8d7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewport::ScopeViewport</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeViewport</name>
+        <qualifiedname>ScopeViewport::ScopeViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="201" column="3" bodyfile="dag_decl.h" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="structScopeViewport_1adf3dadcee334ed588af5c6f1aca86e3d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewport::~ScopeViewport</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeViewport</name>
+        <qualifiedname>ScopeViewport::~ScopeViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="202" column="3" bodyfile="dag_decl.h" bodystart="202" bodyend="202"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="197" column="1" bodyfile="dag_decl.h" bodystart="198" bodyend="203"/>
+    <listofallmembers>
+      <member refid="structScopeViewport_1ac3fb6820c0329f8f94d5cd4c6b5ef8d7" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>ScopeViewport</name></member>
+      <member refid="structScopeViewport_1a2058f5dc44aa69df133281243141b800" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewF</name></member>
+      <member refid="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewH</name></member>
+      <member refid="structScopeViewport_1a1b5cbb4a936917e1cd48f99673c4d67f" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewN</name></member>
+      <member refid="structScopeViewport_1a1ab0962443ac6c2ccc5824d8aa52f13c" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewW</name></member>
+      <member refid="structScopeViewport_1aaeabf73398c1d68604590b287c179dd1" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewX</name></member>
+      <member refid="structScopeViewport_1a0bdf8548d782d94eebfba669118d7c3f" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>viewY</name></member>
+      <member refid="structScopeViewport_1adf3dadcee334ed588af5c6f1aca86e3d" prot="public" virt="non-virtual"><scope>ScopeViewport</scope><name>~ScopeViewport</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

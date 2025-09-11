@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVPzbufaClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>VPzbufaClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVPzbufaClassDesc_1adf2d7fce732184583cd278bde7f3cd30" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VPzbufaClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>VPzbufaClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="153" column="7" bodyfile="vpconv.cpp" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1a8cb42605508a8d330f5c1da3a55d0863" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * VPzbufaClassDesc::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>VPzbufaClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="154" column="8" bodyfile="vpconv.cpp" bodystart="154" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1ac0b1b92998d94ad257a47eedb9fc34ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPzbufaClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>VPzbufaClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="155" column="15" bodyfile="vpconv.cpp" bodystart="155" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1a3544fb3e5fc8e6b9bde0bbeea712a217" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * VPzbufaClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>VPzbufaClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="159" column="15" bodyfile="vpconv.cpp" bodystart="159" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1a896ec79ad26f79116df4dc0114615563" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID VPzbufaClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>VPzbufaClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="161" column="13" bodyfile="vpconv.cpp" bodystart="161" bodyend="161"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1a9f2f9aa444b048078fa9c579f6e2b390" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID VPzbufaClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>VPzbufaClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="162" column="12" bodyfile="vpconv.cpp" bodystart="162" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufaClassDesc_1abe6dafb136f5fd9dfedca65e1688391a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPzbufaClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>VPzbufaClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="163" column="15" bodyfile="vpconv.cpp" bodystart="163" bodyend="163"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>VPzbufaClassDesc</label>
+        <link refid="classVPzbufaClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>VPzbufaClassDesc</label>
+        <link refid="classVPzbufaClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="vpconv.cpp" line="150" column="1" bodyfile="vpconv.cpp" bodystart="151" bodyend="164"/>
+    <listofallmembers>
+      <member refid="classVPzbufaClassDesc_1abe6dafb136f5fd9dfedca65e1688391a" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>Category</name></member>
+      <member refid="classVPzbufaClassDesc_1a9f2f9aa444b048078fa9c579f6e2b390" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>ClassID</name></member>
+      <member refid="classVPzbufaClassDesc_1ac0b1b92998d94ad257a47eedb9fc34ad" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>ClassName</name></member>
+      <member refid="classVPzbufaClassDesc_1a8cb42605508a8d330f5c1da3a55d0863" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>Create</name></member>
+      <member refid="classVPzbufaClassDesc_1adf2d7fce732184583cd278bde7f3cd30" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classVPzbufaClassDesc_1a3544fb3e5fc8e6b9bde0bbeea712a217" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classVPzbufaClassDesc_1a896ec79ad26f79116df4dc0114615563" prot="public" virt="non-virtual"><scope>VPzbufaClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

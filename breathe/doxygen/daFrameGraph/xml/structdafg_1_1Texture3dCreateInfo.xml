@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1Texture3dCreateInfo" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::Texture3dCreateInfo</compoundname>
+    <includes refid="resourceCreation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1Texture3dCreateInfo_1a43b872426ff53c9b146a3bf72f7607a8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::Texture3dCreateInfo::creationFlags</definition>
+        <argsstring></argsstring>
+        <name>creationFlags</name>
+        <qualifiedname>dafg::Texture3dCreateInfo::creationFlags</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Use TEXCF_ prefixed flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="59" column="12" bodyfile="resourceCreation.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1Texture3dCreateInfo_1abf7a514243f24e5f3efe80da14bffcdc" prot="public" static="no" mutable="no">
+        <type>eastl::variant&lt; IPoint3, <ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>&lt; 3 &gt; &gt;</type>
+        <definition>eastl::variant&lt;IPoint3, AutoResolutionRequest&lt;3&gt; &gt; dafg::Texture3dCreateInfo::resolution</definition>
+        <argsstring></argsstring>
+        <name>resolution</name>
+        <qualifiedname>dafg::Texture3dCreateInfo::resolution</qualifiedname>
+        <briefdescription>
+<para>Resolution for this texture. May either be hard-coded or automatic, see <ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="61" column="18" bodyfile="resourceCreation.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1Texture3dCreateInfo_1a7d40ed0f2504f74432023a0948ffa98d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::Texture3dCreateInfo::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <qualifiedname>dafg::Texture3dCreateInfo::mipLevels</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>Use 0 for automatic mip levels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="63" column="12" bodyfile="resourceCreation.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Specifies the creation parameters for a 3D volumetric texture. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="resourceCreation.h" line="56" column="1" bodyfile="resourceCreation.h" bodystart="57" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1Texture3dCreateInfo_1a43b872426ff53c9b146a3bf72f7607a8" prot="public" virt="non-virtual"><scope>dafg::Texture3dCreateInfo</scope><name>creationFlags</name></member>
+      <member refid="structdafg_1_1Texture3dCreateInfo_1a7d40ed0f2504f74432023a0948ffa98d" prot="public" virt="non-virtual"><scope>dafg::Texture3dCreateInfo</scope><name>mipLevels</name></member>
+      <member refid="structdafg_1_1Texture3dCreateInfo_1abf7a514243f24e5f3efe80da14bffcdc" prot="public" virt="non-virtual"><scope>dafg::Texture3dCreateInfo</scope><name>resolution</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

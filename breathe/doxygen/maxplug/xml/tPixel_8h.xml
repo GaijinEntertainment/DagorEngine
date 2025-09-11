@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="tPixel_8h" kind="file" language="C++">
+    <compoundname>tPixel.h</compoundname>
+    <innerclass refid="structrgba__t" prot="public">rgba_t</innerclass>
+    <innerclass refid="uniontPixel" prot="public">tPixel</innerclass>
+    <innerclass refid="structfpPixel" prot="public">fpPixel</innerclass>
+    <innerclass refid="classTCImage" prot="public">TCImage</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="tPixel_8h_1ac149c31e53d590d81bba6be3121c69f4" prot="public" static="no">
+        <name>FP_B</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="17" column="9" bodyfile="tPixel.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tPixel_8h_1a73e9ea017c8fdbd8aa2f9c76813a6370" prot="public" static="no">
+        <name>FP_G</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="18" column="9" bodyfile="tPixel.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tPixel_8h_1a40a2718d683307795b032d17b2b5052a" prot="public" static="no">
+        <name>FP_R</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="19" column="9" bodyfile="tPixel.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tPixel_8h_1a8d5f29ec1b227b6445135244caa8e3c3" prot="public" static="no">
+        <name>FP_A</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="20" column="9" bodyfile="tPixel.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="tPixel_8h_1a60883d4958a60b91661e97027a85072a" prot="public" static="no" strong="no">
+        <type></type>
+        <name>PixelFormat</name>
+        <enumvalue id="tPixel_8h_1a60883d4958a60b91661e97027a85072aab6c8f2dc2e6dc96732fbbecdd1f0143c" prot="public">
+          <name>PF_DWORD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="tPixel_8h_1a60883d4958a60b91661e97027a85072aabfbdde010ec8574d5bfa7341bb5fa3c2" prot="public">
+          <name>PF_fp32x4</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="31" column="1" bodyfile="tPixel.h" bodystart="32" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="tPixel_8h_1a8dbed9c9674632b88f516579cb192b9c" prot="public" static="no">
+        <type>struct <ref refid="structrgba__t" kindref="compound">rgba_t</ref></type>
+        <definition>typedef struct rgba_t rgba_t</definition>
+        <argsstring></argsstring>
+        <name>rgba_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="7" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="structrgba__t" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structrgba__t" kindref="compound">rgba_t</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6" refid="structrgba__t_1a2e4f952f33d74ac6d05929923458ee75" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structrgba__t_1a2e4f952f33d74ac6d05929923458ee75" kindref="member">rgba</ref>[4];</highlight></codeline>
+<codeline lineno="7" refid="tPixel_8h_1a8dbed9c9674632b88f516579cb192b9c" refkind="member"><highlight class="normal">}<sp/><ref refid="structrgba__t" kindref="compound">rgba_t</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="uniontPixel" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">union<sp/></highlight><highlight class="normal"><ref refid="uniontPixel" kindref="compound">tPixel</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12" refid="uniontPixel_1a736cc9507f4f99858a37c5f3b3793cc2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><ref refid="uniontPixel_1a736cc9507f4f99858a37c5f3b3793cc2" kindref="member">u</ref>;</highlight></codeline>
+<codeline lineno="13" refid="uniontPixel_1ad964df05d86005db82ad217d97cd2cbc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structrgba__t" kindref="compound">rgba_t</ref><sp/><ref refid="uniontPixel_1ad964df05d86005db82ad217d97cd2cbc" kindref="member">c</ref>;</highlight></codeline>
+<codeline lineno="14" refid="uniontPixel_1a774cc7c2c270667ae5a901d8a8ba6c1b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="uniontPixel_1a774cc7c2c270667ae5a901d8a8ba6c1b" kindref="member">fp</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="tPixel_8h_1ac149c31e53d590d81bba6be3121c69f4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FP_B<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="tPixel_8h_1a73e9ea017c8fdbd8aa2f9c76813a6370" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FP_G<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="tPixel_8h_1a40a2718d683307795b032d17b2b5052a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FP_R<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="tPixel_8h_1a8d5f29ec1b227b6445135244caa8e3c3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FP_A<sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="structfpPixel" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structfpPixel" kindref="compound">fpPixel</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24" refid="structfpPixel_1a330dac58113e69afd2da41b4dd3315a0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structfpPixel_1a330dac58113e69afd2da41b4dd3315a0" kindref="member">fp</ref>[4];</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>R<sp/>0<sp/><sp/>to<sp/>match<sp/>fp<sp/>texture<sp/>format</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>G<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>B<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>A<sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="tPixel_8h_1a60883d4958a60b91661e97027a85072a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072a" kindref="member">PixelFormat</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33" refid="tPixel_8h_1a60883d4958a60b91661e97027a85072aab6c8f2dc2e6dc96732fbbecdd1f0143c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072aab6c8f2dc2e6dc96732fbbecdd1f0143c" kindref="member">PF_DWORD</ref>,</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072aabfbdde010ec8574d5bfa7341bb5fa3c2" kindref="member">PF_fp32x4</ref></highlight></codeline>
+<codeline lineno="35" refid="tPixel_8h_1a60883d4958a60b91661e97027a85072aabfbdde010ec8574d5bfa7341bb5fa3c2" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classTCImage" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTCImage" kindref="compound">TCImage</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="40" refid="classTCImage_1ab57f6cca526f8f02d9dc9f10f4e2c328" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTCImage_1ab57f6cca526f8f02d9dc9f10f4e2c328" kindref="member">width</ref>;</highlight></codeline>
+<codeline lineno="41" refid="classTCImage_1a9664a9f962cb9d5746e4388385dbd68d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTCImage_1a9664a9f962cb9d5746e4388385dbd68d" kindref="member">height</ref>;</highlight></codeline>
+<codeline lineno="42" refid="classTCImage_1a622159b3e0442ffa39cf2732c3267994" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTCImage_1a622159b3e0442ffa39cf2732c3267994" kindref="member">byte_pitch</ref>;</highlight></codeline>
+<codeline lineno="43" refid="classTCImage_1a0b32643469c4a10784d71b4b23fcefb8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTCImage_1a0b32643469c4a10784d71b4b23fcefb8" kindref="member">nPlanes</ref>;</highlight></codeline>
+<codeline lineno="44" refid="classTCImage_1aed2e01aa0477b542e2e7196f993fe4af" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTCImage_1aed2e01aa0477b542e2e7196f993fe4af" kindref="member">nPlanesInFile</ref>;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="classTCImage_1a354333be586a8bb39a9dcc80f72977bf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072a" kindref="member">PixelFormat</ref><sp/><ref refid="classTCImage_1a354333be586a8bb39a9dcc80f72977bf" kindref="member">pf</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="49" refid="classTCImage_1abac529a4026032c49cd801939a357ae8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="uniontPixel" kindref="compound">tPixel</ref><sp/>*<ref refid="classTCImage_1abac529a4026032c49cd801939a357ae8" kindref="member">pixels</ref>;</highlight></codeline>
+<codeline lineno="50" refid="classTCImage_1a3dfd7640d25bd52cf671e5a75d4d7d10" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structfpPixel" kindref="compound">fpPixel</ref><sp/>*<ref refid="classTCImage_1a3dfd7640d25bd52cf671e5a75d4d7d10" kindref="member">fppixels</ref>;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="52" refid="classTCImage_1ac6266092c4e806cccc4e765502a1b24d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTCImage_1ac6266092c4e806cccc4e765502a1b24d" kindref="member">TCImage</ref>()</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTCImage_1abac529a4026032c49cd801939a357ae8" kindref="member">pixels</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTCImage_1a354333be586a8bb39a9dcc80f72977bf" kindref="member">pf</ref><sp/>=<sp/><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072aab6c8f2dc2e6dc96732fbbecdd1f0143c" kindref="member">PF_DWORD</ref>;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="tPixel.h"/>
+  </compounddef>
+</doxygen>

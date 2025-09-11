@@ -1,0 +1,221 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1OptimizedScene" kind="struct" language="C++" prot="protected">
+    <compoundname>RenderScene::OptimizedScene</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1a8ab500086077ffc726ca2a974e673bef" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; Mat, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;Mat, MidmemAlloc&gt; RenderScene::OptimizedScene::mats</definition>
+        <argsstring></argsstring>
+        <name>mats</name>
+        <qualifiedname>RenderScene::OptimizedScene::mats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="400" column="14" bodyfile="dag_renderScene.h" bodystart="400" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1adaaa70a6813c151fe2a4cb4dbb5e9b17" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; Elem, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;Elem, MidmemAlloc&gt; RenderScene::OptimizedScene::elems</definition>
+        <argsstring></argsstring>
+        <name>elems</name>
+        <qualifiedname>RenderScene::OptimizedScene::elems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="401" column="14" bodyfile="dag_renderScene.h" bodystart="401" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1aab9b7b19aa3e5988ad9006ea9c4b66f7" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; short, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;short, MidmemAlloc&gt; RenderScene::OptimizedScene::elemIdxStor</definition>
+        <argsstring></argsstring>
+        <name>elemIdxStor</name>
+        <qualifiedname>RenderScene::OptimizedScene::elemIdxStor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="402" column="14" bodyfile="dag_renderScene.h" bodystart="402" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1adf077326114a22d520a4d3262f00a65c" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref></type>
+        <definition>VisibilityData RenderScene::OptimizedScene::visData</definition>
+        <argsstring></argsstring>
+        <name>visData</name>
+        <qualifiedname>RenderScene::OptimizedScene::visData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="403" column="20" bodyfile="dag_renderScene.h" bodystart="403" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1a48d0fa2d8ca192f34ce4945f16b1039e" prot="public" static="no" mutable="no">
+        <type>VisTree</type>
+        <definition>VisTree RenderScene::OptimizedScene::visTree</definition>
+        <argsstring></argsstring>
+        <name>visTree</name>
+        <qualifiedname>RenderScene::OptimizedScene::visTree</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="404" column="13" bodyfile="dag_renderScene.h" bodystart="404" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1ad11add3980fdb0fc363e542d621d2c2e" prot="public" static="no" mutable="no">
+        <type>BuildVisTree</type>
+        <definition>BuildVisTree RenderScene::OptimizedScene::buildVisTree</definition>
+        <argsstring></argsstring>
+        <name>buildVisTree</name>
+        <qualifiedname>RenderScene::OptimizedScene::buildVisTree</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="405" column="18" bodyfile="dag_renderScene.h" bodystart="405" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1abfb59c19edb1b5c6feccd381e0c0549e" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t RenderScene::OptimizedScene::stageEndMatIdx[SC_STAGE_IDX_MASK+1]</definition>
+        <argsstring>[SC_STAGE_IDX_MASK+1]</argsstring>
+        <name>stageEndMatIdx</name>
+        <qualifiedname>RenderScene::OptimizedScene::stageEndMatIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="406" column="14" bodyfile="dag_renderScene.h" bodystart="406" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1a1e67d12d717a4aaf7bb0ba58238ec27d" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t RenderScene::OptimizedScene::usedElemsStride</definition>
+        <argsstring></argsstring>
+        <name>usedElemsStride</name>
+        <qualifiedname>RenderScene::OptimizedScene::usedElemsStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="407" column="14" bodyfile="dag_renderScene.h" bodystart="407" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1a23c65cc8563cb41695d7f35d604dc627" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::OptimizedScene::inited</definition>
+        <argsstring></argsstring>
+        <name>inited</name>
+        <qualifiedname>RenderScene::OptimizedScene::inited</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="408" column="10" bodyfile="dag_renderScene.h" bodystart="408" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1OptimizedScene_1a09754b6b0c7d16e21f92aee171d2760d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::OptimizedScene::prepareDone</definition>
+        <argsstring></argsstring>
+        <name>prepareDone</name>
+        <qualifiedname>RenderScene::OptimizedScene::prepareDone</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="409" column="10" bodyfile="dag_renderScene.h" bodystart="409" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderScene_1_1OptimizedScene_1a806343e78bee850d7b218b0a7db4e0da" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderScene::OptimizedScene::getMatStartIdx</definition>
+        <argsstring>(int start_stage) const</argsstring>
+        <name>getMatStartIdx</name>
+        <qualifiedname>RenderScene::OptimizedScene::getMatStartIdx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>start_stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="416" column="9" bodyfile="dag_renderScene.h" bodystart="416" bodyend="420"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1OptimizedScene_1ad05b3c75f9d177b0f9d232ea074f7a86" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderScene::OptimizedScene::getMatEndIdx</definition>
+        <argsstring>(int end_stage) const</argsstring>
+        <name>getMatEndIdx</name>
+        <qualifiedname>RenderScene::OptimizedScene::getMatEndIdx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>end_stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="421" column="9" bodyfile="dag_renderScene.h" bodystart="421" bodyend="425"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderScene::OptimizedScene</label>
+        <link refid="structRenderScene_1_1OptimizedScene"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>visData</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderScene::VisibilityData</label>
+        <link refid="structRenderScene_1_1VisibilityData"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>scn</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderScene.h" line="394" column="3" bodyfile="dag_renderScene.h" bodystart="395" bodyend="426"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1OptimizedScene_1ad11add3980fdb0fc363e542d621d2c2e" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>buildVisTree</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1aab9b7b19aa3e5988ad9006ea9c4b66f7" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>elemIdxStor</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1adaaa70a6813c151fe2a4cb4dbb5e9b17" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>elems</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1ad05b3c75f9d177b0f9d232ea074f7a86" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>getMatEndIdx</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a806343e78bee850d7b218b0a7db4e0da" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>getMatStartIdx</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a23c65cc8563cb41695d7f35d604dc627" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>inited</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a8ab500086077ffc726ca2a974e673bef" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>mats</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a09754b6b0c7d16e21f92aee171d2760d" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>prepareDone</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1abfb59c19edb1b5c6feccd381e0c0549e" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>stageEndMatIdx</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a1e67d12d717a4aaf7bb0ba58238ec27d" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>usedElemsStride</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1adf077326114a22d520a4d3262f00a65c" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>visData</name></member>
+      <member refid="structRenderScene_1_1OptimizedScene_1a48d0fa2d8ca192f34ce4945f16b1039e" prot="public" virt="non-virtual"><scope>RenderScene::OptimizedScene</scope><name>visTree</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

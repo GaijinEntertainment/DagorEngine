@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1IesParams" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::IesParams</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1a06cc32f37b4a789b3473f39e2e9a6cb1" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::blurRadius</definition>
+        <argsstring></argsstring>
+        <name>blurRadius</name>
+        <qualifiedname>IesReader::IesParams::blurRadius</qualifiedname>
+        <initializer>= 3 * DEG_TO_RAD</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="20" column="10" bodyfile="iesReader.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1a9622050576fde090978af418366ff755" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::phiMin</definition>
+        <argsstring></argsstring>
+        <name>phiMin</name>
+        <qualifiedname>IesReader::IesParams::phiMin</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="21" column="10" bodyfile="iesReader.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1a28ff91e74b4bc8e09a85e743900420cf" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::phiMax</definition>
+        <argsstring></argsstring>
+        <name>phiMax</name>
+        <qualifiedname>IesReader::IesParams::phiMax</qualifiedname>
+        <initializer>= 2 * M_PI</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="22" column="10" bodyfile="iesReader.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1ae0869864c9199caf43892774cde0aa3f" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::thetaMin</definition>
+        <argsstring></argsstring>
+        <name>thetaMin</name>
+        <qualifiedname>IesReader::IesParams::thetaMin</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="23" column="10" bodyfile="iesReader.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1a7a69244a941f08088d2f6aefc00c59d1" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::thetaMax</definition>
+        <argsstring></argsstring>
+        <name>thetaMax</name>
+        <qualifiedname>IesReader::IesParams::thetaMax</qualifiedname>
+        <initializer>= M_PI</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="24" column="10" bodyfile="iesReader.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1IesParams_1aa87137c8165df627c597364cd4ad1270" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::IesParams::edgeFadeout</definition>
+        <argsstring></argsstring>
+        <name>edgeFadeout</name>
+        <qualifiedname>IesReader::IesParams::edgeFadeout</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="25" column="10" bodyfile="iesReader.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="iesReader.h" line="18" column="3" bodyfile="iesReader.h" bodystart="19" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1IesParams_1a06cc32f37b4a789b3473f39e2e9a6cb1" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>blurRadius</name></member>
+      <member refid="structIesReader_1_1IesParams_1aa87137c8165df627c597364cd4ad1270" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>edgeFadeout</name></member>
+      <member refid="structIesReader_1_1IesParams_1a28ff91e74b4bc8e09a85e743900420cf" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>phiMax</name></member>
+      <member refid="structIesReader_1_1IesParams_1a9622050576fde090978af418366ff755" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>phiMin</name></member>
+      <member refid="structIesReader_1_1IesParams_1a7a69244a941f08088d2f6aefc00c59d1" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>thetaMax</name></member>
+      <member refid="structIesReader_1_1IesParams_1ae0869864c9199caf43892774cde0aa3f" prot="public" virt="non-virtual"><scope>IesReader::IesParams</scope><name>thetaMin</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,240 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdynrender_1_1RElem" kind="struct" language="C++" prot="public">
+    <compoundname>dynrender::RElem</compoundname>
+    <includes refid="dag__shaders_8h" local="no">dag_shaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a82bb01730a2c9222efd31d6a07e3fe7a" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; dynrender::RElem::shElem</definition>
+        <argsstring></argsstring>
+        <name>shElem</name>
+        <qualifiedname>dynrender::RElem::shElem</qualifiedname>
+        <briefdescription>
+<para>element to render </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="271" column="7" bodyfile="dag_shaders.h" bodystart="271" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a5274c39c26d1b7bd0ce3e5e6ac14234d" prot="public" static="no" mutable="no">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer* dynrender::RElem::ib</definition>
+        <argsstring></argsstring>
+        <name>ib</name>
+        <qualifiedname>dynrender::RElem::ib</qualifiedname>
+        <briefdescription>
+<para>index buffer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="272" column="11" bodyfile="dag_shaders.h" bodystart="272" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a7bd0e8095f94dd3e3c72721ea0777b30" prot="public" static="no" mutable="no">
+        <type>Vbuffer *</type>
+        <definition>Vbuffer* dynrender::RElem::vb</definition>
+        <argsstring></argsstring>
+        <name>vb</name>
+        <qualifiedname>dynrender::RElem::vb</qualifiedname>
+        <briefdescription>
+<para>vertex buffer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="273" column="11" bodyfile="dag_shaders.h" bodystart="273" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1ae51739708affafbbeff3b5205690f809" prot="public" static="no" mutable="no">
+        <type>VDECL</type>
+        <definition>VDECL dynrender::RElem::vDecl</definition>
+        <argsstring></argsstring>
+        <name>vDecl</name>
+        <qualifiedname>dynrender::RElem::vDecl</qualifiedname>
+        <briefdescription>
+<para>vdecl </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="274" column="9" bodyfile="dag_shaders.h" bodystart="274" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a915248d3f4a9a7a7ef661339ec420529" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dynrender::RElem::stride</definition>
+        <argsstring></argsstring>
+        <name>stride</name>
+        <qualifiedname>dynrender::RElem::stride</qualifiedname>
+        <briefdescription>
+<para>stride </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="275" column="7" bodyfile="dag_shaders.h" bodystart="275" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a8aa9ab19fc43eba2dfd6253b0aae4d19" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dynrender::RElem::minVert</definition>
+        <argsstring></argsstring>
+        <name>minVert</name>
+        <qualifiedname>dynrender::RElem::minVert</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="278" column="7" bodyfile="dag_shaders.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1af3007ee3567e88820434d10a4aef84e8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dynrender::RElem::numVert</definition>
+        <argsstring></argsstring>
+        <name>numVert</name>
+        <qualifiedname>dynrender::RElem::numVert</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="279" column="7" bodyfile="dag_shaders.h" bodystart="279" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1ab57556788f4e0587eb0bdd5049493a68" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dynrender::RElem::startIndex</definition>
+        <argsstring></argsstring>
+        <name>startIndex</name>
+        <qualifiedname>dynrender::RElem::startIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="280" column="7" bodyfile="dag_shaders.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdynrender_1_1RElem_1a530a5803a55995292944eec11c30871c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dynrender::RElem::numPrim</definition>
+        <argsstring></argsstring>
+        <name>numPrim</name>
+        <qualifiedname>dynrender::RElem::numPrim</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="281" column="7" bodyfile="dag_shaders.h" bodystart="281" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdynrender_1_1RElem_1a84e17c68d4b620793e66ac8854f409c6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dynrender::RElem::RElem</definition>
+        <argsstring>()</argsstring>
+        <name>RElem</name>
+        <qualifiedname>dynrender::RElem::RElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="283" column="10" bodyfile="dag_shaders.h" bodystart="283" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dynrender::RElem::render</definition>
+        <argsstring>(bool indexed=true, int base_vertex_index=0) const</argsstring>
+        <name>render</name>
+        <qualifiedname>dynrender::RElem::render</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>indexed</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base_vertex_index</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>set ib, vb, vdecl &amp; render this element if ib field is NULL or indexed == false, use d3d::draw instead d3d::drawind </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="289" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structdynrender_1_1RElem_1a777f1f689b14217e1cd461d947248c8f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dynrender::RElem::setBuffers</definition>
+        <argsstring>(bool indexed=true) const</argsstring>
+        <name>setBuffers</name>
+        <qualifiedname>dynrender::RElem::setBuffers</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>indexed</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="290" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structdynrender_1_1RElem_1a487b687997798336c92bca53360fd6fd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dynrender::RElem::setStates</definition>
+        <argsstring>(bool indexed=true) const</argsstring>
+        <name>setStates</name>
+        <qualifiedname>dynrender::RElem::setStates</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>indexed</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="291" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>[9/28/2004] Tigrenok This is optional structure for rendering. You can use this structure (fill it &amp; call <ref refid="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" kindref="member">render()</ref>) or set params to driver and render all data manually (shElem-&gt;<ref refid="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" kindref="member">render()</ref>) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaders.h" line="269" column="1" bodyfile="dag_shaders.h" bodystart="270" bodyend="292"/>
+    <listofallmembers>
+      <member refid="structdynrender_1_1RElem_1a5274c39c26d1b7bd0ce3e5e6ac14234d" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>ib</name></member>
+      <member refid="structdynrender_1_1RElem_1a8aa9ab19fc43eba2dfd6253b0aae4d19" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>minVert</name></member>
+      <member refid="structdynrender_1_1RElem_1a530a5803a55995292944eec11c30871c" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>numPrim</name></member>
+      <member refid="structdynrender_1_1RElem_1af3007ee3567e88820434d10a4aef84e8" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>numVert</name></member>
+      <member refid="structdynrender_1_1RElem_1a84e17c68d4b620793e66ac8854f409c6" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>RElem</name></member>
+      <member refid="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>render</name></member>
+      <member refid="structdynrender_1_1RElem_1a777f1f689b14217e1cd461d947248c8f" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>setBuffers</name></member>
+      <member refid="structdynrender_1_1RElem_1a487b687997798336c92bca53360fd6fd" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>setStates</name></member>
+      <member refid="structdynrender_1_1RElem_1a82bb01730a2c9222efd31d6a07e3fe7a" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>shElem</name></member>
+      <member refid="structdynrender_1_1RElem_1ab57556788f4e0587eb0bdd5049493a68" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>startIndex</name></member>
+      <member refid="structdynrender_1_1RElem_1a915248d3f4a9a7a7ef661339ec420529" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>stride</name></member>
+      <member refid="structdynrender_1_1RElem_1a7bd0e8095f94dd3e3c72721ea0777b30" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>vb</name></member>
+      <member refid="structdynrender_1_1RElem_1ae51739708affafbbeff3b5205690f809" prot="public" virt="non-virtual"><scope>dynrender::RElem</scope><name>vDecl</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

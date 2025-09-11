@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCryptoHasher" kind="struct" language="C++" prot="public">
+    <compoundname>CryptoHasher</compoundname>
+    <includes refid="hash_8h" local="no">hash.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCryptoHasher_1aff4f9480b9c34839212abb59e5cc8887" prot="public" static="no" mutable="no">
+        <type>blake3_hasher</type>
+        <definition>blake3_hasher CryptoHasher::hasher</definition>
+        <argsstring></argsstring>
+        <name>hasher</name>
+        <qualifiedname>CryptoHasher::hasher</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="14" column="17" bodyfile="hash.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCryptoHasher_1a3f948762cde88221342a8798c4f7311d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CryptoHasher::CryptoHasher</definition>
+        <argsstring>()</argsstring>
+        <name>CryptoHasher</name>
+        <qualifiedname>CryptoHasher::CryptoHasher</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="15" column="3" bodyfile="hash.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structCryptoHasher_1a003879a0c073a64f90e305a079b84a66" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CryptoHasher::CryptoHasher</definition>
+        <argsstring>(const CryptoHash &amp;key)</argsstring>
+        <name>CryptoHasher</name>
+        <qualifiedname>CryptoHasher::CryptoHasher</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &amp;</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="16" column="12" bodyfile="hash.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structCryptoHasher_1a568041f71f7c96cda2ce8ca6b2d3ed64" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CryptoHasher::update</definition>
+        <argsstring>(const void *data, size_t len)</argsstring>
+        <name>update</name>
+        <qualifiedname>CryptoHasher::update</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="17" column="8" bodyfile="hash.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="structCryptoHasher_1a2ab7144dc08688031d26fa6923603959" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void CryptoHasher::update</definition>
+        <argsstring>(const T &amp;d)</argsstring>
+        <name>update</name>
+        <qualifiedname>CryptoHasher::update</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="19" column="8" bodyfile="hash.h" bodystart="19" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structCryptoHasher_1a24088e41da87f7456bc0439ec9ec1dc5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CryptoHasher::update</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>update</name>
+        <qualifiedname>CryptoHasher::update</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="23" column="8" bodyfile="hash.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structCryptoHasher_1a41176760e73b4f0594213f1e197c98fa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash CryptoHasher::hash</definition>
+        <argsstring>() const</argsstring>
+        <name>hash</name>
+        <qualifiedname>CryptoHasher::hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="24" column="14" bodyfile="hash.h" bodystart="24" bodyend="29"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hash.h" line="12" column="1" bodyfile="hash.h" bodystart="13" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structCryptoHasher_1a3f948762cde88221342a8798c4f7311d" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>CryptoHasher</name></member>
+      <member refid="structCryptoHasher_1a003879a0c073a64f90e305a079b84a66" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>CryptoHasher</name></member>
+      <member refid="structCryptoHasher_1a41176760e73b4f0594213f1e197c98fa" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>hash</name></member>
+      <member refid="structCryptoHasher_1aff4f9480b9c34839212abb59e5cc8887" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>hasher</name></member>
+      <member refid="structCryptoHasher_1a568041f71f7c96cda2ce8ca6b2d3ed64" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>update</name></member>
+      <member refid="structCryptoHasher_1a2ab7144dc08688031d26fa6923603959" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>update</name></member>
+      <member refid="structCryptoHasher_1a24088e41da87f7456bc0439ec9ec1dc5" prot="public" virt="non-virtual"><scope>CryptoHasher</scope><name>update</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

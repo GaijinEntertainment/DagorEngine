@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResizableTextureIDHolder_1_1TextureRecord" kind="struct" language="C++" prot="private">
+    <compoundname>ResizableTextureIDHolder::TextureRecord</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResizableTextureIDHolder_1_1TextureRecord_1ac95ef3535112e79330c254c9d6a6b285" prot="public" static="no" mutable="no">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture* ResizableTextureIDHolder::TextureRecord::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>ResizableTextureIDHolder::TextureRecord::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="157" column="17" bodyfile="dag_textureIDHolder.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResizableTextureIDHolder_1_1TextureRecord_1a7f7b4d32bddf3961bcc8204728ddcca3" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ResizableTextureIDHolder::TextureRecord::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>ResizableTextureIDHolder::TextureRecord::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="158" column="15" bodyfile="dag_textureIDHolder.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_textureIDHolder.h" line="155" column="3" bodyfile="dag_textureIDHolder.h" bodystart="156" bodyend="159"/>
+    <listofallmembers>
+      <member refid="structResizableTextureIDHolder_1_1TextureRecord_1ac95ef3535112e79330c254c9d6a6b285" prot="public" virt="non-virtual"><scope>ResizableTextureIDHolder::TextureRecord</scope><name>tex</name></member>
+      <member refid="structResizableTextureIDHolder_1_1TextureRecord_1a7f7b4d32bddf3961bcc8204728ddcca3" prot="public" virt="non-virtual"><scope>ResizableTextureIDHolder::TextureRecord</scope><name>texId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagExpCD" kind="class" language="C++" prot="public">
+    <compoundname>DagExpCD</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagExpCD_1a3f67b88ae49e615ed47eb18a9f737f63" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagExpCD::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>DagExpCD::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="222" column="7" bodyfile="expUtil.cpp" bodystart="222" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1adbe191a3276878ba3d79f68aab044132" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DagExpCD::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>DagExpCD::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="223" column="8" bodyfile="expUtil.cpp" bodystart="223" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1a06afb71876ee87222f983230745fdcce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagExpCD::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>DagExpCD::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="224" column="15" bodyfile="expUtil.cpp" bodystart="224" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1a59ca27734297c1e53a515f6b8d043064" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExpCD::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>DagExpCD::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="228" column="15" bodyfile="expUtil.cpp" bodystart="228" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1a66dede25cb05c0ccaf80626cd9f77b2a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagExpCD::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagExpCD::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="230" column="13" bodyfile="expUtil.cpp" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1ac558abddbc2a459dfacc7b14dd54c5f7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagExpCD::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagExpCD::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="231" column="12" bodyfile="expUtil.cpp" bodystart="231" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1afc37033485ae79bf05129f168ef91d8d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagExpCD::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>DagExpCD::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="232" column="15" bodyfile="expUtil.cpp" bodystart="232" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1a713c154c4f9355e17b66c9479cc0ded3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagExpCD::InternalName</definition>
+        <argsstring>() override</argsstring>
+        <name>InternalName</name>
+        <qualifiedname>DagExpCD::InternalName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="234" column="15" bodyfile="expUtil.cpp" bodystart="234" bodyend="234"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExpCD_1a1bd958e11b811c46c8ed36a799b20223" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>HINSTANCE</type>
+        <definition>HINSTANCE DagExpCD::HInstance</definition>
+        <argsstring>() override</argsstring>
+        <name>HInstance</name>
+        <qualifiedname>DagExpCD::HInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="235" column="13" bodyfile="expUtil.cpp" bodystart="235" bodyend="235"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagExpCD</label>
+        <link refid="classDagExpCD"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagExpCD</label>
+        <link refid="classDagExpCD"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="219" column="1" bodyfile="expUtil.cpp" bodystart="220" bodyend="236"/>
+    <listofallmembers>
+      <member refid="classDagExpCD_1afc37033485ae79bf05129f168ef91d8d" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>Category</name></member>
+      <member refid="classDagExpCD_1ac558abddbc2a459dfacc7b14dd54c5f7" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>ClassID</name></member>
+      <member refid="classDagExpCD_1a06afb71876ee87222f983230745fdcce" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>ClassName</name></member>
+      <member refid="classDagExpCD_1adbe191a3276878ba3d79f68aab044132" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>Create</name></member>
+      <member refid="classDagExpCD_1a1bd958e11b811c46c8ed36a799b20223" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>HInstance</name></member>
+      <member refid="classDagExpCD_1a713c154c4f9355e17b66c9479cc0ded3" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>InternalName</name></member>
+      <member refid="classDagExpCD_1a3f67b88ae49e615ed47eb18a9f737f63" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>IsPublic</name></member>
+      <member refid="classDagExpCD_1a59ca27734297c1e53a515f6b8d043064" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classDagExpCD_1a66dede25cb05c0ccaf80626cd9f77b2a" prot="public" virt="non-virtual"><scope>DagExpCD</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__EditorBaseClasses" kind="group">
+    <compoundname>EditorBaseClasses</compoundname>
+    <title>Editor base classes</title>
+    <innerclass refid="classGenericEditorAppWindow" prot="public">GenericEditorAppWindow</innerclass>
+    <innerclass refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public">GenericEditorAppWindow::AppEventHandler</innerclass>
+    <innerclass refid="classGeneralEditorData" prot="public">GeneralEditorData</innerclass>
+    <innerclass refid="classIGenViewportWnd" prot="public">IGenViewportWnd</innerclass>
+    <innerclass refid="classIGenEventHandler" prot="public">IGenEventHandler</innerclass>
+    <innerclass refid="classIEditorCoreEngine" prot="public">IEditorCoreEngine</innerclass>
+    <innerclass refid="classIGenEventHandlerWrapper" prot="public">IGenEventHandlerWrapper</innerclass>
+    <innerclass refid="classEditableObject" prot="public">EditableObject</innerclass>
+    <innerclass refid="classRenderableEditableObject" prot="public">RenderableEditableObject</innerclass>
+    <innerclass refid="classToolBarManager" prot="public">ToolBarManager</innerclass>
+    <innerclass refid="classViewportWindow" prot="public">ViewportWindow</innerclass>
+    <innergroup refid="group__AppWindow">Application Window</innergroup>
+    <innergroup refid="group__ViewPort">Viewports</innergroup>
+    <innergroup refid="group__EventHandler">Event Handler</innergroup>
+    <innergroup refid="group__EditableObject">Editable Objects</innergroup>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

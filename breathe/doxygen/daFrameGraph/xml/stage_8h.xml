@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="stage_8h" kind="file" language="C++">
+    <compoundname>stage.h</compoundname>
+    <includes local="no">EASTL/utility.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includedby refid="virtualResourceRequest_8h" local="no">virtualResourceRequest.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>stage.h</label>
+        <link refid="stage_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="5">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="3">
+        <label>dispatchRequest.h</label>
+        <link refid="dispatchRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>drawRequest.h</label>
+        <link refid="drawRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>nameSpaceRequest.h</label>
+        <link refid="nameSpaceRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+      <node id="1">
+        <label>stage.h</label>
+        <link refid="stage_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>virtualPassRequest.h</label>
+        <link refid="virtualPassRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>virtualResourceSemiRequest.h</label>
+        <link refid="virtualResourceSemiRequest_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/utility.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">UNKNOWN</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" kindref="member">PRE_RASTER</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>0,</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1309488addcb247cddce3f8ed38aebb6" kindref="member">POST_RASTER</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aac404d7ce6ca5862e9b8a2641fbafd90" kindref="member">COMPUTE</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>2,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aeb5ddb3b6096fb90ff720d9c3e2a6628" kindref="member">TRANSFER</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>3,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c0fd52f85dbdb17fffd3d0d653013d3" kindref="member">RAYTRACE</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>4,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad3d4c5deb455ac79dd5ff47c88bd65d9" kindref="member">PS</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1309488addcb247cddce3f8ed38aebb6" kindref="member">POST_RASTER</ref>,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c54e23f4c5442c665a807ab19f61204" kindref="member">VS</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" kindref="member">PRE_RASTER</ref>,</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a8d7e99c73cd5a10adaaf4c9f9a520368" kindref="member">CS</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aac404d7ce6ca5862e9b8a2641fbafd90" kindref="member">COMPUTE</ref>,</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a9610cb37185d9e4d4316114bed2ab3c5" kindref="member">PS_OR_CS</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad3d4c5deb455ac79dd5ff47c88bd65d9" kindref="member">PS</ref><sp/>|<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a8d7e99c73cd5a10adaaf4c9f9a520368" kindref="member">CS</ref>,</highlight></codeline>
+<codeline lineno="61"></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1b88f31774becdfc8ccef062b2496f5b" kindref="member">ALL_GRAPHICS</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" kindref="member">PRE_RASTER</ref><sp/>|<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1309488addcb247cddce3f8ed38aebb6" kindref="member">POST_RASTER</ref>,</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad836d748421aedd50926610946a2612d" kindref="member">ALL_INDIRECTION</ref><sp/>=<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" kindref="member">PRE_RASTER</ref><sp/>|<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aac404d7ce6ca5862e9b8a2641fbafd90" kindref="member">COMPUTE</ref><sp/>|<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c0fd52f85dbdb17fffd3d0d653013d3" kindref="member">RAYTRACE</ref>,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="namespacedafg_1acd8aa8caea7e733172293bb61ed81a6d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/><ref refid="namespacedafg_1acd8aa8caea7e733172293bb61ed81a6d" kindref="member">operator|</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>a,<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>b)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eastl::to_underlying(a)<sp/>|<sp/>eastl::to_underlying(b));<sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="namespacedafg_1a5fefe7386ef89e879f4f8988e5938406" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>&amp;<ref refid="namespacedafg_1a5fefe7386ef89e879f4f8988e5938406" kindref="member">operator|=</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>&amp;a,<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>b)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>a<sp/>=<sp/>a<sp/>|<sp/>b;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="namespacedafg_1a3275c3d29c83d19143104a0c252bfeac" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/><ref refid="namespacedafg_1a3275c3d29c83d19143104a0c252bfeac" kindref="member">operator&amp;</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>a,<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>b)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eastl::to_underlying(a)<sp/>&amp;<sp/>eastl::to_underlying(b));<sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="namespacedafg_1a83035bc2075c76c48530000504e3565a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>&amp;<ref refid="namespacedafg_1a83035bc2075c76c48530000504e3565a" kindref="member">operator&amp;=</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>&amp;a,<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>b)</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>a<sp/>=<sp/>a<sp/>&amp;<sp/>b;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="namespacedafg_1a69c38d35de6c7083bf0b4329884ccf11" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/><ref refid="namespacedafg_1a69c38d35de6c7083bf0b4329884ccf11" kindref="member">operator~</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>a)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(<ref refid="namespaceeastl" kindref="compound">~eastl</ref>::to_underlying(a));<sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="namespacedafg_1aabc604cb0d2bcfd53e0f1bc981f495d1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1aabc604cb0d2bcfd53e0f1bc981f495d1" kindref="member">stagesSubsetOf</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>subset,<sp/><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>superset)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(subset<sp/>&amp;<sp/>superset)<sp/>==<sp/>subset;<sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="namespacedafg_1a0c8a21d5dfbe461539f18f79ea7fab45" refkind="member"><highlight class="normal">eastl::string<sp/><ref refid="namespacedafg_1abeb7e04e54814f3713bc35417b8c3914" kindref="member">to_string</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>stage);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="stage.h"/>
+  </compounddef>
+</doxygen>

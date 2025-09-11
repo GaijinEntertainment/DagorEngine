@@ -1,0 +1,421 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShadersBindump" kind="struct" language="C++" prot="public">
+    <compoundname>ShadersBindump</compoundname>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShadersBindump_1a6932b5ba55f02780f140008096216793" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">ShaderGlobal::Var</ref> &gt;</type>
+        <definition>SerializableTab&lt;ShaderGlobal::Var&gt; ShadersBindump::variable_list</definition>
+        <argsstring></argsstring>
+        <name>variable_list</name>
+        <qualifiedname>ShadersBindump::variable_list</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="26" column="19" bodyfile="linkShaders.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1aced761e20398c6053868cc38e71dec36" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classSampler" kindref="compound">Sampler</ref> &gt;</type>
+        <definition>SerializableTab&lt;Sampler&gt; ShadersBindump::static_samplers</definition>
+        <argsstring></argsstring>
+        <name>static_samplers</name>
+        <qualifiedname>ShadersBindump::static_samplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="27" column="19" bodyfile="linkShaders.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1abc23df78df3bb2501f9386a250085db7" prot="public" static="no" mutable="no">
+        <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref></type>
+        <definition>IntervalList ShadersBindump::intervals</definition>
+        <argsstring></argsstring>
+        <name>intervals</name>
+        <qualifiedname>ShadersBindump::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="28" column="16" bodyfile="linkShaders.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1aee2ee0394ba4ee1173a17fc16a13def5" prot="public" static="no" mutable="no">
+        <type>bindump::Ptr&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt;</type>
+        <definition>bindump::Ptr&lt;ShaderStateBlock&gt; ShadersBindump::empty_block</definition>
+        <argsstring></argsstring>
+        <name>empty_block</name>
+        <qualifiedname>ShadersBindump::empty_block</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="29" column="16" bodyfile="linkShaders.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1ab4fa76b4e1a1731e6abcda8b9feda5eb" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+        <definition>SerializableTab&lt;ShaderStateBlock *&gt; ShadersBindump::state_blocks</definition>
+        <argsstring></argsstring>
+        <name>state_blocks</name>
+        <qualifiedname>ShadersBindump::state_blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="30" column="19" bodyfile="linkShaders.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1ac20a831c0ac09e53b937da00a4baa531" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classShaderClass" kindref="compound">ShaderClass</ref> * &gt;</type>
+        <definition>SerializableTab&lt;ShaderClass *&gt; ShadersBindump::shaderClasses</definition>
+        <argsstring></argsstring>
+        <name>shaderClasses</name>
+        <qualifiedname>ShadersBindump::shaderClasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="31" column="19" bodyfile="linkShaders.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a93cf9c9fdf016a7bb703d28bd8ae362e" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; shaders::RenderState &gt;</type>
+        <definition>SerializableTab&lt;shaders::RenderState&gt; ShadersBindump::renderStates</definition>
+        <argsstring></argsstring>
+        <name>renderStates</name>
+        <qualifiedname>ShadersBindump::renderStates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="32" column="19" bodyfile="linkShaders.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a87687384dbf3c31e138b51d0bbd80a89" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="shaderTab_8h_1a2cd908b8b863e1a62398c1db79c3cb1a" kindref="member">TabFsh</ref> &gt;</type>
+        <definition>SerializableTab&lt;TabFsh&gt; ShadersBindump::shadersFsh</definition>
+        <argsstring></argsstring>
+        <name>shadersFsh</name>
+        <qualifiedname>ShadersBindump::shadersFsh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="33" column="19" bodyfile="linkShaders.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a3ea706eacea53a31cfdd8a685b5d2983" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="shaderTab_8h_1ae2d7923f0c75afa2dd22f7993339df8e" kindref="member">TabVpr</ref> &gt;</type>
+        <definition>SerializableTab&lt;TabVpr&gt; ShadersBindump::shadersVpr</definition>
+        <argsstring></argsstring>
+        <name>shadersVpr</name>
+        <qualifiedname>ShadersBindump::shadersVpr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="34" column="19" bodyfile="linkShaders.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a53021ecd230c1b3c6d7ba583aff6632b" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="shaderTab_8h_1adaa8b885671aa7f33745dcdeaafd088e" kindref="member">TabStcode</ref> &gt;</type>
+        <definition>SerializableTab&lt;TabStcode&gt; ShadersBindump::shadersStcode</definition>
+        <argsstring></argsstring>
+        <name>shadersStcode</name>
+        <qualifiedname>ShadersBindump::shadersStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="35" column="19" bodyfile="linkShaders.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a6829b94608c9922019b3d26661080a58" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+        <definition>SerializableTab&lt;CryptoHash&gt; ShadersBindump::dynamicCppcodeHashes</definition>
+        <argsstring></argsstring>
+        <name>dynamicCppcodeHashes</name>
+        <qualifiedname>ShadersBindump::dynamicCppcodeHashes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="36" column="19" bodyfile="linkShaders.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a4ae697c6b9935f49120f3e76f4fb8fc5" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+        <definition>SerializableTab&lt;CryptoHash&gt; ShadersBindump::staticCppcodeHashes</definition>
+        <argsstring></argsstring>
+        <name>staticCppcodeHashes</name>
+        <qualifiedname>ShadersBindump::staticCppcodeHashes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="37" column="19" bodyfile="linkShaders.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1adbbcd35e0948e97766f0b6960127b01c" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; bindump::string &gt;</type>
+        <definition>SerializableTab&lt;bindump::string&gt; ShadersBindump::dynamicCppcodeRoutineNames</definition>
+        <argsstring></argsstring>
+        <name>dynamicCppcodeRoutineNames</name>
+        <qualifiedname>ShadersBindump::dynamicCppcodeRoutineNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="38" column="19" bodyfile="linkShaders.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a21e66239a3d69bb42f5abc5ae5d9c0de" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; bindump::string &gt;</type>
+        <definition>SerializableTab&lt;bindump::string&gt; ShadersBindump::staticCppcodeRoutineNames</definition>
+        <argsstring></argsstring>
+        <name>staticCppcodeRoutineNames</name>
+        <qualifiedname>ShadersBindump::staticCppcodeRoutineNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="39" column="19" bodyfile="linkShaders.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a4d019eff48346db2f7ddb9b52909790c" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int32_t &gt; &gt;</type>
+        <definition>SerializableTab&lt;SerializableTab&lt;int32_t&gt; &gt; ShadersBindump::cppcodeRegisterTables</definition>
+        <argsstring></argsstring>
+        <name>cppcodeRegisterTables</name>
+        <qualifiedname>ShadersBindump::cppcodeRegisterTables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="40" column="19" bodyfile="linkShaders.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a986fbb2aabccb0b6584bb9174c419f31" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int32_t &gt;</type>
+        <definition>SerializableTab&lt;int32_t&gt; ShadersBindump::cppcodeRegisterTableOffsets</definition>
+        <argsstring></argsstring>
+        <name>cppcodeRegisterTableOffsets</name>
+        <qualifiedname>ShadersBindump::cppcodeRegisterTableOffsets</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="41" column="19" bodyfile="linkShaders.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindump_1a60c2fcfedf3b3e6b5718df6ed7df40f1" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; shader_layout::StcodeConstValidationMask * &gt;</type>
+        <definition>SerializableTab&lt;shader_layout::StcodeConstValidationMask *&gt; ShadersBindump::stcodeConstMasks</definition>
+        <argsstring></argsstring>
+        <name>stcodeConstMasks</name>
+        <qualifiedname>ShadersBindump::stcodeConstMasks</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="44" column="19" bodyfile="linkShaders.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="6">
+        <label>IntervalList</label>
+        <link refid="classIntervalList"/>
+      </node>
+      <node id="15">
+        <label>SerializableTab&lt; CryptoHash &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="16" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; Sampler &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; SerializableTab &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>SerializableTab&lt; SerializableTab&lt; int32_t &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="20" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SerializableTab&lt; ShaderClass * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SerializableTab&lt; ShaderGlobal::Var &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; ShaderStateBlock * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>SerializableTab&lt; bindump::string &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="18" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>SerializableTab&lt; int32_t &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="22" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>SerializableTab&lt; shader_layout::StcodeConstValidationMask * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="24" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SerializableTab&lt; shaders::RenderState &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShadersBindump</label>
+        <link refid="structShadersBindump"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>variable_list</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>static_samplers</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>intervals</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>state_blocks</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>shaderClasses</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>renderStates</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>shadersFsh</edgelabel>
+          <edgelabel>shadersStcode</edgelabel>
+          <edgelabel>shadersVpr</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>dynamicCppcodeHashes</edgelabel>
+          <edgelabel>staticCppcodeHashes</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>dynamicCppcodeRoutineNames</edgelabel>
+          <edgelabel>staticCppcodeRoutineNames</edgelabel>
+        </childnode>
+        <childnode refid="19" relation="usage">
+          <edgelabel>cppcodeRegisterTables</edgelabel>
+        </childnode>
+        <childnode refid="21" relation="usage">
+          <edgelabel>cppcodeRegisterTableOffsets</edgelabel>
+        </childnode>
+        <childnode refid="23" relation="usage">
+          <edgelabel>stcodeConstMasks</edgelabel>
+        </childnode>
+      </node>
+      <node id="16">
+        <label>Tab&lt; CryptoHash &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; Sampler &gt;</label>
+      </node>
+      <node id="14">
+        <label>Tab&lt; SerializableTab &gt;</label>
+      </node>
+      <node id="20">
+        <label>Tab&lt; SerializableTab&lt; int32_t &gt; &gt;</label>
+      </node>
+      <node id="10">
+        <label>Tab&lt; ShaderClass * &gt;</label>
+      </node>
+      <node id="3">
+        <label>Tab&lt; ShaderGlobal::Var &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; ShaderStateBlock * &gt;</label>
+      </node>
+      <node id="18">
+        <label>Tab&lt; bindump::string &gt;</label>
+      </node>
+      <node id="22">
+        <label>Tab&lt; int32_t &gt;</label>
+      </node>
+      <node id="24">
+        <label>Tab&lt; shader_layout::StcodeConstValidationMask * &gt;</label>
+      </node>
+      <node id="12">
+        <label>Tab&lt; shaders::RenderState &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="linkShaders.h" line="24" column="1" bodyfile="linkShaders.h" bodystart="25" bodyend="45"/>
+    <listofallmembers>
+      <member refid="structShadersBindump_1a986fbb2aabccb0b6584bb9174c419f31" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>cppcodeRegisterTableOffsets</name></member>
+      <member refid="structShadersBindump_1a4d019eff48346db2f7ddb9b52909790c" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>cppcodeRegisterTables</name></member>
+      <member refid="structShadersBindump_1a6829b94608c9922019b3d26661080a58" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>dynamicCppcodeHashes</name></member>
+      <member refid="structShadersBindump_1adbbcd35e0948e97766f0b6960127b01c" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>dynamicCppcodeRoutineNames</name></member>
+      <member refid="structShadersBindump_1aee2ee0394ba4ee1173a17fc16a13def5" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>empty_block</name></member>
+      <member refid="structShadersBindump_1abc23df78df3bb2501f9386a250085db7" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>intervals</name></member>
+      <member refid="structShadersBindump_1a93cf9c9fdf016a7bb703d28bd8ae362e" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>renderStates</name></member>
+      <member refid="structShadersBindump_1ac20a831c0ac09e53b937da00a4baa531" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>shaderClasses</name></member>
+      <member refid="structShadersBindump_1a87687384dbf3c31e138b51d0bbd80a89" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>shadersFsh</name></member>
+      <member refid="structShadersBindump_1a53021ecd230c1b3c6d7ba583aff6632b" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>shadersStcode</name></member>
+      <member refid="structShadersBindump_1a3ea706eacea53a31cfdd8a685b5d2983" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>shadersVpr</name></member>
+      <member refid="structShadersBindump_1ab4fa76b4e1a1731e6abcda8b9feda5eb" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>state_blocks</name></member>
+      <member refid="structShadersBindump_1aced761e20398c6053868cc38e71dec36" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>static_samplers</name></member>
+      <member refid="structShadersBindump_1a4ae697c6b9935f49120f3e76f4fb8fc5" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>staticCppcodeHashes</name></member>
+      <member refid="structShadersBindump_1a21e66239a3d69bb42f5abc5ae5d9c0de" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>staticCppcodeRoutineNames</name></member>
+      <member refid="structShadersBindump_1a60c2fcfedf3b3e6b5718df6ed7df40f1" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>stcodeConstMasks</name></member>
+      <member refid="structShadersBindump_1a6932b5ba55f02780f140008096216793" prot="public" virt="non-virtual"><scope>ShadersBindump</scope><name>variable_list</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

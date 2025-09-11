@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRotKey" kind="struct" language="C++" prot="public">
+    <compoundname>RotKey</compoundname>
+    <includes refid="expanim_8h" local="no">expanim.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRotKey_1a01935b0e6de647c19e43a66e2b544175" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue RotKey::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>RotKey::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="21" column="13" bodyfile="expanim.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRotKey_1aabcae9a33d299bc06864e4b0370f1b89" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat RotKey::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>RotKey::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="22" column="8" bodyfile="expanim.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRotKey_1ad9e68829872fbc8469876aa666ae1525" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat RotKey::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>RotKey::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="22" column="10" bodyfile="expanim.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRotKey_1a2d9e76ec0a9a2031cbc604bda81e22be" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat RotKey::o</definition>
+        <argsstring></argsstring>
+        <name>o</name>
+        <qualifiedname>RotKey::o</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="22" column="12" bodyfile="expanim.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRotKey_1a063b3f003b449fd36af29dd302e6c480" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RotKey::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <qualifiedname>RotKey::f</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="23" column="7" bodyfile="expanim.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expanim.h" line="19" column="1" bodyfile="expanim.h" bodystart="20" bodyend="24"/>
+    <listofallmembers>
+      <member refid="structRotKey_1a063b3f003b449fd36af29dd302e6c480" prot="public" virt="non-virtual"><scope>RotKey</scope><name>f</name></member>
+      <member refid="structRotKey_1ad9e68829872fbc8469876aa666ae1525" prot="public" virt="non-virtual"><scope>RotKey</scope><name>i</name></member>
+      <member refid="structRotKey_1a2d9e76ec0a9a2031cbc604bda81e22be" prot="public" virt="non-virtual"><scope>RotKey</scope><name>o</name></member>
+      <member refid="structRotKey_1aabcae9a33d299bc06864e4b0370f1b89" prot="public" virt="non-virtual"><scope>RotKey</scope><name>p</name></member>
+      <member refid="structRotKey_1a01935b0e6de647c19e43a66e2b544175" prot="public" virt="non-virtual"><scope>RotKey</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

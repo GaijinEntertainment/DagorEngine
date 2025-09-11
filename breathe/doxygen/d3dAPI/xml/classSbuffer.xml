@@ -1,0 +1,735 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSbuffer" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>Sbuffer</compoundname>
+    <basecompoundref refid="classD3dResource" prot="public" virt="non-virtual">D3dResource</basecompoundref>
+    <basecompoundref refid="structResourceChecker" prot="public" virt="non-virtual">ResourceChecker</basecompoundref>
+    <includes refid="dag__buffers_8h" local="no">dag_buffers.h</includes>
+    <innerclass refid="structSbuffer_1_1IReloadData" prot="public">Sbuffer::IReloadData</innerclass>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::setReloadCallback</definition>
+        <argsstring>(IReloadData *)</argsstring>
+        <name>setReloadCallback</name>
+        <qualifiedname>Sbuffer::setReloadCallback</qualifiedname>
+        <param>
+          <type><ref refid="structSbuffer_1_1IReloadData" kindref="compound">IReloadData</ref> *</type>
+        </param>
+        <briefdescription>
+<para>Set the Reload Callback object for the buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true if the callback was successfully set, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="48" column="16" bodyfile="dag_buffers.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a80a2a1113f4574d5afe9e9c0f173b4a0" prot="public" static="no" const="yes" explicit="no" inline="yes" final="yes" virt="virtual">
+        <type><ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98" kindref="member">D3DResourceType</ref></type>
+        <definition>D3DResourceType Sbuffer::getType</definition>
+        <argsstring>() const final</argsstring>
+        <name>getType</name>
+        <qualifiedname>Sbuffer::getType</qualifiedname>
+        <reimplements refid="classD3dResource_1aa94890796c26a059e9c5833c53169b77">getType</reimplements>
+        <briefdescription>
+<para>Returns the type of the <ref refid="classD3dResource" kindref="compound">D3dResource</ref>. It is always <ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98a8206533306dd18ebeee6416b4bc944e5" kindref="member">D3DResourceType::SBUF</ref> for <ref refid="classSbuffer" kindref="compound">Sbuffer</ref> objects. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98a8206533306dd18ebeee6416b4bc944e5" kindref="member">D3DResourceType::SBUF</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="55" column="19" bodyfile="dag_buffers.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a5db17ff4984b33762e3f977c800054f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::lock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags)=0</argsstring>
+        <name>lock</name>
+        <qualifiedname>Sbuffer::lock</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Locks a portion of the buffer for reading or writing.</para>
+<para><simplesect kind="warning"><para>It is better to use lock_sbuffer method for more safety.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size in bytes of the portion to lock. The whole buffer will be locked if 0. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer to a void pointer that will receive the locked memory address. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Additional flags to control the locking behavior. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>An integer representing the result of the lock operation. 0 if the lock failed, 1 if the lock succeeded. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="68" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1adeb26fce00357095237e09285b45690a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::unlock</definition>
+        <argsstring>()=0</argsstring>
+        <name>unlock</name>
+        <qualifiedname>Sbuffer::unlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Unlocks the buffer after it has been locked.</para>
+<para><simplesect kind="return"><para>An integer representing the result of the unlock operation. 0 if the unlock failed, 1 if the unlock succeeded. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="75" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a4b68173afcbea69b2842ad1f3289591d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getFlags</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getFlags</name>
+        <qualifiedname>Sbuffer::getFlags</qualifiedname>
+        <briefdescription>
+<para>Get the Flags object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Flags that control the buffer behavior and was set on a buffer creation. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="81" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a9c19d28513e314e51754a0d8c32619b4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * Sbuffer::getBufName</definition>
+        <argsstring>() const</argsstring>
+        <name>getBufName</name>
+        <qualifiedname>Sbuffer::getBufName</qualifiedname>
+        <briefdescription>
+<para>Get the Buffer name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The name of the buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="87" column="14" bodyfile="dag_buffers.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getElementSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getElementSize</name>
+        <qualifiedname>Sbuffer::getElementSize</qualifiedname>
+        <briefdescription>
+<para>Get the size of the structured buffer element. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method works only for structured buffers.</para>
+<para><simplesect kind="return"><para>The size of the buffer element. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="96" column="15" bodyfile="dag_buffers.h" bodystart="96" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a3410267f2b833071f1900ffb44537fb1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getNumElements</definition>
+        <argsstring>() const</argsstring>
+        <name>getNumElements</name>
+        <qualifiedname>Sbuffer::getNumElements</qualifiedname>
+        <briefdescription>
+<para>Get the amount of elements in the structured buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method works only for structured buffers.</para>
+<para><simplesect kind="return"><para>int amount of elements in the buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="104" column="15" bodyfile="dag_buffers.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1ac9d711eddc70289ee3474283cb7486f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::copyTo</definition>
+        <argsstring>(Sbuffer *dest)</argsstring>
+        <name>copyTo</name>
+        <qualifiedname>Sbuffer::copyTo</qualifiedname>
+        <param>
+          <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>dest</declname>
+        </param>
+        <briefdescription>
+<para>Copy current buffer to another buffer. The sizes of the buffers should match exactly. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dest</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully copied, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="111" column="16" bodyfile="dag_buffers.h" bodystart="111" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a9c440cde819bc62f01e24c558ad8616c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::copyTo</definition>
+        <argsstring>(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)</argsstring>
+        <name>copyTo</name>
+        <qualifiedname>Sbuffer::copyTo</qualifiedname>
+        <param>
+          <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>dst_ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>src_ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <briefdescription>
+<para>Copy a portion of the buffer to another buffer. Both buffers must be large enough for the copied portion offset and size. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dest</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dst_ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src_ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the source buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size in bytes of the portion to copy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully copied, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="125" column="16" bodyfile="dag_buffers.h" bodystart="125" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int Sbuffer::lockEx</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, T **p, int flags)</argsstring>
+        <name>lockEx</name>
+        <qualifiedname>Sbuffer::lockEx</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>T **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Locks a portion of the buffer for reading or writing. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>It is better to use lock_sbuffer method for more safety.</para>
+</simplesect>
+<parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>type of the data to lock </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="147" column="14" bodyfile="dag_buffers.h" bodystart="147" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a847dccde4430c12c1737e15c69a2c9b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Sbuffer::updateDataWithLock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, const void *src, int lockFlags)</argsstring>
+        <name>updateDataWithLock</name>
+        <qualifiedname>Sbuffer::updateDataWithLock</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lockFlags</declname>
+        </param>
+        <briefdescription>
+<para>Updates buffer content with the specified data using lock/memcpy/unlock. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to update. Must be non-zero. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to the source data </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lockFlags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully updated, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="168" column="8" bodyfile="dag_buffers.h" bodystart="168" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a54c4d28edee841bda8ccee85ee8233a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::updateData</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, const void *src, uint32_t lockFlags)</argsstring>
+        <name>updateData</name>
+        <qualifiedname>Sbuffer::updateData</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>lockFlags</declname>
+        </param>
+        <briefdescription>
+<para>Updates buffer content with the specified data using lock/memcpy/unlock. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to update. Must be non-zero. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to the source data </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lockFlags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully updated, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="191" column="16" bodyfile="dag_buffers.h" bodystart="191" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1a99727061a6ed4d537debb99300d5a19f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Sbuffer::lock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, uint16_t **p, int flags)</argsstring>
+        <name>lock</name>
+        <qualifiedname>Sbuffer::lock</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>uint16_t **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Lock method specified for index buffer with 16-bit indices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="206" column="14" bodyfile="dag_buffers.h" bodystart="206" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Sbuffer::lock32</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, uint32_t **p, int flags)</argsstring>
+        <name>lock32</name>
+        <qualifiedname>Sbuffer::lock32</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Lock method specified for index buffer with 32-bit indices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buffers.h" line="220" column="14" bodyfile="dag_buffers.h" bodystart="220" bodyend="224"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="classSbuffer" kindref="compound">Sbuffer</ref> class represents a buffer used for 3D rendering. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class is derived from the <ref refid="classD3dResource" kindref="compound">D3dResource</ref> class and provides functionality for locking and unlocking the buffer, retrieving buffer information, and updating buffer data. It represents all possible buffer types in the engine. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="3">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="1">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="3">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="1">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_buffers.h" line="21" column="1" bodyfile="dag_buffers.h" bodystart="22" bodyend="225"/>
+    <listofallmembers>
+      <member refid="structResourceChecker_1ad215aec9f64927578acd086814e7c5b8" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>checkLockParams</name></member>
+      <member refid="classSbuffer_1ac9d711eddc70289ee3474283cb7486f9" prot="public" virt="virtual"><scope>Sbuffer</scope><name>copyTo</name></member>
+      <member refid="classSbuffer_1a9c440cde819bc62f01e24c558ad8616c" prot="public" virt="virtual"><scope>Sbuffer</scope><name>copyTo</name></member>
+      <member refid="classD3dResource_1adf79387ed8aba74c3b89df96b6a90a4f" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>D3dResource</name></member>
+      <member refid="classD3dResource_1a934c63d0bda6062fc7c9c2dd35bffbe9" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>D3dResource</name></member>
+      <member refid="classD3dResource_1a23997f6bb699d0375bd442092f6fb5e3" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>destroy</name></member>
+      <member refid="classSbuffer_1a9c19d28513e314e51754a0d8c32619b4" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>getBufName</name></member>
+      <member refid="classSbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" prot="public" virt="virtual"><scope>Sbuffer</scope><name>getElementSize</name></member>
+      <member refid="classSbuffer_1a4b68173afcbea69b2842ad1f3289591d" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>getFlags</name></member>
+      <member refid="classD3dResource_1ac49ff4a78c9a91d19c928e50d0e350b4" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>getName</name></member>
+      <member refid="classSbuffer_1a3410267f2b833071f1900ffb44537fb1" prot="public" virt="virtual"><scope>Sbuffer</scope><name>getNumElements</name></member>
+      <member refid="classD3dResource_1aa1e377ab687f1f22045088e40ac08ec2" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>getSize</name></member>
+      <member refid="classSbuffer_1a80a2a1113f4574d5afe9e9c0f173b4a0" prot="public" virt="virtual"><scope>Sbuffer</scope><name>getType</name></member>
+      <member refid="structResourceChecker_1a9971dd4d9a644cf5e4058e7e7449f62e" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>init</name></member>
+      <member refid="classSbuffer_1a5db17ff4984b33762e3f977c800054f1" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>lock</name></member>
+      <member refid="classSbuffer_1a99727061a6ed4d537debb99300d5a19f" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lock</name></member>
+      <member refid="classSbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lock32</name></member>
+      <member refid="classSbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lockEx</name></member>
+      <member refid="classD3dResource_1ada026bcd1e9d5cbf59686ec3adf71285" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>operator=</name></member>
+      <member refid="structResourceChecker_1abbf9b09586f85ea42cc8ce2aafdf707c" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>report</name></member>
+      <member refid="classD3dResource_1aab63ceb7bd2edbad81615f78a2b04c9a" prot="public" virt="virtual"><scope>Sbuffer</scope><name>setApiName</name></member>
+      <member refid="classD3dResource_1a081b5e12026e39626062c49e4e62e50a" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>setName</name></member>
+      <member refid="classD3dResource_1a54bfc8fb21e1e3062360a7155e0b9b50" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>setName</name></member>
+      <member refid="classSbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" prot="public" virt="virtual"><scope>Sbuffer</scope><name>setReloadCallback</name></member>
+      <member refid="classSbuffer_1adeb26fce00357095237e09285b45690a" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>unlock</name></member>
+      <member refid="classSbuffer_1a54c4d28edee841bda8ccee85ee8233a6" prot="public" virt="virtual"><scope>Sbuffer</scope><name>updateData</name></member>
+      <member refid="classSbuffer_1a847dccde4430c12c1737e15c69a2c9b1" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>updateDataWithLock</name></member>
+      <member refid="classD3dResource_1a9eff0e45f010ff9542669e35f67f5980" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>~D3dResource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

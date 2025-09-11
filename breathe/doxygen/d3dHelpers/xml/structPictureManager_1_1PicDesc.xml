@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPictureManager_1_1PicDesc" kind="struct" language="C++" prot="public">
+    <compoundname>PictureManager::PicDesc</compoundname>
+    <includes refid="dag__picMgr_8h" local="no">dag_picMgr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPictureManager_1_1PicDesc_1ae475974d138a5a578057ce9bd5b6ae44" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+        <definition>PICTUREID PictureManager::PicDesc::pic</definition>
+        <argsstring></argsstring>
+        <name>pic</name>
+        <qualifiedname>PictureManager::PicDesc::pic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="110" column="13" bodyfile="dag_picMgr.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPictureManager_1_1PicDesc_1aeb4c9a3510c77fa99e1bb866762ef41d" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID PictureManager::PicDesc::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>PictureManager::PicDesc::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="111" column="13" bodyfile="dag_picMgr.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPictureManager_1_1PicDesc_1ac0ec828124b44fb054f1dce904bbd38f" prot="public" static="no" mutable="no">
+        <type>d3d::SamplerHandle</type>
+        <definition>d3d::SamplerHandle PictureManager::PicDesc::smp</definition>
+        <argsstring></argsstring>
+        <name>smp</name>
+        <qualifiedname>PictureManager::PicDesc::smp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="112" column="22" bodyfile="dag_picMgr.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPictureManager_1_1PicDesc_1a209e99bf6ae7c2a3b85eb043789c3254" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 PictureManager::PicDesc::tcLt</definition>
+        <argsstring></argsstring>
+        <name>tcLt</name>
+        <qualifiedname>PictureManager::PicDesc::tcLt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="114" column="10" bodyfile="dag_picMgr.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPictureManager_1_1PicDesc_1a8ea48c38318d6fc054d454922aef48d3" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 PictureManager::PicDesc::tcRb</definition>
+        <argsstring></argsstring>
+        <name>tcRb</name>
+        <qualifiedname>PictureManager::PicDesc::tcRb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="114" column="15" bodyfile="dag_picMgr.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1abb0fae02419813c09ceaf04bfea5d2d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PictureManager::PicDesc::PicDesc</definition>
+        <argsstring>()</argsstring>
+        <name>PicDesc</name>
+        <qualifiedname>PictureManager::PicDesc::PicDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="116" column="3" bodyfile="dag_picMgr.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1a15f409912a9e710fcfd56f16d7ab8f0b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PictureManager::PicDesc::PicDesc</definition>
+        <argsstring>(const PicDesc &amp;picture)</argsstring>
+        <name>PicDesc</name>
+        <qualifiedname>PictureManager::PicDesc::PicDesc</qualifiedname>
+        <param>
+          <type>const <ref refid="structPictureManager_1_1PicDesc" kindref="compound">PicDesc</ref> &amp;</type>
+          <declname>picture</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="117" column="3" bodyfile="dag_picMgr.h" bodystart="117" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1a5280d4933e7f1ad332e920abc93917a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PictureManager::PicDesc::~PicDesc</definition>
+        <argsstring>()</argsstring>
+        <name>~PicDesc</name>
+        <qualifiedname>PictureManager::PicDesc::~PicDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="123" column="3" bodyfile="dag_picMgr.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1ae4ab0f20ea2698a4e2081689b1786d87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::PicDesc::operator=</definition>
+        <argsstring>(const PicDesc &amp;picture)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>PictureManager::PicDesc::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structPictureManager_1_1PicDesc" kindref="compound">PicDesc</ref> &amp;</type>
+          <declname>picture</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="125" column="8" bodyfile="dag_picMgr.h" bodystart="125" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1ac85e26e38657cfdbcfbbcef9e6edfb15" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::PicDesc::init</definition>
+        <argsstring>(const char *file_name)</argsstring>
+        <name>init</name>
+        <qualifiedname>PictureManager::PicDesc::init</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>file_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="137" column="8" bodyfile="dag_picMgr.h" bodystart="137" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1abea094fb9e9f55a5afa0e8b4af0c2d51" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::PicDesc::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>PictureManager::PicDesc::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="144" column="8" bodyfile="dag_picMgr.h" bodystart="144" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1acde2b3918f9b06c522a35f8c3dbfa789" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 PictureManager::PicDesc::getSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getSize</name>
+        <qualifiedname>PictureManager::PicDesc::getSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="153" column="17" bodyfile="dag_picMgr.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PicDesc_1a5bc5f1ab6a333bbc237286e854870e3e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::PicDesc::updateTc</definition>
+        <argsstring>() const</argsstring>
+        <name>updateTc</name>
+        <qualifiedname>PictureManager::PicDesc::updateTc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="155" column="8" bodyfile="dag_picMgr.h" bodystart="155" bodyend="159"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_picMgr.h" line="107" column="1" bodyfile="dag_picMgr.h" bodystart="108" bodyend="160"/>
+    <listofallmembers>
+      <member refid="structPictureManager_1_1PicDesc_1acde2b3918f9b06c522a35f8c3dbfa789" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>getSize</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1ac85e26e38657cfdbcfbbcef9e6edfb15" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>init</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1ae4ab0f20ea2698a4e2081689b1786d87" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>operator=</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1ae475974d138a5a578057ce9bd5b6ae44" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>pic</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1abb0fae02419813c09ceaf04bfea5d2d1" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>PicDesc</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1a15f409912a9e710fcfd56f16d7ab8f0b" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>PicDesc</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1abea094fb9e9f55a5afa0e8b4af0c2d51" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>release</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1ac0ec828124b44fb054f1dce904bbd38f" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>smp</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1a209e99bf6ae7c2a3b85eb043789c3254" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>tcLt</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1a8ea48c38318d6fc054d454922aef48d3" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>tcRb</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1aeb4c9a3510c77fa99e1bb866762ef41d" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>tex</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1a5bc5f1ab6a333bbc237286e854870e3e" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>updateTc</name></member>
+      <member refid="structPictureManager_1_1PicDesc_1a5280d4933e7f1ad332e920abc93917a1" prot="public" virt="non-virtual"><scope>PictureManager::PicDesc</scope><name>~PicDesc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

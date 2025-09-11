@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classAutotoggle" kind="class" language="C++" prot="public">
+    <compoundname>Autotoggle</compoundname>
+    <includes refid="common_8h" local="no">common.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classAutotoggle_1acf2cf7ce7d2c5cf38f6cc0eddd10b4e1" prot="private" static="no" mutable="no">
+        <type>bool &amp;</type>
+        <definition>bool&amp; Autotoggle::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <qualifiedname>Autotoggle::f</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="10" column="8" bodyfile="common.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::Autotoggle</definition>
+        <argsstring>(bool &amp;f_)</argsstring>
+        <name>Autotoggle</name>
+        <qualifiedname>Autotoggle::Autotoggle</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+          <declname>f_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="13" column="12" bodyfile="common.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::Autotoggle</definition>
+        <argsstring>(bool &amp;f_, bool v_)</argsstring>
+        <name>Autotoggle</name>
+        <qualifiedname>Autotoggle::Autotoggle</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+          <declname>f_</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>v_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="14" column="3" bodyfile="common.h" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::~Autotoggle</definition>
+        <argsstring>()</argsstring>
+        <name>~Autotoggle</name>
+        <qualifiedname>Autotoggle::~Autotoggle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="15" column="3" bodyfile="common.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="common.h" line="8" column="1" bodyfile="common.h" bodystart="9" bodyend="16"/>
+    <listofallmembers>
+      <member refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>Autotoggle</name></member>
+      <member refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>Autotoggle</name></member>
+      <member refid="classAutotoggle_1acf2cf7ce7d2c5cf38f6cc0eddd10b4e1" prot="private" virt="non-virtual"><scope>Autotoggle</scope><name>f</name></member>
+      <member refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>~Autotoggle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

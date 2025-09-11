@@ -1,0 +1,209 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structManagedTexEntryDesc" kind="struct" language="C++" prot="public">
+    <compoundname>ManagedTexEntryDesc</compoundname>
+    <includes refid="dag__buildOnDemandTexFactory_8h" local="no">dag_buildOnDemandTexFactory.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1abf9ffc4b633ad107042e2c4491c0ea52" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ManagedTexEntryDesc::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>ManagedTexEntryDesc::width</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="59" column="12" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1ab9ba9574886575f4152f04c96a3d1b5c" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ManagedTexEntryDesc::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>ManagedTexEntryDesc::height</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="59" column="19" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1aa17d5da9ed0a31920384ad7cf2b229dd" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ManagedTexEntryDesc::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>ManagedTexEntryDesc::depth</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="59" column="27" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1a4a8ce4b7e8491748bf38d505e342fcdf" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ManagedTexEntryDesc::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <qualifiedname>ManagedTexEntryDesc::mipLevels</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="59" column="34" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1ac14251914e3eea4c014dd33d34091af0" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ManagedTexEntryDesc::qResSz[TQL__COUNT]</definition>
+        <argsstring>[TQL__COUNT]</argsstring>
+        <name>qResSz</name>
+        <qualifiedname>ManagedTexEntryDesc::qResSz</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="60" column="12" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1a7c2534b16e5fac2cbc27f2cd8f54edb8" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::qLev[TQL__COUNT]</definition>
+        <argsstring>[TQL__COUNT]</argsstring>
+        <name>qLev</name>
+        <qualifiedname>ManagedTexEntryDesc::qLev</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="61" column="11" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1a615cd7e952e7456c15fe3011e6256a11" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::maxLev</definition>
+        <argsstring></argsstring>
+        <name>maxLev</name>
+        <qualifiedname>ManagedTexEntryDesc::maxLev</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="62" column="11" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1ac06407ba788dc442defb2a1235ece953" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::ldLev</definition>
+        <argsstring></argsstring>
+        <name>ldLev</name>
+        <qualifiedname>ManagedTexEntryDesc::ldLev</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="62" column="19" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1afe16c8c6d792e3afa8f5c85c9dc207af" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::maxQL</definition>
+        <argsstring></argsstring>
+        <name>maxQL</name>
+        <qualifiedname>ManagedTexEntryDesc::maxQL</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="62" column="26" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1a756ef9031e0f28e6a228d4fe2092b5b3" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::curQL</definition>
+        <argsstring></argsstring>
+        <name>curQL</name>
+        <qualifiedname>ManagedTexEntryDesc::curQL</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="62" column="33" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1aae067d41ef1909a4dd27a2ead2a41e7c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::isLoading</definition>
+        <argsstring></argsstring>
+        <name>isLoading</name>
+        <qualifiedname>ManagedTexEntryDesc::isLoading</qualifiedname>
+        <bitfield> 1 = 0</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="63" column="11" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structManagedTexEntryDesc_1a63f922a41d7821b0aeb9d5f6c5fe3ca0" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ManagedTexEntryDesc::isLoadedWithErrors</definition>
+        <argsstring></argsstring>
+        <name>isLoadedWithErrors</name>
+        <qualifiedname>ManagedTexEntryDesc::isLoadedWithErrors</qualifiedname>
+        <bitfield> 1 = 0</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="63" column="22" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>combined description of managed texture entry (gathered from RMGR fields) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_buildOnDemandTexFactory.h" line="57" column="1" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="58" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structManagedTexEntryDesc_1a756ef9031e0f28e6a228d4fe2092b5b3" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>curQL</name></member>
+      <member refid="structManagedTexEntryDesc_1aa17d5da9ed0a31920384ad7cf2b229dd" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>depth</name></member>
+      <member refid="structManagedTexEntryDesc_1ab9ba9574886575f4152f04c96a3d1b5c" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>height</name></member>
+      <member refid="structManagedTexEntryDesc_1a63f922a41d7821b0aeb9d5f6c5fe3ca0" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>isLoadedWithErrors</name></member>
+      <member refid="structManagedTexEntryDesc_1aae067d41ef1909a4dd27a2ead2a41e7c" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>isLoading</name></member>
+      <member refid="structManagedTexEntryDesc_1ac06407ba788dc442defb2a1235ece953" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>ldLev</name></member>
+      <member refid="structManagedTexEntryDesc_1a615cd7e952e7456c15fe3011e6256a11" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>maxLev</name></member>
+      <member refid="structManagedTexEntryDesc_1afe16c8c6d792e3afa8f5c85c9dc207af" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>maxQL</name></member>
+      <member refid="structManagedTexEntryDesc_1a4a8ce4b7e8491748bf38d505e342fcdf" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>mipLevels</name></member>
+      <member refid="structManagedTexEntryDesc_1a7c2534b16e5fac2cbc27f2cd8f54edb8" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>qLev</name></member>
+      <member refid="structManagedTexEntryDesc_1ac14251914e3eea4c014dd33d34091af0" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>qResSz</name></member>
+      <member refid="structManagedTexEntryDesc_1abf9ffc4b633ad107042e2c4491c0ea52" prot="public" virt="non-virtual"><scope>ManagedTexEntryDesc</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

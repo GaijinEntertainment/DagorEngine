@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1Reflex" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>nv::Reflex</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+    <innerclass refid="structnv_1_1Reflex_1_1ReflexState" prot="public">nv::Reflex::ReflexState</innerclass>
+    <innerclass refid="structnv_1_1Reflex_1_1ReflexStats" prot="public">nv::Reflex::ReflexStats</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ReflexMode</name>
+        <qualifiedname>nv::Reflex::ReflexMode</qualifiedname>
+        <enumvalue id="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97ad15305d7a4e34e02489c74a5ef542f36" prot="public">
+          <name>Off</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97a521c36a31c2762741cf0f8890cbe05e3" prot="public">
+          <name>On</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97ae413bd867fc423cb991e2e6eeba4cf24" prot="public">
+          <name>OnPlusBoost</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="215" column="3" bodyfile="dag_nvFeatures.h" bodystart="216" bodyend="220"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structnv_1_1Reflex_1a7c68b695900bdeda322ce38136caebaf" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void nv::Reflex::startFrame</definition>
+        <argsstring>(uint32_t frame_id)=0</argsstring>
+        <name>startFrame</name>
+        <qualifiedname>nv::Reflex::startFrame</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="222" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Reflex_1aac15876738155b71c4f37469254dcf59" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::Reflex::setMarker</definition>
+        <argsstring>(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type)=0</argsstring>
+        <name>setMarker</name>
+        <qualifiedname>nv::Reflex::setMarker</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" kindref="member">lowlatency::LatencyMarkerType</ref></type>
+          <declname>marker_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="223" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Reflex_1ac21ca0354b15c4bd1e9aa5cb59258efa" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::Reflex::setOptions</definition>
+        <argsstring>(ReflexMode mode, unsigned frameLimitUs)=0</argsstring>
+        <name>setOptions</name>
+        <qualifiedname>nv::Reflex::setOptions</qualifiedname>
+        <param>
+          <type><ref refid="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97" kindref="member">ReflexMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>frameLimitUs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="224" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Reflex_1a47a19778e562bb912d9fdfad37b2fd7f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>eastl::optional&lt; <ref refid="structnv_1_1Reflex_1_1ReflexState" kindref="compound">ReflexState</ref> &gt;</type>
+        <definition>virtual eastl::optional&lt; ReflexState &gt; nv::Reflex::getState</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getState</name>
+        <qualifiedname>nv::Reflex::getState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="225" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Reflex_1ae4f0587515182bccaa518cbea79fe5e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::Reflex::sleep</definition>
+        <argsstring>(uint32_t frame_id)=0</argsstring>
+        <name>sleep</name>
+        <qualifiedname>nv::Reflex::sleep</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="226" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Reflex_1aec26e3b9560846b8fd527bde6d48b844" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97" kindref="member">ReflexMode</ref></type>
+        <definition>virtual ReflexMode nv::Reflex::getCurrentMode</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getCurrentMode</name>
+        <qualifiedname>nv::Reflex::getCurrentMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="227" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="184" column="1" bodyfile="dag_nvFeatures.h" bodystart="185" bodyend="228"/>
+    <listofallmembers>
+      <member refid="structnv_1_1Reflex_1aec26e3b9560846b8fd527bde6d48b844" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>getCurrentMode</name></member>
+      <member refid="structnv_1_1Reflex_1a47a19778e562bb912d9fdfad37b2fd7f" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>getState</name></member>
+      <member refid="structnv_1_1Reflex_1acba3bb5cd6509624380ffc638ec99a97" prot="public" virt="non-virtual"><scope>nv::Reflex</scope><name>ReflexMode</name></member>
+      <member refid="structnv_1_1Reflex_1aac15876738155b71c4f37469254dcf59" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>setMarker</name></member>
+      <member refid="structnv_1_1Reflex_1ac21ca0354b15c4bd1e9aa5cb59258efa" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>setOptions</name></member>
+      <member refid="structnv_1_1Reflex_1ae4f0587515182bccaa518cbea79fe5e4" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>sleep</name></member>
+      <member refid="structnv_1_1Reflex_1a7c68b695900bdeda322ce38136caebaf" prot="public" virt="pure-virtual"><scope>nv::Reflex</scope><name>startFrame</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classICustomCameras" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ICustomCameras</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classICustomCameras_1ae1793c9c442e31c50efdbe5a41999c93" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ICustomCameras::getSelectedCamera</definition>
+        <argsstring>()=0</argsstring>
+        <name>getSelectedCamera</name>
+        <qualifiedname>ICustomCameras::getSelectedCamera</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current camera ID. <simplesect kind="return"><para>current camera ID. If no such a camera the function <bold>must</bold> return -1 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="298" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classICustomCameras_1a8e14dc0b14a003ce9f147432dd462523" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ICustomCameras::getCamera</definition>
+        <argsstring>(const int id, TMatrix &amp;matrix, real &amp;fov, String &amp;name)=0</argsstring>
+        <name>getCamera</name>
+        <qualifiedname>ICustomCameras::getCamera</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>TMatrix &amp;</type>
+          <declname>matrix</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>fov</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get camera properties. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera ID (menu ID of the camera) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">matrix</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera matrix </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">fov</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera FOV (<bold>F</bold>ield <bold>O</bold>f <bold>V</bold>iew) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera name </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="306" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classICustomCameras_1a1c1c3b85a490821c4aa1712b6ca9a942" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ICustomCameras::setCamera</definition>
+        <argsstring>(const int id, const TMatrix &amp;matrix)=0</argsstring>
+        <name>setCamera</name>
+        <qualifiedname>ICustomCameras::setCamera</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>matrix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera matrix. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera ID (menu ID of the camera) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">matrix</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera matrix </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="312" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class for viewport to operate with custom cameras. </para>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="292" column="1" bodyfile="ec_interface_ex.h" bodystart="293" bodyend="313"/>
+    <listofallmembers>
+      <member refid="classICustomCameras_1a8e14dc0b14a003ce9f147432dd462523" prot="public" virt="pure-virtual"><scope>ICustomCameras</scope><name>getCamera</name></member>
+      <member refid="classICustomCameras_1ae1793c9c442e31c50efdbe5a41999c93" prot="public" virt="pure-virtual"><scope>ICustomCameras</scope><name>getSelectedCamera</name></member>
+      <member refid="classICustomCameras_1a1c1c3b85a490821c4aa1712b6ca9a942" prot="public" virt="pure-virtual"><scope>ICustomCameras</scope><name>setCamera</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCacheEntry_1_1Level2" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCacheEntry::Level2</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+    <innerclass refid="structShaderCacheEntry_1_1Level2_1_1Level3" prot="public">ShaderCacheEntry::Level2::Level3</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCacheEntry_1_1Level2_1a36c36086c56c0c1b28487f9b43a86d15" prot="public" static="no" mutable="no">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash ShaderCacheEntry::Level2::constDigest</definition>
+        <argsstring></argsstring>
+        <name>constDigest</name>
+        <qualifiedname>ShaderCacheEntry::Level2::constDigest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="42" column="16" bodyfile="shaderBytecodeCache.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderCacheEntry_1_1Level2_1_1Level3" kindref="compound">Level3</ref> &gt;</type>
+        <definition>Tab&lt;Level3&gt; ShaderCacheEntry::Level2::lv3</definition>
+        <argsstring></argsstring>
+        <name>lv3</name>
+        <qualifiedname>ShaderCacheEntry::Level2::lv3</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="43" column="9" bodyfile="shaderBytecodeCache.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderCacheEntry_1_1Level2_1a35d66ca44d0c4614657083680673644b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCacheEntry::Level2::Level2</definition>
+        <argsstring>()</argsstring>
+        <name>Level2</name>
+        <qualifiedname>ShaderCacheEntry::Level2::Level2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="45" column="5" bodyfile="shaderBytecodeCache.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderCacheEntry::Level2::addEntry</definition>
+        <argsstring>(const char *entry, const char *profile)</argsstring>
+        <name>addEntry</name>
+        <qualifiedname>ShaderCacheEntry::Level2::addEntry</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>entry</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="47" column="9" bodyfile="shaderBytecodeCache.h" bodystart="47" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>CryptoHash</label>
+        <link refid="structCryptoHash"/>
+      </node>
+      <node id="1">
+        <label>ShaderCacheEntry::Level2</label>
+        <link refid="structShaderCacheEntry_1_1Level2"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>constDigest</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shaderBytecodeCache.h" line="34" column="3" bodyfile="shaderBytecodeCache.h" bodystart="35" bodyend="55"/>
+    <listofallmembers>
+      <member refid="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2</scope><name>addEntry</name></member>
+      <member refid="structShaderCacheEntry_1_1Level2_1a36c36086c56c0c1b28487f9b43a86d15" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2</scope><name>constDigest</name></member>
+      <member refid="structShaderCacheEntry_1_1Level2_1a35d66ca44d0c4614657083680673644b" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2</scope><name>Level2</name></member>
+      <member refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2</scope><name>lv3</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

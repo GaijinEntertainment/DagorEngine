@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCode_1_1StVarMapping" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCode::StVarMapping</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCode_1_1StVarMapping_1a31a16e73a2ee100ffe3fbc4cabca4fc7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::StVarMapping::v</definition>
+        <argsstring></argsstring>
+        <name>v</name>
+        <qualifiedname>ShaderCode::StVarMapping::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="65" column="9" bodyfile="shcode.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1StVarMapping_1add49abaef197d07626ee6b8fc1e0b0ef" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::StVarMapping::sv</definition>
+        <argsstring></argsstring>
+        <name>sv</name>
+        <qualifiedname>ShaderCode::StVarMapping::sv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="65" column="11" bodyfile="shcode.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shcode.h" line="63" column="3" bodyfile="shcode.h" bodystart="64" bodyend="66"/>
+    <listofallmembers>
+      <member refid="structShaderCode_1_1StVarMapping_1add49abaef197d07626ee6b8fc1e0b0ef" prot="public" virt="non-virtual"><scope>ShaderCode::StVarMapping</scope><name>sv</name></member>
+      <member refid="structShaderCode_1_1StVarMapping_1a31a16e73a2ee100ffe3fbc4cabca4fc7" prot="public" virt="non-virtual"><scope>ShaderCode::StVarMapping</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

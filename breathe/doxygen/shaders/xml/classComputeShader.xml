@@ -1,0 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classComputeShader" kind="class" language="C++" prot="public">
+    <compoundname>ComputeShader</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classComputeShader_1ae572025e5e13f21bcf138df1f7e689e2" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;ComputeShaderElement&gt; ComputeShader::elem</definition>
+        <argsstring></argsstring>
+        <name>elem</name>
+        <qualifiedname>ComputeShader::elem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="67" column="21" bodyfile="dag_computeShaders.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classComputeShader_1a5ed49609315692c5fefb4559e4d868a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ComputeShader::ComputeShader</definition>
+        <argsstring>()=default</argsstring>
+        <name>ComputeShader</name>
+        <qualifiedname>ComputeShader::ComputeShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="70" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShader_1a6bdc040e4f549034f49a5a07415e797c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ComputeShader::ComputeShader</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>ComputeShader</name>
+        <qualifiedname>ComputeShader::ComputeShader</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="71" column="3" bodyfile="dag_computeShaders.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShader_1aac0aed13e2087c10800043314849ed3d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShader::dispatchThreads</definition>
+        <argsstring>(int threads_x, int threads_y, int threads_z) const</argsstring>
+        <name>dispatchThreads</name>
+        <qualifiedname>ComputeShader::dispatchThreads</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>threads_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>threads_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>threads_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="72" column="8" bodyfile="dag_computeShaders.h" bodystart="72" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShader_1a24da4264ae40e3254b8bd35623ed4944" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShader::dispatchGroups</definition>
+        <argsstring>(int groups_x, int groups_y, int groups_z) const</argsstring>
+        <name>dispatchGroups</name>
+        <qualifiedname>ComputeShader::dispatchGroups</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>groups_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>groups_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>groups_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="76" column="8" bodyfile="dag_computeShaders.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShader_1ae5773a4292509486176283254175bda1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShader::dispatchIndirect</definition>
+        <argsstring>(Sbuffer *args, int ofs) const</argsstring>
+        <name>dispatchIndirect</name>
+        <qualifiedname>ComputeShader::dispatchIndirect</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="77" column="8" bodyfile="dag_computeShaders.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_computeShaders.h" line="65" column="1" bodyfile="dag_computeShaders.h" bodystart="66" bodyend="78"/>
+    <listofallmembers>
+      <member refid="classComputeShader_1a5ed49609315692c5fefb4559e4d868a1" prot="public" virt="non-virtual"><scope>ComputeShader</scope><name>ComputeShader</name></member>
+      <member refid="classComputeShader_1a6bdc040e4f549034f49a5a07415e797c" prot="public" virt="non-virtual"><scope>ComputeShader</scope><name>ComputeShader</name></member>
+      <member refid="classComputeShader_1a24da4264ae40e3254b8bd35623ed4944" prot="public" virt="non-virtual"><scope>ComputeShader</scope><name>dispatchGroups</name></member>
+      <member refid="classComputeShader_1ae5773a4292509486176283254175bda1" prot="public" virt="non-virtual"><scope>ComputeShader</scope><name>dispatchIndirect</name></member>
+      <member refid="classComputeShader_1aac0aed13e2087c10800043314849ed3d" prot="public" virt="non-virtual"><scope>ComputeShader</scope><name>dispatchThreads</name></member>
+      <member refid="classComputeShader_1ae572025e5e13f21bcf138df1f7e689e2" prot="private" virt="non-virtual"><scope>ComputeShader</scope><name>elem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

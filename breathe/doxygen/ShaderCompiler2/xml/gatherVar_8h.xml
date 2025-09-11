@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="gatherVar_8h" kind="file" language="C++">
+    <compoundname>gatherVar.h</compoundname>
+    <includedby refid="gatherVar_8cpp" local="yes">gatherVar.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>gatherVar.cpp</label>
+        <link refid="gatherVar_8cpp"/>
+      </node>
+      <node id="1">
+        <label>gatherVar.h</label>
+        <link refid="gatherVar_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classShaderParser_1_1GatherVarShaderEvalCB" prot="public">ShaderParser::GatherVarShaderEvalCB</innerclass>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>gather<sp/>variants</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__GATHERVAR_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__GATHERVAR_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/bitvector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shsem_8h" kindref="compound">shsem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shlexterm_8h" kindref="compound">shlexterm.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariant_8h" kindref="compound">shaderVariant.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shShaderContext_8h" kindref="compound">shShaderContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVarBool_8h" kindref="compound">shVarBool.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="nameMap_8h" kindref="compound">nameMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hlslStage_8h" kindref="compound">hlslStage.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>forwards</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCodeSourceBlocks" kindref="compound">CodeSourceBlocks</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>class<sp/>GatherVarShaderEvalCB</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classShaderParser_1_1GatherVarShaderEvalCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderParser_1_1GatherVarShaderEvalCB" kindref="compound">GatherVarShaderEvalCB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1ShaderEvalCB" kindref="compound">ShaderEvalCB</ref>,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB" kindref="compound">GatherVarShaderEvalCB</ref>(<ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1af91fc4e0d22e1566e511b3d594b15b9b" kindref="member">eval_interval_decl</ref>(interval<sp/>&amp;interv)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1afe810aefad98a1151d59ffb1fd09dc2b" kindref="member">eval_static</ref>(static_var_decl<sp/>&amp;s)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a15bc1479f78a3e24c164b6859e8486e8" kindref="member">eval_bool_decl</ref>(bool_decl<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a67aa46a40ce6ba672d3fe200965be29a" kindref="member">decl_bool_alias</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>bool_expr<sp/>&amp;expr)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad62259329d3556617ec48ad8371e04ca" kindref="member">eval_channel_decl</ref>(channel_decl<sp/>&amp;s,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>str_id<sp/>=<sp/>0)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="45" refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b663671a80f67bcbd04c4c10bec21" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b663671a80f67bcbd04c4c10bec21" kindref="member">eval_state</ref>(state_stat<sp/>&amp;)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="46" refid="classShaderParser_1_1GatherVarShaderEvalCB_1a8e39492b7887bcae23f131f433e8d980" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a8e39492b7887bcae23f131f433e8d980" kindref="member">eval_zbias_state</ref>(zbias_state_stat<sp/>&amp;)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a3634670586826fc1fcd4051395467f56" kindref="member">eval_external_block</ref>(external_state_block<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7b6a60d97ec16dee92d2797e51eb8b37" kindref="member">eval_assume_stat</ref>(assume_stat<sp/>&amp;s)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac6f560c8041dc8f7cdc2bc64fdc8e3e7" kindref="member">eval_assume_if_not_assumed_stat</ref>(assume_if_not_assumed_stat<sp/>&amp;s)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50" refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac567248385bc109b4d3dd4992584497b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac567248385bc109b4d3dd4992584497b" kindref="member">eval_render_stage</ref>(render_stage_stat<sp/>&amp;)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="51" refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7503dafe082f3d1e8f292edd3e7ff9ae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7503dafe082f3d1e8f292edd3e7ff9ae" kindref="member">eval_command</ref>(shader_directive<sp/>&amp;)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a66ea2b9fa90e6242720bf13b21e2a9b6" kindref="member">eval_supports</ref>(supports_stat<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7a864082b90886569dda8ee9629bece5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7a864082b90886569dda8ee9629bece5" kindref="member">eval_shader_locdecl</ref>(local_var_decl<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a5f5d77772b7370a419e0856fa71bd882" kindref="member">eval_if</ref>(bool_expr<sp/>&amp;e)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1aeb7575d66f3cac5b49d6b0dbb4bb5915" kindref="member">eval_else</ref>(bool_expr<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a371829acd19abc128df0ff44bd874a1a" kindref="member">eval_endif</ref>(bool_expr<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a4e59927338e70286a8b5f69628cff544" kindref="member">eval_expr</ref>(bool_expr<sp/>&amp;e)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1aaa792cef7dc3cdacea004a2931634e01" kindref="member">eval_bool_value</ref>(bool_value<sp/>&amp;e)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1abbf81a7ee85b47222708004e2fe5d658" kindref="member">eval_interval_value</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*ival_name)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classShaderParser_1_1GatherVarShaderEvalCB_1aa2fb0c1c4408e61f7b6a75234d65ad0a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1aa2fb0c1c4408e61f7b6a75234d65ad0a" kindref="member">eval_hlsl_compile</ref>(hlsl_compile_class<sp/>&amp;hlsl_compile)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1ae2a7de899ef068a5dd712e4292b2f99b" kindref="member">eval_hlsl_decl</ref>(hlsl_local_decl_class<sp/>&amp;hlsl_compile)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1GatherVarShaderEvalCB_1a60f312350d66132eb84c2c05c933bc93" kindref="member">eval</ref>(immediate_const_block<sp/>&amp;)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Cached<sp/>refs<sp/>from<sp/>ctx</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><ref refid="structshc_1_1TypeTables" kindref="compound">shc::TypeTables</ref><sp/>&amp;types;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Internal<sp/>pass<sp/>state</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>Tab&lt;bool&gt;<sp/>dynStack;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dynCount;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasDynFlag;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref><sp/>staticVars,<sp/>dynamicVars;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>addInterval(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*intervalName,<sp/>Terminal<sp/>*terminal,<sp/>bool_value<sp/>*e);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>addTextureInterval(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*textureName,<sp/>Terminal<sp/>*terminal,<sp/>bool_value<sp/>&amp;e);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//__GATHERVAR_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="gatherVar.h"/>
+  </compounddef>
+</doxygen>

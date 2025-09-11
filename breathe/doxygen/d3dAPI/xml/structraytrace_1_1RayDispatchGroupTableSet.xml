@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchGroupTableSet" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchGroupTableSet</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroupTableSet_1a8d406a53829eada3085ab358b3e63b25" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayDispatchGroup" kindref="compound">RayDispatchGroup</ref></type>
+        <definition>RayDispatchGroup raytrace::RayDispatchGroupTableSet::rayGen</definition>
+        <argsstring></argsstring>
+        <name>rayGen</name>
+        <qualifiedname>raytrace::RayDispatchGroupTableSet::rayGen</qualifiedname>
+        <briefdescription>
+<para>Properties of the ray gen shader group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="953" column="20" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="953" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroupTableSet_1ab7c48131f8d93edc708adb3042d23cfa" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref></type>
+        <definition>RayDispatchGroupTable raytrace::RayDispatchGroupTableSet::miss</definition>
+        <argsstring></argsstring>
+        <name>miss</name>
+        <qualifiedname>raytrace::RayDispatchGroupTableSet::miss</qualifiedname>
+        <briefdescription>
+<para>Properties of the miss shader group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="955" column="25" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="955" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroupTableSet_1ab73fd3e6dfd68fd9f5d27a2812a51bac" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref></type>
+        <definition>RayDispatchGroupTable raytrace::RayDispatchGroupTableSet::hit</definition>
+        <argsstring></argsstring>
+        <name>hit</name>
+        <qualifiedname>raytrace::RayDispatchGroupTableSet::hit</qualifiedname>
+        <briefdescription>
+<para>Properties of the hit shader group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="957" column="25" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="957" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroupTableSet_1a1fee3675dd364c1e0de775d75b61b83a" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref></type>
+        <definition>RayDispatchGroupTable raytrace::RayDispatchGroupTableSet::callable</definition>
+        <argsstring></argsstring>
+        <name>callable</name>
+        <qualifiedname>raytrace::RayDispatchGroupTableSet::callable</qualifiedname>
+        <briefdescription>
+<para>Properties of the callable shader group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="959" column="25" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="959" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Table of shader groups for ray dispatches. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>raytrace::RayDispatchGroup</label>
+        <link refid="structraytrace_1_1RayDispatchGroup"/>
+      </node>
+      <node id="3">
+        <label>raytrace::RayDispatchGroupTable</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTable"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchGroupTableSet</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTableSet"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>rayGen</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>callable</edgelabel>
+          <edgelabel>hit</edgelabel>
+          <edgelabel>miss</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="950" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="951" bodyend="960"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchGroupTableSet_1a1fee3675dd364c1e0de775d75b61b83a" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTableSet</scope><name>callable</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroupTableSet_1ab73fd3e6dfd68fd9f5d27a2812a51bac" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTableSet</scope><name>hit</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroupTableSet_1ab7c48131f8d93edc708adb3042d23cfa" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTableSet</scope><name>miss</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroupTableSet_1a8d406a53829eada3085ab358b3e63b25" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTableSet</scope><name>rayGen</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindow_1_1DelayedMouseEvent" kind="struct" language="C++" prot="protected">
+    <compoundname>ViewportWindow::DelayedMouseEvent</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindow_1_1DelayedMouseEvent_1ac2ab31d9aca629c6a66cc3d3d163ee49" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::DelayedMouseEvent::x</definition>
+        <argsstring></argsstring>
+        <name>x</name>
+        <qualifiedname>ViewportWindow::DelayedMouseEvent::x</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="484" column="9" bodyfile="ec_ViewportWindow.h" bodystart="484" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1DelayedMouseEvent_1ada140a82217a087f551491d76c6bb4a5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::DelayedMouseEvent::y</definition>
+        <argsstring></argsstring>
+        <name>y</name>
+        <qualifiedname>ViewportWindow::DelayedMouseEvent::y</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="485" column="9" bodyfile="ec_ViewportWindow.h" bodystart="485" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1DelayedMouseEvent_1a145313504a2ed6ca88ccfea459e63b75" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::DelayedMouseEvent::inside</definition>
+        <argsstring></argsstring>
+        <name>inside</name>
+        <qualifiedname>ViewportWindow::DelayedMouseEvent::inside</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="486" column="10" bodyfile="ec_ViewportWindow.h" bodystart="486" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1DelayedMouseEvent_1a0586b029c27a3638689320e28229e1b4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::DelayedMouseEvent::buttons</definition>
+        <argsstring></argsstring>
+        <name>buttons</name>
+        <qualifiedname>ViewportWindow::DelayedMouseEvent::buttons</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="487" column="9" bodyfile="ec_ViewportWindow.h" bodystart="487" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1DelayedMouseEvent_1a334d70ccc2bc2e6b46e9f19f51d69368" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::DelayedMouseEvent::modifierKeys</definition>
+        <argsstring></argsstring>
+        <name>modifierKeys</name>
+        <qualifiedname>ViewportWindow::DelayedMouseEvent::modifierKeys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="488" column="9" bodyfile="ec_ViewportWindow.h" bodystart="488" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindow.h" line="482" column="3" bodyfile="ec_ViewportWindow.h" bodystart="483" bodyend="489"/>
+    <listofallmembers>
+      <member refid="structViewportWindow_1_1DelayedMouseEvent_1a0586b029c27a3638689320e28229e1b4" prot="public" virt="non-virtual"><scope>ViewportWindow::DelayedMouseEvent</scope><name>buttons</name></member>
+      <member refid="structViewportWindow_1_1DelayedMouseEvent_1a145313504a2ed6ca88ccfea459e63b75" prot="public" virt="non-virtual"><scope>ViewportWindow::DelayedMouseEvent</scope><name>inside</name></member>
+      <member refid="structViewportWindow_1_1DelayedMouseEvent_1a334d70ccc2bc2e6b46e9f19f51d69368" prot="public" virt="non-virtual"><scope>ViewportWindow::DelayedMouseEvent</scope><name>modifierKeys</name></member>
+      <member refid="structViewportWindow_1_1DelayedMouseEvent_1ac2ab31d9aca629c6a66cc3d3d163ee49" prot="public" virt="non-virtual"><scope>ViewportWindow::DelayedMouseEvent</scope><name>x</name></member>
+      <member refid="structViewportWindow_1_1DelayedMouseEvent_1ada140a82217a087f551491d76c6bb4a5" prot="public" virt="non-virtual"><scope>ViewportWindow::DelayedMouseEvent</scope><name>y</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

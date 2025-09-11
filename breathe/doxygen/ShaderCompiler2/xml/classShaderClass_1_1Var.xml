@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderClass_1_1Var" kind="class" language="C++" prot="public">
+    <compoundname>ShaderClass::Var</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderClass_1_1Var_1aa295379b64cbaa162eb56f24e96e7dba" prot="public" static="no" mutable="no">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref>&lt; <ref refid="structVarMapAdapter" kindref="compound">VarMapAdapter</ref> &gt;</type>
+        <definition>NameId&lt;VarMapAdapter&gt; ShaderClass::Var::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>ShaderClass::Var::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="144" column="12" bodyfile="shcode.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1_1Var_1a1ed280fa3a2a4d61025d82bdc62f530a" prot="public" static="no" mutable="no">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType ShaderClass::Var::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderClass::Var::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="145" column="19" bodyfile="shcode.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1_1Var_1a27fa6ba8394a026cc9fdc66007bc1497" prot="public" static="no" mutable="no">
+        <type><ref refid="unionShaderClass_1_1StVarValue" kindref="compound">StVarValue</ref></type>
+        <definition>StVarValue ShaderClass::Var::defval</definition>
+        <argsstring></argsstring>
+        <name>defval</name>
+        <qualifiedname>ShaderClass::Var::defval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="146" column="16" bodyfile="shcode.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderClass_1_1Var_1a767e7e50858f88c1da7b934fe00feedf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::Var::Var</definition>
+        <argsstring>()</argsstring>
+        <name>Var</name>
+        <qualifiedname>ShaderClass::Var::Var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="147" column="5" bodyfile="shcode.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; VarMapAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="3">
+        <label>ShaderClass::StVarValue</label>
+        <link refid="unionShaderClass_1_1StVarValue"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>c4</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>i4</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderClass::Var</label>
+        <link refid="classShaderClass_1_1Var"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>nameId</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>defval</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+      <node id="5">
+        <label>shc::Int4</label>
+        <link refid="structshc_1_1Int4"/>
+      </node>
+    </collaborationgraph>
+    <location file="shcode.h" line="141" column="3" bodyfile="shcode.h" bodystart="142" bodyend="148"/>
+    <listofallmembers>
+      <member refid="classShaderClass_1_1Var_1a27fa6ba8394a026cc9fdc66007bc1497" prot="public" virt="non-virtual"><scope>ShaderClass::Var</scope><name>defval</name></member>
+      <member refid="classShaderClass_1_1Var_1aa295379b64cbaa162eb56f24e96e7dba" prot="public" virt="non-virtual"><scope>ShaderClass::Var</scope><name>nameId</name></member>
+      <member refid="classShaderClass_1_1Var_1a1ed280fa3a2a4d61025d82bdc62f530a" prot="public" virt="non-virtual"><scope>ShaderClass::Var</scope><name>type</name></member>
+      <member refid="classShaderClass_1_1Var_1a767e7e50858f88c1da7b934fe00feedf" prot="public" virt="non-virtual"><scope>ShaderClass::Var</scope><name>Var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

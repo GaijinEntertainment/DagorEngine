@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1TypeTables" kind="struct" language="C++" prot="public">
+    <compoundname>shc::TypeTables</compoundname>
+    <includes refid="shShaderContext_8h" local="no">shShaderContext.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1TypeTables_1acc96568cc401badf5dc667d49749bd59" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref></type>
+        <definition>ShaderVariant::TypeTable shc::TypeTables::allStaticTypes</definition>
+        <argsstring></argsstring>
+        <name>allStaticTypes</name>
+        <qualifiedname>shc::TypeTables::allStaticTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="22" column="28" bodyfile="shShaderContext.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1TypeTables_1afa230b1d10268a40e3340e4d867f88a9" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref></type>
+        <definition>ShaderVariant::TypeTable shc::TypeTables::allDynamicTypes</definition>
+        <argsstring></argsstring>
+        <name>allDynamicTypes</name>
+        <qualifiedname>shc::TypeTables::allDynamicTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="23" column="28" bodyfile="shShaderContext.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1TypeTables_1abda67885492da30fcaa1263afef0dd65" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref></type>
+        <definition>ShaderVariant::TypeTable shc::TypeTables::referencedTypes</definition>
+        <argsstring></argsstring>
+        <name>referencedTypes</name>
+        <qualifiedname>shc::TypeTables::referencedTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="24" column="28" bodyfile="shShaderContext.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1TypeTables_1ac6754f13677d1495f4b422cf2bee980b" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::TypeTables::TypeTables</definition>
+        <argsstring>(shc::TargetContext &amp;ctx)</argsstring>
+        <name>TypeTables</name>
+        <qualifiedname>shc::TypeTables::TypeTables</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="26" column="12" bodyfile="shShaderContext.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+      <node id="1">
+        <label>shc::TypeTables</label>
+        <link refid="structshc_1_1TypeTables"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>allDynamicTypes</edgelabel>
+          <edgelabel>allStaticTypes</edgelabel>
+          <edgelabel>referencedTypes</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shShaderContext.h" line="20" column="1" bodyfile="shShaderContext.h" bodystart="21" bodyend="27"/>
+    <listofallmembers>
+      <member refid="structshc_1_1TypeTables_1afa230b1d10268a40e3340e4d867f88a9" prot="public" virt="non-virtual"><scope>shc::TypeTables</scope><name>allDynamicTypes</name></member>
+      <member refid="structshc_1_1TypeTables_1acc96568cc401badf5dc667d49749bd59" prot="public" virt="non-virtual"><scope>shc::TypeTables</scope><name>allStaticTypes</name></member>
+      <member refid="structshc_1_1TypeTables_1abda67885492da30fcaa1263afef0dd65" prot="public" virt="non-virtual"><scope>shc::TypeTables</scope><name>referencedTypes</name></member>
+      <member refid="structshc_1_1TypeTables_1ac6754f13677d1495f4b422cf2bee980b" prot="public" virt="non-virtual"><scope>shc::TypeTables</scope><name>TypeTables</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

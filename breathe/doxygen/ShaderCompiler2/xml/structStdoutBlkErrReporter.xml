@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStdoutBlkErrReporter" kind="struct" language="C++" prot="public">
+    <compoundname>StdoutBlkErrReporter</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DataBlock::IErrorReporterPipe</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStdoutBlkErrReporter_1a83e7ade7dbdb46277f2dbb973a26321d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StdoutBlkErrReporter::reportError</definition>
+        <argsstring>(const char *err, bool fat) override</argsstring>
+        <name>reportError</name>
+        <qualifiedname>StdoutBlkErrReporter::reportError</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>err</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="main.cpp" line="854" column="8" bodyfile="main.cpp" bodystart="854" bodyend="854"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DataBlock::IErrorReporterPipe</label>
+      </node>
+      <node id="1">
+        <label>StdoutBlkErrReporter</label>
+        <link refid="structStdoutBlkErrReporter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DataBlock::IErrorReporterPipe</label>
+      </node>
+      <node id="1">
+        <label>StdoutBlkErrReporter</label>
+        <link refid="structStdoutBlkErrReporter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="main.cpp" line="852" column="1" bodyfile="main.cpp" bodystart="853" bodyend="855"/>
+    <listofallmembers>
+      <member refid="structStdoutBlkErrReporter_1a83e7ade7dbdb46277f2dbb973a26321d" prot="public" virt="non-virtual"><scope>StdoutBlkErrReporter</scope><name>reportError</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

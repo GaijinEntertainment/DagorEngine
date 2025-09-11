@@ -1,0 +1,475 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="rayTraceMulti_8inl_8h" kind="file" language="C++">
+    <compoundname>rayTraceMulti.inl.h</compoundname>
+    <innernamespace refid="namespaceraytrace">raytrace</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a39013e19078347f5c62bf7b17e480c7f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>static RaytraceBottomAccelerationStructure * create_raytrace_bottom_acceleration_structure</definition>
+        <argsstring>(RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags, uint32_t &amp;build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)</argsstring>
+        <name>create_raytrace_bottom_acceleration_structure</name>
+        <param>
+          <type><ref refid="structRaytraceGeometryDescription" kindref="compound">RaytraceGeometryDescription</ref> *</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>build_scratch_size_in_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t *</type>
+          <declname>update_scratch_size_in_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="4" column="51" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="4" bodyend="9"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1afba92e4a69d01522ef46baa79549ff95" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>static RaytraceBottomAccelerationStructure * create_raytrace_bottom_acceleration_structure</definition>
+        <argsstring>(uint32_t size)</argsstring>
+        <name>create_raytrace_bottom_acceleration_structure</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="10" column="51" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="10" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a7fb9e6b62b11a029d8f4d9572bac597a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void delete_raytrace_bottom_acceleration_structure</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *as)</argsstring>
+        <name>delete_raytrace_bottom_acceleration_structure</name>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *</type>
+          <declname>as</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="14" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="14" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a367999ec91f20857fee5b104e63aa676" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RaytraceTopAccelerationStructure *</type>
+        <definition>static RaytraceTopAccelerationStructure * create_raytrace_top_acceleration_structure</definition>
+        <argsstring>(uint32_t elements, RaytraceBuildFlags flags, uint32_t &amp;build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)</argsstring>
+        <name>create_raytrace_top_acceleration_structure</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>build_scratch_size_in_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t *</type>
+          <declname>update_scratch_size_in_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="18" column="48" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="18" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1ae7d65cc0983a95ea2b4ea17dddeafb58" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void delete_raytrace_top_acceleration_structure</definition>
+        <argsstring>(RaytraceTopAccelerationStructure *as)</argsstring>
+        <name>delete_raytrace_top_acceleration_structure</name>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>as</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="23" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1afcba2bf287448487ca447dd6a82c9bf1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void set_top_acceleration_structure</definition>
+        <argsstring>(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as)</argsstring>
+        <name>set_top_acceleration_structure</name>
+        <param>
+          <type><ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531" kindref="member">ShaderStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>as</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="27" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="27" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1af9dfd7c114e16b85cc520b4d67c396d3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void build_bottom_acceleration_structure</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *as, const ::raytrace::BottomAccelerationStructureBuildInfo &amp;basbi)</argsstring>
+        <name>build_bottom_acceleration_structure</name>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *</type>
+          <declname>as</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" kindref="compound">::raytrace::BottomAccelerationStructureBuildInfo</ref> &amp;</type>
+          <declname>basbi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="31" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="31" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1ad119e83f9b97713001babb798c69ccbf" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void build_bottom_acceleration_structures</definition>
+        <argsstring>(::raytrace::BatchedBottomAccelerationStructureBuildInfo *as_array, uint32_t as_count)</argsstring>
+        <name>build_bottom_acceleration_structures</name>
+        <param>
+          <type><ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" kindref="compound">::raytrace::BatchedBottomAccelerationStructureBuildInfo</ref> *</type>
+          <declname>as_array</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>as_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="36" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="36" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1adbc9e5dc8a4074885f57fb7ae7ec4b4d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void build_top_acceleration_structure</definition>
+        <argsstring>(RaytraceTopAccelerationStructure *as, const ::raytrace::TopAccelerationStructureBuildInfo &amp;tasbi)</argsstring>
+        <name>build_top_acceleration_structure</name>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>as</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo" kindref="compound">::raytrace::TopAccelerationStructureBuildInfo</ref> &amp;</type>
+          <declname>tasbi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="41" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="41" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a9ff8f72dd8cf48de1017ee5962193f90" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void build_top_acceleration_structures</definition>
+        <argsstring>(::raytrace::BatchedTopAccelerationStructureBuildInfo *as_array, uint32_t as_count)</argsstring>
+        <name>build_top_acceleration_structures</name>
+        <param>
+          <type><ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" kindref="compound">::raytrace::BatchedTopAccelerationStructureBuildInfo</ref> *</type>
+          <declname>as_array</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>as_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="46" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="46" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a278c66f10cb648048b408d7935a94f4b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void write_raytrace_index_entries_to_memory</definition>
+        <argsstring>(uint32_t count, const RaytraceGeometryInstanceDescription *desc, void *ptr)</argsstring>
+        <name>write_raytrace_index_entries_to_memory</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structRaytraceGeometryInstanceDescription" kindref="compound">RaytraceGeometryInstanceDescription</ref> *</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="50" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="50" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a1c85d6c95b67f18ca9096bb07617e819" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>static uint64_t get_raytrace_acceleration_structure_size</definition>
+        <argsstring>(RaytraceAnyAccelerationStructure as)</argsstring>
+        <name>get_raytrace_acceleration_structure_size</name>
+        <param>
+          <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></type>
+          <declname>as</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="54" column="24" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="54" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1a022e8a1c2bc311d0d80bfaa10189e3dc" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref></type>
+        <definition>static RaytraceAccelerationStructureGpuHandle get_raytrace_acceleration_structure_gpu_handle</definition>
+        <argsstring>(RaytraceAnyAccelerationStructure as)</argsstring>
+        <name>get_raytrace_acceleration_structure_gpu_handle</name>
+        <param>
+          <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></type>
+          <declname>as</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="58" column="54" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="58" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="rayTraceMulti_8inl_8h_1ad4c6f8186d0296fc26281a2b6faa98fc" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void copy_raytrace_acceleration_structure</definition>
+        <argsstring>(RaytraceAnyAccelerationStructure dst, RaytraceAnyAccelerationStructure src, bool compact=false)</argsstring>
+        <name>copy_raytrace_acceleration_structure</name>
+        <param>
+          <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>compact</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="63" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="63" bodyend="67"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>D3D_HAS_RAY_TRACING</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>raytrace<sp/>interface<sp/>-&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="rayTraceMulti_8inl_8h_1a39013e19078347f5c62bf7b17e480c7f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>RaytraceBottomAccelerationStructure<sp/>*<ref refid="rayTraceMulti_8inl_8h_1a39013e19078347f5c62bf7b17e480c7f" kindref="member">create_raytrace_bottom_acceleration_structure</ref>(<ref refid="structRaytraceGeometryDescription" kindref="compound">RaytraceGeometryDescription</ref><sp/>*desc,</highlight></codeline>
+<codeline lineno="5"><highlight class="normal"><sp/><sp/>uint32_t<sp/>count,<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/>flags,<sp/>uint32_t<sp/>&amp;build_scratch_size_in_bytes,<sp/>uint32_t<sp/>*update_scratch_size_in_bytes)</highlight></codeline>
+<codeline lineno="6"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.create_raytrace_bottom_acceleration_structure_0(desc,<sp/>count,<sp/>flags,<sp/>build_scratch_size_in_bytes,</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/><sp/><sp/>update_scratch_size_in_bytes);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="10" refid="rayTraceMulti_8inl_8h_1afba92e4a69d01522ef46baa79549ff95" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>RaytraceBottomAccelerationStructure<sp/>*<ref refid="rayTraceMulti_8inl_8h_1a39013e19078347f5c62bf7b17e480c7f" kindref="member">create_raytrace_bottom_acceleration_structure</ref>(uint32_t<sp/>size)</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.create_raytrace_bottom_acceleration_structure_1(size);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="14" refid="rayTraceMulti_8inl_8h_1a7fb9e6b62b11a029d8f4d9572bac597a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a94ad4a88ea9d5dd052214b23a3354d23" kindref="member">delete_raytrace_bottom_acceleration_structure</ref>(RaytraceBottomAccelerationStructure<sp/>*as)</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.delete_raytrace_bottom_acceleration_structure(as);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="18" refid="rayTraceMulti_8inl_8h_1a367999ec91f20857fee5b104e63aa676" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>RaytraceTopAccelerationStructure<sp/>*<ref refid="rayTrace3di_8inl_8h_1acd2d36a52e53c49699fabbc75b5185be" kindref="member">create_raytrace_top_acceleration_structure</ref>(uint32_t<sp/>elements,<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/>flags,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>uint32_t<sp/>&amp;build_scratch_size_in_bytes,<sp/>uint32_t<sp/>*update_scratch_size_in_bytes)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.create_raytrace_top_acceleration_structure(elements,<sp/>flags,<sp/>build_scratch_size_in_bytes,<sp/>update_scratch_size_in_bytes);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="23" refid="rayTraceMulti_8inl_8h_1ae7d65cc0983a95ea2b4ea17dddeafb58" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a63d73ab2b0f1a142bfcf8ecee8521b8a" kindref="member">delete_raytrace_top_acceleration_structure</ref>(RaytraceTopAccelerationStructure<sp/>*as)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.delete_raytrace_top_acceleration_structure(as);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="27" refid="rayTraceMulti_8inl_8h_1afcba2bf287448487ca447dd6a82c9bf1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a4f951dc092c245418b8b23fa60c27e53" kindref="member">set_top_acceleration_structure</ref>(<ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531" kindref="member">ShaderStage</ref><sp/>stage,<sp/>uint32_t<sp/>index,<sp/>RaytraceTopAccelerationStructure<sp/>*as)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.set_top_acceleration_structure(stage,<sp/>index,<sp/>as);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="31" refid="rayTraceMulti_8inl_8h_1af9dfd7c114e16b85cc520b4d67c396d3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a9177e41bcb87e789b71acef524f631f6" kindref="member">build_bottom_acceleration_structure</ref>(RaytraceBottomAccelerationStructure<sp/>*as,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::BottomAccelerationStructureBuildInfo<sp/>&amp;basbi)</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.build_bottom_acceleration_structure(as,<sp/>basbi);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="36" refid="rayTraceMulti_8inl_8h_1ad119e83f9b97713001babb798c69ccbf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a1debfad0444715746aa54a3035272d8f" kindref="member">build_bottom_acceleration_structures</ref>(<ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" kindref="compound">::raytrace::BatchedBottomAccelerationStructureBuildInfo</ref><sp/>*as_array,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>uint32_t<sp/>as_count)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.build_bottom_acceleration_structures(as_array,<sp/>as_count);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="41" refid="rayTraceMulti_8inl_8h_1adbc9e5dc8a4074885f57fb7ae7ec4b4d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a84596d11978df7512081377724facc4b" kindref="member">build_top_acceleration_structure</ref>(RaytraceTopAccelerationStructure<sp/>*as,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::TopAccelerationStructureBuildInfo<sp/>&amp;tasbi)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.build_top_acceleration_structure(as,<sp/>tasbi);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="46" refid="rayTraceMulti_8inl_8h_1a9ff8f72dd8cf48de1017ee5962193f90" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aa5f61a7699ba911a7eba53b686c679e2" kindref="member">build_top_acceleration_structures</ref>(<ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" kindref="compound">::raytrace::BatchedTopAccelerationStructureBuildInfo</ref><sp/>*as_array,<sp/>uint32_t<sp/>as_count)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.build_top_acceleration_structures(as_array,<sp/>as_count);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="50" refid="rayTraceMulti_8inl_8h_1a278c66f10cb648048b408d7935a94f4b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1ac12641cbf81f2df372fd2218f72a7c24" kindref="member">write_raytrace_index_entries_to_memory</ref>(uint32_t<sp/>count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryInstanceDescription" kindref="compound">RaytraceGeometryInstanceDescription</ref><sp/>*desc,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*ptr)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.write_raytrace_index_entries_to_memory(count,<sp/>desc,<sp/>ptr);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="54" refid="rayTraceMulti_8inl_8h_1a1c85d6c95b67f18ca9096bb07617e819" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint64_t<sp/><ref refid="rayTrace3di_8inl_8h_1afeea4c91cd626efc213733e199120b2c" kindref="member">get_raytrace_acceleration_structure_size</ref>(<ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>as)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.get_raytrace_acceleration_structure_size(as);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="58" refid="rayTraceMulti_8inl_8h_1a022e8a1c2bc311d0d80bfaa10189e3dc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a9849607fcbf45d9304b531b60c0d38e9" kindref="member">get_raytrace_acceleration_structure_gpu_handle</ref>(</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>as)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.get_raytrace_acceleration_structure_gpu_handle(as);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="63" refid="rayTraceMulti_8inl_8h_1ad4c6f8186d0296fc26281a2b6faa98fc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aeafff5aa89c1873e8d64c477bcf24d0f" kindref="member">copy_raytrace_acceleration_structure</ref>(<ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>dst,<sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>src,</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compact<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.copy_raytrace_acceleration_structure(dst,<sp/>src,<sp/>compact);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace" kindref="compound">raytrace</ref></highlight></codeline>
+<codeline lineno="70"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71" refid="namespaceraytrace_1a0fad1e46e50db136432acdb178cbe7c5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a41b9a5472c76e1feb2f7c83e559a7a03" kindref="member">check_vertex_format_support_for_acceleration_structure_build</ref>(uint32_t<sp/>format)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.check_vertex_format_support_for_acceleration_structure_build(format);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="namespaceraytrace_1a12348105f76711eb8120940ea96f7ec3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::AccelerationStructurePool<sp/><ref refid="rayTrace3di_8inl_8h_1a11f8dd511152264622dab7631570d209" kindref="member">create_acceleration_structure_pool</ref>(</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::AccelerationStructurePoolCreateInfo<sp/>&amp;info)</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.create_acceleration_structure_pool(info);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="namespaceraytrace_1a1319990b45d7a776869c40f5ed733dab" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a66bf86593da499ac3175beaadbead5f8" kindref="member">destroy_acceleration_structure_pool</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref><sp/>pool)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.destroy_acceleration_structure_pool(pool);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="namespaceraytrace_1a6f8593da061bf809cbd2f6b0d41181b5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a281a4a3d6f7d65f8e3b798ef3295d703" kindref="member">get_pool_base_address</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref><sp/>pool)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.get_pool_base_address(pool);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="namespaceraytrace_1a367c3e24bcf3a7376a2174d58b88c869" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::AccelerationStructureSizes<sp/><ref refid="rayTrace3di_8inl_8h_1a1133aa409e9f183e7ab598428e7f8654" kindref="member">calculate_acceleration_structure_sizes</ref>(</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::AccelerationStructureSizeCalculcationInfo<sp/>&amp;info)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.calculate_acceleration_structure_sizes(info);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="namespaceraytrace_1ac95a35121919c487653d1ac939f24fdb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::AnyAccelerationStructure<sp/><ref refid="rayTrace3di_8inl_8h_1afb2a1395e4c213ceb4a7c7003c6eeb3e" kindref="member">create_acceleration_structure</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref><sp/>pool,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::AccelerationStructurePlacementInfo<sp/>&amp;placement_info)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.create_acceleration_structure(pool,<sp/>placement_info);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="namespaceraytrace_1a8b391c1d73318492ef69825c12eeda87" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a3c8f301a0f67f01d41ea1244f526027f" kindref="member">destroy_acceleration_structure</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref><sp/>pool,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">::raytrace::AnyAccelerationStructure</ref><sp/>structure)</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.destroy_acceleration_structure(pool,<sp/>structure);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="namespaceraytrace_1af047ab2e727454cd5dd9d6f44cfc0931" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aa9b62c6767a6489fd63e62f40e25d573" kindref="member">build_acceleration_structure</ref>(<ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">::raytrace::AccelerationStructureBuildParameters</ref><sp/>build_params,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" kindref="member">::raytrace::AccelerationStructureBuildMode</ref><sp/>build_mode<sp/>=<sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" kindref="member">::raytrace::AccelerationStructureBuildMode::Synchronous</ref>)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.build_acceleration_structure(build_params,<sp/>build_mode);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116" refid="namespaceraytrace_1a38552e17aef536fdd77e6600dba9a256" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::Pipeline<sp/><ref refid="rayTrace3di_8inl_8h_1a14c3d6a80e4845de4f0925dd7c5cd3fe" kindref="member">create_pipeline</ref>(const<sp/>::raytrace::PipelineCreateInfo<sp/>&amp;pci)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.create_pipeline(pci);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121" refid="namespaceraytrace_1a323c2ed920d24c2f66aaef7f6402e549" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::Pipeline<sp/><ref refid="rayTrace3di_8inl_8h_1a80e7f53d50020aeb59bca9d748023696" kindref="member">expand_pipeline</ref>(const<sp/>::raytrace::Pipeline<sp/>&amp;pipeline,<sp/>const<sp/>::raytrace::PipelineExpandInfo<sp/>&amp;pei)</highlight></codeline>
+<codeline lineno="122"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.expand_pipeline(pipeline,<sp/>pei);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126" refid="namespaceraytrace_1ac84a48462ce79ad9bbab0121b0121e48" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a5b37f27c76a6695a52490bd2b1a0937b" kindref="member">destroy_pipeline</ref>(<ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref><sp/>&amp;p)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.destroy_pipeline(p);<sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="namespaceraytrace_1a401cf0ab1e9897dbbc8dd1500d26737b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>inline<sp/>::raytrace::ShaderBindingTableBufferProperties<sp/><ref refid="rayTrace3di_8inl_8h_1a17d5959d61ea5017d45d14ab993c9bfb" kindref="member">get_shader_binding_table_buffer_properties</ref>(</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::ShaderBindingTableDefinition<sp/>&amp;sbtci,<sp/>const<sp/>::raytrace::Pipeline<sp/>&amp;pipeline)</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.get_shader_binding_table_buffer_properties(sbtci,<sp/>pipeline);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="namespaceraytrace_1a017786d2d24a4d159d034585ddd4163a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aa1af0a0b0dce6b18b80603c3e1e29bca" kindref="member">dispatch</ref>(const<sp/>::raytrace::ResourceBindingTable<sp/>&amp;rbt,<sp/>const<sp/>::raytrace::Pipeline<sp/>&amp;pipeline,</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::RayDispatchParameters<sp/>&amp;rdp,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>)</highlight></codeline>
+<codeline lineno="136"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.<ref refid="structD3dInterfaceTable_1a1cf2a2707d68bea69a01ae4b0cfec1f5" kindref="member">dispatch</ref>(rbt,<sp/>pipeline,<sp/>rdp,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140" refid="namespaceraytrace_1af6bc9a991be0c5114aff4df33da7d0f9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aef7b44ac7bc5cb5b6197b2a19eb7879f" kindref="member">dispatch_indirect</ref>(const<sp/>::raytrace::ResourceBindingTable<sp/>&amp;rbt,<sp/>const<sp/>::raytrace::Pipeline<sp/>&amp;pipeline,</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::RayDispatchIndirectParameters<sp/>&amp;rdip,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.<ref refid="structD3dInterfaceTable_1ac18529d70f005a82b57286e24af17799" kindref="member">dispatch_indirect</ref>(rbt,<sp/>pipeline,<sp/>rdip,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="145" refid="namespaceraytrace_1ad2ce061869e97e0e9f21cf726f9b652c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a0647a9f63adbf6ca6480c770e3621343" kindref="member">dispatch_indirect_count</ref>(const<sp/>::raytrace::ResourceBindingTable<sp/>&amp;rbt,<sp/>const<sp/>::raytrace::Pipeline<sp/>&amp;pipeline,</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>const<sp/>::raytrace::RayDispatchIndirectCountParameters<sp/>&amp;rdicp,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>)</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.raytrace.dispatch_indirect_count(rbt,<sp/>pipeline,<sp/>rdicp,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>raytrace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&lt;-<sp/>raytrace<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="rayTrace/rayTraceMulti.inl.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshaders" kind="namespace" language="C++">
+    <compoundname>shaders</compoundname>
+    <innerclass refid="structshaders_1_1CombinedDynVariantState" prot="public">shaders::CombinedDynVariantState</innerclass>
+    <innerclass refid="structshaders_1_1OverrideState" prot="public">shaders::OverrideState</innerclass>
+    <innerclass refid="classshaders_1_1OverrideStateIdDummy" prot="public">shaders::OverrideStateIdDummy</innerclass>
+    <innerclass refid="structshaders_1_1StencilState" prot="public">shaders::StencilState</innerclass>
+    <innerclass refid="structshaders_1_1UniqueOverrideStateId" prot="public">shaders::UniqueOverrideStateId</innerclass>
+    <innernamespace refid="namespaceshaders_1_1overrides">shaders::overrides</innernamespace>
+    <innernamespace refid="namespaceshaders_1_1render__states">shaders::render_states</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__shaderState_8h_1ab1e3db3723d38742739634d6872ca3b7" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>ConstStateIdx</name>
+        <qualifiedname>shaders::ConstStateIdx</qualifiedname>
+        <enumvalue id="dag__shaderState_8h_1ab1e3db3723d38742739634d6872ca3b7a4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderState.h" line="12" column="1" bodyfile="dag_shaderState.h" bodystart="13" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__shaderState_8h_1a720179e1b264452378d9442b17dd6e02" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>TexStateIdx</name>
+        <qualifiedname>shaders::TexStateIdx</qualifiedname>
+        <enumvalue id="dag__shaderState_8h_1a720179e1b264452378d9442b17dd6e02a4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderState.h" line="16" column="1" bodyfile="dag_shaderState.h" bodystart="17" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__overrideStateId_8h_1ae3adb525f98d116e93305414ae5d4c03" prot="public" static="no">
+        <type>GenerationRefId&lt; 8, <ref refid="classshaders_1_1OverrideStateIdDummy" kindref="compound">OverrideStateIdDummy</ref> &gt;</type>
+        <definition>typedef GenerationRefId&lt;8, OverrideStateIdDummy&gt; shaders::OverrideStateId</definition>
+        <argsstring></argsstring>
+        <name>OverrideStateId</name>
+        <qualifiedname>shaders::OverrideStateId</qualifiedname>
+        <briefdescription>
+<para>A type used to identify override state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="19" column="25" bodyfile="dag_overrideStateId.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__overrideStates_8h_1ada265228f2c6ea6364a21086f193ab3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::set_stencil_ref</definition>
+        <argsstring>(uint8_t ref)</argsstring>
+        <name>set_stencil_ref</name>
+        <qualifiedname>shaders::set_stencil_ref</qualifiedname>
+        <param>
+          <type>uint8_t</type>
+          <declname>ref</declname>
+        </param>
+        <briefdescription>
+<para>Set reference value for stencil operations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ref</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Reference value to set.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<xrefsect id="todo_1_todo000001"><xreftitle>Todo</xreftitle><xrefdescription><para>In the moment, we use this instead of absent d3d::set_stencil_ref. To be replaced </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="238" column="6" declfile="dag_overrideStates.h" declline="238" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVarsUtils_8h_1ac30bd742c7d7468fdaf6eae2d7cc8323" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structshaders_1_1CombinedDynVariantState" kindref="compound">CombinedDynVariantState</ref></type>
+        <definition>CombinedDynVariantState shaders::get_dynamic_variant_state</definition>
+        <argsstring>(const ScriptedShaderElement &amp;s)</argsstring>
+        <name>get_dynamic_variant_state</name>
+        <qualifiedname>shaders::get_dynamic_variant_state</qualifiedname>
+        <param>
+          <type>const ScriptedShaderElement &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="77" column="32" bodyfile="dag_shaderVarsUtils.h" bodystart="77" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_overrideStateId.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

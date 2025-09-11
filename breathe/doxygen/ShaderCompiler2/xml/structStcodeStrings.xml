@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeStrings" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeStrings</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeStrings_1a568292a13c82e8eb55f47d98e963d243" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeStrings::cppCode</definition>
+        <argsstring></argsstring>
+        <name>cppCode</name>
+        <qualifiedname>StcodeStrings::cppCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="30" column="17" bodyfile="cppStcodeAssembly.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeStrings_1a8465a0a4e47b4376dec531255c5249a7" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeStrings::headerCode</definition>
+        <argsstring></argsstring>
+        <name>headerCode</name>
+        <qualifiedname>StcodeStrings::headerCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="30" column="25" bodyfile="cppStcodeAssembly.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="28" column="1" bodyfile="cppStcodeAssembly.h" bodystart="29" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structStcodeStrings_1a568292a13c82e8eb55f47d98e963d243" prot="public" virt="non-virtual"><scope>StcodeStrings</scope><name>cppCode</name></member>
+      <member refid="structStcodeStrings_1a8465a0a4e47b4376dec531255c5249a7" prot="public" virt="non-virtual"><scope>StcodeStrings</scope><name>headerCode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

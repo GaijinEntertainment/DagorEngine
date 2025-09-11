@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeBytecodeCache_1_1Refs" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeBytecodeCache::Refs</compoundname>
+    <includes refid="stcodeBytecode_8h" local="no">stcodeBytecode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeBytecodeCache_1_1Refs_1a967093436d938ab21929802ee03e4b2e" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; StcodeBytecodeCache::Refs::stcode</definition>
+        <argsstring></argsstring>
+        <name>stcode</name>
+        <qualifiedname>StcodeBytecodeCache::Refs::stcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="227" column="20" bodyfile="stcodeBytecode.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeBytecodeCache_1_1Refs_1a5934d0bf0db5405e3c193edcc81b6b5a" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; StcodeBytecodeCache::Refs::stblkcode</definition>
+        <argsstring></argsstring>
+        <name>stblkcode</name>
+        <qualifiedname>StcodeBytecodeCache::Refs::stblkcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="228" column="20" bodyfile="stcodeBytecode.h" bodystart="228" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stcodeBytecode.h" line="225" column="3" bodyfile="stcodeBytecode.h" bodystart="226" bodyend="229"/>
+    <listofallmembers>
+      <member refid="structStcodeBytecodeCache_1_1Refs_1a5934d0bf0db5405e3c193edcc81b6b5a" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache::Refs</scope><name>stblkcode</name></member>
+      <member refid="structStcodeBytecodeCache_1_1Refs_1a967093436d938ab21929802ee03e4b2e" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache::Refs</scope><name>stcode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

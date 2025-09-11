@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCryptoHash" kind="struct" language="C++" prot="public">
+    <compoundname>CryptoHash</compoundname>
+    <includes refid="hash_8h" local="no">hash.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCryptoHash_1a95d5fa9df82f7c616da94401b37924ba" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t CryptoHash::data[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>data</name>
+        <qualifiedname>CryptoHash::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="9" column="11" bodyfile="hash.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCryptoHash_1a2779f3374eaccf6d7fa87acd7e91d957" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CryptoHash::operator==</definition>
+        <argsstring>(const CryptoHash &amp;a) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>CryptoHash::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="10" column="8" bodyfile="hash.h" bodystart="10" bodyend="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hash.h" line="7" column="1" bodyfile="hash.h" bodystart="8" bodyend="11"/>
+    <listofallmembers>
+      <member refid="structCryptoHash_1a95d5fa9df82f7c616da94401b37924ba" prot="public" virt="non-virtual"><scope>CryptoHash</scope><name>data</name></member>
+      <member refid="structCryptoHash_1a2779f3374eaccf6d7fa87acd7e91d957" prot="public" virt="non-virtual"><scope>CryptoHash</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

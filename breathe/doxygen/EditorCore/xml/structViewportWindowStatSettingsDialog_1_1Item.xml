@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindowStatSettingsDialog_1_1Item" kind="struct" language="C++" prot="private">
+    <compoundname>ViewportWindowStatSettingsDialog::Item</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1Item_1aeaf0baf58a5ccfab89eb5ab7002b52cb" prot="public" static="no" mutable="no">
+        <type>PropPanel::TLeafHandle</type>
+        <definition>PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::Item::handle</definition>
+        <argsstring></argsstring>
+        <name>handle</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::Item::handle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="24" column="28" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1Item_1a631efa06a248f1702449303836b4747e" prot="public" static="no" mutable="no">
+        <type>PropPanel::TLeafHandle</type>
+        <definition>PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::Item::group</definition>
+        <argsstring></argsstring>
+        <name>group</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::Item::group</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="25" column="28" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1Item_1a920e8d587e934a105e3d995ff4f820cc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindowStatSettingsDialog::Item::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::Item::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="26" column="9" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1Item_1a1de0c45117639e92f43139c95b566dd7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindowStatSettingsDialog::Item::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::Item::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="27" column="10" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindowStatSettingsDialog.h" line="22" column="3" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="23" bodyend="28"/>
+    <listofallmembers>
+      <member refid="structViewportWindowStatSettingsDialog_1_1Item_1a631efa06a248f1702449303836b4747e" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::Item</scope><name>group</name></member>
+      <member refid="structViewportWindowStatSettingsDialog_1_1Item_1aeaf0baf58a5ccfab89eb5ab7002b52cb" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::Item</scope><name>handle</name></member>
+      <member refid="structViewportWindowStatSettingsDialog_1_1Item_1a920e8d587e934a105e3d995ff4f820cc" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::Item</scope><name>id</name></member>
+      <member refid="structViewportWindowStatSettingsDialog_1_1Item_1a1de0c45117639e92f43139c95b566dd7" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::Item</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

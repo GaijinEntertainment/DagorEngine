@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__selwindow_8h" kind="file" language="C++">
+    <compoundname>ec_selwindow.h</compoundname>
+    <includes refid="ec__decl_8h" local="no">EditorCore/ec_decl.h</includes>
+    <includes refid="ec__rect_8h" local="no">EditorCore/ec_rect.h</includes>
+    <includes refid="ec__interface__ex_8h" local="no">EditorCore/ec_interface_ex.h</includes>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includes local="no">ioSys/dag_dataBlock.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="5">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EditorCore/ec_interface_ex.h</label>
+        <link refid="ec__interface__ex_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_selwindow.h</label>
+        <link refid="ec__selwindow_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="13">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="10">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="7">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="12">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="9">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="11">
+        <label>scene/dag_visibility.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classSelWindow" prot="public">SelWindow</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__decl_8h" kindref="compound">EditorCore/ec_decl.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__rect_8h" kindref="compound">EditorCore/ec_rect.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__interface__ex_8h" kindref="compound">EditorCore/ec_interface_ex.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_dataBlock.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classSelWindow" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSelWindow" kindref="compound">SelWindow</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="classSelWindow_1ac6d46b3b037d3887bd62d09bf5bb3a34" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSelWindow_1ac6d46b3b037d3887bd62d09bf5bb3a34" kindref="member">SelWindow</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*phandle,<sp/><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref><sp/>*obj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*obj_list_owner_name<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classSelWindow_1aaebba492937514b6d53e087932f8941a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSelWindow_1aaebba492937514b6d53e087932f8941a" kindref="member">SelWindow</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*phandle,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;rect,<sp/><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref><sp/>*obj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*obj_list_owner_name<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classSelWindow_1a93d9ffe03b8b3a5859be25ef06997d5d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSelWindow_1a93d9ffe03b8b3a5859be25ef06997d5d" kindref="member">~SelWindow</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="classSelWindow_1a63af9be4a951880942f345576b68bc45" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classSelWindow_1a63af9be4a951880942f345576b68bc45" kindref="member">showDialog</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classSelWindow_1a8e7e93ffb09361959dbc14269c923087" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSelWindow_1a8e7e93ffb09361959dbc14269c923087" kindref="member">getSelectedNames</ref>(Tab&lt;String&gt;<sp/>&amp;names);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*objListName;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref><sp/>*objects;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>Tab&lt;String&gt;<sp/>typeNames;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Tab&lt;CtlCheckBox*&gt;<sp/>objTypes;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>DataBlock<sp/>*typesBlk;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>ctorInit();</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillNames();</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>void<sp/>resizeControls();</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onChange(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onClick(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onDoubleClick(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_selwindow.h"/>
+  </compounddef>
+</doxygen>

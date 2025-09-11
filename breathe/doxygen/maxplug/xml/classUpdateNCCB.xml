@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classUpdateNCCB" kind="class" language="C++" prot="public">
+    <compoundname>UpdateNCCB</compoundname>
+    <basecompoundref refid="classEDataBlockCB" prot="public" virt="non-virtual">EDataBlockCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classUpdateNCCB_1aaa676e5ffd1a801952866c606d675bbe" prot="private" static="no" mutable="no">
+        <type>IRollupWindow *</type>
+        <definition>IRollupWindow* UpdateNCCB::iRoll</definition>
+        <argsstring></argsstring>
+        <name>iRoll</name>
+        <qualifiedname>UpdateNCCB::iRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="388" column="17" bodyfile="rolluppanel.cpp" bodystart="388" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUpdateNCCB_1a0cc4b9975c75d1c13382867d09d022be" prot="private" static="no" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel* UpdateNCCB::panel</definition>
+        <argsstring></argsstring>
+        <name>panel</name>
+        <qualifiedname>UpdateNCCB::panel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="389" column="15" bodyfile="rolluppanel.cpp" bodystart="389" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUpdateNCCB_1afb2160c9975e76ae3a966cd7ceeb4ff2" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>const DataBlock* UpdateNCCB::nodeBlk</definition>
+        <argsstring></argsstring>
+        <name>nodeBlk</name>
+        <qualifiedname>UpdateNCCB::nodeBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="390" column="19" bodyfile="rolluppanel.cpp" bodystart="390" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classUpdateNCCB_1a4b23dc2ef4e4b035fe7e372ffef83642" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>UpdateNCCB::UpdateNCCB</definition>
+        <argsstring>(IRollupWindow *i_roll, RollupPanel *panel_, const DataBlock *node_blk)</argsstring>
+        <name>UpdateNCCB</name>
+        <qualifiedname>UpdateNCCB::UpdateNCCB</qualifiedname>
+        <param>
+          <type>IRollupWindow *</type>
+          <declname>i_roll</declname>
+        </param>
+        <param>
+          <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+          <declname>panel_</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>node_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="303" column="3" bodyfile="rolluppanel.cpp" bodystart="303" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1abd30f7172484700a8f5d9991af0f80e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procCheck</definition>
+        <argsstring>(bool val) override</argsstring>
+        <name>procCheck</name>
+        <qualifiedname>UpdateNCCB::procCheck</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a927c63983a13b001d14af1710d178b00">procCheck</reimplements>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="305" column="7" bodyfile="rolluppanel.cpp" bodystart="305" bodyend="314"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1ae3cd7d73a2a1f1db9eedb61dd48e031f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procCombo</definition>
+        <argsstring>(const char *val, Tab&lt; String &gt; &amp;items) override</argsstring>
+        <name>procCombo</name>
+        <qualifiedname>UpdateNCCB::procCombo</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a9ce4638755e2f1afdfb4a288a77ad102">procCombo</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="315" column="7" bodyfile="rolluppanel.cpp" bodystart="315" bodyend="331"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1a653de2acc5dd43643cf42de77f35384a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procInt</definition>
+        <argsstring>(int val) override</argsstring>
+        <name>procInt</name>
+        <qualifiedname>UpdateNCCB::procInt</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1af332c55d0b8afbc0e43bf346ccb69d34">procInt</reimplements>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="332" column="7" bodyfile="rolluppanel.cpp" bodystart="332" bodyend="342"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1a7cfc1fbe1ecf29bb113ca43aa971154d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procReal</definition>
+        <argsstring>(real val) override</argsstring>
+        <name>procReal</name>
+        <qualifiedname>UpdateNCCB::procReal</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8111e2ebca5d5f1b175eeef1458898b2">procReal</reimplements>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="343" column="7" bodyfile="rolluppanel.cpp" bodystart="343" bodyend="353"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1a8d1a5c9e21ee26c03dd91f3a1190ef8e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procStr</definition>
+        <argsstring>(const char *val) override</argsstring>
+        <name>procStr</name>
+        <qualifiedname>UpdateNCCB::procStr</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8c0209058acca0617fc5642480051a2c">procStr</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="354" column="7" bodyfile="rolluppanel.cpp" bodystart="354" bodyend="370"/>
+      </memberdef>
+      <memberdef kind="function" id="classUpdateNCCB_1a16906c7a8c2bcbe5e9cab0bb052ec8ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UpdateNCCB::procPoint3</definition>
+        <argsstring>(const Point3 &amp;val) override</argsstring>
+        <name>procPoint3</name>
+        <qualifiedname>UpdateNCCB::procPoint3</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a1e77fd0eb49a978014986488c1bdaed5">procPoint3</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="371" column="7" bodyfile="rolluppanel.cpp" bodystart="371" bodyend="385"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>UpdateNCCB</label>
+        <link refid="classUpdateNCCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>UpdateNCCB</label>
+        <link refid="classUpdateNCCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="300" column="1" bodyfile="rolluppanel.cpp" bodystart="301" bodyend="391"/>
+    <listofallmembers>
+      <member refid="classEDataBlockCB_1a6193af9cabfe7ec2d10317ff4d63d930" prot="public" virt="non-virtual"><scope>UpdateNCCB</scope><name>groupId</name></member>
+      <member refid="classUpdateNCCB_1aaa676e5ffd1a801952866c606d675bbe" prot="private" virt="non-virtual"><scope>UpdateNCCB</scope><name>iRoll</name></member>
+      <member refid="classEDataBlockCB_1ae04e35149b085a3203b2b0374bf841f1" prot="public" virt="non-virtual"><scope>UpdateNCCB</scope><name>name</name></member>
+      <member refid="classUpdateNCCB_1afb2160c9975e76ae3a966cd7ceeb4ff2" prot="private" virt="non-virtual"><scope>UpdateNCCB</scope><name>nodeBlk</name></member>
+      <member refid="classUpdateNCCB_1a0cc4b9975c75d1c13382867d09d022be" prot="private" virt="non-virtual"><scope>UpdateNCCB</scope><name>panel</name></member>
+      <member refid="classEDataBlockCB_1ae0d7b4125e1df4192ea4e1e78314faa1" prot="public" virt="non-virtual"><scope>UpdateNCCB</scope><name>paramId</name></member>
+      <member refid="classUpdateNCCB_1abd30f7172484700a8f5d9991af0f80e1" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procCheck</name></member>
+      <member refid="classUpdateNCCB_1ae3cd7d73a2a1f1db9eedb61dd48e031f" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procCombo</name></member>
+      <member refid="classUpdateNCCB_1a653de2acc5dd43643cf42de77f35384a" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procInt</name></member>
+      <member refid="classUpdateNCCB_1a16906c7a8c2bcbe5e9cab0bb052ec8ce" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procPoint3</name></member>
+      <member refid="classUpdateNCCB_1a7cfc1fbe1ecf29bb113ca43aa971154d" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procReal</name></member>
+      <member refid="classUpdateNCCB_1a8d1a5c9e21ee26c03dd91f3a1190ef8e" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>procStr</name></member>
+      <member refid="classUpdateNCCB_1a4b23dc2ef4e4b035fe7e372ffef83642" prot="public" virt="non-virtual"><scope>UpdateNCCB</scope><name>UpdateNCCB</name></member>
+      <member refid="classEDataBlockCB_1a89b47c88e410957d8ba4aad62c4ad2e2" prot="public" virt="virtual"><scope>UpdateNCCB</scope><name>~EDataBlockCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

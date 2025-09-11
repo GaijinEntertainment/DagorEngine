@@ -1,0 +1,282 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCameraNodeEnumerator" kind="class" language="C++" prot="public">
+    <compoundname>CameraNodeEnumerator</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+    <innerclass refid="structCameraNodeEnumerator_1_1Cam" prot="public">CameraNodeEnumerator::Cam</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCameraNodeEnumerator_1a34e12a9eec8dbbe65eda4c06b4893235" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* CameraNodeEnumerator::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>CameraNodeEnumerator::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4561" column="13" bodyfile="expUtil.cpp" bodystart="4561" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCameraNodeEnumerator_1a27ea9f53f7ac6f70a72fbd4a63882379" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCameraNodeEnumerator_1_1Cam" kindref="compound">Cam</ref> &gt;</type>
+        <definition>Tab&lt;Cam&gt; CameraNodeEnumerator::cam</definition>
+        <argsstring></argsstring>
+        <name>cam</name>
+        <qualifiedname>CameraNodeEnumerator::cam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4570" column="7" bodyfile="expUtil.cpp" bodystart="4570" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCameraNodeEnumerator_1a846a06c49b2e4233ff7253388de225db" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CameraNodeEnumerator::keyNum</definition>
+        <argsstring></argsstring>
+        <name>keyNum</name>
+        <qualifiedname>CameraNodeEnumerator::keyNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4571" column="7" bodyfile="expUtil.cpp" bodystart="4571" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCameraNodeEnumerator_1a8f66f4de34085d204fa0bfd7d0eda001" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CameraNodeEnumerator::CameraNodeEnumerator</definition>
+        <argsstring>(Interface *_ip)</argsstring>
+        <name>CameraNodeEnumerator</name>
+        <qualifiedname>CameraNodeEnumerator::CameraNodeEnumerator</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>_ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4573" column="3" bodyfile="expUtil.cpp" bodystart="4573" bodyend="4573"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1a33ab464d29448020d0caf4a8ab0b0650" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CameraNodeEnumerator::~CameraNodeEnumerator</definition>
+        <argsstring>() override</argsstring>
+        <name>~CameraNodeEnumerator</name>
+        <qualifiedname>CameraNodeEnumerator::~CameraNodeEnumerator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4574" column="3" bodyfile="expUtil.cpp" bodystart="4574" bodyend="4574"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1a089cb25fff1321f7de656609a098e858" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int CameraNodeEnumerator::proc</definition>
+        <argsstring>(INode *node) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>CameraNodeEnumerator::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4576" column="7" bodyfile="expUtil.cpp" bodystart="4576" bodyend="4622"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1af5a6325b3ba319c2d027d90e6693ac8c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CameraNodeEnumerator::export_cameras</definition>
+        <argsstring>(FILE *fp)</argsstring>
+        <name>export_cameras</name>
+        <qualifiedname>CameraNodeEnumerator::export_cameras</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4624" column="8" bodyfile="expUtil.cpp" bodystart="4624" bodyend="4769"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1ae6f0bb1e5e8a5bbb059c413defccf99c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CameraNodeEnumerator::getPos</definition>
+        <argsstring>(INode *node, INode *parent, Point3 &amp;pos, TimeValue t)</argsstring>
+        <name>getPos</name>
+        <qualifiedname>CameraNodeEnumerator::getPos</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4771" column="8" bodyfile="expUtil.cpp" bodystart="4771" bodyend="4777"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1a654b1f7fde49742b53e5e09b5c7476f4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CameraNodeEnumerator::getRotPos</definition>
+        <argsstring>(INode *node, Point3 &amp;pos, Quat &amp;rot, TimeValue t)</argsstring>
+        <name>getRotPos</name>
+        <qualifiedname>CameraNodeEnumerator::getRotPos</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Quat &amp;</type>
+          <declname>rot</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4778" column="8" bodyfile="expUtil.cpp" bodystart="4778" bodyend="4802"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1a685143e821977721795fc86b9036ad66" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CameraNodeEnumerator::interp_tm</definition>
+        <argsstring>(INode *node, TimeValue t, Matrix3 &amp;m)</argsstring>
+        <name>interp_tm</name>
+        <qualifiedname>CameraNodeEnumerator::interp_tm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4803" column="8" bodyfile="expUtil.cpp" bodystart="4803" bodyend="4819"/>
+      </memberdef>
+      <memberdef kind="function" id="classCameraNodeEnumerator_1aa96103097e9eda4ff0691ba57f5726ac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CameraNodeEnumerator::interp_tm</definition>
+        <argsstring>(INode *node, INode *pnode, TimeValue t, Matrix3 &amp;m)</argsstring>
+        <name>interp_tm</name>
+        <qualifiedname>CameraNodeEnumerator::interp_tm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>pnode</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4820" column="8" bodyfile="expUtil.cpp" bodystart="4820" bodyend="4835"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CameraNodeEnumerator</label>
+        <link refid="classCameraNodeEnumerator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CameraNodeEnumerator</label>
+        <link refid="classCameraNodeEnumerator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="4558" column="1" bodyfile="expUtil.cpp" bodystart="4559" bodyend="4836"/>
+    <listofallmembers>
+      <member refid="classCameraNodeEnumerator_1a27ea9f53f7ac6f70a72fbd4a63882379" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>cam</name></member>
+      <member refid="classCameraNodeEnumerator_1a8f66f4de34085d204fa0bfd7d0eda001" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>CameraNodeEnumerator</name></member>
+      <member refid="classCameraNodeEnumerator_1af5a6325b3ba319c2d027d90e6693ac8c" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>export_cameras</name></member>
+      <member refid="classCameraNodeEnumerator_1ae6f0bb1e5e8a5bbb059c413defccf99c" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>getPos</name></member>
+      <member refid="classCameraNodeEnumerator_1a654b1f7fde49742b53e5e09b5c7476f4" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>getRotPos</name></member>
+      <member refid="classCameraNodeEnumerator_1a685143e821977721795fc86b9036ad66" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>interp_tm</name></member>
+      <member refid="classCameraNodeEnumerator_1aa96103097e9eda4ff0691ba57f5726ac" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>interp_tm</name></member>
+      <member refid="classCameraNodeEnumerator_1a34e12a9eec8dbbe65eda4c06b4893235" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>ip</name></member>
+      <member refid="classCameraNodeEnumerator_1a846a06c49b2e4233ff7253388de225db" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>keyNum</name></member>
+      <member refid="classCameraNodeEnumerator_1a089cb25fff1321f7de656609a098e858" prot="public" virt="virtual"><scope>CameraNodeEnumerator</scope><name>proc</name></member>
+      <member refid="classCameraNodeEnumerator_1a33ab464d29448020d0caf4a8ab0b0650" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator</scope><name>~CameraNodeEnumerator</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>CameraNodeEnumerator</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

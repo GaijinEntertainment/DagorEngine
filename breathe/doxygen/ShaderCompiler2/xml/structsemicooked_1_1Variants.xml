@@ -1,0 +1,288 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemicooked_1_1Variants" kind="struct" language="C++" prot="public">
+    <compoundname>semicooked::Variants</compoundname>
+    <innerclass refid="structsemicooked_1_1Variants_1_1VariantPair" prot="public">semicooked::Variants::VariantPair</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1aa5ad341c73b80c78f02228ae37683772" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>const shc::TargetContext&amp; semicooked::Variants::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>semicooked::Variants::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="694" column="28" bodyfile="makeShBinDump.cpp" bodystart="694" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a4223a892ef4750ce1a17fe4492a94ab8" prot="public" static="no" mutable="no">
+        <type>Tab&lt; shader_layout::Interval&lt;&gt; &gt;</type>
+        <definition>Tab&lt;shader_layout::Interval&lt;&gt; &gt; semicooked::Variants::intervals</definition>
+        <argsstring></argsstring>
+        <name>intervals</name>
+        <qualifiedname>semicooked::Variants::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="695" column="7" bodyfile="makeShBinDump.cpp" bodystart="695" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a5643b133654063957c7b16ab67842bfc" prot="public" static="no" mutable="no">
+        <type>Tab&lt; bindump::VecHolder&lt; bindump::StrHolder&lt;&gt; &gt; &gt;</type>
+        <definition>Tab&lt;bindump::VecHolder&lt;bindump::StrHolder&lt;&gt; &gt; &gt; semicooked::Variants::subintervals_by_interval</definition>
+        <argsstring></argsstring>
+        <name>subintervals_by_interval</name>
+        <qualifiedname>semicooked::Variants::subintervals_by_interval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="696" column="7" bodyfile="makeShBinDump.cpp" bodystart="696" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a31c33168fb761377e8045bf4183439f5" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; real &gt;</type>
+        <definition>SharedStorage&lt;real&gt; semicooked::Variants::iValStorage</definition>
+        <argsstring></argsstring>
+        <name>iValStorage</name>
+        <qualifiedname>semicooked::Variants::iValStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="697" column="17" bodyfile="makeShBinDump.cpp" bodystart="697" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1abf79dc07be19526795b474f05a7156d3" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; shader_layout::VariantTable&lt;&gt;::IntervalBind &gt;</type>
+        <definition>SharedStorage&lt;shader_layout::VariantTable&lt;&gt;::IntervalBind&gt; semicooked::Variants::vtPcsStorage</definition>
+        <argsstring></argsstring>
+        <name>vtPcsStorage</name>
+        <qualifiedname>semicooked::Variants::vtPcsStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="698" column="18" bodyfile="makeShBinDump.cpp" bodystart="698" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1ae252c81018e98f87369ff5fd9953f977" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; uint16_t &gt;</type>
+        <definition>SharedStorage&lt;uint16_t&gt; semicooked::Variants::vtLmapStorage</definition>
+        <argsstring></argsstring>
+        <name>vtLmapStorage</name>
+        <qualifiedname>semicooked::Variants::vtLmapStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="699" column="17" bodyfile="makeShBinDump.cpp" bodystart="699" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a1a27d308dbac0626042543bf50b6019d" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; uint16_t &gt;</type>
+        <definition>SharedStorage&lt;uint16_t&gt; semicooked::Variants::vtQmapStorage</definition>
+        <argsstring></argsstring>
+        <name>vtQmapStorage</name>
+        <qualifiedname>semicooked::Variants::vtQmapStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="700" column="17" bodyfile="makeShBinDump.cpp" bodystart="700" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a64285910c1136b5cd0cbb7bf2793d372" prot="public" static="no" mutable="no">
+        <type>const GatherNameMap &amp;</type>
+        <definition>const GatherNameMap&amp; semicooked::Variants::varMap</definition>
+        <argsstring></argsstring>
+        <name>varMap</name>
+        <qualifiedname>semicooked::Variants::varMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="701" column="23" bodyfile="makeShBinDump.cpp" bodystart="701" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a888ad476c9ebea27dc14ec21a772e1b2" prot="public" static="yes" mutable="no">
+        <type>Tab&lt; <ref refid="structsemicooked_1_1Variants_1_1VariantPair" kindref="compound">VariantPair</ref> &gt;</type>
+        <definition>Tab&lt; Variants::VariantPair &gt; semicooked::Variants::tmpVpDir</definition>
+        <argsstring></argsstring>
+        <name>tmpVpDir</name>
+        <qualifiedname>semicooked::Variants::tmpVpDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="703" column="14" bodyfile="makeShBinDump.cpp" bodystart="703" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1aaa904e2a6a87e02ac91fae94504da404" prot="public" static="yes" mutable="no">
+        <type>Tab&lt; <ref refid="structsemicooked_1_1Variants_1_1VariantPair" kindref="compound">VariantPair</ref> &gt;</type>
+        <definition>Tab&lt; Variants::VariantPair &gt; semicooked::Variants::tmpVpInt</definition>
+        <argsstring></argsstring>
+        <name>tmpVpInt</name>
+        <qualifiedname>semicooked::Variants::tmpVpInt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="703" column="23" bodyfile="makeShBinDump.cpp" bodystart="703" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1a86a65bd8433f54f09068e387b7bbbb94" prot="public" static="yes" mutable="no">
+        <type>Tab&lt; uint16_t &gt;</type>
+        <definition>Tab&lt; uint16_t &gt; semicooked::Variants::tmpMapData</definition>
+        <argsstring></argsstring>
+        <name>tmpMapData</name>
+        <qualifiedname>semicooked::Variants::tmpMapData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="704" column="14" bodyfile="makeShBinDump.cpp" bodystart="704" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemicooked_1_1Variants_1a390d2102c2101672c1f2477370f686ab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semicooked::Variants::Variants</definition>
+        <argsstring>(const GatherNameMap &amp;vmap, const shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>Variants</name>
+        <qualifiedname>semicooked::Variants::Variants</qualifiedname>
+        <param>
+          <type>const GatherNameMap &amp;</type>
+          <declname>vmap</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="386" column="3" bodyfile="makeShBinDump.cpp" bodystart="386" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemicooked_1_1Variants_1adf6ed1a5c905aa72b49214e3fb358731" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>shader_layout::VariantTable</type>
+        <definition>shader_layout::VariantTable semicooked::Variants::addVariantTable</definition>
+        <argsstring>(ShaderVariant::VariantTable &amp;vt, dag::ConstSpan&lt; int &gt; codeRemap, int codenum, const char *shader_nm)</argsstring>
+        <name>addVariantTable</name>
+        <qualifiedname>semicooked::Variants::addVariantTable</qualifiedname>
+        <param>
+          <type><ref refid="classShaderVariant_1_1VariantTable" kindref="compound">ShaderVariant::VariantTable</ref> &amp;</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>codeRemap</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>codenum</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_nm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="397" column="4" bodyfile="makeShBinDump.cpp" bodystart="397" bodyend="682"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemicooked_1_1Variants_1ad445fa7f534fdcd1686a0786febe2d78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semicooked::Variants::getIntervalId</definition>
+        <argsstring>(const shader_layout::Interval&lt;&gt; &amp;ival)</argsstring>
+        <name>getIntervalId</name>
+        <qualifiedname>semicooked::Variants::getIntervalId</qualifiedname>
+        <param>
+          <type>const shader_layout::Interval&lt;&gt; &amp;</type>
+          <declname>ival</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="684" column="7" bodyfile="makeShBinDump.cpp" bodystart="684" bodyend="692"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structsemicooked_1_1Variants_1a4316e0db025caf7165e6d357880c993f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void semicooked::Variants::clearTemp</definition>
+        <argsstring>()</argsstring>
+        <name>clearTemp</name>
+        <qualifiedname>semicooked::Variants::clearTemp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="390" column="15" bodyfile="makeShBinDump.cpp" bodystart="390" bodyend="395"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>semicooked::Variants</label>
+        <link refid="structsemicooked_1_1Variants"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="makeShBinDump.cpp" line="376" column="1" bodyfile="makeShBinDump.cpp" bodystart="377" bodyend="705"/>
+    <listofallmembers>
+      <member refid="structsemicooked_1_1Variants_1adf6ed1a5c905aa72b49214e3fb358731" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>addVariantTable</name></member>
+      <member refid="structsemicooked_1_1Variants_1a4316e0db025caf7165e6d357880c993f" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>clearTemp</name></member>
+      <member refid="structsemicooked_1_1Variants_1aa5ad341c73b80c78f02228ae37683772" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>ctx</name></member>
+      <member refid="structsemicooked_1_1Variants_1ad445fa7f534fdcd1686a0786febe2d78" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>getIntervalId</name></member>
+      <member refid="structsemicooked_1_1Variants_1a4223a892ef4750ce1a17fe4492a94ab8" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>intervals</name></member>
+      <member refid="structsemicooked_1_1Variants_1a31c33168fb761377e8045bf4183439f5" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>iValStorage</name></member>
+      <member refid="structsemicooked_1_1Variants_1a5643b133654063957c7b16ab67842bfc" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>subintervals_by_interval</name></member>
+      <member refid="structsemicooked_1_1Variants_1a86a65bd8433f54f09068e387b7bbbb94" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>tmpMapData</name></member>
+      <member refid="structsemicooked_1_1Variants_1a888ad476c9ebea27dc14ec21a772e1b2" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>tmpVpDir</name></member>
+      <member refid="structsemicooked_1_1Variants_1aaa904e2a6a87e02ac91fae94504da404" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>tmpVpInt</name></member>
+      <member refid="structsemicooked_1_1Variants_1a390d2102c2101672c1f2477370f686ab" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>Variants</name></member>
+      <member refid="structsemicooked_1_1Variants_1a64285910c1136b5cd0cbb7bf2793d372" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>varMap</name></member>
+      <member refid="structsemicooked_1_1Variants_1ae252c81018e98f87369ff5fd9953f977" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>vtLmapStorage</name></member>
+      <member refid="structsemicooked_1_1Variants_1abf79dc07be19526795b474f05a7156d3" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>vtPcsStorage</name></member>
+      <member refid="structsemicooked_1_1Variants_1a1a27d308dbac0626042543bf50b6019d" prot="public" virt="non-virtual"><scope>semicooked::Variants</scope><name>vtQmapStorage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

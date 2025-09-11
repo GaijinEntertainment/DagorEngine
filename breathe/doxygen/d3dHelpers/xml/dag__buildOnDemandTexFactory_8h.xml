@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__buildOnDemandTexFactory_8h" kind="file" language="C++">
+    <compoundname>dag_buildOnDemandTexFactory.h</compoundname>
+    <includes refid="dag__resMgr_8h" local="no">3d/dag_resMgr.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_buildOnDemandTexFactory.h</label>
+        <link refid="dag__buildOnDemandTexFactory_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="5">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="7">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structITexBuildOnDemandHelper" prot="public">ITexBuildOnDemandHelper</innerclass>
+    <innerclass refid="structAsyncTextureLoadingState" prot="public">AsyncTextureLoadingState</innerclass>
+    <innerclass refid="structManagedTexEntryDesc" prot="public">ManagedTexEntryDesc</innerclass>
+    <innernamespace refid="namespaceddsx">ddsx</innernamespace>
+    <innernamespace refid="namespacebuild__on__demand__tex__factory">build_on_demand_tex_factory</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__buildOnDemandTexFactory_8h_1a2893b6bf782338af21b25b491086ffee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_managed_tex_entry_desc</definition>
+        <argsstring>(TEXTUREID tid, ManagedTexEntryDesc &amp;out_desc)</argsstring>
+        <name>get_managed_tex_entry_desc</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type><ref refid="structManagedTexEntryDesc" kindref="compound">ManagedTexEntryDesc</ref> &amp;</type>
+          <declname>out_desc</declname>
+        </param>
+        <briefdescription>
+<para>fills description for managed texture entry; returns false for bad entry </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="90" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="90" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buildOnDemandTexFactory_8h_1a528d3eebaab8c65c3a5412db2462eae5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool downgrade_managed_tex_to_lev</definition>
+        <argsstring>(TEXTUREID tid, int req_lev)</argsstring>
+        <name>downgrade_managed_tex_to_lev</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>req_lev</declname>
+        </param>
+        <briefdescription>
+<para>downgrades/discards texture to specified level (1 means stub) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="93" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="93" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buildOnDemandTexFactory_8h_1a9161ca72f957cdb1e561ec9496f91968" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_managed_tex_state</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>dump_managed_tex_state</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+<para>dumps texture state (streaming and other) to debug </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="96" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="96" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resMgr_8h" kindref="compound">3d/dag_resMgr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forwards<sp/>for<sp/>used<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref>;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenLoad;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureIdSet" kindref="compound">TextureIdSet</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">TextureMetaData;</highlight></codeline>
+<codeline lineno="16" refid="namespaceddsx" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceddsx" kindref="compound">ddsx</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Header;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="structITexBuildOnDemandHelper" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structITexBuildOnDemandHelper" kindref="compound">ITexBuildOnDemandHelper</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">asset_handle_t;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structITexBuildOnDemandHelper_1af5309166200d394f935aaaf1119377cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structITexBuildOnDemandHelper_1af5309166200d394f935aaaf1119377cf" kindref="member">checkTexNameHandled</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tex_fn)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="30" refid="structITexBuildOnDemandHelper_1a38c46fcae2accf0fda05472eb2cdad5a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>asset_handle_t<sp/>*<ref refid="structITexBuildOnDemandHelper_1a38c46fcae2accf0fda05472eb2cdad5a" kindref="member">resolveTex</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tex_fn,<sp/>TextureMetaData<sp/>&amp;out_tmd)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="structITexBuildOnDemandHelper_1abee1a52dab5c06891356cac8ce78003e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structITexBuildOnDemandHelper_1abee1a52dab5c06891356cac8ce78003e" kindref="member">getConvertibleTexHeader</ref>(asset_handle_t<sp/>*h,<sp/>ddsx::Header<sp/>&amp;out_hdr,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;out_q_lev_desc,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*out_name_ids)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="35" refid="structITexBuildOnDemandHelper_1a9f3316d3a0a42ef9ca54589dcee0979c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structITexBuildOnDemandHelper_1a9f3316d3a0a42ef9ca54589dcee0979c" kindref="member">getSimpleTexProps</ref>(asset_handle_t<sp/>*h,<sp/>String<sp/>&amp;out_fn,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;out_gamma)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="structITexBuildOnDemandHelper_1a0df6c798115da03997e7af58eb5c1b8e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structITexBuildOnDemandHelper_1a0df6c798115da03997e7af58eb5c1b8e" kindref="member">getTexName</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>nameId)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="structITexBuildOnDemandHelper_1adbc87e72a39e3c271325ae0ca88ec70f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structITexBuildOnDemandHelper_1adbc87e72a39e3c271325ae0ca88ec70f" kindref="member">prebuildTex</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>nameId,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;out_cache_was_updated)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structITexBuildOnDemandHelper_1a186cb7b1af1288891ab5e598fdbae46b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>dag::Span&lt;char&gt;<sp/><ref refid="structITexBuildOnDemandHelper_1a186cb7b1af1288891ab5e598fdbae46b" kindref="member">getDDSxTexData</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>nameId)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="46" refid="structITexBuildOnDemandHelper_1ab7b05ae9707a5397ed72c3252279cf50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structITexBuildOnDemandHelper_1ab7b05ae9707a5397ed72c3252279cf50" kindref="member">releaseDDSxTexData</ref>(dag::Span&lt;char&gt;<sp/>data)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="structAsyncTextureLoadingState" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structAsyncTextureLoadingState" kindref="compound">AsyncTextureLoadingState</ref></highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52" refid="structAsyncTextureLoadingState_1a8cca46aacf18a4118272f8d2fae1a9b4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structAsyncTextureLoadingState_1a8cca46aacf18a4118272f8d2fae1a9b4" kindref="member">pendingLdCount</ref>[<ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" kindref="member">TQL__COUNT</ref>]<sp/>=<sp/>{0},<sp/><ref refid="structAsyncTextureLoadingState_1a96d116afbddab5b29e4a6c40289f859c" kindref="member">pendingLdTotal</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="53" refid="structAsyncTextureLoadingState_1aa0a819a98882f3abb50f5ad8f1fdc11c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structAsyncTextureLoadingState_1a0585175386e370135bbafd49149267a3" kindref="member">totalLoadedCount</ref><sp/>=<sp/>0,<sp/><ref refid="structAsyncTextureLoadingState_1a9a8f417ac10ce99f9fa79d12b1f7c412" kindref="member">totalLoadedSizeKb</ref><sp/>=<sp/>0,<sp/><ref refid="structAsyncTextureLoadingState_1aa0a819a98882f3abb50f5ad8f1fdc11c" kindref="member">totalCacheUpdated</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="structManagedTexEntryDesc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structManagedTexEntryDesc" kindref="compound">ManagedTexEntryDesc</ref></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59" refid="structManagedTexEntryDesc_1aa17d5da9ed0a31920384ad7cf2b229dd" refkind="member"><highlight class="normal"><sp/><sp/>uint16_t<sp/><ref refid="structManagedTexEntryDesc_1abf9ffc4b633ad107042e2c4491c0ea52" kindref="member">width</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1ab9ba9574886575f4152f04c96a3d1b5c" kindref="member">height</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1aa17d5da9ed0a31920384ad7cf2b229dd" kindref="member">depth</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1a4a8ce4b7e8491748bf38d505e342fcdf" kindref="member">mipLevels</ref><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//&lt;<sp/>dimensions<sp/>of<sp/>texture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structManagedTexEntryDesc_1ac14251914e3eea4c014dd33d34091af0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structManagedTexEntryDesc_1ac14251914e3eea4c014dd33d34091af0" kindref="member">qResSz</ref>[<ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" kindref="member">TQL__COUNT</ref>]<sp/>=<sp/>{0};<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>resource<sp/>size<sp/>for<sp/>each<sp/>QL<sp/>available</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="structManagedTexEntryDesc_1a7c2534b16e5fac2cbc27f2cd8f54edb8" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structManagedTexEntryDesc_1a7c2534b16e5fac2cbc27f2cd8f54edb8" kindref="member">qLev</ref>[<ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" kindref="member">TQL__COUNT</ref>]<sp/>=<sp/>{0};<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>quality<sp/>levels<sp/>for<sp/>each<sp/>QL<sp/>available</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structManagedTexEntryDesc_1a756ef9031e0f28e6a228d4fe2092b5b3" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structManagedTexEntryDesc_1a615cd7e952e7456c15fe3011e6256a11" kindref="member">maxLev</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1ac06407ba788dc442defb2a1235ece953" kindref="member">ldLev</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1afe16c8c6d792e3afa8f5c85c9dc207af" kindref="member">maxQL</ref><sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1a756ef9031e0f28e6a228d4fe2092b5b3" kindref="member">curQL</ref><sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>max<sp/>quality<sp/>level<sp/>and<sp/>current<sp/>loaded<sp/>state</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structManagedTexEntryDesc_1a63f922a41d7821b0aeb9d5f6c5fe3ca0" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structManagedTexEntryDesc_1aae067d41ef1909a4dd27a2ead2a41e7c" kindref="member">isLoading</ref><sp/>:<sp/>1<sp/>=<sp/>0,<sp/><ref refid="structManagedTexEntryDesc_1a63f922a41d7821b0aeb9d5f6c5fe3ca0" kindref="member">isLoadedWithErrors</ref><sp/>:<sp/>1<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="namespacebuild__on__demand__tex__factory" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacebuild__on__demand__tex__factory" kindref="compound">build_on_demand_tex_factory</ref></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="69" refid="namespacebuild__on__demand__tex__factory_1a2b79413f0906dc4801507c025142abce" refkind="member"><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*<ref refid="namespacebuild__on__demand__tex__factory_1a2b79413f0906dc4801507c025142abce" kindref="member">get</ref>();</highlight></codeline>
+<codeline lineno="71" refid="namespacebuild__on__demand__tex__factory_1a4e17fa3cc898602d544a9e210a2ad86f" refkind="member"><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*<ref refid="namespacebuild__on__demand__tex__factory_1a4e17fa3cc898602d544a9e210a2ad86f" kindref="member">init</ref>(<ref refid="structITexBuildOnDemandHelper" kindref="compound">ITexBuildOnDemandHelper</ref><sp/>*h);</highlight></codeline>
+<codeline lineno="73" refid="namespacebuild__on__demand__tex__factory_1a191bdea541276d8436e388b9bda1093e" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1a191bdea541276d8436e388b9bda1093e" kindref="member">term</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f);</highlight></codeline>
+<codeline lineno="75" refid="namespacebuild__on__demand__tex__factory_1a1bb6bc0e96a5dbd0b69ea297b24c6573" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1a1bb6bc0e96a5dbd0b69ea297b24c6573" kindref="member">cease_loading</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow_further_tex_loading);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="namespacebuild__on__demand__tex__factory_1aefcc07f40bbd5bb9a85343e2f04dc4ad" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1aefcc07f40bbd5bb9a85343e2f04dc4ad" kindref="member">schedule_prebuild_tex</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tex_nameId,<sp/><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>ql);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="namespacebuild__on__demand__tex__factory_1a65fc875d6eb9da760196e7aabdfaf667" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1a65fc875d6eb9da760196e7aabdfaf667" kindref="member">get_current_loading_state</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f,<sp/><ref refid="structAsyncTextureLoadingState" kindref="compound">AsyncTextureLoadingState</ref><sp/>&amp;out_state);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="namespacebuild__on__demand__tex__factory_1a28327c6b74f7f5f5ce6c7daaac46e549" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1a28327c6b74f7f5f5ce6c7daaac46e549" kindref="member">limit_tql</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f,<sp/><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>max_tql,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureIdSet" kindref="compound">TextureIdSet</ref><sp/>&amp;tid);</highlight></codeline>
+<codeline lineno="86" refid="namespacebuild__on__demand__tex__factory_1abcbb8037e761a3ce8dec2912fa43e1fd" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacebuild__on__demand__tex__factory_1a28327c6b74f7f5f5ce6c7daaac46e549" kindref="member">limit_tql</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f,<sp/><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>max_tql);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>build_on_demand_tex_factory</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90" refid="dag__buildOnDemandTexFactory_8h_1a2893b6bf782338af21b25b491086ffee" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buildOnDemandTexFactory_8h_1a2893b6bf782338af21b25b491086ffee" kindref="member">get_managed_tex_entry_desc</ref>(TEXTUREID<sp/>tid,<sp/><ref refid="structManagedTexEntryDesc" kindref="compound">ManagedTexEntryDesc</ref><sp/>&amp;out_desc);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="dag__buildOnDemandTexFactory_8h_1a528d3eebaab8c65c3a5412db2462eae5" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buildOnDemandTexFactory_8h_1a528d3eebaab8c65c3a5412db2462eae5" kindref="member">downgrade_managed_tex_to_lev</ref>(TEXTUREID<sp/>tid,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>req_lev);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="dag__buildOnDemandTexFactory_8h_1a9161ca72f957cdb1e561ec9496f91968" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__buildOnDemandTexFactory_8h_1a9161ca72f957cdb1e561ec9496f91968" kindref="member">dump_managed_tex_state</ref>(TEXTUREID<sp/>tid);</highlight></codeline>
+    </programlisting>
+    <location file="dag_buildOnDemandTexFactory.h"/>
+  </compounddef>
+</doxygen>

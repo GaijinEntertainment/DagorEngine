@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorInput" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorInput</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorInput_1a72ec3255aa4b6207a72d6b64a6669cc4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorInput::isKeyDown</definition>
+        <argsstring>(ImGuiKey key) const =0</argsstring>
+        <name>isKeyDown</name>
+        <qualifiedname>IDagorInput::isKeyDown</qualifiedname>
+        <param>
+          <type>ImGuiKey</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="459" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorInput_1ada717bfcabc8bcc3f36e0be1894e5a0f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorInput::isAltKeyDown</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isAltKeyDown</name>
+        <qualifiedname>IDagorInput::isAltKeyDown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="460" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorInput_1ad9b0a3a653e527d3a2d3e1c023c7664b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorInput::isCtrlKeyDown</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isCtrlKeyDown</name>
+        <qualifiedname>IDagorInput::isCtrlKeyDown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="461" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorInput_1a74fc8bc9941f032946b188b7a5210881" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorInput::isShiftKeyDown</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isShiftKeyDown</name>
+        <qualifiedname>IDagorInput::isShiftKeyDown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="462" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="456" column="1" bodyfile="ec_IEditorCore.h" bodystart="457" bodyend="463"/>
+    <listofallmembers>
+      <member refid="classIDagorInput_1ada717bfcabc8bcc3f36e0be1894e5a0f" prot="public" virt="pure-virtual"><scope>IDagorInput</scope><name>isAltKeyDown</name></member>
+      <member refid="classIDagorInput_1ad9b0a3a653e527d3a2d3e1c023c7664b" prot="public" virt="pure-virtual"><scope>IDagorInput</scope><name>isCtrlKeyDown</name></member>
+      <member refid="classIDagorInput_1a72ec3255aa4b6207a72d6b64a6669cc4" prot="public" virt="pure-virtual"><scope>IDagorInput</scope><name>isKeyDown</name></member>
+      <member refid="classIDagorInput_1a74fc8bc9941f032946b188b7a5210881" prot="public" virt="pure-virtual"><scope>IDagorInput</scope><name>isShiftKeyDown</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

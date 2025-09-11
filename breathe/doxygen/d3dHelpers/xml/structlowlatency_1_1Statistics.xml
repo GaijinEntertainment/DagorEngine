@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structlowlatency_1_1Statistics" kind="struct" language="C++" prot="public">
+    <compoundname>lowlatency::Statistics</compoundname>
+    <includes refid="dag__latencyTypes_8h" local="no">dag_latencyTypes.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float lowlatency::Statistics::min</definition>
+        <argsstring></argsstring>
+        <name>min</name>
+        <qualifiedname>lowlatency::Statistics::min</qualifiedname>
+        <initializer>= eastl::numeric_limits&lt;float&gt;::infinity()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="26" column="9" bodyfile="dag_latencyTypes.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float lowlatency::Statistics::max</definition>
+        <argsstring></argsstring>
+        <name>max</name>
+        <qualifiedname>lowlatency::Statistics::max</qualifiedname>
+        <initializer>= -eastl::numeric_limits&lt;float&gt;::infinity()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="27" column="9" bodyfile="dag_latencyTypes.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float lowlatency::Statistics::avg</definition>
+        <argsstring></argsstring>
+        <name>avg</name>
+        <qualifiedname>lowlatency::Statistics::avg</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="28" column="9" bodyfile="dag_latencyTypes.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structlowlatency_1_1Statistics_1af4308b8cc4948303399396aead1a97e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::Statistics::apply</definition>
+        <argsstring>(float value)</argsstring>
+        <name>apply</name>
+        <qualifiedname>lowlatency::Statistics::apply</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="29" column="8" bodyfile="dag_latencyTypes.h" bodystart="29" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="structlowlatency_1_1Statistics_1a2ae165614a9c8e9f57a500531f816141" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::Statistics::finalize</definition>
+        <argsstring>(uint32_t count)</argsstring>
+        <name>finalize</name>
+        <qualifiedname>lowlatency::Statistics::finalize</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="35" column="8" bodyfile="dag_latencyTypes.h" bodystart="35" bodyend="39"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_latencyTypes.h" line="24" column="1" bodyfile="dag_latencyTypes.h" bodystart="25" bodyend="40"/>
+    <listofallmembers>
+      <member refid="structlowlatency_1_1Statistics_1af4308b8cc4948303399396aead1a97e0" prot="public" virt="non-virtual"><scope>lowlatency::Statistics</scope><name>apply</name></member>
+      <member refid="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" prot="public" virt="non-virtual"><scope>lowlatency::Statistics</scope><name>avg</name></member>
+      <member refid="structlowlatency_1_1Statistics_1a2ae165614a9c8e9f57a500531f816141" prot="public" virt="non-virtual"><scope>lowlatency::Statistics</scope><name>finalize</name></member>
+      <member refid="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" prot="public" virt="non-virtual"><scope>lowlatency::Statistics</scope><name>max</name></member>
+      <member refid="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" prot="public" virt="non-virtual"><scope>lowlatency::Statistics</scope><name>min</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

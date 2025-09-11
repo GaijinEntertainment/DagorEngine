@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__vertexIndexBuffer_8h" kind="file" language="C++">
+    <compoundname>dag_vertexIndexBuffer.h</compoundname>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shaderModelVersion_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_vertexIndexBuffer.h</label>
+        <link refid="dag__vertexIndexBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="3">
+        <label>cstdint</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__vertexIndexBuffer_8h_1a49bbeebc7f2f6fa1c6d701bea3b9d55d" prot="public" static="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref></type>
+        <definition>using Ibuffer =  Sbuffer</definition>
+        <argsstring></argsstring>
+        <name>Ibuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_vertexIndexBuffer.h" line="11" column="1" bodyfile="dag_vertexIndexBuffer.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__vertexIndexBuffer_8h_1af6eb990d9d43c254ddaa5ffeed1140a4" prot="public" static="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref></type>
+        <definition>using Vbuffer =  Sbuffer</definition>
+        <argsstring></argsstring>
+        <name>Vbuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_vertexIndexBuffer.h" line="12" column="1" bodyfile="dag_vertexIndexBuffer.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="dag__vertexIndexBuffer_8h_1a49bbeebc7f2f6fa1c6d701bea3b9d55d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Ibuffer</ref><sp/>=<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="12" refid="dag__vertexIndexBuffer_8h_1af6eb990d9d43c254ddaa5ffeed1140a4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Vbuffer</ref><sp/>=<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28" refid="namespaced3d_1ac53449f29d7d24cdcaf611d1b2f3daf7" refkind="member"><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="namespaced3d_1ac53449f29d7d24cdcaf611d1b2f3daf7" kindref="member">create_vb</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="namespaced3d_1abeb28f6ab9a52fb583f488e9ca9523d8" refkind="member"><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="namespaced3d_1abeb28f6ab9a52fb583f488e9ca9523d8" kindref="member">create_ib</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stat_name<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;ib&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="namespaced3d_1a2878cf32d25d141f658cc062f962e3d1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2878cf32d25d141f658cc062f962e3d1" kindref="member">setvsrc_ex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stream,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>offset,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride_bytes);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="namespaced3d_1a660bc98865794cea404eda3bb6bbc25e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a660bc98865794cea404eda3bb6bbc25e" kindref="member">setvsrc</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stream,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride_bytes)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2878cf32d25d141f658cc062f962e3d1" kindref="member">setvsrc_ex</ref>(stream,<sp/>vb,<sp/>0,<sp/>stride_bytes);<sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="namespaced3d_1ab4b7355eb67812759ebadfd7cb2836f8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ab4b7355eb67812759ebadfd7cb2836f8" kindref="member">setind</ref>(<ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*ib);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="namespaced3d_1a64de8a685d98bfcf5ab180aaf92eccab" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/><ref refid="namespaced3d_1a64de8a685d98bfcf5ab180aaf92eccab" kindref="member">create_vdecl</ref>(<ref refid="dag__consts_8h_1a2b51277c581eb698768747aa38eba5d2" kindref="member">VSDTYPE</ref><sp/>*vsd);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="namespaced3d_1a8b1ddd7c2d30e952ce9de7c92512a1c4" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a8b1ddd7c2d30e952ce9de7c92512a1c4" kindref="member">delete_vdecl</ref>(<ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="namespaced3d_1a8cd95d3a91b01e1a9b67860e0b9004fa" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a8cd95d3a91b01e1a9b67860e0b9004fa" kindref="member">setvdecl</ref>(<ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="namespaced3d_1ac53449f29d7d24cdcaf611d1b2f3daf7" kindref="member">create_vb</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>f,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8a94e3b81c8af9da7928f1bb4538a86e" kindref="member">create_vb</ref>(sz,<sp/>f,<sp/>name);<sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="namespaced3d_1abeb28f6ab9a52fb583f488e9ca9523d8" kindref="member">create_ib</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stat_name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abb292a1f382d2c8c93952eadb6d1627d" kindref="member">create_ib</ref>(size_bytes,<sp/>flags,<sp/>stat_name);<sp/>}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2878cf32d25d141f658cc062f962e3d1" kindref="member">setvsrc_ex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>s,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride_bytes)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a61661b4a81b817cf5ced0f17028ecccf" kindref="member">setvsrc_ex</ref>(s,<sp/>vb,<sp/>ofs,<sp/>stride_bytes);<sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ab4b7355eb67812759ebadfd7cb2836f8" kindref="member">setind</ref>(<ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*ib)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aae383291f0390023ef09bbd3f8f0a6c3" kindref="member">setind</ref>(ib);<sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/><ref refid="namespaced3d_1a64de8a685d98bfcf5ab180aaf92eccab" kindref="member">create_vdecl</ref>(<ref refid="dag__consts_8h_1a2b51277c581eb698768747aa38eba5d2" kindref="member">VSDTYPE</ref><sp/>*vsd)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a60a67a040b9c9633629be4095c236c74" kindref="member">create_vdecl</ref>(vsd);<sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a8b1ddd7c2d30e952ce9de7c92512a1c4" kindref="member">delete_vdecl</ref>(<ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a36b6cc6da52774149bffcdc012c401c6" kindref="member">delete_vdecl</ref>(vdecl);<sp/>}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a8cd95d3a91b01e1a9b67860e0b9004fa" kindref="member">setvdecl</ref>(<ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a3ac9ba433ea2009863700ac2666a8cef" kindref="member">setvdecl</ref>(vdecl);<sp/>}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_vertexIndexBuffer.h"/>
+  </compounddef>
+</doxygen>

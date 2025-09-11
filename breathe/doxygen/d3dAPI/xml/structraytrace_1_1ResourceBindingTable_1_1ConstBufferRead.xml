@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::ConstBufferRead</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a9ec74fa8a67452732740fa0b116e4c71" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::ResourceBindingTable::ConstBufferRead::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>raytrace::ResourceBindingTable::ConstBufferRead::buffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Buffer to read from. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="821" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="821" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a659e3536eee8c0edb37c4102ebdcf088" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::ConstBufferRead::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::ConstBufferRead::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>b register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="823" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="823" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1ac1ab9d33f9e496d2eaada36b0dfb1b14" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::ConstBufferRead::offsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>offsetInBytes</name>
+        <qualifiedname>raytrace::ResourceBindingTable::ConstBufferRead::offsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offset to read from buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="825" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="825" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a652f36ecb70d15ec382007bfda3084b3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::ConstBufferRead::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>raytrace::ResourceBindingTable::ConstBufferRead::sizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Size of the constant data range. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="827" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="827" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a constant buffer read on a b register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ResourceBindingTable::ConstBufferRead</label>
+        <link refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="818" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="819" bodyend="828"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a9ec74fa8a67452732740fa0b116e4c71" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::ConstBufferRead</scope><name>buffer</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1ac1ab9d33f9e496d2eaada36b0dfb1b14" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::ConstBufferRead</scope><name>offsetInBytes</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a652f36ecb70d15ec382007bfda3084b3" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::ConstBufferRead</scope><name>sizeInBytes</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a659e3536eee8c0edb37c4102ebdcf088" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::ConstBufferRead</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

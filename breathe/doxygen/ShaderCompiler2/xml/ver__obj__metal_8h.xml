@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ver__obj__metal_8h" kind="file" language="C++">
+    <compoundname>ver_obj_metal.h</compoundname>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Increase<sp/>this<sp/>number<sp/>if<sp/>changes<sp/>in<sp/>the<sp/>compiler<sp/>invalidate<sp/>.obj<sp/>for<sp/>metal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">_MAKE4C(</highlight><highlight class="stringliteral">&apos;12.9&apos;</highlight><highlight class="normal">)</highlight></codeline>
+    </programlisting>
+    <location file="ver_obj_metal.h"/>
+  </compounddef>
+</doxygen>

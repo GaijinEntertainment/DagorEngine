@@ -1,0 +1,313 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="globVarSem_8cpp" kind="file" language="C++">
+    <compoundname>globVarSem.cpp</compoundname>
+    <includes refid="globVarSem_8h" local="yes">globVarSem.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>globVarSem.cpp</label>
+        <link refid="globVarSem_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>globVarSem.h</label>
+        <link refid="globVarSem_8h"/>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVarSem_8h" kindref="compound">globVarSem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shExprParser_8h" kindref="compound">shExprParser.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="semUtils_8h" kindref="compound">semUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompiler_8h" kindref="compound">shCompiler.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompContext_8h" kindref="compound">shCompContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcode_8h" kindref="compound">cppStcode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVar_8h" kindref="compound">globVar.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="samplers_8h" kindref="compound">samplers.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_bitwise_cast.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varMap_8h" kindref="compound">varMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="intervals_8h" kindref="compound">intervals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderTerminal" kindref="compound">ShaderTerminal</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>global<sp/>variable<sp/>to<sp/>a<sp/>global<sp/>variable<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a10671c559a54843a5f0fbfc2337ad6da" kindref="member">add_global_var</ref>(global_var_decl<sp/>*decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!decl)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>t;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(decl-&gt;type-&gt;type-&gt;num)</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_float4:<sp/>t<sp/>=<sp/>SHVT_COLOR4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_float:<sp/>t<sp/>=<sp/>SHVT_REAL;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_int:<sp/>t<sp/>=<sp/>SHVT_INT;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_int4:<sp/>t<sp/>=<sp/>SHVT_INT4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_float4x4:<sp/>t<sp/>=<sp/>SHVT_FLOAT4X4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_texture:<sp/>t<sp/>=<sp/>SHVT_TEXTURE;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_buffer:<sp/>t<sp/>=<sp/>SHVT_BUFFER;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_tlas:<sp/>t<sp/>=<sp/>SHVT_TLAS;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_const_buffer:<sp/>t<sp/>=<sp/>SHVT_BUFFER;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variableNameID<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" kindref="member">varNameMap</ref>().<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(decl-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" kindref="member">getVarInternalIndex</ref>(variableNameID);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>message;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>incStack<sp/>=<sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1a38f3cfca6d22627aa9136da7ee2633f5" kindref="member">build_current_include_stack</ref>();</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>message.aprintf(0,<sp/></highlight><highlight class="stringliteral">&quot;%s\nglobal<sp/>variable<sp/>&apos;%s&apos;<sp/>already<sp/>declared<sp/>in<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>incStack.c_str(),<sp/>decl-&gt;name-&gt;text,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ae065a46a94e418ea39223d730939ce3c" kindref="member">get_symbol_location</ref>(variableNameID,<sp/>SymbolType::GLOBAL_VARIABLE));</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>decl-&gt;name,<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab844a140350220e5e04a80336dca9ae8" kindref="member">register_symbol</ref>(variableNameID,<sp/>SymbolType::GLOBAL_VARIABLE,<sp/>decl-&gt;name);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_array<sp/>=<sp/>decl-&gt;size<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(is_array)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_valid_syntax<sp/>=<sp/>!decl-&gt;expr<sp/>&amp;&amp;<sp/>(t<sp/>==<sp/>SHVT_COLOR4<sp/>||<sp/>t<sp/>==<sp/>SHVT_INT4);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!is_valid_syntax)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>decl-&gt;name,<sp/></highlight><highlight class="stringliteral">&quot;Wrong<sp/>array<sp/>assignment&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_valid_syntax<sp/>=<sp/>!decl-&gt;arr0;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!is_valid_syntax)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>decl-&gt;name,<sp/></highlight><highlight class="stringliteral">&quot;Wrong<sp/>variable<sp/>syntax&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderGlobal::Var&gt;<sp/>&amp;variable_list<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1a4dfe6c40fc24b107d212302fd8b4e6e1" kindref="member">getMutableVariableList</ref>();</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size<sp/>=<sp/>is_array<sp/>?<sp/><ref refid="namespacesemutils_1a6811ced6d8ed588c8946e5816ea788a0" kindref="member">semutils::int_number</ref>(decl-&gt;size-&gt;text)<sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(is_array)</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/>array_size_getter_name(eastl::string::CtorSprintf{},<sp/>ARRAY_SIZE_GETTER_NAME,<sp/>decl-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>v<sp/>=<sp/>append_items(variable_list,<sp/>1);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].type<sp/>=<sp/>SHVT_INT;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].nameId<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" kindref="member">varNameMap</ref>().<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(array_size_getter_name.c_str());</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].isAlwaysReferenced<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].value.i<sp/>=<sp/>size;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>size;<sp/>i++)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>name(eastl::string::CtorSprintf{},<sp/></highlight><highlight class="stringliteral">&quot;%s[%i]&quot;</highlight><highlight class="normal">,<sp/>decl-&gt;name-&gt;text,<sp/>i);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>variableNameID<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" kindref="member">varNameMap</ref>().<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(name.c_str());</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>v<sp/>=<sp/>append_items(variable_list,<sp/>1);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].type<sp/>=<sp/>t;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].nameId<sp/>=<sp/>variableNameID;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].isAlwaysReferenced<sp/>=<sp/>decl-&gt;is_always_referenced<sp/>?<sp/>true<sp/>:<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].shouldIgnoreValue<sp/>=<sp/>decl-&gt;undefined<sp/>?<sp/>true<sp/>:<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].fileName<sp/>=<sp/>bindump::string(parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab26ad89867e01b9d9aecd26d1c74776c" kindref="member">get_filename</ref>(decl-&gt;name-&gt;file_start));</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].array_size<sp/>=<sp/>size;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>variable_list[v].index<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>expectingInt<sp/>=<sp/>t<sp/>==<sp/>SHVT_INT<sp/>||<sp/>t<sp/>==<sp/>SHVT_INT4;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>Color4<sp/>val<sp/>=<sp/>expectingInt<sp/>?<sp/>Color4{bitwise_cast&lt;float&gt;(0),<sp/>bitwise_cast&lt;float&gt;(0),<sp/>bitwise_cast&lt;float&gt;(0),<sp/>bitwise_cast&lt;float&gt;(1)}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>Color4{0,<sp/>0,<sp/>0,<sp/>1};</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderTerminal::arithmetic_expr<sp/>*expr<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>expr<sp/>=<sp/>is_array<sp/>?<sp/>decl-&gt;arr0<sp/>:<sp/>decl-&gt;expr;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>-<sp/>1<sp/>&lt;<sp/>decl-&gt;arrN.size())</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>expr<sp/>=<sp/>decl-&gt;arrN[i<sp/>-<sp/>1];</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(expr)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1ExpressionParser" kindref="compound">ExpressionParser</ref><sp/>exprParser{parser};</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>shexpr::ValueType<sp/>expectedValType<sp/>=<sp/>shexpr::VT_UNDEFINED;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(t<sp/>==<sp/>SHVT_REAL<sp/>||<sp/>t<sp/>==<sp/>SHVT_INT)</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>expectedValType<sp/>=<sp/>shexpr::VT_REAL;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(t<sp/>==<sp/>SHVT_COLOR4<sp/>||<sp/>t<sp/>==<sp/>SHVT_INT4)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>expectedValType<sp/>=<sp/>shexpr::VT_COLOR4;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(t<sp/>==<sp/>SHVT_FLOAT4X4)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>decl-&gt;name,<sp/></highlight><highlight class="stringliteral">&quot;float4x4<sp/>default<sp/>value<sp/>is<sp/>not<sp/>supported&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!exprParser.parseConstExpression(*expr,<sp/>val,<sp/><ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">ExpressionParser::Context</ref>{expectedValType,<sp/>expectingInt,<sp/>decl-&gt;name}))</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>decl-&gt;name,<sp/></highlight><highlight class="stringliteral">&quot;Wrong<sp/>expression&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(t)</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_COLOR4:<sp/>variable_list[v].value.c4.set(val);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_REAL:<sp/>variable_list[v].value.r<sp/>=<sp/>val[0];<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT:<sp/>variable_list[v].value.i<sp/>=<sp/>bitwise_cast&lt;int&gt;(val[0]);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT4:</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>variable_list[v].value.i4.set(bitwise_cast&lt;int&gt;(val[0]),<sp/>bitwise_cast&lt;int&gt;(val[1]),<sp/>bitwise_cast&lt;int&gt;(val[2]),</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>bitwise_cast&lt;int&gt;(val[3]));</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_FLOAT4X4:</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>default<sp/>value<sp/>is<sp/>not<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_BUFFER:</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>variable_list[v].value.bufId<sp/>=<sp/>unsigned(BAD_D3DRESID);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>variable_list[v].value.buf<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TLAS:<sp/>variable_list[v].value.tlas<sp/>=<sp/>NULL;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TEXTURE:</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>variable_list[v].value.texId<sp/>=<sp/>unsigned(BAD_TEXTUREID);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>variable_list[v].value.tex<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>ctx.<ref refid="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" kindref="member">cppStcode</ref>().<ref refid="structStcodeShader_1a01c03b612786960a7e5fe1909f5cac30" kindref="member">globVars</ref>.<ref refid="structStcodeGlobalVars_1ab2f9e5dd6a9e752be67ea7951fd4e6f1" kindref="member">setVar</ref>(ShaderVarType(t),<sp/>decl-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a74499c9c84544475e78a6f1c5cef0b24" kindref="member">add_sampler</ref>(sampler_decl<sp/>*decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)<sp/>{<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a752f5f70f8d04a70f87a34102a85f83a" kindref="member">samplers</ref>().<ref refid="classSamplerTable_1afe3dd516a03bff06a65ea05d9464c62a" kindref="member">add</ref>(*decl,<sp/>parser);<sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1afc2603df5d94963150dadf1c94c46be6" kindref="member">add_interval</ref>(<ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;intervals,<sp/>interval<sp/>&amp;interv,<sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/>type,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="177"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>SymbolType<sp/>symbol_type<sp/>=<sp/>type<sp/>==<sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa7f3628fe65b99b6d908e5238c40bc485" kindref="member">ShaderVariant::VARTYPE_GLOBAL_INTERVAL</ref><sp/>?<sp/>SymbolType::INTERVAL<sp/>:<sp/>SymbolType::LOCAL_INTERVAL;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>intervalId<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(interv.name-&gt;text);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervals.<ref refid="classIntervalList_1ae080729097c3ea1fb615ae97984fba16" kindref="member">intervalExists</ref>(intervalId))</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/>message(eastl::string::CtorSprintf{},<sp/></highlight><highlight class="stringliteral">&quot;interval<sp/>&apos;%s&apos;<sp/>already<sp/>declared<sp/>in<sp/>&quot;</highlight><highlight class="normal">,<sp/>interv.name-&gt;text);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>message<sp/>+=<sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ae065a46a94e418ea39223d730939ce3c" kindref="member">get_symbol_location</ref>(intervalId,<sp/>symbol_type);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref>(parser,<sp/>*interv.name,<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>eastl::string<sp/>file_name<sp/>=<sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab26ad89867e01b9d9aecd26d1c74776c" kindref="member">get_filename</ref>(interv.name-&gt;file_start);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>newInterval(intervalId,<sp/>type,<sp/>eastl::move(file_name));</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab844a140350220e5e04a80336dca9ae8" kindref="member">register_symbol</ref>(newInterval.getNameId(),<sp/>symbol_type,<sp/>interv.name);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>interv.var_decl.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>interval_var<sp/>*var<sp/>=<sp/>interv.var_decl[i];</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>real<sp/>v<sp/>=<sp/><ref refid="namespacesemutils_1a1dac415db8fc672b85f17fd11c13d3b6" kindref="member">semutils::real_number</ref>(var-&gt;val);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>valueNameId<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(var-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!newInterval.addValue(valueNameId,<sp/>v))</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>interv.name,<sp/></highlight><highlight class="stringliteral">&quot;Duplicate<sp/>value<sp/>found<sp/>in<sp/>interval!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>valueNameId<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(interv.last_var_name-&gt;text);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!newInterval.addValue(valueNameId,<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">IntervalValue::VALUE_INFINITY</ref>))</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>interv.name,<sp/></highlight><highlight class="stringliteral">&quot;Duplicate<sp/>value<sp/>found<sp/>in<sp/>interval!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!intervals.<ref refid="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" kindref="member">addInterval</ref>(newInterval))</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>interv.name,<sp/></highlight><highlight class="stringliteral">&quot;Interval<sp/>already<sp/>exists<sp/>and<sp/>their<sp/>type<sp/>diffirent<sp/>from<sp/>new<sp/>interval!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>global<sp/>variable<sp/>interval</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a3a609923c411d04789c30e49f564e7ff" kindref="member">add_global_interval</ref>(ShaderTerminal::interval<sp/>&amp;interv,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="213"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;intervals<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1afd0083122930c0c8b8a5bbb82729d150" kindref="member">getMutableIntervalList</ref>();</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderParser_1afc2603df5d94963150dadf1c94c46be6" kindref="member">add_interval</ref>(intervals,<sp/>interv,<sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa7f3628fe65b99b6d908e5238c40bc485" kindref="member">ShaderVariant::VARTYPE_GLOBAL_INTERVAL</ref>,<sp/>parser,<sp/>ctx);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>add_assume_impl(<ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref><sp/>&amp;table,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;intervals,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;stat,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="220"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">stat_t<sp/>=<sp/>eastl::remove_cvref_t&lt;</highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(stat)&gt;;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(eastl::is_same_v&lt;stat_t,<sp/>assume_stat&gt;<sp/>||<sp/>eastl::is_same_v&lt;stat_t,<sp/>assume_if_not_assumed_stat&gt;);</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>OVERRIDE<sp/>=<sp/>eastl::is_same_v&lt;stat_t,<sp/>assume_stat&gt;;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>interval_nid<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a2b43444bc74666574cba61624c72d22e" kindref="member">getNameId</ref>(stat.interval-&gt;text);</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_nid<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a2b43444bc74666574cba61624c72d22e" kindref="member">getNameId</ref>(stat.value-&gt;text);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(interval_nid<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>stat.interval,<sp/></highlight><highlight class="stringliteral">&quot;Undeclared<sp/>interval<sp/>&apos;%s&apos;<sp/>(nameId=%d)<sp/>is<sp/>used<sp/>in<sp/>&apos;assume&apos;&quot;</highlight><highlight class="normal">,<sp/>stat.interval-&gt;text,<sp/>interval_nid);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(value_nid<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>stat.value,<sp/></highlight><highlight class="stringliteral">&quot;Bad<sp/>value<sp/>&apos;%s&apos;<sp/>(nameId=%d)<sp/>for<sp/>interval<sp/>&apos;%s&apos;<sp/>is<sp/>used<sp/>in<sp/>&apos;assume&apos;&quot;</highlight><highlight class="normal">,<sp/>stat.value-&gt;text,<sp/>value_nid,</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>stat.interval-&gt;text);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref><sp/>intervalIndex<sp/>=<sp/>intervals.<ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(interval_nid);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*interv<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervalIndex<sp/>!=<sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>)</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/>interv<sp/>=<sp/>intervals.<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalIndex);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>intervalIndex<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" kindref="member">getIntervalList</ref>().<ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(interval_nid);</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>interv<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" kindref="member">getIntervalList</ref>().<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalIndex);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!interv)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>stat.interval,<sp/></highlight><highlight class="stringliteral">&quot;Undeclared<sp/>interval<sp/>&apos;%s&apos;<sp/>(nameId=%d)<sp/>is<sp/>used<sp/>in<sp/>&apos;assume&apos;&quot;</highlight><highlight class="normal">,<sp/>stat.interval-&gt;text,<sp/>interval_nid);</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>*interv_val<sp/>=<sp/>interv-&gt;<ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">getValueByNameId</ref>(value_nid);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!interv_val)</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>stat.value,<sp/></highlight><highlight class="stringliteral">&quot;Bad<sp/>value<sp/>&apos;%s&apos;<sp/>(nameId=%d)<sp/>for<sp/>interval<sp/>&apos;%s&apos;<sp/>is<sp/>used<sp/>in<sp/>&apos;assume&apos;&quot;</highlight><highlight class="normal">,<sp/>stat.value-&gt;text,<sp/>value_nid,</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>stat.interval-&gt;text);</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>newval<sp/>=<sp/>table.<ref refid="classShaderAssumesTable_1aed503435493331a95c59aae9cd0fe3b6" kindref="member">addIntervalAssume</ref>(stat.interval-&gt;text,<sp/>*interv_val,<sp/>!OVERRIDE,<sp/>parser,<sp/>stat.interval);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/>debug(</highlight><highlight class="stringliteral">&quot;%s=%s<sp/>-&gt;<sp/>%s<sp/>%s=%g&quot;</highlight><highlight class="normal">,<sp/>stat.interval-&gt;text,<sp/>stat.value-&gt;text,<sp/>table.<ref refid="classShaderAssumesTable_1a35fe76767f64aee7a9d76df206d6e404" kindref="member">getDebugName</ref>(),<sp/>stat.interval-&gt;text,<sp/>newval);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a902443a4c7749a22da19ef6406a3ef37" kindref="member">add_shader_assume</ref>(assume_stat<sp/>&amp;s,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="267"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/>add_assume_impl(ctx.<ref refid="classshc_1_1ShaderContext_1aeeaa07d5b2e79f290df03aa69d7ae312" kindref="member">assumes</ref>(),<sp/>ctx.<ref refid="classshc_1_1ShaderContext_1a209dd192d866a02b8102a8858b7e5b8d" kindref="member">intervals</ref>(),<sp/>s,<sp/>parser,<sp/>ctx.<ref refid="classshc_1_1ShaderContext_1a8d1967ec973d0ffe1c0ddb78cec30dce" kindref="member">tgtCtx</ref>());</highlight></codeline>
+<codeline lineno="269"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a746c1d89a06e7cfcf4dcf303deace014" kindref="member">add_shader_assume_if_not_assumed</ref>(ShaderTerminal::assume_if_not_assumed_stat<sp/>&amp;s,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="272"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/>add_assume_impl(ctx.<ref refid="classshc_1_1ShaderContext_1aeeaa07d5b2e79f290df03aa69d7ae312" kindref="member">assumes</ref>(),<sp/>ctx.<ref refid="classshc_1_1ShaderContext_1a209dd192d866a02b8102a8858b7e5b8d" kindref="member">intervals</ref>(),<sp/>s,<sp/>parser,<sp/>ctx.<ref refid="classshc_1_1ShaderContext_1a8d1967ec973d0ffe1c0ddb78cec30dce" kindref="member">tgtCtx</ref>());</highlight></codeline>
+<codeline lineno="274"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a3694aa6c4ff0bd461c5d54c42339bd16" kindref="member">add_global_assume</ref>(ShaderTerminal::assume_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="277"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/>add_assume_impl(ctx.<ref refid="classshc_1_1TargetContext_1ad157465287525b2f018adc20405eab18" kindref="member">globAssumes</ref>(),<sp/>{},<sp/>assume,<sp/>parser,<sp/>ctx);</highlight></codeline>
+<codeline lineno="279"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a055504365a173c54c1335ecec383cdc0" kindref="member">add_global_assume_if_not_assumed</ref>(ShaderTerminal::assume_if_not_assumed_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="282"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/>add_assume_impl(ctx.<ref refid="classshc_1_1TargetContext_1ad157465287525b2f018adc20405eab18" kindref="member">globAssumes</ref>(),<sp/>{},<sp/>assume,<sp/>parser,<sp/>ctx);</highlight></codeline>
+<codeline lineno="284"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"></highlight></codeline>
+<codeline lineno="286"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="globVarSem.cpp"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1347 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGridObject" kind="class" language="C++" prot="public">
+    <compoundname>GridObject</compoundname>
+    <includes refid="ec__gridobject_8h" local="no">ec_gridobject.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Test &apos;snap toggle&apos; buttons</header>
+      <memberdef kind="variable" id="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" prot="protected" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int GridObject::VIS_CNT</definition>
+        <argsstring></argsstring>
+        <name>VIS_CNT</name>
+        <qualifiedname>GridObject::VIS_CNT</qualifiedname>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="159" column="20" bodyfile="ec_gridobject.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::visible[VIS_CNT]</definition>
+        <argsstring>[VIS_CNT]</argsstring>
+        <name>visible</name>
+        <qualifiedname>GridObject::visible</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="161" column="8" bodyfile="ec_gridobject.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1af371015468e37ba5af71afed492d0c28" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::step</definition>
+        <argsstring></argsstring>
+        <name>step</name>
+        <qualifiedname>GridObject::step</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="162" column="8" bodyfile="ec_gridobject.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::angleStep</definition>
+        <argsstring></argsstring>
+        <name>angleStep</name>
+        <qualifiedname>GridObject::angleStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="163" column="8" bodyfile="ec_gridobject.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::scaleStep</definition>
+        <argsstring></argsstring>
+        <name>scaleStep</name>
+        <qualifiedname>GridObject::scaleStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="164" column="8" bodyfile="ec_gridobject.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1aa39c876176be13e5be9de51b7389b36e" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::gridHeight</definition>
+        <argsstring></argsstring>
+        <name>gridHeight</name>
+        <qualifiedname>GridObject::gridHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="165" column="8" bodyfile="ec_gridobject.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isMoveSnap</definition>
+        <argsstring></argsstring>
+        <name>isMoveSnap</name>
+        <qualifiedname>GridObject::isMoveSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="166" column="8" bodyfile="ec_gridobject.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isRotateSnap</definition>
+        <argsstring></argsstring>
+        <name>isRotateSnap</name>
+        <qualifiedname>GridObject::isRotateSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="167" column="8" bodyfile="ec_gridobject.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isScaleSnap</definition>
+        <argsstring></argsstring>
+        <name>isScaleSnap</name>
+        <qualifiedname>GridObject::isScaleSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="168" column="8" bodyfile="ec_gridobject.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isDrawMajorLines</definition>
+        <argsstring></argsstring>
+        <name>isDrawMajorLines</name>
+        <qualifiedname>GridObject::isDrawMajorLines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="169" column="8" bodyfile="ec_gridobject.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isDrawAxisLines</definition>
+        <argsstring></argsstring>
+        <name>isDrawAxisLines</name>
+        <qualifiedname>GridObject::isDrawAxisLines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="170" column="8" bodyfile="ec_gridobject.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1abd21149702d065c0bb7961a37b94f026" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::infiniteGridInitialized</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridInitialized</name>
+        <qualifiedname>GridObject::infiniteGridInitialized</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="172" column="8" bodyfile="ec_gridobject.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ac84a4eaec3322dccf1834e12173de6bf" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; ShaderMaterial &gt;</type>
+        <definition>Ptr&lt;ShaderMaterial&gt; GridObject::infiniteGridShaderMaterial</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridShaderMaterial</name>
+        <qualifiedname>GridObject::infiniteGridShaderMaterial</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="173" column="7" bodyfile="ec_gridobject.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a5e36f646b775bb65c4b8b99e2681ba44" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; ShaderElement &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; GridObject::infiniteGridShaderElement</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridShaderElement</name>
+        <qualifiedname>GridObject::infiniteGridShaderElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="174" column="7" bodyfile="ec_gridobject.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GridObject::isUseInfiniteGrid</definition>
+        <argsstring></argsstring>
+        <name>isUseInfiniteGrid</name>
+        <qualifiedname>GridObject::isUseInfiniteGrid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="175" column="8" bodyfile="ec_gridobject.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a18b4b6620b738bcfe65946358269a539" prot="protected" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::infiniteGridMajorLineColor</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridMajorLineColor</name>
+        <qualifiedname>GridObject::infiniteGridMajorLineColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="176" column="12" bodyfile="ec_gridobject.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" prot="protected" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::infiniteGridMinorLineColor</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridMinorLineColor</name>
+        <qualifiedname>GridObject::infiniteGridMinorLineColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="177" column="12" bodyfile="ec_gridobject.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ae6398ae0fb3ed84b875f0a9e34f79d98" prot="protected" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::infiniteGridXAxisColor</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridXAxisColor</name>
+        <qualifiedname>GridObject::infiniteGridXAxisColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="178" column="12" bodyfile="ec_gridobject.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a21aaf5c5785f031cc4066b40ae107eab" prot="protected" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::infiniteGridZAxisColor</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridZAxisColor</name>
+        <qualifiedname>GridObject::infiniteGridZAxisColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="179" column="12" bodyfile="ec_gridobject.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1ace314c8b926af069d60705af420ec248" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::infiniteGridMajorLineWidth</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridMajorLineWidth</name>
+        <qualifiedname>GridObject::infiniteGridMajorLineWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="180" column="8" bodyfile="ec_gridobject.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a8437a8393bc5bf085db092447b99ed92" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GridObject::infiniteGridMinorLineWidth</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridMinorLineWidth</name>
+        <qualifiedname>GridObject::infiniteGridMinorLineWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="181" column="8" bodyfile="ec_gridobject.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GridObject::infiniteGridMajorSubdivisions</definition>
+        <argsstring></argsstring>
+        <name>infiniteGridMajorSubdivisions</name>
+        <qualifiedname>GridObject::infiniteGridMajorSubdivisions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="182" column="7" bodyfile="ec_gridobject.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aa963ee2ee6ae7098a6e3ab6b95a33df6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getMoveSnap</definition>
+        <argsstring>() const</argsstring>
+        <name>getMoveSnap</name>
+        <qualifiedname>GridObject::getMoveSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether &apos;Move snap toggle&apos; button pressed. <simplesect kind="return"><para><bold>true</bold> if &apos;Move snap toggle&apos; button is in pressed state, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="106" column="8" bodyfile="ec_gridobject.h" bodystart="106" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a544e51adfdf60cf02c776501071bd106" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setMoveSnap</definition>
+        <argsstring>(bool is_snap)</argsstring>
+        <name>setMoveSnap</name>
+        <qualifiedname>GridObject::setMoveSnap</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>is_snap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set &apos;Move&apos; snap flag. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">is_snap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false: set / clear </bold> snap property </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="109" column="8" bodyfile="ec_gridobject.h" bodystart="109" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a3f5b0b0cd0881b5ac9962510bd78bb3c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getRotateSnap</definition>
+        <argsstring>() const</argsstring>
+        <name>getRotateSnap</name>
+        <qualifiedname>GridObject::getRotateSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether &apos;Rotate snap toggle&apos; button pressed. <simplesect kind="return"><para><bold>true</bold> if &apos;Rotate snap toggle&apos; button is in pressed state, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="114" column="8" bodyfile="ec_gridobject.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a5549bbea5239a7374bedc61ab7bdc6b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setRotateSnap</definition>
+        <argsstring>(bool is_snap)</argsstring>
+        <name>setRotateSnap</name>
+        <qualifiedname>GridObject::setRotateSnap</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>is_snap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set &apos;Rotate&apos; snap flag. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">is_snap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false: set / clear </bold> snap property </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="117" column="8" bodyfile="ec_gridobject.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a0dfe7ca835d0c4ffc89c1c48ea2cd796" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getScaleSnap</definition>
+        <argsstring>() const</argsstring>
+        <name>getScaleSnap</name>
+        <qualifiedname>GridObject::getScaleSnap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether &apos;Scale snap toggle&apos; button pressed. <simplesect kind="return"><para><bold>true</bold> if &apos;Scale snap toggle&apos; button is in pressed state, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="122" column="8" bodyfile="ec_gridobject.h" bodystart="122" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a04331c45f4b7e1f853844a357ad8f9c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setScaleSnap</definition>
+        <argsstring>(bool is_snap)</argsstring>
+        <name>setScaleSnap</name>
+        <qualifiedname>GridObject::setScaleSnap</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>is_snap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set &apos;Scale&apos; snap flag. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">is_snap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false: set / clear </bold> snap property </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="125" column="8" bodyfile="ec_gridobject.h" bodystart="125" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a577f74c1dfeff8661b0acdb29cf13a82" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getDrawMajorLines</definition>
+        <argsstring>()</argsstring>
+        <name>getDrawMajorLines</name>
+        <qualifiedname>GridObject::getDrawMajorLines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="128" column="8" bodyfile="ec_gridobject.h" bodystart="128" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ab01b9bcc05dfb110aaa128b5613d70b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setDrawMajorLines</definition>
+        <argsstring>(bool draw)</argsstring>
+        <name>setDrawMajorLines</name>
+        <qualifiedname>GridObject::setDrawMajorLines</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>draw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="129" column="8" bodyfile="ec_gridobject.h" bodystart="129" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a1468291731ce2dd8c5e731ffb0a6bc34" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getDrawAxisLines</definition>
+        <argsstring>()</argsstring>
+        <name>getDrawAxisLines</name>
+        <qualifiedname>GridObject::getDrawAxisLines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="131" column="8" bodyfile="ec_gridobject.h" bodystart="131" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a48ee2feec72b935ef54901db29afc096" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setDrawAxisLines</definition>
+        <argsstring>(bool draw)</argsstring>
+        <name>setDrawAxisLines</name>
+        <qualifiedname>GridObject::setDrawAxisLines</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>draw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="132" column="8" bodyfile="ec_gridobject.h" bodystart="132" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1af0df2412833088a3d956c7b052cc88d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getGridHeight</definition>
+        <argsstring>()</argsstring>
+        <name>getGridHeight</name>
+        <qualifiedname>GridObject::getGridHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="134" column="8" bodyfile="ec_gridobject.h" bodystart="134" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ad7c8c7eb69f72185222b57164604f8f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setGridHeight</definition>
+        <argsstring>(real new_height)</argsstring>
+        <name>setGridHeight</name>
+        <qualifiedname>GridObject::setGridHeight</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>new_height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="135" column="8" bodyfile="ec_gridobject.h" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aec953a9fde98ef4fff62b4b4faa766b3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::getUseInfiniteGrid</definition>
+        <argsstring>() const</argsstring>
+        <name>getUseInfiniteGrid</name>
+        <qualifiedname>GridObject::getUseInfiniteGrid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="137" column="8" bodyfile="ec_gridobject.h" bodystart="137" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a8fed07daa3ccc777c0c1e344385cc14a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setUseInfiniteGrid</definition>
+        <argsstring>(bool infinite)</argsstring>
+        <name>setUseInfiniteGrid</name>
+        <qualifiedname>GridObject::setUseInfiniteGrid</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>infinite</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="138" column="8" bodyfile="ec_gridobject.h" bodystart="138" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a0ac3c0165d2a5a79259802c69c443365" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::getInfiniteGridMajorLineColor</definition>
+        <argsstring>() const</argsstring>
+        <name>getInfiniteGridMajorLineColor</name>
+        <qualifiedname>GridObject::getInfiniteGridMajorLineColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="140" column="12" bodyfile="ec_gridobject.h" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aec3f4ec814dc1628285b44aba54f805c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setInfiniteGridMajorLineColor</definition>
+        <argsstring>(E3DCOLOR color)</argsstring>
+        <name>setInfiniteGridMajorLineColor</name>
+        <qualifiedname>GridObject::setInfiniteGridMajorLineColor</qualifiedname>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="141" column="8" bodyfile="ec_gridobject.h" bodystart="141" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a4c8b997eef863be596c7cff69a9e3c2d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GridObject::getInfiniteGridMinorLineColor</definition>
+        <argsstring>() const</argsstring>
+        <name>getInfiniteGridMinorLineColor</name>
+        <qualifiedname>GridObject::getInfiniteGridMinorLineColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="143" column="12" bodyfile="ec_gridobject.h" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a3154213a55c119847aa9188966729d42" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setInfiniteGridMinorLineColor</definition>
+        <argsstring>(E3DCOLOR color)</argsstring>
+        <name>setInfiniteGridMinorLineColor</name>
+        <qualifiedname>GridObject::setInfiniteGridMinorLineColor</qualifiedname>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="144" column="8" bodyfile="ec_gridobject.h" bodystart="144" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a20bda36ada64a846c5a5810b95ed5d93" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getInfiniteGridMajorLineWidth</definition>
+        <argsstring>() const</argsstring>
+        <name>getInfiniteGridMajorLineWidth</name>
+        <qualifiedname>GridObject::getInfiniteGridMajorLineWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="146" column="8" bodyfile="ec_gridobject.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a13b130aa9c9b80b184cd44c9a3d3ede8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setInfiniteGridMajorLineWidth</definition>
+        <argsstring>(real width)</argsstring>
+        <name>setInfiniteGridMajorLineWidth</name>
+        <qualifiedname>GridObject::setInfiniteGridMajorLineWidth</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="147" column="8" bodyfile="ec_gridobject.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a45c5d820ebb5030317d0a6d09b4a092a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getInfiniteGridMinorLineWidth</definition>
+        <argsstring>() const</argsstring>
+        <name>getInfiniteGridMinorLineWidth</name>
+        <qualifiedname>GridObject::getInfiniteGridMinorLineWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="149" column="8" bodyfile="ec_gridobject.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a9da3eeaccfba99b3f821af81cc08a910" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setInfiniteGridMinorLineWidth</definition>
+        <argsstring>(real width)</argsstring>
+        <name>setInfiniteGridMinorLineWidth</name>
+        <qualifiedname>GridObject::setInfiniteGridMinorLineWidth</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="150" column="8" bodyfile="ec_gridobject.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a36f7ddaf59d05a7b0bbd47665dec9e09" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GridObject::getInfiniteGridMajorSubdivisions</definition>
+        <argsstring>() const</argsstring>
+        <name>getInfiniteGridMajorSubdivisions</name>
+        <qualifiedname>GridObject::getInfiniteGridMajorSubdivisions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="152" column="7" bodyfile="ec_gridobject.h" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a0d453ac1bd5b3fda4ff20206b4ad0a67" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setInfiniteGridMajorSubdivisions</definition>
+        <argsstring>(int subdivisions)</argsstring>
+        <name>setInfiniteGridMajorSubdivisions</name>
+        <qualifiedname>GridObject::setInfiniteGridMajorSubdivisions</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>subdivisions</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="153" column="8" bodyfile="ec_gridobject.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a6b3333879e6cdd43e08f8ce7eb7ab5ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::resetToDefault</definition>
+        <argsstring>()</argsstring>
+        <name>resetToDefault</name>
+        <qualifiedname>GridObject::resetToDefault</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="155" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a0db2b42419ddea70b36631ce79e8c138" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::renderInfiniteGrid</definition>
+        <argsstring>()</argsstring>
+        <name>renderInfiniteGrid</name>
+        <qualifiedname>GridObject::renderInfiniteGrid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="184" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Get grid properties.</header>
+      <memberdef kind="function" id="classGridObject_1af267e41718a4e3d73cdad9d4f594cee4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GridObject::isVisible</definition>
+        <argsstring>(int idx) const</argsstring>
+        <name>isVisible</name>
+        <qualifiedname>GridObject::isVisible</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether the grid is visible in specified viewport. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">idx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport index </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if the grid is visible, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="33" column="15" bodyfile="ec_gridobject.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ac8aa7e3fe70fc24b7404aee0b342d36d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getStep</definition>
+        <argsstring>() const</argsstring>
+        <name>getStep</name>
+        <qualifiedname>GridObject::getStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object move step. <simplesect kind="return"><para>objects move step (in metres) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="37" column="15" bodyfile="ec_gridobject.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ab2b7dfa8d985d5b076ad5f7d8f5353c4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getAngleStep</definition>
+        <argsstring>() const</argsstring>
+        <name>getAngleStep</name>
+        <qualifiedname>GridObject::getAngleStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object rotation step. <simplesect kind="return"><para>objects rotation step (in degrees) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="40" column="15" bodyfile="ec_gridobject.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aa4ff1081cf12e6c11dace2261a00f1d9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::getScaleStep</definition>
+        <argsstring>() const</argsstring>
+        <name>getScaleStep</name>
+        <qualifiedname>GridObject::getScaleStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object scaling step. <simplesect kind="return"><para>objects scaling step (in percent from original size) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="43" column="15" bodyfile="ec_gridobject.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Set grid properties.</header>
+      <memberdef kind="function" id="classGridObject_1a04869248e5dbfbe83357cd771642588a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setVisible</definition>
+        <argsstring>(bool v, int index)</argsstring>
+        <name>setVisible</name>
+        <qualifiedname>GridObject::setVisible</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set grid visibility in specified viewport. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false</bold>: set visibility <bold>on / off</bold> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport index </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="52" column="15" bodyfile="ec_gridobject.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ab5a81744c0ab28ce853013f2d58b6d31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setStep</definition>
+        <argsstring>(real st)</argsstring>
+        <name>setStep</name>
+        <qualifiedname>GridObject::setStep</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>st</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object move step. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">st</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object move step (in meters) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="55" column="15" bodyfile="ec_gridobject.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ad81d88929b43697a0cc654493b6739ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setAngleStep</definition>
+        <argsstring>(real st)</argsstring>
+        <name>setAngleStep</name>
+        <qualifiedname>GridObject::setAngleStep</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>st</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object rotation step. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">st</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object rotation step (in degrees) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="58" column="15" bodyfile="ec_gridobject.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ae8cb503f8e743543394c7444b1c730ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::setScaleStep</definition>
+        <argsstring>(real st)</argsstring>
+        <name>setScaleStep</name>
+        <qualifiedname>GridObject::setScaleStep</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>st</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object scaling step. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">st</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- objects scaling step (in percent from original size) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="61" column="15" bodyfile="ec_gridobject.h" bodystart="61" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1ab6c4bda87281b0bf794899e67b1e75fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::save</definition>
+        <argsstring>(DataBlock &amp;blk)</argsstring>
+        <name>save</name>
+        <qualifiedname>GridObject::save</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save grid properties to blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="66" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a8c4f2e896442320935e63351f221ffc7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::load</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>load</name>
+        <qualifiedname>GridObject::load</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load grid properties from blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="69" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aee891170e98ce57e232ab3b0b8550867" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridObject::render</definition>
+        <argsstring>(Point3 *pt, Point3 *dirs, real zoom, int index, bool test_z=true, bool write_z=true)</argsstring>
+        <name>render</name>
+        <qualifiedname>GridObject::render</qualifiedname>
+        <param>
+          <type>Point3 *</type>
+          <declname>pt</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>dirs</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>zoom</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>test_z</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>write_z</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render the grid in specified viewport. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to array of four Point3, specifying vertex coordinates of grid&apos;s rectangle </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dirs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to array of two Point3, specifyind grid`s lines directions </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">zoom</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport zoom </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport index </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="78" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1af05c59ba43f1ff6d0b636b47ce1ea457" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>real</type>
+        <definition>real GridObject::snap</definition>
+        <argsstring>(real f, real st) const</argsstring>
+        <name>snap</name>
+        <qualifiedname>GridObject::snap</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>st</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Round value to the nearest (snapped) value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">f</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the value to snap </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">st</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- snap step </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the snapped value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="84" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1aa21901759deedd906a64e661a88b037d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 GridObject::snapToGrid</definition>
+        <argsstring>(const Point3 &amp;p) const</argsstring>
+        <name>snapToGrid</name>
+        <qualifiedname>GridObject::snapToGrid</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Snap to grid - round coordinates to the nearest grid&apos;s point. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- point coordinates to snap </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>coordinates of snapped point </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="89" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a2e5c2bd3957ed2f523e9dc3b32ba894b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 GridObject::snapToAngle</definition>
+        <argsstring>(const Point3 &amp;p) const</argsstring>
+        <name>snapToAngle</name>
+        <qualifiedname>GridObject::snapToAngle</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Snap to angle - round rotation angle to the nearest (snapped) angle <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- angle to snap </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>snapped angle </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="93" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a4ace62ac911f407c02565ad5c4200dc5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 GridObject::snapToScale</definition>
+        <argsstring>(const Point3 &amp;p) const</argsstring>
+        <name>snapToScale</name>
+        <qualifiedname>GridObject::snapToScale</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Snap to scale - round scale value to the nearest (snapped) value <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- scale value to snap </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>snapped scale value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="97" column="10"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGridObject_1aea45b95ec380f8830b383d325627fff1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GridObject::GridObject</definition>
+        <argsstring>()</argsstring>
+        <name>GridObject</name>
+        <qualifiedname>GridObject::GridObject</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridObject_1a37d7b0d1dfa77d8f1804ea5f0af3d6ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GridObject::~GridObject</definition>
+        <argsstring>()</argsstring>
+        <name>~GridObject</name>
+        <qualifiedname>GridObject::~GridObject</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="25" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Grid object. Used for representing Editor grid. </para>
+    </detaileddescription>
+    <location file="ec_gridobject.h" line="20" column="1" bodyfile="ec_gridobject.h" bodystart="21" bodyend="185"/>
+    <listofallmembers>
+      <member refid="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>angleStep</name></member>
+      <member refid="classGridObject_1ab2b7dfa8d985d5b076ad5f7d8f5353c4" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getAngleStep</name></member>
+      <member refid="classGridObject_1a1468291731ce2dd8c5e731ffb0a6bc34" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getDrawAxisLines</name></member>
+      <member refid="classGridObject_1a577f74c1dfeff8661b0acdb29cf13a82" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getDrawMajorLines</name></member>
+      <member refid="classGridObject_1af0df2412833088a3d956c7b052cc88d6" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getGridHeight</name></member>
+      <member refid="classGridObject_1a0ac3c0165d2a5a79259802c69c443365" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getInfiniteGridMajorLineColor</name></member>
+      <member refid="classGridObject_1a20bda36ada64a846c5a5810b95ed5d93" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getInfiniteGridMajorLineWidth</name></member>
+      <member refid="classGridObject_1a36f7ddaf59d05a7b0bbd47665dec9e09" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getInfiniteGridMajorSubdivisions</name></member>
+      <member refid="classGridObject_1a4c8b997eef863be596c7cff69a9e3c2d" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getInfiniteGridMinorLineColor</name></member>
+      <member refid="classGridObject_1a45c5d820ebb5030317d0a6d09b4a092a" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getInfiniteGridMinorLineWidth</name></member>
+      <member refid="classGridObject_1aa963ee2ee6ae7098a6e3ab6b95a33df6" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getMoveSnap</name></member>
+      <member refid="classGridObject_1a3f5b0b0cd0881b5ac9962510bd78bb3c" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getRotateSnap</name></member>
+      <member refid="classGridObject_1a0dfe7ca835d0c4ffc89c1c48ea2cd796" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getScaleSnap</name></member>
+      <member refid="classGridObject_1aa4ff1081cf12e6c11dace2261a00f1d9" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getScaleStep</name></member>
+      <member refid="classGridObject_1ac8aa7e3fe70fc24b7404aee0b342d36d" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getStep</name></member>
+      <member refid="classGridObject_1aec953a9fde98ef4fff62b4b4faa766b3" prot="public" virt="non-virtual"><scope>GridObject</scope><name>getUseInfiniteGrid</name></member>
+      <member refid="classGridObject_1aa39c876176be13e5be9de51b7389b36e" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>gridHeight</name></member>
+      <member refid="classGridObject_1aea45b95ec380f8830b383d325627fff1" prot="public" virt="non-virtual"><scope>GridObject</scope><name>GridObject</name></member>
+      <member refid="classGridObject_1abd21149702d065c0bb7961a37b94f026" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridInitialized</name></member>
+      <member refid="classGridObject_1a18b4b6620b738bcfe65946358269a539" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridMajorLineColor</name></member>
+      <member refid="classGridObject_1ace314c8b926af069d60705af420ec248" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridMajorLineWidth</name></member>
+      <member refid="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridMajorSubdivisions</name></member>
+      <member refid="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridMinorLineColor</name></member>
+      <member refid="classGridObject_1a8437a8393bc5bf085db092447b99ed92" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridMinorLineWidth</name></member>
+      <member refid="classGridObject_1a5e36f646b775bb65c4b8b99e2681ba44" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridShaderElement</name></member>
+      <member refid="classGridObject_1ac84a4eaec3322dccf1834e12173de6bf" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridShaderMaterial</name></member>
+      <member refid="classGridObject_1ae6398ae0fb3ed84b875f0a9e34f79d98" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridXAxisColor</name></member>
+      <member refid="classGridObject_1a21aaf5c5785f031cc4066b40ae107eab" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>infiniteGridZAxisColor</name></member>
+      <member refid="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isDrawAxisLines</name></member>
+      <member refid="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isDrawMajorLines</name></member>
+      <member refid="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isMoveSnap</name></member>
+      <member refid="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isRotateSnap</name></member>
+      <member refid="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isScaleSnap</name></member>
+      <member refid="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>isUseInfiniteGrid</name></member>
+      <member refid="classGridObject_1af267e41718a4e3d73cdad9d4f594cee4" prot="public" virt="non-virtual"><scope>GridObject</scope><name>isVisible</name></member>
+      <member refid="classGridObject_1a8c4f2e896442320935e63351f221ffc7" prot="public" virt="non-virtual"><scope>GridObject</scope><name>load</name></member>
+      <member refid="classGridObject_1aee891170e98ce57e232ab3b0b8550867" prot="public" virt="non-virtual"><scope>GridObject</scope><name>render</name></member>
+      <member refid="classGridObject_1a0db2b42419ddea70b36631ce79e8c138" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>renderInfiniteGrid</name></member>
+      <member refid="classGridObject_1a6b3333879e6cdd43e08f8ce7eb7ab5ee" prot="public" virt="non-virtual"><scope>GridObject</scope><name>resetToDefault</name></member>
+      <member refid="classGridObject_1ab6c4bda87281b0bf794899e67b1e75fd" prot="public" virt="non-virtual"><scope>GridObject</scope><name>save</name></member>
+      <member refid="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>scaleStep</name></member>
+      <member refid="classGridObject_1ad81d88929b43697a0cc654493b6739ad" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setAngleStep</name></member>
+      <member refid="classGridObject_1a48ee2feec72b935ef54901db29afc096" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setDrawAxisLines</name></member>
+      <member refid="classGridObject_1ab01b9bcc05dfb110aaa128b5613d70b1" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setDrawMajorLines</name></member>
+      <member refid="classGridObject_1ad7c8c7eb69f72185222b57164604f8f2" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setGridHeight</name></member>
+      <member refid="classGridObject_1aec3f4ec814dc1628285b44aba54f805c" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setInfiniteGridMajorLineColor</name></member>
+      <member refid="classGridObject_1a13b130aa9c9b80b184cd44c9a3d3ede8" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setInfiniteGridMajorLineWidth</name></member>
+      <member refid="classGridObject_1a0d453ac1bd5b3fda4ff20206b4ad0a67" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setInfiniteGridMajorSubdivisions</name></member>
+      <member refid="classGridObject_1a3154213a55c119847aa9188966729d42" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setInfiniteGridMinorLineColor</name></member>
+      <member refid="classGridObject_1a9da3eeaccfba99b3f821af81cc08a910" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setInfiniteGridMinorLineWidth</name></member>
+      <member refid="classGridObject_1a544e51adfdf60cf02c776501071bd106" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setMoveSnap</name></member>
+      <member refid="classGridObject_1a5549bbea5239a7374bedc61ab7bdc6b0" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setRotateSnap</name></member>
+      <member refid="classGridObject_1a04331c45f4b7e1f853844a357ad8f9c2" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setScaleSnap</name></member>
+      <member refid="classGridObject_1ae8cb503f8e743543394c7444b1c730ce" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setScaleStep</name></member>
+      <member refid="classGridObject_1ab5a81744c0ab28ce853013f2d58b6d31" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setStep</name></member>
+      <member refid="classGridObject_1a8fed07daa3ccc777c0c1e344385cc14a" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setUseInfiniteGrid</name></member>
+      <member refid="classGridObject_1a04869248e5dbfbe83357cd771642588a" prot="public" virt="non-virtual"><scope>GridObject</scope><name>setVisible</name></member>
+      <member refid="classGridObject_1af05c59ba43f1ff6d0b636b47ce1ea457" prot="public" virt="non-virtual"><scope>GridObject</scope><name>snap</name></member>
+      <member refid="classGridObject_1a2e5c2bd3957ed2f523e9dc3b32ba894b" prot="public" virt="non-virtual"><scope>GridObject</scope><name>snapToAngle</name></member>
+      <member refid="classGridObject_1aa21901759deedd906a64e661a88b037d" prot="public" virt="non-virtual"><scope>GridObject</scope><name>snapToGrid</name></member>
+      <member refid="classGridObject_1a4ace62ac911f407c02565ad5c4200dc5" prot="public" virt="non-virtual"><scope>GridObject</scope><name>snapToScale</name></member>
+      <member refid="classGridObject_1af371015468e37ba5af71afed492d0c28" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>step</name></member>
+      <member refid="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>VIS_CNT</name></member>
+      <member refid="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" prot="protected" virt="non-virtual"><scope>GridObject</scope><name>visible</name></member>
+      <member refid="classGridObject_1a37d7b0d1dfa77d8f1804ea5f0af3d6ba" prot="public" virt="non-virtual"><scope>GridObject</scope><name>~GridObject</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

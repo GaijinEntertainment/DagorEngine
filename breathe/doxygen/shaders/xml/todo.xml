@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="todo" kind="page">
+    <compoundname>todo</compoundname>
+    <title>Todo List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="structshaders_1_1OverrideState_1a28e77a49feff138c39d75e1b65e87c65" kindref="member">shaders::OverrideState::blendOp</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000003"/>blendOp can be 3 bits  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="structshaders_1_1OverrideState_1a68e7eb67c4effe05e05626d905455f79" kindref="member">shaders::OverrideState::blendOpA</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000004"/>blendOpA can be 3 bits  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="structshaders_1_1OverrideState_1af811a6999780626ea145099966045f19" kindref="member">shaders::OverrideState::validate</ref>  ()</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000005"/>Rename the method since it doesn&apos;t validate the object, but moves the object to a valid state.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="structshaders_1_1OverrideState_1ae11167fdcd329e7afaee4c5f3583cbc8" kindref="member">shaders::OverrideState::zFunc</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000002"/>zFunc can be 3 bits </para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="todo"/>
+  </compounddef>
+</doxygen>

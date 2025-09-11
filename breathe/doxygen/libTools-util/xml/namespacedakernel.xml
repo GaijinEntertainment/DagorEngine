@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedakernel" kind="namespace" language="C++">
+    <compoundname>dakernel</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacedakernel_1a7d540b655a8b53db90407ec57171b3b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>KRNLIMP void</type>
+        <definition>KRNLIMP void dakernel::reset_named_pointers</definition>
+        <argsstring>()</argsstring>
+        <name>reset_named_pointers</name>
+        <qualifiedname>dakernel::reset_named_pointers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daKernel.h" line="11" column="14" declfile="daKernel.h" declline="11" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedakernel_1a24095506e57d1373c192568217dba8e0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>KRNLIMP void</type>
+        <definition>KRNLIMP void dakernel::set_named_pointer</definition>
+        <argsstring>(const char *name, void *p)</argsstring>
+        <name>set_named_pointer</name>
+        <qualifiedname>dakernel::set_named_pointer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daKernel.h" line="12" column="14" declfile="daKernel.h" declline="12" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedakernel_1a77b4966983524685ec64cc00d6729ae3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>KRNLIMP void *</type>
+        <definition>KRNLIMP void * dakernel::get_named_pointer</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>get_named_pointer</name>
+        <qualifiedname>dakernel::get_named_pointer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daKernel.h" line="13" column="14" declfile="daKernel.h" declline="13" declcolumn="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="daKernel.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

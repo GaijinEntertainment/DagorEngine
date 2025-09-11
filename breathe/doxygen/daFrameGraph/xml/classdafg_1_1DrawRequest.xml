@@ -1,0 +1,1841 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1DrawRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::DrawRequest</compoundname>
+    <basecompoundref prot="private" virt="non-virtual">detail::DrawRequestBase</basecompoundref>
+    <includes refid="drawRequest_8h" local="no">drawRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>detail::DrawRequestPolicy</type>
+        <declname>draw_policy</declname>
+        <defname>draw_policy</defname>
+      </param>
+      <param>
+        <type>bool</type>
+        <declname>indexed</declname>
+        <defname>indexed</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1DrawRequest_1a9d156ce43bac573708863bd45f965f10" prot="private" static="no">
+        <type>detail::DrawRequestBase</type>
+        <definition>using dafg::DrawRequest&lt; draw_policy, indexed &gt;::Base =  detail::DrawRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <qualifiedname>dafg::DrawRequest::Base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="40" column="3" bodyfile="drawRequest.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DrawRequest_1ae5324eb7681c1107f4ddf4bc925a8edb" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dafg::DrawRequest&lt; draw_policy, indexed &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <qualifiedname>dafg::DrawRequest::RRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="42" column="3" bodyfile="drawRequest.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DrawRequest_1ad1cc9c3b834f53c03dc2d8c8276ca576" prot="private" static="no">
+        <type>detail::DrawRequestPolicy</type>
+        <definition>using dafg::DrawRequest&lt; draw_policy, indexed &gt;::DRP =  detail::DrawRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>DRP</name>
+        <qualifiedname>dafg::DrawRequest::DRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="43" column="3" bodyfile="drawRequest.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DrawRequest_1af812ebc57a6042b075bf5dc44a0f5e48" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; T, policy &gt;</type>
+        <definition>using dafg::DrawRequest&lt; draw_policy, indexed &gt;::BlobRequest =  VirtualResourceRequest&lt;T, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>BlobRequest</name>
+        <qualifiedname>dafg::DrawRequest::BlobRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="46" column="3" bodyfile="drawRequest.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1DrawRequest_1a5d6de53582df98529b17158511c172dc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::DrawRequestPolicy</type>
+          </param>
+          <param>
+            <type>bool</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class DrawRequest</definition>
+        <argsstring></argsstring>
+        <name>DrawRequest</name>
+        <qualifiedname>dafg::DrawRequest::DrawRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="38" column="16" bodyfile="drawRequest.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1DrawRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::DrawRequest::Registry</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="74" column="16" bodyfile="drawRequest.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdafg_1_1DrawRequest_1a2b918eea15acce39d7e955b99580a926" prot="private" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DrawRequest&lt; draw_policy, indexed &gt;::true</definition>
+        <argsstring></argsstring>
+        <name>true</name>
+        <qualifiedname>dafg::DrawRequest::true</qualifiedname>
+        <initializer>{ return (policy &amp; p) == p</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="49" column="25" bodyfile="drawRequest.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a698cc6445c42b0454f27c1f78369fce1" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr DRP</type>
+        <definition>static constexpr DRP dafg::DrawRequest&lt; draw_policy, indexed &gt;::flipPolicy</definition>
+        <argsstring>(DRP p)</argsstring>
+        <name>flipPolicy</name>
+        <qualifiedname>dafg::DrawRequest::flipPolicy</qualifiedname>
+        <param>
+          <type>DRP</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="53" column="24" bodyfile="drawRequest.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1af21df022ef4c5a87e9d2d2b104a44614" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DrawRequest&lt; draw_policy, indexed &gt;::isBlob</definition>
+        <argsstring>()</argsstring>
+        <name>isBlob</name>
+        <qualifiedname>dafg::DrawRequest::isBlob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="56" column="25" bodyfile="drawRequest.h" bodystart="56" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a9b5f3afe60d78eb35b122a6ce8bd4b61" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DrawRequest&lt; draw_policy, indexed &gt;::isValidBlob</definition>
+        <argsstring>()</argsstring>
+        <name>isValidBlob</name>
+        <qualifiedname>dafg::DrawRequest::isValidBlob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="62" column="25" bodyfile="drawRequest.h" bodystart="62" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a1d84d1576bee645a032969eb6120ba19" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DrawRequest&lt; draw_policy, indexed &gt;::isValidBlobProjector</definition>
+        <argsstring>()</argsstring>
+        <name>isValidBlobProjector</name>
+        <qualifiedname>dafg::DrawRequest::isValidBlobProjector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="68" column="25" bodyfile="drawRequest.h" bodystart="68" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a6a4ec21cae9a1d426d7f998b6fefd1d8" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::DrawRequest&lt; draw_policy, indexed &gt;::DrawRequest</definition>
+        <argsstring>(InternalRegistry *reg, NodeNameId node_id, ShaderNameId shader_id, dafg::DrawPrimitive primitive)</argsstring>
+        <name>DrawRequest</name>
+        <qualifiedname>dafg::DrawRequest::DrawRequest</qualifiedname>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node_id</declname>
+        </param>
+        <param>
+          <type>ShaderNameId</type>
+          <declname>shader_id</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" kindref="member">dafg::DrawPrimitive</ref></type>
+          <declname>primitive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="75" column="3" bodyfile="drawRequest.h" bodystart="75" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a46d5f92fe9540799ecf312b26f6b6cf9" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::DrawRequest&lt; draw_policy, indexed &gt;::DrawRequest</definition>
+        <argsstring>(InternalRegistry *reg, NodeNameId node_id, ShaderNameId shader_id)</argsstring>
+        <name>DrawRequest</name>
+        <qualifiedname>dafg::DrawRequest::DrawRequest</qualifiedname>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node_id</declname>
+        </param>
+        <param>
+          <type>ShaderNameId</type>
+          <declname>shader_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="83" column="3" bodyfile="drawRequest.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1ac8397871f67fd6a652b744799f0439d9" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startVertex</definition>
+        <argsstring>(uint32_t startVertex) &amp;&amp;</argsstring>
+        <name>startVertex</name>
+        <qualifiedname>dafg::DrawRequest::startVertex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>startVertex</declname>
+        </param>
+    <requiresclause>(!indexed &amp;&amp; !true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the start vertex of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>startVertex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The start vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="91" column="15" bodyfile="drawRequest.h" bodystart="91" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a8447de8f1577f85fe82705dec61abdb4" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startVertex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startVertex</name>
+        <qualifiedname>dafg::DrawRequest::startVertex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start vertex of draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="105" column="15" bodyfile="drawRequest.h" bodystart="105" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a5a65244e2a8bd45726a89b9567530d6a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startVertex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startVertex</name>
+        <qualifiedname>dafg::DrawRequest::startVertex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start vertex of draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="121" column="15" bodyfile="drawRequest.h" bodystart="121" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1aa8d4b519043c3af93e093650f6b18172" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::baseVertex</definition>
+        <argsstring>(int32_t base_vertex) &amp;&amp;</argsstring>
+        <name>baseVertex</name>
+        <qualifiedname>dafg::DrawRequest::baseVertex</qualifiedname>
+        <param>
+          <type>int32_t</type>
+          <declname>base_vertex</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the base vertex of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>base_vertex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The base vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="132" column="15" bodyfile="drawRequest.h" bodystart="132" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a10eaf320a333ecb367af770d549a0a47" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::baseVertex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>baseVertex</name>
+        <qualifiedname>dafg::DrawRequest::baseVertex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the base vertex of indexed draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the base vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="146" column="15" bodyfile="drawRequest.h" bodystart="146" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1ab561ae41a8b0b0abf16a40ee122a8fbe" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasBaseVertex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::baseVertex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>baseVertex</name>
+        <qualifiedname>dafg::DrawRequest::baseVertex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the base vertex of indexed draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the base vertex. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="162" column="15" bodyfile="drawRequest.h" bodystart="162" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1aab374de1a4dbdaaada0d3c41ecd8f65b" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartIndex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartIndex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startIndex</definition>
+        <argsstring>(uint32_t start_index) &amp;&amp;</argsstring>
+        <name>startIndex</name>
+        <qualifiedname>dafg::DrawRequest::startIndex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>start_index</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the start index of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>start_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The start index. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="173" column="15" bodyfile="drawRequest.h" bodystart="173" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a58a3dfe6312a19bb878cad0118885d53" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartIndex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartIndex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startIndex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startIndex</name>
+        <qualifiedname>dafg::DrawRequest::startIndex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start index of indexed draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start index. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="187" column="15" bodyfile="drawRequest.h" bodystart="187" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a464a64b2e6ac2eb46d5415d92e95b0f0" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartIndex), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartIndex), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startIndex</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startIndex</name>
+        <qualifiedname>dafg::DrawRequest::startIndex</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(indexed &amp;&amp; !true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start index of indexed draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start index. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="203" column="15" bodyfile="drawRequest.h" bodystart="203" bodyend="208"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a33985c7d8b11f2397ce808e5d193b882" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::primitiveCount</definition>
+        <argsstring>(uint32_t primitive_count) &amp;&amp;</argsstring>
+        <name>primitiveCount</name>
+        <qualifiedname>dafg::DrawRequest::primitiveCount</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>primitive_count</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the primitive count of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>primitive_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The primitive count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="214" column="15" bodyfile="drawRequest.h" bodystart="214" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1adaaba22f6ac29c8a9baad4255832f098" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::primitiveCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>primitiveCount</name>
+        <qualifiedname>dafg::DrawRequest::primitiveCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the primitive count of draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the primitive count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="228" column="15" bodyfile="drawRequest.h" bodystart="228" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a63eb3099f5a38cdd1f39bf05b791c370" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasPrimitiveCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::primitiveCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>primitiveCount</name>
+        <qualifiedname>dafg::DrawRequest::primitiveCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the primitive count of draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the primitive count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="244" column="15" bodyfile="drawRequest.h" bodystart="244" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a4c3fb8b8d6455d48196d548dbf1ec03c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartInstance), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartInstance), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startInstance</definition>
+        <argsstring>(uint32_t start_instance) &amp;&amp;</argsstring>
+        <name>startInstance</name>
+        <qualifiedname>dafg::DrawRequest::startInstance</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>start_instance</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the start instance of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>start_instance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The start instance. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="255" column="15" bodyfile="drawRequest.h" bodystart="255" bodyend="260"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a667bfb551e63cff415c6d155f732ac7f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartInstance), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartInstance), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startInstance</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startInstance</name>
+        <qualifiedname>dafg::DrawRequest::startInstance</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start instance of draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start instance. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="269" column="15" bodyfile="drawRequest.h" bodystart="269" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1aa9e0086663426bc13b03e04451656e61" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStartInstance), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStartInstance), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::startInstance</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>startInstance</name>
+        <qualifiedname>dafg::DrawRequest::startInstance</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the start instance of draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the start instance. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="285" column="15" bodyfile="drawRequest.h" bodystart="285" bodyend="290"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a87bff104d9f55ab0b2208003b738a56a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::instanceCount</definition>
+        <argsstring>(uint32_t instance_count) &amp;&amp;</argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>dafg::DrawRequest::instanceCount</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>instance_count</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the instance count of draw request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>instance_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The instance count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="296" column="15" bodyfile="drawRequest.h" bodystart="296" bodyend="301"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a65299c3a5f385b0c392d97c3fe502acf" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::instanceCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>dafg::DrawRequest::instanceCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the instance count of draw request with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the instance count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="310" column="15" bodyfile="drawRequest.h" bodystart="310" bodyend="315"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a0a3047a7d47fb22ec079c5e10b349727" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasInstanceCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::instanceCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>dafg::DrawRequest::instanceCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the instance count of draw request with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the instance count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="326" column="15" bodyfile="drawRequest.h" bodystart="326" bodyend="331"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a5636c084b4a2763bb4c6ecd0e6148d40" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasIndirect), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasIndirect), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::indirect</definition>
+        <argsstring>(const char *buffer) &amp;&amp;</argsstring>
+        <name>indirect</name>
+        <qualifiedname>dafg::DrawRequest::indirect</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>buffer</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; !true &amp;&amp; !true &amp;&amp; !true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buffer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="337" column="15" bodyfile="drawRequest.h" bodystart="337" bodyend="342"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1aa213a1e72921957279cf38b94ed0e2e3" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasOffset), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasOffset), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::offset</definition>
+        <argsstring>(size_t offset) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DrawRequest::offset</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>offset</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="348" column="15" bodyfile="drawRequest.h" bodystart="348" bodyend="353"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a8bc62c7d52d264834e6f550c2133db3a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasOffset), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasOffset), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::offset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DrawRequest::offset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the offset. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="362" column="15" bodyfile="drawRequest.h" bodystart="362" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a51d9b6d68bc4d0e1790790ffdb6132c1" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasOffset), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasOffset), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::offset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DrawRequest::offset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the offset. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="378" column="15" bodyfile="drawRequest.h" bodystart="378" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1ae9cd1f36d3391a796bed9fffdb105e1d" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStride), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStride), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::stride</definition>
+        <argsstring>(uint32_t stride) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DrawRequest::stride</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>stride</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>stride</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The stride to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="389" column="15" bodyfile="drawRequest.h" bodystart="389" bodyend="394"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a4c779219da1a54c15b5dcd81008ca92f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStride), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStride), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::stride</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DrawRequest::stride</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the indirect dispatch buffer with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the stride. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="403" column="15" bodyfile="drawRequest.h" bodystart="403" bodyend="408"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a6120bfd3ad1ff40cf9de858e233222f5" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasStride), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasStride), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::stride</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DrawRequest::stride</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the indirect dispatch buffer with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the stride. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="419" column="15" bodyfile="drawRequest.h" bodystart="419" bodyend="424"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1ae48d867af5c6c24895a637bb6ee26f60" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::count</definition>
+        <argsstring>(uint32_t count) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DrawRequest::count</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The count to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="430" column="15" bodyfile="drawRequest.h" bodystart="430" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a4a0e19840c3ac41a80c24e17b1a5f06c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::count</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DrawRequest::count</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the indirect dispatch buffer with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="444" column="15" bodyfile="drawRequest.h" bodystart="444" bodyend="449"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DrawRequest_1a0ca00e28de7ca31dd59e2388aa41668c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; flipPolicy(DRP::HasCount), indexed &gt;</type>
+        <definition>DrawRequest&lt; flipPolicy(DRP::HasCount), indexed &gt; dafg::DrawRequest&lt; draw_policy, indexed &gt;::count</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DrawRequest::count</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the indirect dispatch buffer with blob and projector. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="drawRequest.h" line="460" column="15" bodyfile="drawRequest.h" bodystart="460" bodyend="465"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Represents a request for a draw operation to be executed. This class is used to specify the draw parameters. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The intended usage is registry.draw(&quot;my_shader&quot;, DrawPrimitive::TriangleList) .startVertex(0) .<ref refid="classdafg_1_1DrawRequest_1a33985c7d8b11f2397ce808e5d193b882" kindref="member">primitiveCount&lt;&amp;myBlob::count&gt;</ref>(registry.readBlob(&quot;my_blob&quot;)) .instanceCount(42);</para>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>draw_policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the draw request. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>indexed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Whether the draw request is indexed. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>dafg::DrawRequest&lt; draw_policy, indexed &gt;</label>
+        <link refid="classdafg_1_1DrawRequest"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>detail::DrawRequestBase</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>dafg::DrawRequest&lt; draw_policy, indexed &gt;</label>
+        <link refid="classdafg_1_1DrawRequest"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>detail::DrawRequestBase</label>
+      </node>
+    </collaborationgraph>
+    <location file="drawRequest.h" line="35" column="1" bodyfile="drawRequest.h" bodystart="36" bodyend="466"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1DrawRequest_1a9d156ce43bac573708863bd45f965f10" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>Base</name></member>
+      <member refid="classdafg_1_1DrawRequest_1aa8d4b519043c3af93e093650f6b18172" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>baseVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a10eaf320a333ecb367af770d549a0a47" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>baseVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ab561ae41a8b0b0abf16a40ee122a8fbe" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>baseVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1af812ebc57a6042b075bf5dc44a0f5e48" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>BlobRequest</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ae48d867af5c6c24895a637bb6ee26f60" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a4a0e19840c3ac41a80c24e17b1a5f06c" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a0ca00e28de7ca31dd59e2388aa41668c" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a5d6de53582df98529b17158511c172dc" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>DrawRequest</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a6a4ec21cae9a1d426d7f998b6fefd1d8" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>DrawRequest</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a46d5f92fe9540799ecf312b26f6b6cf9" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>DrawRequest</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ad1cc9c3b834f53c03dc2d8c8276ca576" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>DRP</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a698cc6445c42b0454f27c1f78369fce1" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>flipPolicy</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a5636c084b4a2763bb4c6ecd0e6148d40" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>indirect</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a87bff104d9f55ab0b2208003b738a56a" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>instanceCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a65299c3a5f385b0c392d97c3fe502acf" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>instanceCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a0a3047a7d47fb22ec079c5e10b349727" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>instanceCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1af21df022ef4c5a87e9d2d2b104a44614" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>isBlob</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a9b5f3afe60d78eb35b122a6ce8bd4b61" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>isValidBlob</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a1d84d1576bee645a032969eb6120ba19" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>isValidBlobProjector</name></member>
+      <member refid="classdafg_1_1DrawRequest_1aa213a1e72921957279cf38b94ed0e2e3" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a8bc62c7d52d264834e6f550c2133db3a" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a51d9b6d68bc4d0e1790790ffdb6132c1" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a33985c7d8b11f2397ce808e5d193b882" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>primitiveCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1adaaba22f6ac29c8a9baad4255832f098" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>primitiveCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a63eb3099f5a38cdd1f39bf05b791c370" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>primitiveCount</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ae5324eb7681c1107f4ddf4bc925a8edb" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>RRP</name></member>
+      <member refid="classdafg_1_1DrawRequest_1aab374de1a4dbdaaada0d3c41ecd8f65b" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startIndex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a58a3dfe6312a19bb878cad0118885d53" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startIndex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a464a64b2e6ac2eb46d5415d92e95b0f0" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startIndex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a4c3fb8b8d6455d48196d548dbf1ec03c" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startInstance</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a667bfb551e63cff415c6d155f732ac7f" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startInstance</name></member>
+      <member refid="classdafg_1_1DrawRequest_1aa9e0086663426bc13b03e04451656e61" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startInstance</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ac8397871f67fd6a652b744799f0439d9" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a8447de8f1577f85fe82705dec61abdb4" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a5a65244e2a8bd45726a89b9567530d6a" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>startVertex</name></member>
+      <member refid="classdafg_1_1DrawRequest_1ae9cd1f36d3391a796bed9fffdb105e1d" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a4c779219da1a54c15b5dcd81008ca92f" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a6120bfd3ad1ff40cf9de858e233222f5" prot="public" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DrawRequest_1a2b918eea15acce39d7e955b99580a926" prot="private" virt="non-virtual"><scope>dafg::DrawRequest</scope><name>true</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

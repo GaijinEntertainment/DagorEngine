@@ -1,0 +1,570 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCompileShaderJob" kind="class" language="C++" prot="public">
+    <compoundname>CompileShaderJob</compoundname>
+    <basecompoundref refid="structshc_1_1Job" prot="public" virt="non-virtual">shc::Job</basecompoundref>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classCompileShaderJob_1a9e96eb6cfbc1b8c46453faed7d54b8ab" prot="protected" static="no" mutable="no">
+        <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+        <definition>shc::ShaderContext&amp; CompileShaderJob::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>CompileShaderJob::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1946" column="22" bodyfile="assemblyShader.cpp" bodystart="1946" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ab632b4bd8b28f97890d9a4788d7bdb84" prot="protected" static="no" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> *</type>
+        <definition>const ShaderVariant::VariantSrc* CompileShaderJob::dynVariant</definition>
+        <argsstring></argsstring>
+        <name>dynVariant</name>
+        <qualifiedname>CompileShaderJob::dynVariant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1947" column="35" bodyfile="assemblyShader.cpp" bodystart="1947" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ab5f260e971e75eeee593f305fc940555" prot="protected" static="no" mutable="no">
+        <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+        <definition>HlslCompilationStage CompileShaderJob::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>CompileShaderJob::stage</qualifiedname>
+        <initializer>= <ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a122ff6a6ec14da30f15afba301d36b4c" kindref="member">HLSL_INVALID</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1949" column="24" bodyfile="assemblyShader.cpp" bodystart="1949" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a69c0f1ee2696cc0320d4e3937fd71cb2" prot="protected" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> *</type>
+        <definition>SemanticShaderPass* CompileShaderJob::curpass</definition>
+        <argsstring></argsstring>
+        <name>curpass</name>
+        <qualifiedname>CompileShaderJob::curpass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1951" column="22" bodyfile="assemblyShader.cpp" bodystart="1951" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a8ed685cda07ddd63e525fb178d4854d0" prot="protected" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString CompileShaderJob::entry</definition>
+        <argsstring></argsstring>
+        <name>entry</name>
+        <qualifiedname>CompileShaderJob::entry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1952" column="16" bodyfile="assemblyShader.cpp" bodystart="1952" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ac2f01aed4326d7b4b4c77a9330ecffa7" prot="protected" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString CompileShaderJob::profile</definition>
+        <argsstring></argsstring>
+        <name>profile</name>
+        <qualifiedname>CompileShaderJob::profile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1952" column="22" bodyfile="assemblyShader.cpp" bodystart="1952" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a91d0476e67a2826a6e66916b850b6a61" prot="protected" static="no" mutable="no">
+        <type>String</type>
+        <definition>String CompileShaderJob::source</definition>
+        <argsstring></argsstring>
+        <name>source</name>
+        <qualifiedname>CompileShaderJob::source</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1953" column="10" bodyfile="assemblyShader.cpp" bodystart="1953" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a952ea4d1c67c1dfde39475c69522bbd8" prot="protected" static="no" mutable="no">
+        <type>String</type>
+        <definition>String CompileShaderJob::compileCtx</definition>
+        <argsstring></argsstring>
+        <name>compileCtx</name>
+        <qualifiedname>CompileShaderJob::compileCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1954" column="10" bodyfile="assemblyShader.cpp" bodystart="1954" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a0410d36260f8d11ec4d275ea02613489" prot="protected" static="no" mutable="no">
+        <type>const char **</type>
+        <definition>const char** CompileShaderJob::cgArgs</definition>
+        <argsstring></argsstring>
+        <name>cgArgs</name>
+        <qualifiedname>CompileShaderJob::cgArgs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1955" column="14" bodyfile="assemblyShader.cpp" bodystart="1955" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a8fa778bf53cc533bcd0635fa83a512d7" prot="protected" static="no" mutable="no">
+        <type><ref refid="structCompileResult" kindref="compound">CompileResult</ref></type>
+        <definition>CompileResult CompileShaderJob::compile_result</definition>
+        <argsstring></argsstring>
+        <name>compile_result</name>
+        <qualifiedname>CompileShaderJob::compile_result</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1956" column="17" bodyfile="assemblyShader.cpp" bodystart="1956" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a39f29af5b4805ccd70f9dab7b821143b" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompileShaderJob::max_constants_no</definition>
+        <argsstring></argsstring>
+        <name>max_constants_no</name>
+        <qualifiedname>CompileShaderJob::max_constants_no</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1957" column="7" bodyfile="assemblyShader.cpp" bodystart="1957" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a043aacaee5691cb2d8d5d0302ab7b7f4" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CompileShaderJob::enableFp16</definition>
+        <argsstring></argsstring>
+        <name>enableFp16</name>
+        <qualifiedname>CompileShaderJob::enableFp16</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1958" column="8" bodyfile="assemblyShader.cpp" bodystart="1958" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ac01ccb11fd51d39d0f7727a612b18eab" prot="protected" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* CompileShaderJob::shaderName</definition>
+        <argsstring></argsstring>
+        <name>shaderName</name>
+        <qualifiedname>CompileShaderJob::shaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1960" column="14" bodyfile="assemblyShader.cpp" bodystart="1960" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1a4883f0f8a7fbc582ecb3aa52b8a94039" prot="protected" static="no" mutable="no">
+        <type>const SHTOK_string *</type>
+        <definition>const SHTOK_string* CompileShaderJob::hlsl_compile_token</definition>
+        <argsstring></argsstring>
+        <name>hlsl_compile_token</name>
+        <qualifiedname>CompileShaderJob::hlsl_compile_token</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1961" column="22" bodyfile="assemblyShader.cpp" bodystart="1961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ab54c10b6ad01ffca472b98dcc375e79d" prot="protected" static="no" mutable="no">
+        <type><ref refid="classLexer" kindref="compound">Lexer</ref> *</type>
+        <definition>Lexer* CompileShaderJob::lexer</definition>
+        <argsstring></argsstring>
+        <name>lexer</name>
+        <qualifiedname>CompileShaderJob::lexer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1962" column="9" bodyfile="assemblyShader.cpp" bodystart="1962" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCompileShaderJob_1ac219321d7229aaf7e898f7bb18db66e3" prot="protected" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t CompileShaderJob::shader_variant_hash</definition>
+        <argsstring></argsstring>
+        <name>shader_variant_hash</name>
+        <qualifiedname>CompileShaderJob::shader_variant_hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1964" column="12" bodyfile="assemblyShader.cpp" bodystart="1964" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCompileShaderJob_1ae931f5346d72f0159b67840ccd3accbd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CompileShaderJob::CompileShaderJob</definition>
+        <argsstring>(AssembleShaderEvalCB *ascb, AssembleShaderEvalCB::HlslCompile &amp;hlsl, HlslCompilationStage stage, const hlsl_compile_class *compile_symbol, dag::ConstSpan&lt; CodeSourceBlocks::Unconditional * &gt; code_blocks, uint64_t variant_hash)</argsstring>
+        <name>CompileShaderJob</name>
+        <qualifiedname>CompileShaderJob::CompileShaderJob</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1AssembleShaderEvalCB" kindref="compound">AssembleShaderEvalCB</ref> *</type>
+          <declname>ascb</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile" kindref="compound">AssembleShaderEvalCB::HlslCompile</ref> &amp;</type>
+          <declname>hlsl</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const hlsl_compile_class *</type>
+          <declname>compile_symbol</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCodeSourceBlocks_1_1Unconditional" kindref="compound">CodeSourceBlocks::Unconditional</ref> * &gt;</type>
+          <declname>code_blocks</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>variant_hash</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1891" column="3" bodyfile="assemblyShader.cpp" bodystart="1891" bodyend="1933"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classCompileShaderJob_1adfe72ca3945bf4e769508e3ed6e3e7c2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CompileShaderJob::doJobBody</definition>
+        <argsstring>() override</argsstring>
+        <name>doJobBody</name>
+        <qualifiedname>CompileShaderJob::doJobBody</qualifiedname>
+        <reimplements refid="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57">doJobBody</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1936" column="8" bodyfile="assemblyShader.cpp" bodystart="2143" bodyend="2519"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompileShaderJob_1a5b45bfc7e2851fe1b8930c7fb52e477b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CompileShaderJob::releaseJobBody</definition>
+        <argsstring>() override</argsstring>
+        <name>releaseJobBody</name>
+        <qualifiedname>CompileShaderJob::releaseJobBody</qualifiedname>
+        <reimplements refid="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971">releaseJobBody</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1937" column="8" bodyfile="assemblyShader.cpp" bodystart="2521" bodyend="2600"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompileShaderJob_1a4d7cd36218d36b4124b3cdd66863da04" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; dxil::StreamOutputComponentInfo &gt;</type>
+        <definition>eastl::optional&lt; dxil::StreamOutputComponentInfo &gt; CompileShaderJob::parsePragmaStreamOutput</definition>
+        <argsstring>(const char *pragma)</argsstring>
+        <name>parsePragmaStreamOutput</name>
+        <qualifiedname>CompileShaderJob::parsePragmaStreamOutput</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>pragma</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1938" column="19" bodyfile="assemblyShader.cpp" bodystart="2602" bodyend="2696"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompileShaderJob_1a01dc0282beb4e58cf0eba0c35c86f22e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CompileShaderJob::skipEmptyPragmaSpaces</definition>
+        <argsstring>(const char *&amp;pragma)</argsstring>
+        <name>skipEmptyPragmaSpaces</name>
+        <qualifiedname>CompileShaderJob::skipEmptyPragmaSpaces</qualifiedname>
+        <param>
+          <type>const char *&amp;</type>
+          <declname>pragma</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1939" column="8" bodyfile="assemblyShader.cpp" bodystart="2698" bodyend="2705"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompileShaderJob_1a0a0bb2911cf727ee6a74db4cbba99f5f" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CompileShaderJob::addResults</definition>
+        <argsstring>()</argsstring>
+        <name>addResults</name>
+        <qualifiedname>CompileShaderJob::addResults</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="1941" column="8" bodyfile="assemblyShader.cpp" bodystart="2707" bodyend="2812"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CompileShaderJob</label>
+        <link refid="classCompileShaderJob"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="2">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="20">
+        <label>CompileResult</label>
+        <link refid="structCompileResult"/>
+        <childnode refid="21" relation="usage">
+          <edgelabel>computeShaderInfo</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>CompileShaderJob</label>
+        <link refid="classCompileShaderJob"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>dynVariant</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>curpass</edgelabel>
+        </childnode>
+        <childnode refid="20" relation="usage">
+          <edgelabel>compile_result</edgelabel>
+        </childnode>
+        <childnode refid="22" relation="usage">
+          <edgelabel>lexer</edgelabel>
+        </childnode>
+      </node>
+      <node id="21">
+        <label>ComputeShaderInfo</label>
+        <link refid="structComputeShaderInfo"/>
+      </node>
+      <node id="12">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>GeneratedLexer</label>
+      </node>
+      <node id="17">
+        <label>HlslRegRange</label>
+        <link refid="structHlslRegRange"/>
+      </node>
+      <node id="9">
+        <label>IVariantInfoProvider</label>
+        <link refid="classIVariantInfoProvider"/>
+      </node>
+      <node id="22">
+        <label>Lexer</label>
+        <link refid="classLexer"/>
+        <childnode refid="23" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SemanticShaderPass</label>
+        <link refid="structSemanticShaderPass"/>
+        <childnode refid="11" relation="usage">
+          <edgelabel>cppstcode</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>bufferedConstRange</edgelabel>
+          <edgelabel>psOrCsConstRange</edgelabel>
+          <edgelabel>vsConstRange</edgelabel>
+        </childnode>
+        <childnode refid="18" relation="usage">
+          <edgelabel>enableFp16</edgelabel>
+        </childnode>
+        <childnode refid="19" relation="usage">
+          <edgelabel>target</edgelabel>
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SemanticShaderPass::EnableFp16State</label>
+        <link refid="structSemanticShaderPass_1_1EnableFp16State"/>
+      </node>
+      <node id="19">
+        <label>ShaderCode::Pass</label>
+        <link refid="structShaderCode_1_1Pass"/>
+      </node>
+      <node id="8">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="6">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>types</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+      <node id="5">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>defCtorTypeTable</edgelabel>
+        </childnode>
+      </node>
+      <node id="16">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="11">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="12" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="13">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="14" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="2">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shc::ShaderContext</label>
+        <link refid="classshc_1_1ShaderContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="assemblyShader.cpp" line="1888" column="1" bodyfile="assemblyShader.cpp" bodystart="1889" bodyend="1965"/>
+    <listofallmembers>
+      <member refid="classCompileShaderJob_1a0a0bb2911cf727ee6a74db4cbba99f5f" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>addResults</name></member>
+      <member refid="classCompileShaderJob_1a0410d36260f8d11ec4d275ea02613489" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>cgArgs</name></member>
+      <member refid="classCompileShaderJob_1a8fa778bf53cc533bcd0635fa83a512d7" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>compile_result</name></member>
+      <member refid="classCompileShaderJob_1a952ea4d1c67c1dfde39475c69522bbd8" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>compileCtx</name></member>
+      <member refid="classCompileShaderJob_1ae931f5346d72f0159b67840ccd3accbd" prot="public" virt="non-virtual"><scope>CompileShaderJob</scope><name>CompileShaderJob</name></member>
+      <member refid="classCompileShaderJob_1a9e96eb6cfbc1b8c46453faed7d54b8ab" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>ctx</name></member>
+      <member refid="classCompileShaderJob_1a69c0f1ee2696cc0320d4e3937fd71cb2" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>curpass</name></member>
+      <member refid="structshc_1_1Job_1a0db61e3f075b115844f23da94bc912a0" prot="public" virt="non-virtual"><scope>CompileShaderJob</scope><name>doJob</name></member>
+      <member refid="classCompileShaderJob_1adfe72ca3945bf4e769508e3ed6e3e7c2" prot="protected" virt="virtual"><scope>CompileShaderJob</scope><name>doJobBody</name></member>
+      <member refid="classCompileShaderJob_1ab632b4bd8b28f97890d9a4788d7bdb84" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>dynVariant</name></member>
+      <member refid="classCompileShaderJob_1a043aacaee5691cb2d8d5d0302ab7b7f4" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>enableFp16</name></member>
+      <member refid="classCompileShaderJob_1a8ed685cda07ddd63e525fb178d4854d0" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>entry</name></member>
+      <member refid="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" prot="public" virt="non-virtual"><scope>CompileShaderJob</scope><name>getJobName</name></member>
+      <member refid="classCompileShaderJob_1a4883f0f8a7fbc582ecb3aa52b8a94039" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>hlsl_compile_token</name></member>
+      <member refid="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" prot="public" virt="non-virtual"><scope>CompileShaderJob</scope><name>Job</name></member>
+      <member refid="classCompileShaderJob_1ab54c10b6ad01ffca472b98dcc375e79d" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>lexer</name></member>
+      <member refid="classCompileShaderJob_1a39f29af5b4805ccd70f9dab7b821143b" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>max_constants_no</name></member>
+      <member refid="classCompileShaderJob_1a4d7cd36218d36b4124b3cdd66863da04" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>parsePragmaStreamOutput</name></member>
+      <member refid="classCompileShaderJob_1ac2f01aed4326d7b4b4c77a9330ecffa7" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>profile</name></member>
+      <member refid="structshc_1_1Job_1a511710ba0cb8538630fd63b83396dc31" prot="public" virt="non-virtual"><scope>CompileShaderJob</scope><name>releaseJob</name></member>
+      <member refid="classCompileShaderJob_1a5b45bfc7e2851fe1b8930c7fb52e477b" prot="protected" virt="virtual"><scope>CompileShaderJob</scope><name>releaseJobBody</name></member>
+      <member refid="classCompileShaderJob_1ac219321d7229aaf7e898f7bb18db66e3" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>shader_variant_hash</name></member>
+      <member refid="classCompileShaderJob_1ac01ccb11fd51d39d0f7727a612b18eab" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>shaderName</name></member>
+      <member refid="classCompileShaderJob_1a01dc0282beb4e58cf0eba0c35c86f22e" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>skipEmptyPragmaSpaces</name></member>
+      <member refid="classCompileShaderJob_1a91d0476e67a2826a6e66916b850b6a61" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>source</name></member>
+      <member refid="classCompileShaderJob_1ab5f260e971e75eeee593f305fc940555" prot="protected" virt="non-virtual"><scope>CompileShaderJob</scope><name>stage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

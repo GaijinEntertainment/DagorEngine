@@ -1,0 +1,347 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEditableObject" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>EditableObject</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+    <derivedcompoundref refid="classRenderableEditableObject" prot="public" virt="non-virtual">RenderableEditableObject</derivedcompoundref>
+    <includes refid="ec__object_8h" local="no">ec_object.h</includes>
+      <sectiondef kind="user-defined">
+      <header>RTTI implementation.</header>
+      <memberdef kind="variable" id="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" prot="protected" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditableObject::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>EditableObject::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="76" column="10" bodyfile="ec_object.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" prot="protected" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix EditableObject::matrix</definition>
+        <argsstring></argsstring>
+        <name>matrix</name>
+        <qualifiedname>EditableObject::matrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="77" column="11" bodyfile="ec_object.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditableObject::isSubOf</definition>
+        <argsstring>(DClassID cid) override</argsstring>
+        <name>isSubOf</name>
+        <qualifiedname>EditableObject::isSubOf</qualifiedname>
+        <param>
+          <type>DClassID</type>
+          <declname>cid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="43" column="8" bodyfile="ec_object.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1a0c28f3f141cd36487be51f380871c86c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>DClassID</type>
+        <definition>virtual DClassID EditableObject::getClassId</definition>
+        <argsstring>()</argsstring>
+        <name>getClassId</name>
+        <qualifiedname>EditableObject::getClassId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="44" column="20" bodyfile="ec_object.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1ad90c8161c547a36da0b29b5f6c63a528" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const char *</type>
+        <definition>virtual const char * EditableObject::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>EditableObject::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object name. <simplesect kind="return"><para>pointer to object name </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="49" column="22" bodyfile="ec_object.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1a4e7f96802efb46c6b2b609f04d57733a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 EditableObject::getPos</definition>
+        <argsstring>() const</argsstring>
+        <name>getPos</name>
+        <qualifiedname>EditableObject::getPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object position. <simplesect kind="return"><para>object position </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="53" column="18" bodyfile="ec_object.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1ac6b2206396d5ac77b14f07edabd583a7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>TMatrix</type>
+        <definition>virtual TMatrix EditableObject::getTm</definition>
+        <argsstring>() const</argsstring>
+        <name>getTm</name>
+        <qualifiedname>EditableObject::getTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object matrix. <simplesect kind="return"><para>object tmatrix </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="57" column="19" bodyfile="ec_object.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1ac421b839e1f07233e7926966c65880e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool EditableObject::setName</definition>
+        <argsstring>(const char *nm)=0</argsstring>
+        <name>setName</name>
+        <qualifiedname>EditableObject::setName</qualifiedname>
+        <reimplementedby refid="classRenderableEditableObject_1a3cf284f83e12136cd591dc0c671b12ff">setName</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>nm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object name. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to string with object name </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="62" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1aa62e59924f2f7e080ec4c11be04c08be" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool EditableObject::setPos</definition>
+        <argsstring>(const Point3 &amp;p)=0</argsstring>
+        <name>setPos</name>
+        <qualifiedname>EditableObject::setPos</qualifiedname>
+        <reimplementedby refid="classRenderableEditableObject_1a241b8406e5271652d99e7ea95eeac463">setPos</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object position. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object position </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1acb3a28374d78f23831c7ba6585dad631" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool EditableObject::isSelectedByPointClick</definition>
+        <argsstring>(IGenViewportWnd *vp, int x, int y) const =0</argsstring>
+        <name>isSelectedByPointClick</name>
+        <qualifiedname>EditableObject::isSelectedByPointClick</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>vp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether mouse cursor is on the object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">vp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport where test is performed </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> mouse cursor coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if mouse cursor is on the object, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="73" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DClassID</type>
+        <definition>static DClassID EditableObject::getStaticClassId</definition>
+        <argsstring>()</argsstring>
+        <name>getStaticClassId</name>
+        <qualifiedname>EditableObject::getStaticClassId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="42" column="19" bodyfile="ec_object.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEditableObject_1a46185d4332bf3b2a09ef0c5260c7c0bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EditableObject::EditableObject</definition>
+        <argsstring>()</argsstring>
+        <name>EditableObject</name>
+        <qualifiedname>EditableObject::EditableObject</qualifiedname>
+        <briefdescription>
+<para>Constructor 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="34" column="10" bodyfile="ec_object.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1af5fe3ddda76d699056a11180641dfac2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EditableObject::EditableObject</definition>
+        <argsstring>(const EditableObject &amp;from)</argsstring>
+        <name>EditableObject</name>
+        <qualifiedname>EditableObject::EditableObject</qualifiedname>
+        <param>
+          <type>const <ref refid="classEditableObject" kindref="compound">EditableObject</ref> &amp;</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+<para>Constructor 2. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="36" column="10" bodyfile="ec_object.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditableObject_1a76e739cbdae45c89f3eaa185c951ba55" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EditableObject::~EditableObject</definition>
+        <argsstring>() override</argsstring>
+        <name>~EditableObject</name>
+        <qualifiedname>EditableObject::~EditableObject</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="38" column="3" bodyfile="ec_object.h" bodystart="38" bodyend="38"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Base class for Editor objects. Most of objects used in EditorCore based editors are derived from <ref refid="classEditableObject" kindref="compound">EditableObject</ref>. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RenderableEditableObject</label>
+        <link refid="classRenderableEditableObject"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_object.h" line="30" column="1" bodyfile="ec_object.h" bodystart="31" bodyend="78"/>
+    <listofallmembers>
+      <member refid="classEditableObject_1a46185d4332bf3b2a09ef0c5260c7c0bd" prot="public" virt="non-virtual"><scope>EditableObject</scope><name>EditableObject</name></member>
+      <member refid="classEditableObject_1af5fe3ddda76d699056a11180641dfac2" prot="public" virt="non-virtual"><scope>EditableObject</scope><name>EditableObject</name></member>
+      <member refid="classEditableObject_1a0c28f3f141cd36487be51f380871c86c" prot="public" virt="virtual"><scope>EditableObject</scope><name>getClassId</name></member>
+      <member refid="classEditableObject_1ad90c8161c547a36da0b29b5f6c63a528" prot="public" virt="virtual"><scope>EditableObject</scope><name>getName</name></member>
+      <member refid="classEditableObject_1a4e7f96802efb46c6b2b609f04d57733a" prot="public" virt="virtual"><scope>EditableObject</scope><name>getPos</name></member>
+      <member refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" prot="public" virt="non-virtual"><scope>EditableObject</scope><name>getStaticClassId</name></member>
+      <member refid="classEditableObject_1ac6b2206396d5ac77b14f07edabd583a7" prot="public" virt="virtual"><scope>EditableObject</scope><name>getTm</name></member>
+      <member refid="classEditableObject_1acb3a28374d78f23831c7ba6585dad631" prot="public" virt="pure-virtual"><scope>EditableObject</scope><name>isSelectedByPointClick</name></member>
+      <member refid="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" prot="public" virt="non-virtual"><scope>EditableObject</scope><name>isSubOf</name></member>
+      <member refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" prot="protected" virt="non-virtual"><scope>EditableObject</scope><name>matrix</name></member>
+      <member refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" prot="protected" virt="non-virtual"><scope>EditableObject</scope><name>name</name></member>
+      <member refid="classEditableObject_1ac421b839e1f07233e7926966c65880e2" prot="public" virt="pure-virtual"><scope>EditableObject</scope><name>setName</name></member>
+      <member refid="classEditableObject_1aa62e59924f2f7e080ec4c11be04c08be" prot="public" virt="pure-virtual"><scope>EditableObject</scope><name>setPos</name></member>
+      <member refid="classEditableObject_1a76e739cbdae45c89f3eaa185c951ba55" prot="public" virt="non-virtual"><scope>EditableObject</scope><name>~EditableObject</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

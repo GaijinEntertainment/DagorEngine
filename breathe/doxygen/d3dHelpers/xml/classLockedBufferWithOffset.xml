@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLockedBufferWithOffset" kind="class" language="C++" prot="public">
+    <compoundname>LockedBufferWithOffset</compoundname>
+    <includes refid="dag__lockSbuffer_8h" local="no">dag_lockSbuffer.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLockedBufferWithOffset_1ad458a001eca158a19cf2258b8ced5ba2" prot="private" static="no" mutable="no">
+        <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref>&lt; T &gt; &amp;</type>
+        <definition>LockedBuffer&lt;T&gt;&amp; LockedBufferWithOffset&lt; T &gt;::mLockedBuffer</definition>
+        <argsstring></argsstring>
+        <name>mLockedBuffer</name>
+        <qualifiedname>LockedBufferWithOffset::mLockedBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="91" column="16" bodyfile="dag_lockSbuffer.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLockedBufferWithOffset_1ae892739b1b5ed4cf21b1022adec00d59" prot="private" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t LockedBufferWithOffset&lt; T &gt;::mOffsetInElems</definition>
+        <argsstring></argsstring>
+        <name>mOffsetInElems</name>
+        <qualifiedname>LockedBufferWithOffset::mOffsetInElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="92" column="10" bodyfile="dag_lockSbuffer.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLockedBufferWithOffset_1a912f6bef5db39fbaa8a791709e62e70a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedBufferWithOffset&lt; T &gt;::LockedBufferWithOffset</definition>
+        <argsstring>(LockedBuffer&lt; T &gt; &amp;locked_buffer, size_t offset_in_elements=0)</argsstring>
+        <name>LockedBufferWithOffset</name>
+        <qualifiedname>LockedBufferWithOffset::LockedBufferWithOffset</qualifiedname>
+        <param>
+          <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref>&lt; T &gt; &amp;</type>
+          <declname>locked_buffer</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>offset_in_elements</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="95" column="3" bodyfile="dag_lockSbuffer.h" bodystart="95" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBufferWithOffset_1a46ab9232190e400a30a93becca8e8d75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;</type>
+        <definition>T &amp; LockedBufferWithOffset&lt; T &gt;::operator[]</definition>
+        <argsstring>(size_t index)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>LockedBufferWithOffset::operator[]</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="99" column="5" bodyfile="dag_lockSbuffer.h" bodystart="99" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBufferWithOffset_1a09cc96c6bc37e6f8f10c8cbffe03980c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLockedBufferWithOffset" kindref="compound">LockedBufferWithOffset</ref> &amp;</type>
+        <definition>LockedBufferWithOffset &amp; LockedBufferWithOffset&lt; T &gt;::operator+=</definition>
+        <argsstring>(size_t count)</argsstring>
+        <name>operator+=</name>
+        <qualifiedname>LockedBufferWithOffset::operator+=</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="101" column="26" bodyfile="dag_lockSbuffer.h" bodystart="101" bodyend="105"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_lockSbuffer.h" line="89" column="1" bodyfile="dag_lockSbuffer.h" bodystart="90" bodyend="106"/>
+    <listofallmembers>
+      <member refid="classLockedBufferWithOffset_1a912f6bef5db39fbaa8a791709e62e70a" prot="public" virt="non-virtual"><scope>LockedBufferWithOffset</scope><name>LockedBufferWithOffset</name></member>
+      <member refid="classLockedBufferWithOffset_1ad458a001eca158a19cf2258b8ced5ba2" prot="private" virt="non-virtual"><scope>LockedBufferWithOffset</scope><name>mLockedBuffer</name></member>
+      <member refid="classLockedBufferWithOffset_1ae892739b1b5ed4cf21b1022adec00d59" prot="private" virt="non-virtual"><scope>LockedBufferWithOffset</scope><name>mOffsetInElems</name></member>
+      <member refid="classLockedBufferWithOffset_1a09cc96c6bc37e6f8f10c8cbffe03980c" prot="public" virt="non-virtual"><scope>LockedBufferWithOffset</scope><name>operator+=</name></member>
+      <member refid="classLockedBufferWithOffset_1a46ab9232190e400a30a93becca8e8d75" prot="public" virt="non-virtual"><scope>LockedBufferWithOffset</scope><name>operator[]</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

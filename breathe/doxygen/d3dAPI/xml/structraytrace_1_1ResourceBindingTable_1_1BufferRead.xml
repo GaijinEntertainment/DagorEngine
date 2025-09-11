@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1BufferRead" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::BufferRead</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae75fabac3fc4fc99b4822549f20d4234" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::ResourceBindingTable::BufferRead::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>raytrace::ResourceBindingTable::BufferRead::buffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Buffer to read from. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="833" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="833" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae7e32795189735356d9c23712177104e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::BufferRead::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::BufferRead::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>t register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="835" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="835" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a buffer read on a t register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ResourceBindingTable::BufferRead</label>
+        <link refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="830" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="831" bodyend="836"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae75fabac3fc4fc99b4822549f20d4234" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::BufferRead</scope><name>buffer</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae7e32795189735356d9c23712177104e" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::BufferRead</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

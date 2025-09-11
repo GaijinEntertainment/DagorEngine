@@ -1,0 +1,536 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderResUnitedData_8h" kind="file" language="C++">
+    <compoundname>dag_shaderResUnitedData.h</compoundname>
+    <includes local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">generic/dag_staticTab.h</includes>
+    <includes local="no">generic/dag_ptrTab.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">generic/dag_smallTab.h</includes>
+    <includes refid="dag__shaderMesh_8h" local="no">shaders/dag_shaderMesh.h</includes>
+    <includes local="no">util/dag_delayedAction.h</includes>
+    <includes local="no">mutex</includes>
+    <includes local="no">util/dag_multicastEvent.h</includes>
+    <incdepgraph>
+      <node id="23">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="16">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shaders/dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="22">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="35">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="33">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="34">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="32">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_draw.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="11">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="36">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="12">
+        <label>generic/dag_patchTab.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_ptrTab.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="18">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_staticTab.h</label>
+      </node>
+      <node id="5">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="28">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="25">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="29">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="27">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="13">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="40">
+        <label>mutex</label>
+      </node>
+      <node id="24">
+        <label>stdint.h</label>
+      </node>
+      <node id="39">
+        <label>util/dag_delayedAction.h</label>
+      </node>
+      <node id="37">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="41">
+        <label>util/dag_multicastEvent.h</label>
+      </node>
+      <node id="38">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="30">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="26">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structunitedvdata_1_1BufConfig" prot="public">unitedvdata::BufConfig</innerclass>
+    <innerclass refid="structunitedvdata_1_1BufChunk" prot="public">unitedvdata::BufChunk</innerclass>
+    <innerclass refid="structunitedvdata_1_1BufPool" prot="public">unitedvdata::BufPool</innerclass>
+    <innerclass refid="structunitedvdata_1_1BufPool_1_1PoolSize" prot="public">unitedvdata::BufPool::PoolSize</innerclass>
+    <innerclass refid="classShaderResUnitedVdata" prot="public">ShaderResUnitedVdata</innerclass>
+    <innerclass refid="structShaderResUnitedVdata_1_1UpdateModelCtx" prot="protected">ShaderResUnitedVdata::UpdateModelCtx</innerclass>
+    <innerclass refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" prot="protected">ShaderResUnitedVdata::ReleaseUpdateDA</innerclass>
+    <innernamespace refid="namespaceunitedvdata">unitedvdata</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_staticTab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_ptrTab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_smallTab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderMesh.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_delayedAction.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;mutex&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_multicastEvent.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">unitedvdata</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MAX_VBIDX_CNT<sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MAX_CHUNK_CNT<sp/>=<sp/>32;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="structunitedvdata_1_1BufConfig" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref></highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;hints_blk,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxVbSize);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ibSz;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>vbSz[MAX_VBIDX_CNT];</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ibMinAdd,<sp/>vbMinAdd;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ibMaxAdd,<sp/>vbMaxAdd;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ibAddPromille,<sp/>vbAddPromille;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>exactSize<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dumpResListOnAddResFail<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="structunitedvdata_1_1BufChunk" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ofs<sp/>=<sp/>0,<sp/>sz<sp/>:<sp/>28,<sp/>vbIdx<sp/>:<sp/>4;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref>()<sp/>:<sp/>ofs(0),<sp/>sz(0),<sp/>vbIdx(0)<sp/>{}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>o,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>s,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>i)<sp/>:<sp/>ofs(o),<sp/>sz(s),<sp/>vbIdx(i)<sp/>{<sp/>G_ASSERTF(i<sp/>==<sp/>vbIdx,<sp/></highlight><highlight class="stringliteral">&quot;i=%d&quot;</highlight><highlight class="normal">,<sp/>i);<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>end()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ofs<sp/>+<sp/>sz;<sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>TAB&gt;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>add_chunk(TAB<sp/>&amp;used_chunks,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref><sp/>&amp;new_chunk);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_top_chunk(dag::ConstSpan&lt;BufChunk&gt;<sp/>used_chunks);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_chunk(dag::ConstSpan&lt;BufChunk&gt;<sp/>used_chunks,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>req_sz);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>TAB&gt;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>cut_chunk(TAB<sp/>&amp;used_chunks,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>chunk_idx,<sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref><sp/>&amp;new_chunk,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_gap);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>StaticTab&lt;BufChunk,<sp/>MAX_CHUNK_CNT&gt;<sp/>BufChunkTab;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="structunitedvdata_1_1BufPool" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structunitedvdata_1_1BufPool" kindref="compound">BufPool</ref></highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>IDX_IB<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>IDX_VB_START<sp/>=<sp/>1</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="66" refid="structunitedvdata_1_1BufPool_1_1PoolSize" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structunitedvdata_1_1BufPool_1_1PoolSize" kindref="compound">PoolSize</ref></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getUsed()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(used);<sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getSize()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(size);<sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setUsed(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>u)<sp/>{<sp/>interlocked_release_store(used,<sp/>u);<sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setSize(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>s)<sp/>{<sp/>interlocked_release_store(size,<sp/>s);<sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>incUsed(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>u)<sp/>{<sp/>interlocked_add(used,<sp/>u);<sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>decUsed(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>u)<sp/>{<sp/>interlocked_add(used,<sp/>-u);<sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>used<sp/>=<sp/>0,<sp/>size<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>StaticTab&lt;Sbuffer<sp/>*,<sp/>MAX_VBIDX_CNT&gt;<sp/>sbuf;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>StaticTab&lt;PoolSize,<sp/>MAX_VBIDX_CNT&gt;<sp/>pool;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>Tab&lt;BufChunk&gt;<sp/>freeChunks[MAX_CHUNK_CNT];</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxVbSize<sp/>=<sp/>64<sp/>&lt;&lt;<sp/>20;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allowRebuild<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/>allowDelRes<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>nameChar;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxIBUseKb<sp/>=<sp/>INT_MAX;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxVBUseKb<sp/>=<sp/>INT_MAX;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>std::mutex<sp/>updateMutex;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufPool" kindref="compound">BufPool</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>nc)<sp/>:<sp/>nameChar(nc)<sp/>{<sp/>sbuf.push_back(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);<sp/>}<sp/></highlight><highlight class="comment">//<sp/>pre-alloc<sp/>for<sp/>IB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref><sp/>allocChunkForStride(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>req_avail_sz,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref><sp/>&amp;hints,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_soft_limit);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>arrangeVdata(dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>smvd_list,<sp/>BufChunkTab<sp/>&amp;out_c,<sp/>Sbuffer<sp/>*ib,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>can_fail,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_soft_limit,</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref><sp/>&amp;hints,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*vbShortage<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*ibShortage<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resetVdataBufPointers(dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>smvd_list);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>getSeparateChunks(dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>smvd_list,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>first_lod,<sp/>dag::Span&lt;BufChunk&gt;<sp/>c,<sp/>BufChunkTab<sp/>&amp;out_c1,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>BufChunkTab<sp/>&amp;out_c2);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>releaseBufChunk(dag::ConstSpan&lt;BufChunk&gt;<sp/>ctab,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>update_used)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref><sp/>&amp;c<sp/>:<sp/>ctab)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(update_used)</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pool[c.vbIdx].decUsed(c.sz);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>BufChunk::add_chunk(freeChunks[c.vbIdx],<sp/>c);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*calcUsedSizeStr(dag::ConstSpan&lt;BufChunk&gt;<sp/>ctab,<sp/>String<sp/>&amp;stor);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allocateBuffer(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name_fmt<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;%cunited_%cb#%x&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allocatePool(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hint_sz,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BufConfig<sp/>&amp;hints);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>createSbuffers(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BufConfig<sp/>&amp;hints,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>tight<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear();</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>String<sp/>getStatStr()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getVbCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbuf.size()<sp/>&gt;<sp/>IDX_VB_START<sp/>?<sp/>sbuf.size()<sp/>-<sp/>IDX_VB_START<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>Ibuffer<sp/>*getIB()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbuf[IDX_IB];<sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>unitedvdata</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>RES&gt;</highlight></codeline>
+<codeline lineno="119" refid="classShaderResUnitedVdata" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref></highlight></codeline>
+<codeline lineno="120"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ResType<sp/>=<sp/>RES;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>();</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setMaxVbSize(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_sz);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setDelResAllowed(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setSepTightVdataAllowed(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow)<sp/>{<sp/>allowSepTightVdata<sp/>=<sp/>allow;<sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setRebuildAllowed(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow)<sp/>{<sp/>buf.allowRebuild<sp/>=<sp/>allow;<sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>addRes(dag::Span&lt;RES<sp/>*&gt;<sp/>res);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>addRes(RES<sp/>*res)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>addRes(make_span(&amp;res,<sp/>1));<sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>delRes(RES<sp/>*res);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reloadRes(RES<sp/>*res);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>downgradeRes(RES<sp/>*res,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>upper_lod);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>discardUnusedResToFreeReqMem();</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>releaseUnusedBuffers();</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear();</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>stopPendingJobs();</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rebuildBuffersAfterReset();</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onBeforeD3dReset()</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>stopPendingJobs();</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>appendMutex.lock();</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onAfterD3dReset()</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/>appendMutex.unlock();</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>rebuildBuffersAfterReset();</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>Ibuffer<sp/>*getIB()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf.getIB();<sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>Vbuffer<sp/>*getVB(uint32_t<sp/>vb_idx)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf.sbuf[vb_idx];<sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getResCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>resList.size();<sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>buildStatusStrNoLock(String<sp/>&amp;out_str,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_res_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>(*resolve_res_name)(String<sp/>&amp;nm,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RES<sp/>*r)<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>buildStatusStr(String<sp/>&amp;out_str,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_res_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>(*resolve_res_name)(String<sp/>&amp;nm,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RES<sp/>*r)<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>std::lock_guard&lt;std::mutex&gt;<sp/>scopedLock(appendMutex);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/>buildStatusStrNoLock(out_str,<sp/>full_res_list,<sp/>resolve_res_name);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dumpMemBlocks(String<sp/>*out_str_summary<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getPendingReloadResCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(pendingVdataReloadResCount);<sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getFailedReloadResCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>failedVdataReloadResList.size();<sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setHints(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;hints_blk);</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>even<sp/>is<sp/>triggered<sp/>whenever<sp/>a<sp/>resource<sp/>was<sp/>changed<sp/>due<sp/>to</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>vertex<sp/>buffer<sp/>defrag<sp/>and<sp/>things<sp/>like<sp/>RElem::bv<sp/>and<sp/>RElem::si<sp/>are<sp/>no</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>longer<sp/>the<sp/>same<sp/>as<sp/>before.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>MulticastEvent&lt;void(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RES<sp/>*,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*deleted*/</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*upper_lod*/</highlight><highlight class="normal">)&gt;<sp/>on_mesh_relems_updated;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>void<sp/>(*availableRElemsAccessorFct)(dag::Span&lt;RES<sp/>*&gt;);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>availableRElemsAccessor(availableRElemsAccessorFct<sp/>access_cb);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getRequestLodsByDistanceFrames()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>requestLodsByDistanceFrames;<sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setAllocationLimits(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ibKb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vbKb);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref><sp/>buf;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>PtrTab&lt;RES&gt;<sp/>resList;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>std::mutex<sp/>appendMutex;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allowSepTightVdata<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pendingRebuildCount<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/>Tab&lt;SmallTab&lt;unitedvdata::BufChunk,<sp/>MidmemAlloc&gt;&gt;<sp/>resUsedChunks;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>int64_t<sp/>maxIbTotalUsed<sp/>=<sp/>0,<sp/>maxVbTotalUsed<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reloadJobMgrId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vbSizeToFree<sp/>=<sp/>0,<sp/>ibSizeToFree<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uselessDiscardAttempts<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/>Tab&lt;RES<sp/>*&gt;<sp/>failedVdataReloadResList;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pendingVdataReloadResCount<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">unitedvdata::BufConfig</ref><sp/>hints;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/>std::mutex<sp/>hintsMutex;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>noDiscardFrames<sp/>=<sp/>120;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>keepIfNeedLodFrames<sp/>=<sp/>600;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>requestLodsByDistanceFrames<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">unitedvdata::BufConfig</ref><sp/>getHints()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rebuildUnitedVdata(dag::Span&lt;RES<sp/>*&gt;<sp/>res,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>in_d3d_reset);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateVdata(RES<sp/>*r,<sp/><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref><sp/>&amp;buf,<sp/>Tab&lt;int&gt;<sp/>&amp;dviOfs_stor,<sp/>Tab&lt;uint8_t&gt;<sp/>&amp;buf_stor,</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;unitedvdata::BufChunk&gt;<sp/>c);</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prepareVdataBaseOfs(dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>smvd_list,<sp/>Tab&lt;int&gt;<sp/>&amp;dviOfs);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateVdata(dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>smvd_list,<sp/><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref><sp/>&amp;buf,<sp/>Tab&lt;uint8_t&gt;<sp/>&amp;buf_stor,</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;unitedvdata::BufChunk&gt;<sp/>c);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rebaseElemOfs(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RES<sp/>*r,<sp/>dag::ConstSpan&lt;int&gt;<sp/>dviOfs);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>dag::ConstSpan&lt;unitedvdata::BufChunk&gt;<sp/>getBufChunks(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="214"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf.allowDelRes<sp/>?<sp/>make_span_const(resUsedChunks[i])<sp/>:<sp/>dag::ConstSpan&lt;unitedvdata::BufChunk&gt;();</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateLocalMaximum(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>out_peak_to_debug);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>discardUnusedResToFreeReqMemNoLock(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>forced);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="structShaderResUnitedVdata_1_1UpdateModelCtx" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>Ptr&lt;ShaderMatVdata&gt;<sp/>tmp_smvd[4];</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>unitedvdata::BufChunkTab<sp/>cPrev;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;int&gt;<sp/>dviOfs;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/>Ptr&lt;RES&gt;<sp/>res<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reqLod<sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="229" refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref><sp/>final<sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DelayedAction,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref><sp/>*unitedVdata;</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref><sp/>*prev<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref><sp/>*slist_tail<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref>(<ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref><sp/>&amp;&amp;ctx,<sp/><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref><sp/>*uvd)<sp/>:<sp/><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref>(eastl::move(ctx)),<sp/>unitedVdata(uvd)</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>prev<sp/>=<sp/>slist_tail;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>slist_tail<sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">~ReleaseUpdateDA</ref>()</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(<ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref><sp/>**pcur<sp/>=<sp/>&amp;slist_tail;<sp/>*pcur;<sp/>pcur<sp/>=<sp/>&amp;(*pcur)-&gt;prev)<sp/></highlight><highlight class="comment">//<sp/>Erase<sp/>from<sp/>slist</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*pcur<sp/>==<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*pcur<sp/>=<sp/>prev;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(0);<sp/></highlight><highlight class="comment">//<sp/>Can&apos;t<sp/>happen<sp/>-<sp/>DA<sp/>wasn&apos;t<sp/>found<sp/>in<sp/>slist?</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>performAction()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>unitedVdata-&gt;releaseUpdateJob(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>ceaseUpdateJob()<sp/>{<sp/>UpdateModelCtx::res.get()<sp/>?<sp/>unitedVdata-&gt;ceaseUpdateJob(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">)<sp/>:<sp/>(void)0;<sp/>}</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>initUpdateJob(<ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref><sp/>&amp;ctx,<sp/>RES<sp/>*r);</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>doUpdateJob(<ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>releaseUpdateJob(<ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>ceaseUpdateJob(<ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/>G_VERIFY(interlocked_decrement(pendingVdataReloadResCount)<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.res-&gt;setResLoadingFlag(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.res<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="261"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DynamicRenderableSceneLodsResource;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">RenderableInstanceLodsResource;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">unitedvdata</highlight></codeline>
+<codeline lineno="267"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata&lt;DynamicRenderableSceneLodsResource&gt;</ref><sp/>dmUnitedVdata;</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dmUnitedVdataUsed;</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata&lt;RenderableInstanceLodsResource&gt;</ref><sp/>riUnitedVdata;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>unitedvdata</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderResUnitedData.h"/>
+  </compounddef>
+</doxygen>

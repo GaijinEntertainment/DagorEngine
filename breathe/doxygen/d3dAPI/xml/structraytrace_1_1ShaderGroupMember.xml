@@ -1,0 +1,362 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderGroupMember" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderGroupMember</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref></type>
+        <definition>ShaderGroup raytrace::ShaderGroupMember::group</definition>
+        <argsstring></argsstring>
+        <name>group</name>
+        <qualifiedname>raytrace::ShaderGroupMember::group</qualifiedname>
+        <initializer>= <ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">ShaderGroup::Undefined</ref></initializer>
+        <briefdescription>
+<para>Indicates to which group this member belongs and which member variable is valid to use. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="515" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="515" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref></type>
+        <definition>RayGenShaderGroupMember raytrace::ShaderGroupMember::rayGen</definition>
+        <argsstring></argsstring>
+        <name>rayGen</name>
+        <qualifiedname>raytrace::ShaderGroupMember::rayGen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid when &apos;type&apos; is of ShaderGroupType::RayGen Specifies a ray gen group </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="520" column="29" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref></type>
+        <definition>MissShaderGroupMember raytrace::ShaderGroupMember::miss</definition>
+        <argsstring></argsstring>
+        <name>miss</name>
+        <qualifiedname>raytrace::ShaderGroupMember::miss</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid when &apos;type&apos; is of ShaderGroupType::Miss Specifies a miss group </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="523" column="27" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="523" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref></type>
+        <definition>CallableShaderGroupMember raytrace::ShaderGroupMember::callable</definition>
+        <argsstring></argsstring>
+        <name>callable</name>
+        <qualifiedname>raytrace::ShaderGroupMember::callable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid when &apos;type&apos; is of ShaderGroupType::Callable Specifies a callable group </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="526" column="31" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="526" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref></type>
+        <definition>TriangleShaderGroupMember raytrace::ShaderGroupMember::triangle</definition>
+        <argsstring></argsstring>
+        <name>triangle</name>
+        <qualifiedname>raytrace::ShaderGroupMember::triangle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid when &apos;type&apos; is of ShaderGroupType::Triangle Specifies a triangle group </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="529" column="31" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="529" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref></type>
+        <definition>ProceduralShaderGroupMember raytrace::ShaderGroupMember::procedural</definition>
+        <argsstring></argsstring>
+        <name>procedural</name>
+        <qualifiedname>raytrace::ShaderGroupMember::procedural</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Valid when &apos;type&apos; is of ShaderGroupType::Procedural Specifies a procedural group </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="532" column="33" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="532" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderGroupMember_1ae2b8daf8aead4c2e4f748a4b750c66ef" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">raytrace::ShaderGroupMember</ref></type>
+        <definition>union raytrace::ShaderGroupMember raytrace::ShaderGroupMember</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>raytrace::ShaderGroupMember</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="533" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a50e7de0aee583b4a77ee31740b67ce78" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>()=default</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <briefdescription>
+<para>Constructs empty state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="536" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1aad32506a29e72184c7737694ef5c0e8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const ShaderGroupMember &amp;)=default</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">ShaderGroupMember</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Default copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="538" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a94b3950e8a8a3a3683f67ae0120271d2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const RayGenShaderGroupMember &amp;rg)</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref> &amp;</type>
+          <declname>rg</declname>
+        </param>
+        <briefdescription>
+<para>Constructs this with a state that represents a ray gen group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="540" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="540" bodyend="540"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a62a9cc7531a310352b448d7594327e94" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const MissShaderGroupMember &amp;m)</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref> &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+<para>Constructs this with a state that represents a miss group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="542" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="542" bodyend="542"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a1afa01b3e210babb82c4c498784616b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const CallableShaderGroupMember &amp;c)</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+<para>Constructs this with a state that represents a callable group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="544" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="544" bodyend="544"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a0961543e522320a1b22b75c630e318a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const TriangleShaderGroupMember &amp;tr)</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref> &amp;</type>
+          <declname>tr</declname>
+        </param>
+        <briefdescription>
+<para>Constructs this with a state that represents a triangle group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="546" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="546" bodyend="546"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1ae1c206166734b3d75b89a062352b772b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::ShaderGroupMember::ShaderGroupMember</definition>
+        <argsstring>(const ProceduralShaderGroupMember &amp;pr)</argsstring>
+        <name>ShaderGroupMember</name>
+        <qualifiedname>raytrace::ShaderGroupMember::ShaderGroupMember</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref> &amp;</type>
+          <declname>pr</declname>
+        </param>
+        <briefdescription>
+<para>Constructs this with a state that represents a procedural group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="548" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="548" bodyend="548"/>
+      </memberdef>
+      <memberdef kind="function" id="structraytrace_1_1ShaderGroupMember_1a8a17b1099daeb20af1322aa499e7b980" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void raytrace::ShaderGroupMember::visit</definition>
+        <argsstring>(T clb)</argsstring>
+        <name>visit</name>
+        <qualifiedname>raytrace::ShaderGroupMember::visit</qualifiedname>
+        <param>
+          <type>T</type>
+          <declname>clb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Dispatching helper, will switch over the group member and invokes clb with the corresponding union member. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>clb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Callback that may receive the rayGen, miss, callable, triangle or procedural member as input. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="553" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="553" bodyend="564"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a shader group of a specific type. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>ShaderInLibraryReference</label>
+        <link refid="structShaderInLibraryReference"/>
+      </node>
+      <node id="5">
+        <label>raytrace::CallableShaderGroupMember</label>
+        <link refid="structraytrace_1_1CallableShaderGroupMember"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>callable</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>raytrace::MissShaderGroupMember</label>
+        <link refid="structraytrace_1_1MissShaderGroupMember"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>miss</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>raytrace::ProceduralShaderGroupMember</label>
+        <link refid="structraytrace_1_1ProceduralShaderGroupMember"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>intersection</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::RayGenShaderGroupMember</label>
+        <link refid="structraytrace_1_1RayGenShaderGroupMember"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>rayGen</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ShaderGroupMember</label>
+        <link refid="structraytrace_1_1ShaderGroupMember"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>rayGen</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>miss</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>callable</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>triangle</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>procedural</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>raytrace::TriangleShaderGroupMember</label>
+        <link refid="structraytrace_1_1TriangleShaderGroupMember"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>anyHit</edgelabel>
+          <edgelabel>closestHit</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="512" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="513" bodyend="565"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>callable</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>group</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>miss</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>procedural</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>rayGen</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a50e7de0aee583b4a77ee31740b67ce78" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1aad32506a29e72184c7737694ef5c0e8a" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a94b3950e8a8a3a3683f67ae0120271d2" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a62a9cc7531a310352b448d7594327e94" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a1afa01b3e210babb82c4c498784616b7" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a0961543e522320a1b22b75c630e318a5" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1ae1c206166734b3d75b89a062352b772b" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>ShaderGroupMember</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>triangle</name></member>
+      <member refid="structraytrace_1_1ShaderGroupMember_1a8a17b1099daeb20af1322aa499e7b980" prot="public" virt="non-virtual"><scope>raytrace::ShaderGroupMember</scope><name>visit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

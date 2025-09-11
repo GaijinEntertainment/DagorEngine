@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeShader_1_1RoutineRemappingTables" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeShader::RoutineRemappingTables</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeShader_1_1RoutineRemappingTables_1a8304a5effdf074148d9c0d4727b57bdb" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; StcodeShader::RoutineRemappingTables::dynamicRemapping</definition>
+        <argsstring></argsstring>
+        <name>dynamicRemapping</name>
+        <qualifiedname>StcodeShader::RoutineRemappingTables::dynamicRemapping</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="389" column="9" bodyfile="cppStcodeAssembly.h" bodystart="389" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1_1RoutineRemappingTables_1a4766226c00aea66afc45707830868cb6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; StcodeShader::RoutineRemappingTables::staticRemapping</definition>
+        <argsstring></argsstring>
+        <name>staticRemapping</name>
+        <qualifiedname>StcodeShader::RoutineRemappingTables::staticRemapping</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="390" column="9" bodyfile="cppStcodeAssembly.h" bodystart="390" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="387" column="3" bodyfile="cppStcodeAssembly.h" bodystart="388" bodyend="391"/>
+    <listofallmembers>
+      <member refid="structStcodeShader_1_1RoutineRemappingTables_1a8304a5effdf074148d9c0d4727b57bdb" prot="public" virt="non-virtual"><scope>StcodeShader::RoutineRemappingTables</scope><name>dynamicRemapping</name></member>
+      <member refid="structStcodeShader_1_1RoutineRemappingTables_1a4766226c00aea66afc45707830868cb6" prot="public" virt="non-virtual"><scope>StcodeShader::RoutineRemappingTables</scope><name>staticRemapping</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

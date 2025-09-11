@@ -1,0 +1,270 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIShaderBindumpReloadListener" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IShaderBindumpReloadListener</compoundname>
+    <derivedcompoundref refid="classShaderBlockIdHolder" prot="public" virt="non-virtual">ShaderBlockIdHolder</derivedcompoundref>
+    <derivedcompoundref refid="structShaderVariableInfo" prot="public" virt="non-virtual">ShaderVariableInfo</derivedcompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classIShaderBindumpReloadListener_1a45f1716b6211a5986bacb1c9fad4af7f" prot="private" static="no" mutable="no">
+        <type><ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref> *</type>
+        <definition>IShaderBindumpReloadListener* IShaderBindumpReloadListener::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <qualifiedname>IShaderBindumpReloadListener::next</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="9" column="32" bodyfile="dag_bindumpReloadListener.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIShaderBindumpReloadListener_1ae0236e0046ed988725a010d7b8a4d885" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* IShaderBindumpReloadListener::tag</definition>
+        <argsstring></argsstring>
+        <name>tag</name>
+        <qualifiedname>IShaderBindumpReloadListener::tag</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="43" column="14" bodyfile="dag_bindumpReloadListener.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classIShaderBindumpReloadListener_1abc8f19664d42d87c20471329404bf40b" prot="private" static="yes" mutable="no">
+        <type><ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref> *</type>
+        <definition>IShaderBindumpReloadListener* IShaderBindumpReloadListener::head</definition>
+        <argsstring></argsstring>
+        <name>head</name>
+        <qualifiedname>IShaderBindumpReloadListener::head</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="44" column="39" bodyfile="dag_bindumpReloadListener.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a3e443f460b5e8d52dd3279c76239a170" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IShaderBindumpReloadListener::IShaderBindumpReloadListener</definition>
+        <argsstring>(const char *tag_=nullptr)</argsstring>
+        <name>IShaderBindumpReloadListener</name>
+        <qualifiedname>IShaderBindumpReloadListener::IShaderBindumpReloadListener</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tag_</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="12" column="3" bodyfile="dag_bindumpReloadListener.h" bodystart="12" bodyend="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a219f2c3b71f19681e1dd8b9835e26b08" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IShaderBindumpReloadListener::IShaderBindumpReloadListener</definition>
+        <argsstring>(const IShaderBindumpReloadListener &amp;other)</argsstring>
+        <name>IShaderBindumpReloadListener</name>
+        <qualifiedname>IShaderBindumpReloadListener::IShaderBindumpReloadListener</qualifiedname>
+        <param>
+          <type>const <ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="13" column="3" bodyfile="dag_bindumpReloadListener.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a38c60d498b7aa90691d9094349b73995" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref> &amp;</type>
+        <definition>IShaderBindumpReloadListener &amp; IShaderBindumpReloadListener::operator=</definition>
+        <argsstring>(const IShaderBindumpReloadListener &amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>IShaderBindumpReloadListener::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="14" column="32" bodyfile="dag_bindumpReloadListener.h" bodystart="14" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a06cf1cb39b7e469dd9fefd44fec42b39" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual IShaderBindumpReloadListener::~IShaderBindumpReloadListener</definition>
+        <argsstring>()</argsstring>
+        <name>~IShaderBindumpReloadListener</name>
+        <qualifiedname>IShaderBindumpReloadListener::~IShaderBindumpReloadListener</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="19" column="11" bodyfile="dag_bindumpReloadListener.h" bodystart="19" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a19c8b2e3934c22f8072520d78beacfea" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * IShaderBindumpReloadListener::getTag</definition>
+        <argsstring>() const</argsstring>
+        <name>getTag</name>
+        <qualifiedname>IShaderBindumpReloadListener::getTag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="27" column="14" bodyfile="dag_bindumpReloadListener.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1ab6ce205645939755755b2017f1923384" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IShaderBindumpReloadListener::setEnabled</definition>
+        <argsstring>(bool)</argsstring>
+        <name>setEnabled</name>
+        <qualifiedname>IShaderBindumpReloadListener::setEnabled</qualifiedname>
+        <reimplementedby refid="structShaderVariableInfo_1a825bccddaa73228c011c4c1487784830">setEnabled</reimplementedby>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="28" column="16" bodyfile="dag_bindumpReloadListener.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a048ca30af2dca91b12c4dd8f97ab9f92" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void IShaderBindumpReloadListener::resolveAll</definition>
+        <argsstring>()</argsstring>
+        <name>resolveAll</name>
+        <qualifiedname>IShaderBindumpReloadListener::resolveAll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="30" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a82c0945593bdddc6ddc7676b360ddbee" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Cb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void IShaderBindumpReloadListener::forEach</definition>
+        <argsstring>(Cb cb)</argsstring>
+        <name>forEach</name>
+        <qualifiedname>IShaderBindumpReloadListener::forEach</qualifiedname>
+        <param>
+          <type>Cb</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="33" column="15" bodyfile="dag_bindumpReloadListener.h" bodystart="33" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1a47f555e4f12c10c438172dc7be1f14e4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IShaderBindumpReloadListener::resolve</definition>
+        <argsstring>()=0</argsstring>
+        <name>resolve</name>
+        <qualifiedname>IShaderBindumpReloadListener::resolve</qualifiedname>
+        <reimplementedby refid="classShaderBlockIdHolder_1a191389e9ab60f0eca03ab07a7e0b5fa4">resolve</reimplementedby>
+        <reimplementedby refid="structShaderVariableInfo_1ab6b917c5f9b79a90e1de76d3d67e33f4">resolve</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="40" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classIShaderBindumpReloadListener_1ac3999b984e59f2d078ffad6f174ce097" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void IShaderBindumpReloadListener::deleteFromLinkedList</definition>
+        <argsstring>()</argsstring>
+        <name>deleteFromLinkedList</name>
+        <qualifiedname>IShaderBindumpReloadListener::deleteFromLinkedList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindumpReloadListener.h" line="46" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IShaderBindumpReloadListener</label>
+        <link refid="classIShaderBindumpReloadListener"/>
+      </node>
+      <node id="2">
+        <label>ShaderBlockIdHolder</label>
+        <link refid="classShaderBlockIdHolder"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderVariableInfo</label>
+        <link refid="structShaderVariableInfo"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_bindumpReloadListener.h" line="7" column="1" bodyfile="dag_bindumpReloadListener.h" bodystart="8" bodyend="47"/>
+    <listofallmembers>
+      <member refid="classIShaderBindumpReloadListener_1ac3999b984e59f2d078ffad6f174ce097" prot="private" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>deleteFromLinkedList</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a82c0945593bdddc6ddc7676b360ddbee" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>forEach</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a19c8b2e3934c22f8072520d78beacfea" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>getTag</name></member>
+      <member refid="classIShaderBindumpReloadListener_1abc8f19664d42d87c20471329404bf40b" prot="private" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>head</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a3e443f460b5e8d52dd3279c76239a170" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a219f2c3b71f19681e1dd8b9835e26b08" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a45f1716b6211a5986bacb1c9fad4af7f" prot="private" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>next</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a38c60d498b7aa90691d9094349b73995" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>operator=</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a47f555e4f12c10c438172dc7be1f14e4" prot="protected" virt="pure-virtual"><scope>IShaderBindumpReloadListener</scope><name>resolve</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a048ca30af2dca91b12c4dd8f97ab9f92" prot="public" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>resolveAll</name></member>
+      <member refid="classIShaderBindumpReloadListener_1ab6ce205645939755755b2017f1923384" prot="public" virt="virtual"><scope>IShaderBindumpReloadListener</scope><name>setEnabled</name></member>
+      <member refid="classIShaderBindumpReloadListener_1ae0236e0046ed988725a010d7b8a4d885" prot="private" virt="non-virtual"><scope>IShaderBindumpReloadListener</scope><name>tag</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a06cf1cb39b7e469dd9fefd44fec42b39" prot="public" virt="virtual"><scope>IShaderBindumpReloadListener</scope><name>~IShaderBindumpReloadListener</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

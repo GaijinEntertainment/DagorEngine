@@ -1,0 +1,149 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTextureInfo" kind="struct" language="C++" prot="public">
+    <compoundname>TextureInfo</compoundname>
+    <includes refid="dag__tex3d_8h" local="no">dag_tex3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTextureInfo_1ad2c50ce68647829c9c3dca92581a72ff" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureInfo::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>TextureInfo::w</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>width, height, depth (for VOLTEX) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="134" column="12" bodyfile="dag_tex3d.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1a7d1603d81f22dd6702c06523d9de7a44" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureInfo::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>TextureInfo::h</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="134" column="15" bodyfile="dag_tex3d.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1a9bba5bf27e457b4e0b5f9746e2b75803" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureInfo::d</definition>
+        <argsstring></argsstring>
+        <name>d</name>
+        <qualifiedname>TextureInfo::d</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="134" column="18" bodyfile="dag_tex3d.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1ae4d9a1e4e13f1b9028f07f2c4fd0836c" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureInfo::a</definition>
+        <argsstring></argsstring>
+        <name>a</name>
+        <qualifiedname>TextureInfo::a</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>array slices (slice count for ARRTEX, 6 for CUBETEX, or 6 * &lt;array size&gt; for CUBEARRTEX) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="136" column="12" bodyfile="dag_tex3d.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1aab92d962d2c0c9d6be850e01a72904e5" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureInfo::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <qualifiedname>TextureInfo::mipLevels</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>all mips </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="138" column="12" bodyfile="dag_tex3d.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1aa94203746149e8ba7a68ad560245cc80" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98" kindref="member">D3DResourceType</ref></type>
+        <definition>D3DResourceType TextureInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>TextureInfo::type</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+<para>resource type (<ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98a9ed6f50f63c3af102f036468321d142b" kindref="member">D3DResourceType::TEX</ref>, ...) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="140" column="19" bodyfile="dag_tex3d.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1ad0908db9b39e6c8af5004bee8f8a31a6" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t TextureInfo::isCommitted</definition>
+        <argsstring></argsstring>
+        <name>isCommitted</name>
+        <qualifiedname>TextureInfo::isCommitted</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="142" column="11" bodyfile="dag_tex3d.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTextureInfo_1a340017c158bc5ce503bfd6a4c41c623e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned TextureInfo::cflg</definition>
+        <argsstring></argsstring>
+        <name>cflg</name>
+        <qualifiedname>TextureInfo::cflg</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>texture creation flags </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="144" column="12" bodyfile="dag_tex3d.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_tex3d.h" line="131" column="1" bodyfile="dag_tex3d.h" bodystart="132" bodyend="145"/>
+    <listofallmembers>
+      <member refid="structTextureInfo_1ae4d9a1e4e13f1b9028f07f2c4fd0836c" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>a</name></member>
+      <member refid="structTextureInfo_1a340017c158bc5ce503bfd6a4c41c623e" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>cflg</name></member>
+      <member refid="structTextureInfo_1a9bba5bf27e457b4e0b5f9746e2b75803" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>d</name></member>
+      <member refid="structTextureInfo_1a7d1603d81f22dd6702c06523d9de7a44" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>h</name></member>
+      <member refid="structTextureInfo_1ad0908db9b39e6c8af5004bee8f8a31a6" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>isCommitted</name></member>
+      <member refid="structTextureInfo_1aab92d962d2c0c9d6be850e01a72904e5" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>mipLevels</name></member>
+      <member refid="structTextureInfo_1aa94203746149e8ba7a68ad560245cc80" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>type</name></member>
+      <member refid="structTextureInfo_1ad2c50ce68647829c9c3dca92581a72ff" prot="public" virt="non-virtual"><scope>TextureInfo</scope><name>w</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

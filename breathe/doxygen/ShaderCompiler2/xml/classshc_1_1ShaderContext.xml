@@ -1,0 +1,672 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1ShaderContext" kind="class" language="C++" prot="public">
+    <compoundname>shc::ShaderContext</compoundname>
+    <includes refid="shShaderContext_8h" local="no">shShaderContext.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a7dee84ebfdb590ada15424d1a2a6eb7a" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::ShaderContext::mName</definition>
+        <argsstring></argsstring>
+        <name>mName</name>
+        <qualifiedname>shc::ShaderContext::mName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="31" column="14" bodyfile="shShaderContext.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a6a807ed836bf5f40eaecceff38c98571" prot="private" static="no" mutable="no">
+        <type>const <ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+        <definition>const ShaderBlockLevel shc::ShaderContext::mBlockLevel</definition>
+        <argsstring></argsstring>
+        <name>mBlockLevel</name>
+        <qualifiedname>shc::ShaderContext::mBlockLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="32" column="26" bodyfile="shShaderContext.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a85cf86f81107e69f35cdbde884f15831" prot="private" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* shc::ShaderContext::mDeclTerm</definition>
+        <argsstring></argsstring>
+        <name>mDeclTerm</name>
+        <qualifiedname>shc::ShaderContext::mDeclTerm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="33" column="12" bodyfile="shShaderContext.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a255786ae3f038d1e1943e1bdb2c6e343" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;ShaderClass&gt; shc::ShaderContext::mShaderClass</definition>
+        <argsstring></argsstring>
+        <name>mShaderClass</name>
+        <qualifiedname>shc::ShaderContext::mShaderClass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="34" column="21" bodyfile="shShaderContext.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1afe31c2bb55824155488fca4d14adfa5f" prot="private" static="no" mutable="no">
+        <type><ref refid="structshc_1_1TypeTables" kindref="compound">TypeTables</ref></type>
+        <definition>TypeTables shc::ShaderContext::mTypes</definition>
+        <argsstring></argsstring>
+        <name>mTypes</name>
+        <qualifiedname>shc::ShaderContext::mTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="35" column="14" bodyfile="shShaderContext.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1ac1e4254d2790a732e41af893d8d06837" prot="private" static="no" mutable="no">
+        <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref></type>
+        <definition>IntervalList shc::ShaderContext::mIntervals</definition>
+        <argsstring></argsstring>
+        <name>mIntervals</name>
+        <qualifiedname>shc::ShaderContext::mIntervals</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="36" column="16" bodyfile="shShaderContext.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1ac26024c723943f4a59f7c33f4df5dc11" prot="private" static="no" mutable="no">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref></type>
+        <definition>BoolVarTable shc::ShaderContext::mBoolVarTable</definition>
+        <argsstring></argsstring>
+        <name>mBoolVarTable</name>
+        <qualifiedname>shc::ShaderContext::mBoolVarTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="37" column="16" bodyfile="shShaderContext.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1afc920c34afdc1bea3e413c1bcd46ceb0" prot="private" static="no" mutable="no">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; String &gt;</type>
+        <definition>PerHlslStage&lt;String&gt; shc::ShaderContext::mLocalHlslSource</definition>
+        <argsstring></argsstring>
+        <name>mLocalHlslSource</name>
+        <qualifiedname>shc::ShaderContext::mLocalHlslSource</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="38" column="16" bodyfile="shShaderContext.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a713012954404fbc106eeeb9457d927f9" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref></type>
+        <definition>ShaderAssumesTable shc::ShaderContext::mLocalAssumes</definition>
+        <argsstring></argsstring>
+        <name>mLocalAssumes</name>
+        <qualifiedname>shc::ShaderContext::mLocalAssumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="39" column="22" bodyfile="shShaderContext.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a87f9b586cf45bdbf817fa2d91be2b9e1" prot="private" static="no" mutable="no">
+        <type><ref refid="structShaderMessages" kindref="compound">ShaderMessages</ref></type>
+        <definition>ShaderMessages shc::ShaderContext::mMessages</definition>
+        <argsstring></argsstring>
+        <name>mMessages</name>
+        <qualifiedname>shc::ShaderContext::mMessages</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="40" column="18" bodyfile="shShaderContext.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1aabdbf11ef968089ee445d2cffa08b829" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::ShaderContext::mDebugModeEnabled</definition>
+        <argsstring></argsstring>
+        <name>mDebugModeEnabled</name>
+        <qualifiedname>shc::ShaderContext::mDebugModeEnabled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="41" column="8" bodyfile="shShaderContext.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a9df4add9ac6de7ffbf78e7daa6e6f6c8" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>TargetContext&amp; shc::ShaderContext::mParent</definition>
+        <argsstring></argsstring>
+        <name>mParent</name>
+        <qualifiedname>shc::ShaderContext::mParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="43" column="17" bodyfile="shShaderContext.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1ShaderContext_1a7a7a977e58d3ecd83b1e1651a5d31c1c" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext&amp; shc::ShaderContext::mCompParent</definition>
+        <argsstring></argsstring>
+        <name>mCompParent</name>
+        <qualifiedname>shc::ShaderContext::mCompParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="44" column="28" bodyfile="shShaderContext.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classshc_1_1ShaderContext_1af344b946e5cdec3395a8cb76a35cc734" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class TargetContext</definition>
+        <argsstring></argsstring>
+        <name>TargetContext</name>
+        <qualifiedname>shc::ShaderContext::TargetContext</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="89" column="16" bodyfile="shShaderContext.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a8d1967ec973d0ffe1c0ddb78cec30dce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>TargetContext &amp; shc::ShaderContext::tgtCtx</definition>
+        <argsstring>()</argsstring>
+        <name>tgtCtx</name>
+        <qualifiedname>shc::ShaderContext::tgtCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="49" column="17" bodyfile="shShaderContext.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a0f8aaa46654310262188aea4146d5bec" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>const TargetContext &amp; shc::ShaderContext::tgtCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>tgtCtx</name>
+        <qualifiedname>shc::ShaderContext::tgtCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="50" column="23" bodyfile="shShaderContext.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1aa023d87a4250ecb81c23de0a06f6ea0c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext &amp; shc::ShaderContext::compCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>compCtx</name>
+        <qualifiedname>shc::ShaderContext::compCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="51" column="28" bodyfile="shShaderContext.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a62fb814941038645a59c2668a3b01e45" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * shc::ShaderContext::name</definition>
+        <argsstring>() const</argsstring>
+        <name>name</name>
+        <qualifiedname>shc::ShaderContext::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="53" column="14" bodyfile="shShaderContext.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a6290b6c1649dfc5f77d7fd395ed9854f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+        <definition>ShaderBlockLevel shc::ShaderContext::blockLevel</definition>
+        <argsstring>() const</argsstring>
+        <name>blockLevel</name>
+        <qualifiedname>shc::ShaderContext::blockLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="54" column="20" bodyfile="shShaderContext.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a03a1d89a0bae981ff0cfb6915d0c817a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * shc::ShaderContext::declTerm</definition>
+        <argsstring>()</argsstring>
+        <name>declTerm</name>
+        <qualifiedname>shc::ShaderContext::declTerm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="56" column="12" bodyfile="shShaderContext.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1ac33837d8b076e2c76ce27d9804c345a1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Terminal *</type>
+        <definition>const Terminal * shc::ShaderContext::declTerm</definition>
+        <argsstring>() const</argsstring>
+        <name>declTerm</name>
+        <qualifiedname>shc::ShaderContext::declTerm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="57" column="18" bodyfile="shShaderContext.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a247c84f67fcf817a86603f6d810a9ad7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+        <definition>ShaderClass &amp; shc::ShaderContext::compiledShader</definition>
+        <argsstring>()</argsstring>
+        <name>compiledShader</name>
+        <qualifiedname>shc::ShaderContext::compiledShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="59" column="15" bodyfile="shShaderContext.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a3162695f155364a4c3b1aac6c70db536" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+        <definition>const ShaderClass &amp; shc::ShaderContext::compiledShader</definition>
+        <argsstring>() const</argsstring>
+        <name>compiledShader</name>
+        <qualifiedname>shc::ShaderContext::compiledShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="60" column="21" bodyfile="shShaderContext.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a60af64180bb30923ddbd723a963e8a1d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> *</type>
+        <definition>ShaderClass * shc::ShaderContext::releaseCompiledShader</definition>
+        <argsstring>()</argsstring>
+        <name>releaseCompiledShader</name>
+        <qualifiedname>shc::ShaderContext::releaseCompiledShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="62" column="15" bodyfile="shShaderContext.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a3dd13c107e10d2ee823f51cae323c668" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structshc_1_1TypeTables" kindref="compound">TypeTables</ref> &amp;</type>
+        <definition>TypeTables &amp; shc::ShaderContext::typeTables</definition>
+        <argsstring>()</argsstring>
+        <name>typeTables</name>
+        <qualifiedname>shc::ShaderContext::typeTables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="64" column="14" bodyfile="shShaderContext.h" bodystart="64" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1aceda8a6e95a14885021c2e4139985500" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structshc_1_1TypeTables" kindref="compound">TypeTables</ref> &amp;</type>
+        <definition>const TypeTables &amp; shc::ShaderContext::typeTables</definition>
+        <argsstring>() const</argsstring>
+        <name>typeTables</name>
+        <qualifiedname>shc::ShaderContext::typeTables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="65" column="20" bodyfile="shShaderContext.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a209dd192d866a02b8102a8858b7e5b8d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>IntervalList &amp; shc::ShaderContext::intervals</definition>
+        <argsstring>()</argsstring>
+        <name>intervals</name>
+        <qualifiedname>shc::ShaderContext::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="67" column="16" bodyfile="shShaderContext.h" bodystart="67" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1ae71a8ca8b0c9347719226f8b2e0138f9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>const IntervalList &amp; shc::ShaderContext::intervals</definition>
+        <argsstring>() const</argsstring>
+        <name>intervals</name>
+        <qualifiedname>shc::ShaderContext::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="68" column="22" bodyfile="shShaderContext.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a68d901ec93151761c921ba6af3f21efb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>BoolVarTable &amp; shc::ShaderContext::localBoolVars</definition>
+        <argsstring>()</argsstring>
+        <name>localBoolVars</name>
+        <qualifiedname>shc::ShaderContext::localBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="70" column="16" bodyfile="shShaderContext.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a1266dc7f320814834d233d4706b4361c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>const BoolVarTable &amp; shc::ShaderContext::localBoolVars</definition>
+        <argsstring>() const</argsstring>
+        <name>localBoolVars</name>
+        <qualifiedname>shc::ShaderContext::localBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="71" column="22" bodyfile="shShaderContext.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a2a5bfa488755ef94e3ccc73b650190d2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; shc::ShaderContext::localHlslSrc</definition>
+        <argsstring>()</argsstring>
+        <name>localHlslSrc</name>
+        <qualifiedname>shc::ShaderContext::localHlslSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="73" column="8" bodyfile="shShaderContext.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a9cd516064eabc9e4e205d58d1143d7f7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; shc::ShaderContext::localHlslSrc</definition>
+        <argsstring>() const</argsstring>
+        <name>localHlslSrc</name>
+        <qualifiedname>shc::ShaderContext::localHlslSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="74" column="14" bodyfile="shShaderContext.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1aeeaa07d5b2e79f290df03aa69d7ae312" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> &amp;</type>
+        <definition>ShaderAssumesTable &amp; shc::ShaderContext::assumes</definition>
+        <argsstring>()</argsstring>
+        <name>assumes</name>
+        <qualifiedname>shc::ShaderContext::assumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="76" column="22" bodyfile="shShaderContext.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a7824be0724968b9c7b85ebf46eb72ccd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> &amp;</type>
+        <definition>const ShaderAssumesTable &amp; shc::ShaderContext::assumes</definition>
+        <argsstring>() const</argsstring>
+        <name>assumes</name>
+        <qualifiedname>shc::ShaderContext::assumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="77" column="28" bodyfile="shShaderContext.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a1b4e48b6176a5ab3d30f377cd4d4d547" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structShaderMessages" kindref="compound">ShaderMessages</ref> &amp;</type>
+        <definition>ShaderMessages &amp; shc::ShaderContext::messages</definition>
+        <argsstring>()</argsstring>
+        <name>messages</name>
+        <qualifiedname>shc::ShaderContext::messages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="79" column="18" bodyfile="shShaderContext.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a514c5e4e0dca48b3bb7b9e57310d7ebe" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderMessages" kindref="compound">ShaderMessages</ref> &amp;</type>
+        <definition>const ShaderMessages &amp; shc::ShaderContext::messages</definition>
+        <argsstring>() const</argsstring>
+        <name>messages</name>
+        <qualifiedname>shc::ShaderContext::messages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="80" column="24" bodyfile="shShaderContext.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a3a6d8c9c28e9c7bd6dfd806d77b1ced9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::ShaderContext::isDebugModeEnabled</definition>
+        <argsstring>() const</argsstring>
+        <name>isDebugModeEnabled</name>
+        <qualifiedname>shc::ShaderContext::isDebugModeEnabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="82" column="8" bodyfile="shShaderContext.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a54842119cab1afd5e34b9eff2b50677c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderContext::setDebugModeEnabled</definition>
+        <argsstring>(bool val)</argsstring>
+        <name>setDebugModeEnabled</name>
+        <qualifiedname>shc::ShaderContext::setDebugModeEnabled</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="83" column="8" bodyfile="shShaderContext.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a62a59e2a2d91f7584650feed9e11d3bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">VariantContext</ref></type>
+        <definition>VariantContext shc::ShaderContext::makeVariantContext</definition>
+        <argsstring>(ShaderVariant::VariantInfo variant, ShaderSemCode &amp;target_code, ShaderSemCode::PassTab *target_pass=nullptr, bool use_branches_for_cppstcode=false)</argsstring>
+        <name>makeVariantContext</name>
+        <qualifiedname>shc::ShaderContext::makeVariantContext</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref></type>
+          <declname>variant</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <declname>target_code</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderSemCode_1_1PassTab" kindref="compound">ShaderSemCode::PassTab</ref> *</type>
+          <declname>target_pass</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_branches_for_cppstcode</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="85" column="18" bodyfile="shVariantContext.h" bodystart="82" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classshc_1_1ShaderContext_1a2b681d4a56f2e68b89d0bf24bfc000c4" prot="private" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::ShaderContext::ShaderContext</definition>
+        <argsstring>(const char *shname, ShaderBlockLevel block_level, Terminal *shname_term, TargetContext &amp;parent, const CompilationContext &amp;comp_parent)</argsstring>
+        <name>ShaderContext</name>
+        <qualifiedname>shc::ShaderContext::ShaderContext</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shname</declname>
+        </param>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>block_level</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>shname_term</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+          <declname>comp_parent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="93" column="12" bodyfile="shShaderContext.h" bodystart="93" bodyend="109"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shShaderContext.h" line="29" column="1" bodyfile="shShaderContext.h" bodystart="30" bodyend="110"/>
+    <listofallmembers>
+      <member refid="classshc_1_1ShaderContext_1aeeaa07d5b2e79f290df03aa69d7ae312" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>assumes</name></member>
+      <member refid="classshc_1_1ShaderContext_1a7824be0724968b9c7b85ebf46eb72ccd" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>assumes</name></member>
+      <member refid="classshc_1_1ShaderContext_1a6290b6c1649dfc5f77d7fd395ed9854f" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>blockLevel</name></member>
+      <member refid="classshc_1_1ShaderContext_1aa023d87a4250ecb81c23de0a06f6ea0c" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>compCtx</name></member>
+      <member refid="classshc_1_1ShaderContext_1a247c84f67fcf817a86603f6d810a9ad7" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>compiledShader</name></member>
+      <member refid="classshc_1_1ShaderContext_1a3162695f155364a4c3b1aac6c70db536" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>compiledShader</name></member>
+      <member refid="classshc_1_1ShaderContext_1a03a1d89a0bae981ff0cfb6915d0c817a" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>declTerm</name></member>
+      <member refid="classshc_1_1ShaderContext_1ac33837d8b076e2c76ce27d9804c345a1" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>declTerm</name></member>
+      <member refid="classshc_1_1ShaderContext_1a209dd192d866a02b8102a8858b7e5b8d" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>intervals</name></member>
+      <member refid="classshc_1_1ShaderContext_1ae71a8ca8b0c9347719226f8b2e0138f9" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>intervals</name></member>
+      <member refid="classshc_1_1ShaderContext_1a3a6d8c9c28e9c7bd6dfd806d77b1ced9" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>isDebugModeEnabled</name></member>
+      <member refid="classshc_1_1ShaderContext_1a68d901ec93151761c921ba6af3f21efb" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>localBoolVars</name></member>
+      <member refid="classshc_1_1ShaderContext_1a1266dc7f320814834d233d4706b4361c" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>localBoolVars</name></member>
+      <member refid="classshc_1_1ShaderContext_1a2a5bfa488755ef94e3ccc73b650190d2" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>localHlslSrc</name></member>
+      <member refid="classshc_1_1ShaderContext_1a9cd516064eabc9e4e205d58d1143d7f7" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>localHlslSrc</name></member>
+      <member refid="classshc_1_1ShaderContext_1a62a59e2a2d91f7584650feed9e11d3bb" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>makeVariantContext</name></member>
+      <member refid="classshc_1_1ShaderContext_1a6a807ed836bf5f40eaecceff38c98571" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mBlockLevel</name></member>
+      <member refid="classshc_1_1ShaderContext_1ac26024c723943f4a59f7c33f4df5dc11" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mBoolVarTable</name></member>
+      <member refid="classshc_1_1ShaderContext_1a7a7a977e58d3ecd83b1e1651a5d31c1c" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mCompParent</name></member>
+      <member refid="classshc_1_1ShaderContext_1aabdbf11ef968089ee445d2cffa08b829" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mDebugModeEnabled</name></member>
+      <member refid="classshc_1_1ShaderContext_1a85cf86f81107e69f35cdbde884f15831" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mDeclTerm</name></member>
+      <member refid="classshc_1_1ShaderContext_1a1b4e48b6176a5ab3d30f377cd4d4d547" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>messages</name></member>
+      <member refid="classshc_1_1ShaderContext_1a514c5e4e0dca48b3bb7b9e57310d7ebe" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>messages</name></member>
+      <member refid="classshc_1_1ShaderContext_1ac1e4254d2790a732e41af893d8d06837" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mIntervals</name></member>
+      <member refid="classshc_1_1ShaderContext_1a713012954404fbc106eeeb9457d927f9" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mLocalAssumes</name></member>
+      <member refid="classshc_1_1ShaderContext_1afc920c34afdc1bea3e413c1bcd46ceb0" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mLocalHlslSource</name></member>
+      <member refid="classshc_1_1ShaderContext_1a87f9b586cf45bdbf817fa2d91be2b9e1" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mMessages</name></member>
+      <member refid="classshc_1_1ShaderContext_1a7dee84ebfdb590ada15424d1a2a6eb7a" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mName</name></member>
+      <member refid="classshc_1_1ShaderContext_1a9df4add9ac6de7ffbf78e7daa6e6f6c8" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mParent</name></member>
+      <member refid="classshc_1_1ShaderContext_1a255786ae3f038d1e1943e1bdb2c6e343" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mShaderClass</name></member>
+      <member refid="classshc_1_1ShaderContext_1afe31c2bb55824155488fca4d14adfa5f" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>mTypes</name></member>
+      <member refid="classshc_1_1ShaderContext_1a62fb814941038645a59c2668a3b01e45" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>name</name></member>
+      <member refid="classshc_1_1ShaderContext_1a60af64180bb30923ddbd723a963e8a1d" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>releaseCompiledShader</name></member>
+      <member refid="classshc_1_1ShaderContext_1a54842119cab1afd5e34b9eff2b50677c" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>setDebugModeEnabled</name></member>
+      <member refid="classshc_1_1ShaderContext_1a2b681d4a56f2e68b89d0bf24bfc000c4" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>ShaderContext</name></member>
+      <member refid="classshc_1_1ShaderContext_1af344b946e5cdec3395a8cb76a35cc734" prot="private" virt="non-virtual"><scope>shc::ShaderContext</scope><name>TargetContext</name></member>
+      <member refid="classshc_1_1ShaderContext_1a8d1967ec973d0ffe1c0ddb78cec30dce" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>tgtCtx</name></member>
+      <member refid="classshc_1_1ShaderContext_1a0f8aaa46654310262188aea4146d5bec" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>tgtCtx</name></member>
+      <member refid="classshc_1_1ShaderContext_1a3dd13c107e10d2ee823f51cae323c668" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>typeTables</name></member>
+      <member refid="classshc_1_1ShaderContext_1aceda8a6e95a14885021c2e4139985500" prot="public" virt="non-virtual"><scope>shc::ShaderContext</scope><name>typeTables</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

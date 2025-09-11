@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagImp_1_1Categories" kind="struct" language="C++" prot="public">
+    <compoundname>DagImp::Categories</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagImp_1_1Categories_1a509875fe77af0158bb4bcb366a3f09b4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::Categories::lod</definition>
+        <argsstring></argsstring>
+        <name>lod</name>
+        <qualifiedname>DagImp::Categories::lod</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="374" column="10" bodyfile="dagimp.cpp" bodystart="374" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagImp_1_1Categories_1ab947250827de77b24220484843131753" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::Categories::destr</definition>
+        <argsstring></argsstring>
+        <name>destr</name>
+        <qualifiedname>DagImp::Categories::destr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="375" column="10" bodyfile="dagimp.cpp" bodystart="375" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagImp_1_1Categories_1a183c0c95383a5e5c5bd3b325fd30d4e3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::Categories::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <qualifiedname>DagImp::Categories::dp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="376" column="10" bodyfile="dagimp.cpp" bodystart="376" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagImp_1_1Categories_1a1e681220bbe07d46e3e84808d4ebc102" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::Categories::dmg</definition>
+        <argsstring></argsstring>
+        <name>dmg</name>
+        <qualifiedname>DagImp::Categories::dmg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="377" column="10" bodyfile="dagimp.cpp" bodystart="377" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagImp_1_1Categories_1aa44cc0327e77e78e34eb93f451ad8889" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagImp::Categories::any</definition>
+        <argsstring>() const</argsstring>
+        <name>any</name>
+        <qualifiedname>DagImp::Categories::any</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="379" column="10" bodyfile="dagimp.cpp" bodystart="379" bodyend="379"/>
+      </memberdef>
+      <memberdef kind="function" id="structDagImp_1_1Categories_1a9a59aa661923e314dc2309ebce6c28b9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagImp::Categories::enableAll</definition>
+        <argsstring>()</argsstring>
+        <name>enableAll</name>
+        <qualifiedname>DagImp::Categories::enableAll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="380" column="10" bodyfile="dagimp.cpp" bodystart="380" bodyend="380"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="372" column="3" bodyfile="dagimp.cpp" bodystart="373" bodyend="381"/>
+    <listofallmembers>
+      <member refid="structDagImp_1_1Categories_1aa44cc0327e77e78e34eb93f451ad8889" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>any</name></member>
+      <member refid="structDagImp_1_1Categories_1ab947250827de77b24220484843131753" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>destr</name></member>
+      <member refid="structDagImp_1_1Categories_1a1e681220bbe07d46e3e84808d4ebc102" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>dmg</name></member>
+      <member refid="structDagImp_1_1Categories_1a183c0c95383a5e5c5bd3b325fd30d4e3" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>dp</name></member>
+      <member refid="structDagImp_1_1Categories_1a9a59aa661923e314dc2309ebce6c28b9" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>enableAll</name></member>
+      <member refid="structDagImp_1_1Categories_1a509875fe77af0158bb4bcb366a3f09b4" prot="public" virt="non-virtual"><scope>DagImp::Categories</scope><name>lod</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

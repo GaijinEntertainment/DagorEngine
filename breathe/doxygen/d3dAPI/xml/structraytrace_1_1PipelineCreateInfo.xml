@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1PipelineCreateInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::PipelineCreateInfo</compoundname>
+    <basecompoundref refid="structraytrace_1_1PipelineExpandInfo" prot="public" virt="non-virtual">raytrace::PipelineExpandInfo</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1af99189b6d80255fd50d760697af79fc6" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const ShaderLibrary&gt; raytrace::PipelineCreateInfo::rayGenForwardRefernces</definition>
+        <argsstring></argsstring>
+        <name>rayGenForwardRefernces</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::rayGenForwardRefernces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The pipeline should be prepared to add any ray gen shaders from the set of libraries. Having a pipeline prepared for any library increases the likelihood that a expand will work and does not require a recreate. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="648" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="648" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1a9889cc56764b12c0ce7f8037bf877dd8" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const ShaderLibrary&gt; raytrace::PipelineCreateInfo::missForwardReferences</definition>
+        <argsstring></argsstring>
+        <name>missForwardReferences</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::missForwardReferences</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The pipeline should be prepared to add any miss shaders from the set of libraries. Having a pipeline prepared for any library increases the likelihood that a expand will work and does not require a recreate. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="651" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="651" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1af08ef8294a07ce0e69130d22eabaf323" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const ShaderLibrary&gt; raytrace::PipelineCreateInfo::hitForwardRefrences</definition>
+        <argsstring></argsstring>
+        <name>hitForwardRefrences</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::hitForwardRefrences</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The pipeline should be prepared to add any hit shaders from the set of libraries. Having a pipeline prepared for any library increases the likelihood that a expand will work and does not require a recreate. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="654" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1a833504d5c5045bd8b37968bbaf22b35a" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const ShaderLibrary&gt; raytrace::PipelineCreateInfo::callableForwardReferences</definition>
+        <argsstring></argsstring>
+        <name>callableForwardReferences</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::callableForwardReferences</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The pipeline should be prepared to add any callable shaders from the set of libraries. Having a pipeline prepared for any library increases the likelihood that a expand will work and does not require a recreate. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="657" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="657" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1a8ac96cadf67c53549941ec33dade0bc3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::PipelineCreateInfo::maxRecursionDepth</definition>
+        <argsstring></argsstring>
+        <name>maxRecursionDepth</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::maxRecursionDepth</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Max number of recursion depth, has to be less or equal to Driver3dDesc::raytraceMaxRecursion. With 0 the driver will try to guess on basis of some meta data of all used shaders. A min value of 1 means that the RayGen shader is the only shader that can shoot rays. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="661" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="661" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1aef90bbbb007cbb5ccc009e0c75c3a741" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::PipelineCreateInfo::maxPayloadSize</definition>
+        <argsstring></argsstring>
+        <name>maxPayloadSize</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::maxPayloadSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Max payload size, in bytes, that is transmitted from hit and miss shaders to ray cast invocations. With 0 the driver will try to guess on basis of some meta data of all used shaders. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="664" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="664" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineCreateInfo_1aadabf54c52911aef381ee83c76a5403e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::PipelineCreateInfo::maxAttributeSize</definition>
+        <argsstring></argsstring>
+        <name>maxAttributeSize</name>
+        <qualifiedname>raytrace::PipelineCreateInfo::maxAttributeSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Max size of attributes, usually this is 2 * size of float, for build-in triangle intersection, but for procedural intersection this can be anything. With 0 and no procedural hit groups, the driver will assume 2 * size of float, otherwise it will guess on basis of some meta data of all used procedural hit groups and triangle hit groups. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="670" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="670" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes creation data for a new pipeline. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>raytrace::PipelineCreateInfo</label>
+        <link refid="structraytrace_1_1PipelineCreateInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::PipelineExpandInfo</label>
+        <link refid="structraytrace_1_1PipelineExpandInfo"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>raytrace::PipelineCreateInfo</label>
+        <link refid="structraytrace_1_1PipelineCreateInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::PipelineExpandInfo</label>
+        <link refid="structraytrace_1_1PipelineExpandInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="644" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="645" bodyend="671"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a5badffdd8cfe653b9b8c5e24d398fb59" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>alwaysIgnoreProceduralGeometry</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a816fcdfcccf9b74e05caf8fb249f469e" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>alwaysIgnoreTriangleGeometry</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1a833504d5c5045bd8b37968bbaf22b35a" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>callableForwardReferences</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1af338f9b022721c7943e945e71881fe0d" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>expandable</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a4223d4566ac5f851f0eb13489f71f031" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>groupMemebers</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1af08ef8294a07ce0e69130d22eabaf323" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>hitForwardRefrences</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1aadabf54c52911aef381ee83c76a5403e" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>maxAttributeSize</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1aef90bbbb007cbb5ccc009e0c75c3a741" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>maxPayloadSize</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1a8ac96cadf67c53549941ec33dade0bc3" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>maxRecursionDepth</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1a9889cc56764b12c0ce7f8037bf877dd8" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>missForwardReferences</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1ae6b940dcc2e188c0f24c5802061c28ee" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>name</name></member>
+      <member refid="structraytrace_1_1PipelineCreateInfo_1af99189b6d80255fd50d760697af79fc6" prot="public" virt="non-virtual"><scope>raytrace::PipelineCreateInfo</scope><name>rayGenForwardRefernces</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

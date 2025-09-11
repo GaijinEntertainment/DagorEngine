@@ -1,0 +1,439 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPerHlslStage" kind="struct" language="C++" prot="public">
+    <compoundname>PerHlslStage</compoundname>
+    <includes refid="hlslStage_8h" local="no">hlslStage.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPerHlslStage_1a0ca5796518e7f2e078f610e89ef69400" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; T, <ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82aeb49af7a231e731ab3151b388ac59618" kindref="member">HLSL_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt;T, HLSL_COUNT&gt; PerHlslStage&lt; T &gt;::all</definition>
+        <argsstring></argsstring>
+        <name>all</name>
+        <qualifiedname>PerHlslStage::all</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="164" column="18" bodyfile="hlslStage.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a51ab7b4ab7c4e21e6acb578873ad690a" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::ps</definition>
+        <argsstring></argsstring>
+        <name>ps</name>
+        <qualifiedname>PerHlslStage::ps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="167" column="9" bodyfile="hlslStage.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a905a720b9c3832d5cf9265fd686d7ad6" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::vs</definition>
+        <argsstring></argsstring>
+        <name>vs</name>
+        <qualifiedname>PerHlslStage::vs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="168" column="9" bodyfile="hlslStage.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1aa2d11619e7a6991eba5482a0763039f7" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::cs</definition>
+        <argsstring></argsstring>
+        <name>cs</name>
+        <qualifiedname>PerHlslStage::cs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="169" column="9" bodyfile="hlslStage.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a61ba0b4829a0392c6911ea7809fc85f0" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::ds</definition>
+        <argsstring></argsstring>
+        <name>ds</name>
+        <qualifiedname>PerHlslStage::ds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="170" column="9" bodyfile="hlslStage.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a3040d9f4b6ba7f5aaa365ae6fbd301a3" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::hs</definition>
+        <argsstring></argsstring>
+        <name>hs</name>
+        <qualifiedname>PerHlslStage::hs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="171" column="9" bodyfile="hlslStage.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a2351f39b781b9560f9a5bb170efca043" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::gs</definition>
+        <argsstring></argsstring>
+        <name>gs</name>
+        <qualifiedname>PerHlslStage::gs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="172" column="9" bodyfile="hlslStage.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a6649d0ec10dbbd236071cb4d5941cc4a" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::ms</definition>
+        <argsstring></argsstring>
+        <name>ms</name>
+        <qualifiedname>PerHlslStage::ms</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="173" column="9" bodyfile="hlslStage.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a7a5d6eeb2b841b290106bff46c10b869" prot="public" static="no" mutable="no">
+        <type>T</type>
+        <definition>T PerHlslStage&lt; T &gt;::as</definition>
+        <argsstring></argsstring>
+        <name>as</name>
+        <qualifiedname>PerHlslStage::as</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="174" column="9" bodyfile="hlslStage.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a0b9152a5532229953a8c694156653e8b" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref></type>
+        <definition>struct PerHlslStage PerHlslStage&lt; T &gt;::fields</definition>
+        <argsstring></argsstring>
+        <name>fields</name>
+        <qualifiedname>PerHlslStage::fields</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="175" column="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPerHlslStage_1a65079ae76f11123eef6cc05a14662bbc" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref></type>
+        <definition>union PerHlslStage PerHlslStage&lt; T &gt;</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>PerHlslStage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="176" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structPerHlslStage_1a80f4e3847bb43162d6540d911dc42b18" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PerHlslStage&lt; T &gt;::PerHlslStage</definition>
+        <argsstring>()</argsstring>
+        <name>PerHlslStage</name>
+        <qualifiedname>PerHlslStage::PerHlslStage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="178" column="3" bodyfile="hlslStage.h" bodystart="178" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1af3c6ba98d81bdc14d183c29ca26a9572" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PerHlslStage&lt; T &gt;::~PerHlslStage</definition>
+        <argsstring>()</argsstring>
+        <name>~PerHlslStage</name>
+        <qualifiedname>PerHlslStage::~PerHlslStage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="179" column="3" bodyfile="hlslStage.h" bodystart="179" bodyend="179"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a7302a456650d79784643e7bf6816999b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PerHlslStage&lt; T &gt;::PerHlslStage</definition>
+        <argsstring>(const PerHlslStage &amp;other)</argsstring>
+        <name>PerHlslStage</name>
+        <qualifiedname>PerHlslStage::PerHlslStage</qualifiedname>
+        <param>
+          <type>const <ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="181" column="3" bodyfile="hlslStage.h" bodystart="181" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1aa4d8e05a0d362ff136064a7d8b036ac0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref> &amp;</type>
+        <definition>PerHlslStage &amp; PerHlslStage&lt; T &gt;::operator=</definition>
+        <argsstring>(const PerHlslStage &amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>PerHlslStage::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="182" column="16" bodyfile="hlslStage.h" bodystart="182" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a3ac2e094964856313a968cc7b03674e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T *</type>
+        <definition>T * PerHlslStage&lt; T &gt;::profileSwitch</definition>
+        <argsstring>(const char *profile)</argsstring>
+        <name>profileSwitch</name>
+        <qualifiedname>PerHlslStage::profileSwitch</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="189" column="5" bodyfile="hlslStage.h" bodystart="189" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a43c363c80956151fcb65091b59db8759" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const T *</type>
+        <definition>const T * PerHlslStage&lt; T &gt;::profileSwitch</definition>
+        <argsstring>(const char *profile) const</argsstring>
+        <name>profileSwitch</name>
+        <qualifiedname>PerHlslStage::profileSwitch</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="194" column="11" bodyfile="hlslStage.h" bodystart="194" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a809236c36e4dd4b078ce46e8f9c8ff0e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T *</type>
+        <definition>T * PerHlslStage&lt; T &gt;::validProfileSwitch</definition>
+        <argsstring>(const char *profile)</argsstring>
+        <name>validProfileSwitch</name>
+        <qualifiedname>PerHlslStage::validProfileSwitch</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="196" column="5" bodyfile="hlslStage.h" bodystart="196" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a1e9f9f327048a92cf0afeb71c4c25885" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const T *</type>
+        <definition>const T * PerHlslStage&lt; T &gt;::validProfileSwitch</definition>
+        <argsstring>(const char *profile) const</argsstring>
+        <name>validProfileSwitch</name>
+        <qualifiedname>PerHlslStage::validProfileSwitch</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="201" column="11" bodyfile="hlslStage.h" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1ac565947f8cc70d6da70832d3a7e54828" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TCb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void PerHlslStage&lt; T &gt;::forEach</definition>
+        <argsstring>(hlsl_mask_t mask, TCb &amp;&amp;cb)</argsstring>
+        <name>forEach</name>
+        <qualifiedname>PerHlslStage::forEach</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1ab27749cd2e9a40a990a73784ff99db95" kindref="member">hlsl_mask_t</ref></type>
+          <declname>mask</declname>
+        </param>
+        <param>
+          <type>TCb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="204" column="8" bodyfile="hlslStage.h" bodystart="204" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a9c75baf2de7992af3d3625d822e14103" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TCb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void PerHlslStage&lt; T &gt;::forEach</definition>
+        <argsstring>(TCb &amp;&amp;cb)</argsstring>
+        <name>forEach</name>
+        <qualifiedname>PerHlslStage::forEach</qualifiedname>
+        <param>
+          <type>TCb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="214" column="8" bodyfile="hlslStage.h" bodystart="214" bodyend="218"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1a4f86a4cae525d38da941e60795449098" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TCb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void PerHlslStage&lt; T &gt;::forProfile</definition>
+        <argsstring>(const char *profile, TCb &amp;&amp;cb)</argsstring>
+        <name>forProfile</name>
+        <qualifiedname>PerHlslStage::forProfile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <param>
+          <type>TCb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="221" column="8" bodyfile="hlslStage.h" bodystart="221" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="structPerHlslStage_1abb303267ba68d55d6fa98cfe407dee8c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TCb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void PerHlslStage&lt; T &gt;::forValidProfile</definition>
+        <argsstring>(const char *profile, TCb &amp;&amp;cb)</argsstring>
+        <name>forValidProfile</name>
+        <qualifiedname>PerHlslStage::forValidProfile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <param>
+          <type>TCb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslStage.h" line="226" column="8" bodyfile="hlslStage.h" bodystart="226" bodyend="229"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hlslStage.h" line="160" column="1" bodyfile="hlslStage.h" bodystart="161" bodyend="230"/>
+    <listofallmembers>
+      <member refid="structPerHlslStage_1a0ca5796518e7f2e078f610e89ef69400" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>all</name></member>
+      <member refid="structPerHlslStage_1a7a5d6eeb2b841b290106bff46c10b869" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>as</name></member>
+      <member refid="structPerHlslStage_1aa2d11619e7a6991eba5482a0763039f7" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>cs</name></member>
+      <member refid="structPerHlslStage_1a61ba0b4829a0392c6911ea7809fc85f0" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>ds</name></member>
+      <member refid="structPerHlslStage_1a0b9152a5532229953a8c694156653e8b" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>fields</name></member>
+      <member refid="structPerHlslStage_1ac565947f8cc70d6da70832d3a7e54828" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>forEach</name></member>
+      <member refid="structPerHlslStage_1a9c75baf2de7992af3d3625d822e14103" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>forEach</name></member>
+      <member refid="structPerHlslStage_1a4f86a4cae525d38da941e60795449098" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>forProfile</name></member>
+      <member refid="structPerHlslStage_1abb303267ba68d55d6fa98cfe407dee8c" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>forValidProfile</name></member>
+      <member refid="structPerHlslStage_1a2351f39b781b9560f9a5bb170efca043" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>gs</name></member>
+      <member refid="structPerHlslStage_1a3040d9f4b6ba7f5aaa365ae6fbd301a3" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>hs</name></member>
+      <member refid="structPerHlslStage_1a6649d0ec10dbbd236071cb4d5941cc4a" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>ms</name></member>
+      <member refid="structPerHlslStage_1aa4d8e05a0d362ff136064a7d8b036ac0" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>operator=</name></member>
+      <member refid="structPerHlslStage_1a80f4e3847bb43162d6540d911dc42b18" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>PerHlslStage</name></member>
+      <member refid="structPerHlslStage_1a7302a456650d79784643e7bf6816999b" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>PerHlslStage</name></member>
+      <member refid="structPerHlslStage_1a3ac2e094964856313a968cc7b03674e8" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>profileSwitch</name></member>
+      <member refid="structPerHlslStage_1a43c363c80956151fcb65091b59db8759" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>profileSwitch</name></member>
+      <member refid="structPerHlslStage_1a51ab7b4ab7c4e21e6acb578873ad690a" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>ps</name></member>
+      <member refid="structPerHlslStage_1a809236c36e4dd4b078ce46e8f9c8ff0e" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>validProfileSwitch</name></member>
+      <member refid="structPerHlslStage_1a1e9f9f327048a92cf0afeb71c4c25885" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>validProfileSwitch</name></member>
+      <member refid="structPerHlslStage_1a905a720b9c3832d5cf9265fd686d7ad6" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>vs</name></member>
+      <member refid="structPerHlslStage_1af3c6ba98d81bdc14d183c29ca26a9572" prot="public" virt="non-virtual"><scope>PerHlslStage</scope><name>~PerHlslStage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

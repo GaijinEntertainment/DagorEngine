@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="mathAng_8h" kind="file" language="C++">
+    <compoundname>mathAng.h</compoundname>
+    <includedby refid="mathAng_8cpp" local="yes">mathAng.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>mathAng.cpp</label>
+        <link refid="mathAng_8cpp"/>
+      </node>
+      <node id="1">
+        <label>mathAng.h</label>
+        <link refid="mathAng_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="mathAng_8h_1a5f5a64ef503db0fc824df8320929b126" prot="public" static="no">
+        <name>real</name>
+        <initializer>float</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mathAng.h" line="4" column="9" bodyfile="mathAng.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="mathAng_8h_1ac91ac97db53de63426e55c47ea6ea6f6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_cos_power_from_ang</definition>
+        <argsstring>(real alfa, real part, real &amp;real_part)</argsstring>
+        <name>get_cos_power_from_ang</name>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>alfa</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>part</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>real_part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mathAng.h" line="5" column="5" bodyfile="mathAng.cpp" bodystart="20" bodyend="40" declfile="mathAng.h" declline="5" declcolumn="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="mathAng_8h_1a5f5a64ef503db0fc824df8320929b126" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>real<sp/>float</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="mathAng_8h_1ac91ac97db53de63426e55c47ea6ea6f6" kindref="member">get_cos_power_from_ang</ref>(<ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>alfa,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>part,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>&amp;real_part);</highlight></codeline>
+    </programlisting>
+    <location file="mathAng.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpostorData" kind="struct" language="C++" prot="protected">
+    <compoundname>ImpostorData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpostorData_1aba0efffd084d3f9dc0035931961730cd" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; Point3 &gt;</type>
+        <definition>PatchablePtr&lt;Point3&gt; ImpostorData::convexPointsPtr</definition>
+        <argsstring></argsstring>
+        <name>convexPointsPtr</name>
+        <qualifiedname>ImpostorData::convexPointsPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="94" column="18" bodyfile="dag_rendInstRes.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1ab016ed9e4d06ed5467fcb9009ea76b34" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; BBox3 &gt;</type>
+        <definition>PatchablePtr&lt;BBox3&gt; ImpostorData::shadowPointsPtr</definition>
+        <argsstring></argsstring>
+        <name>shadowPointsPtr</name>
+        <qualifiedname>ImpostorData::shadowPointsPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="95" column="18" bodyfile="dag_rendInstRes.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1a03a48f59a0c583baf08ba42f6c850c43" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ImpostorData::convexPointsCount</definition>
+        <argsstring></argsstring>
+        <name>convexPointsCount</name>
+        <qualifiedname>ImpostorData::convexPointsCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="96" column="14" bodyfile="dag_rendInstRes.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1a44339b79d988cdb3b75dbc0b4271fe07" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ImpostorData::shadowPointsCount</definition>
+        <argsstring></argsstring>
+        <name>shadowPointsCount</name>
+        <qualifiedname>ImpostorData::shadowPointsCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="96" column="32" bodyfile="dag_rendInstRes.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1a0223767a42b69fbeebcc7c6dcd96cc95" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorData::minY</definition>
+        <argsstring></argsstring>
+        <name>minY</name>
+        <qualifiedname>ImpostorData::minY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="97" column="11" bodyfile="dag_rendInstRes.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1afdf01360dcf06e674e86db9ffbd2ea61" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorData::maxY</definition>
+        <argsstring></argsstring>
+        <name>maxY</name>
+        <qualifiedname>ImpostorData::maxY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="97" column="16" bodyfile="dag_rendInstRes.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1ab9339941b5dd59939c6aff05c2f13e0e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorData::cylRad</definition>
+        <argsstring></argsstring>
+        <name>cylRad</name>
+        <qualifiedname>ImpostorData::cylRad</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="97" column="21" bodyfile="dag_rendInstRes.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1a2c03906feb9ad1c03c10f470438a8fc6" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorData::maxFacingLeavesDelta</definition>
+        <argsstring></argsstring>
+        <name>maxFacingLeavesDelta</name>
+        <qualifiedname>ImpostorData::maxFacingLeavesDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="98" column="11" bodyfile="dag_rendInstRes.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorData_1a20c31f43862f4ece6af10cd04425a65e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorData::bboxAspectRatio</definition>
+        <argsstring></argsstring>
+        <name>bboxAspectRatio</name>
+        <qualifiedname>ImpostorData::bboxAspectRatio</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="98" column="32" bodyfile="dag_rendInstRes.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImpostorData_1a2beb93d5f13019312ab4b973805551f7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; Point3 &gt;</type>
+        <definition>dag::ConstSpan&lt; Point3 &gt; ImpostorData::convexPoints</definition>
+        <argsstring>() const</argsstring>
+        <name>convexPoints</name>
+        <qualifiedname>ImpostorData::convexPoints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="100" column="20" bodyfile="dag_rendInstRes.h" bodystart="100" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorData_1ac0eab0eab2b93d8992170d5178a5fb3d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; BBox3 &gt;</type>
+        <definition>dag::ConstSpan&lt; BBox3 &gt; ImpostorData::shadowPoints</definition>
+        <argsstring>() const</argsstring>
+        <name>shadowPoints</name>
+        <qualifiedname>ImpostorData::shadowPoints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="101" column="20" bodyfile="dag_rendInstRes.h" bodystart="101" bodyend="101"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_rendInstRes.h" line="92" column="3" bodyfile="dag_rendInstRes.h" bodystart="93" bodyend="102"/>
+    <listofallmembers>
+      <member refid="structImpostorData_1a20c31f43862f4ece6af10cd04425a65e" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>bboxAspectRatio</name></member>
+      <member refid="structImpostorData_1a2beb93d5f13019312ab4b973805551f7" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>convexPoints</name></member>
+      <member refid="structImpostorData_1a03a48f59a0c583baf08ba42f6c850c43" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>convexPointsCount</name></member>
+      <member refid="structImpostorData_1aba0efffd084d3f9dc0035931961730cd" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>convexPointsPtr</name></member>
+      <member refid="structImpostorData_1ab9339941b5dd59939c6aff05c2f13e0e" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>cylRad</name></member>
+      <member refid="structImpostorData_1a2c03906feb9ad1c03c10f470438a8fc6" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>maxFacingLeavesDelta</name></member>
+      <member refid="structImpostorData_1afdf01360dcf06e674e86db9ffbd2ea61" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>maxY</name></member>
+      <member refid="structImpostorData_1a0223767a42b69fbeebcc7c6dcd96cc95" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>minY</name></member>
+      <member refid="structImpostorData_1ac0eab0eab2b93d8992170d5178a5fb3d" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>shadowPoints</name></member>
+      <member refid="structImpostorData_1a44339b79d988cdb3b75dbc0b4271fe07" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>shadowPointsCount</name></member>
+      <member refid="structImpostorData_1ab016ed9e4d06ed5467fcb9009ea76b34" prot="public" virt="non-virtual"><scope>ImpostorData</scope><name>shadowPointsPtr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

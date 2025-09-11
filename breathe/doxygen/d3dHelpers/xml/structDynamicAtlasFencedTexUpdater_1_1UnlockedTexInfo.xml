@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicAtlasFencedTexUpdater::UnlockedTexInfo</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo_1ad1ace82cdd0cd972d7b2bd52ebd521d5" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture* DynamicAtlasFencedTexUpdater::UnlockedTexInfo::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::UnlockedTexInfo::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="552" column="13" bodyfile="dag_dynAtlas.h" bodystart="552" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo_1af74039d889a68a992349dd89d5bd4a4c" prot="public" static="no" mutable="no">
+        <type>D3dEventQuery *</type>
+        <definition>D3dEventQuery* DynamicAtlasFencedTexUpdater::UnlockedTexInfo::writeCompeletionFence</definition>
+        <argsstring></argsstring>
+        <name>writeCompeletionFence</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::UnlockedTexInfo::writeCompeletionFence</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="553" column="19" bodyfile="dag_dynAtlas.h" bodystart="553" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="550" column="3" bodyfile="dag_dynAtlas.h" bodystart="551" bodyend="554"/>
+    <listofallmembers>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo_1ad1ace82cdd0cd972d7b2bd52ebd521d5" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::UnlockedTexInfo</scope><name>tex</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo_1af74039d889a68a992349dd89d5bd4a4c" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::UnlockedTexInfo</scope><name>writeCompeletionFence</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

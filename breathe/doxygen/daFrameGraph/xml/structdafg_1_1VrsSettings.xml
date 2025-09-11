@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1VrsSettings" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::VrsSettings</compoundname>
+    <includes refid="variableRateShading_8h" local="no">variableRateShading.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1VrsSettings_1aeaac98693b49a8271ce08dfcf8c27ae9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::VrsSettings::rateX</definition>
+        <argsstring></argsstring>
+        <name>rateX</name>
+        <qualifiedname>dafg::VrsSettings::rateX</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>horizontal rate </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variableRateShading.h" line="24" column="12" bodyfile="variableRateShading.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1VrsSettings_1acc69f007ce595eea50d7fe85ed6a7226" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::VrsSettings::rateY</definition>
+        <argsstring></argsstring>
+        <name>rateY</name>
+        <qualifiedname>dafg::VrsSettings::rateY</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>vertical rate </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variableRateShading.h" line="25" column="12" bodyfile="variableRateShading.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1VrsSettings_1aef1db349a461bf6deb17c8f88fc6eb51" prot="public" static="no" mutable="no">
+        <type>VariableRateShadingCombiner</type>
+        <definition>VariableRateShadingCombiner dafg::VrsSettings::vertexCombiner</definition>
+        <argsstring></argsstring>
+        <name>vertexCombiner</name>
+        <qualifiedname>dafg::VrsSettings::vertexCombiner</qualifiedname>
+        <initializer>= VariableRateShadingCombiner::VRS_PASSTHROUGH</initializer>
+        <briefdescription>
+<para>Vertex combiner. See VariableRateShadingCombiner for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variableRateShading.h" line="28" column="31" bodyfile="variableRateShading.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1VrsSettings_1ac7e5ddbf2b068d6771634bb35dc5afa8" prot="public" static="no" mutable="no">
+        <type>VariableRateShadingCombiner</type>
+        <definition>VariableRateShadingCombiner dafg::VrsSettings::pixelCombiner</definition>
+        <argsstring></argsstring>
+        <name>pixelCombiner</name>
+        <qualifiedname>dafg::VrsSettings::pixelCombiner</qualifiedname>
+        <initializer>= VariableRateShadingCombiner::VRS_PASSTHROUGH</initializer>
+        <briefdescription>
+<para>Pixel combiner. See VariableRateShadingCombiner for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variableRateShading.h" line="30" column="31" bodyfile="variableRateShading.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes the settings with which variable rate shading should be enabled for a particular node. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>See \inlinerst :cpp:func:<computeroutput>d3d::set_variable_rate_shading</computeroutput> \endrst for further explanation of what these parameters do. <simplesect kind="note"><para>The rate texture is specified through a render pass request, as it must be kept in the tile cache on TBR/TBDR GPUs. See <ref refid="classdafg_1_1VirtualPassRequest_1a8cd120a2f798bd55213344f2900ae037" kindref="member">dafg::VirtualPassRequest::vrsRate</ref>. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <location file="variableRateShading.h" line="22" column="1" bodyfile="variableRateShading.h" bodystart="23" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1VrsSettings_1ac7e5ddbf2b068d6771634bb35dc5afa8" prot="public" virt="non-virtual"><scope>dafg::VrsSettings</scope><name>pixelCombiner</name></member>
+      <member refid="structdafg_1_1VrsSettings_1aeaac98693b49a8271ce08dfcf8c27ae9" prot="public" virt="non-virtual"><scope>dafg::VrsSettings</scope><name>rateX</name></member>
+      <member refid="structdafg_1_1VrsSettings_1acc69f007ce595eea50d7fe85ed6a7226" prot="public" virt="non-virtual"><scope>dafg::VrsSettings</scope><name>rateY</name></member>
+      <member refid="structdafg_1_1VrsSettings_1aef1db349a461bf6deb17c8f88fc6eb51" prot="public" virt="non-virtual"><scope>dafg::VrsSettings</scope><name>vertexCombiner</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

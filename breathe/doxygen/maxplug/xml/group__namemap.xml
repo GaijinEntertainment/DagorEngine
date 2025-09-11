@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__namemap" kind="group">
+    <compoundname>namemap</compoundname>
+    <title>Namemap</title>
+    <innerfile refid="namemap_8h">namemap.h</innerfile>
+    <innerclass refid="classBaseNameMap" prot="public">BaseNameMap</innerclass>
+    <innerclass refid="classNameMap" prot="public">NameMap</innerclass>
+    <innerclass refid="classNameMapCI" prot="public">NameMapCI</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

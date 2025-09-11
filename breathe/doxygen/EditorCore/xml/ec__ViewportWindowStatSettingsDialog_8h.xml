@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__ViewportWindowStatSettingsDialog_8h" kind="file" language="C++">
+    <compoundname>ec_ViewportWindowStatSettingsDialog.h</compoundname>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includes local="no">propPanel/c_common.h</includes>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">EASTL/vector_map.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_ViewportWindowStatSettingsDialog.h</label>
+        <link refid="ec__ViewportWindowStatSettingsDialog_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="4">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="3">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="2">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classViewportWindowStatSettingsDialog" prot="public">ViewportWindowStatSettingsDialog</innerclass>
+    <innerclass refid="structViewportWindowStatSettingsDialog_1_1Item" prot="private">ViewportWindowStatSettingsDialog::Item</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/c_common.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_map.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classViewportWindowStatSettingsDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classViewportWindowStatSettingsDialog" kindref="compound">ViewportWindowStatSettingsDialog</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14" refid="classViewportWindowStatSettingsDialog_1a2a06ef5f70752a55909ba731c84bbe2f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classViewportWindowStatSettingsDialog_1a2a06ef5f70752a55909ba731c84bbe2f" kindref="member">ViewportWindowStatSettingsDialog</ref>(<ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>&amp;_viewport,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*_rootEnable,<sp/>hdpi::Px<sp/>width,<sp/>hdpi::Px<sp/>height);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classViewportWindowStatSettingsDialog_1a672067994073dbb332f894ad4530e084" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classViewportWindowStatSettingsDialog_1a672067994073dbb332f894ad4530e084" kindref="member">onPostEvent</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classViewportWindowStatSettingsDialog_1aa55c1f329ab0936f113bf936a6f5d714" refkind="member"><highlight class="normal"><sp/><sp/>PropPanel::TLeafHandle<sp/><ref refid="classViewportWindowStatSettingsDialog_1aa55c1f329ab0936f113bf936a6f5d714" kindref="member">addGroup</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>group,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>name[],<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enabled);</highlight></codeline>
+<codeline lineno="19" refid="classViewportWindowStatSettingsDialog_1ab61857493089f633255f8d2fd785ae2c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classViewportWindowStatSettingsDialog_1ab61857493089f633255f8d2fd785ae2c" kindref="member">addOption</ref>(PropPanel::TLeafHandle<sp/>group,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>name[],<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Item</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::TLeafHandle<sp/>handle;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::TLeafHandle<sp/>group;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*rootEnable;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>PropPanel::TLeafHandle<sp/>root;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>PropPanel::ContainerPropertyControl<sp/>*tree;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>dag::Vector&lt;Item&gt;<sp/>m_options;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>eastl::vector_map&lt;int,<sp/>Item&gt;<sp/>m_groups;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>Item<sp/>*getGroupByHandle(PropPanel::TLeafHandle<sp/>handle);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setTreeNodeState(PropPanel::TLeafHandle<sp/>node,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>item_enabled,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>parent_enabled);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateColors();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onChange(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>&amp;viewport;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_ViewportWindowStatSettingsDialog.h"/>
+  </compounddef>
+</doxygen>

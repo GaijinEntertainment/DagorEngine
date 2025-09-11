@@ -1,0 +1,266 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classd3d_1_1shadermodel_1_1VersionRangeIterator" kind="class" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::VersionRangeIterator</compoundname>
+    <includes refid="dag__shaderModelVersion_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename V</type>
+      </param>
+      <param>
+        <type>typename <ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a96f182e6993290ae82e9e88fd27df5bf" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::index</qualifiedname>
+        <briefdescription>
+<para>Index into the <ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref> list of versions. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="658" column="7" bodyfile="dag_shaderModelVersion.h" bodystart="658" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a5f282e0a5015874d527c791fd11c4de4" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::VersionRangeIterator</definition>
+        <argsstring>()=default</argsstring>
+        <name>VersionRangeIterator</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::VersionRangeIterator</qualifiedname>
+        <briefdescription>
+<para>Default constructor, leaves type in uninitialized state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="662" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a9f65f40c6b01fdc6afe09318412e90af" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::VersionRangeIterator</definition>
+        <argsstring>(const VersionRangeIterator &amp;)=default</argsstring>
+        <name>VersionRangeIterator</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::VersionRangeIterator</qualifiedname>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Basic copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="664" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a78241102a6ba54055faabb510c16fa15" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::VersionRangeIterator</definition>
+        <argsstring>(int idx)</argsstring>
+        <name>VersionRangeIterator</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::VersionRangeIterator</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor which initializes the state with an given index into the list of <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>idx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Index that should be stored in this iterator. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="667" column="13" bodyfile="dag_shaderModelVersion.h" bodystart="667" bodyend="667"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a0b627ade76a0eaecd819d6c594be71e5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>V</type>
+        <definition>V d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::operator*</definition>
+        <argsstring>() const</argsstring>
+        <name>operator*</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator*</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Dereference operator that will return a value of <computeroutput>V</computeroutput>. <simplesect kind="return"><para>A representation of the value at the <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput> at the currently stored index. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="670" column="5" bodyfile="dag_shaderModelVersion.h" bodystart="670" bodyend="670"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1af77b74827da1357c43b32afed7a24486" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+        <definition>VersionRangeIterator &amp; d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::operator++</definition>
+        <argsstring>()</argsstring>
+        <name>operator++</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator++</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Increment operator, moves the current index to the previous entry of the <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput> type. <simplesect kind="return"><para>Reference to an altered this. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="673" column="24" bodyfile="dag_shaderModelVersion.h" bodystart="673" bodyend="677"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a9a1d7eb5fe0e011ba3602404c2df6931" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref></type>
+        <definition>constexpr VersionRangeIterator d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::operator++</definition>
+        <argsstring>(int) const</argsstring>
+        <name>operator++</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator++</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Increment operator, moves the current index to the previous entry of the <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput> type. <simplesect kind="return"><para>Copy of this advanced by one. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="680" column="34" bodyfile="dag_shaderModelVersion.h" bodystart="680" bodyend="680"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a15d188b900e97d06c9fc321455d470b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+        <definition>VersionRangeIterator &amp; d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::operator--</definition>
+        <argsstring>()</argsstring>
+        <name>operator--</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator--</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Increment operator, moves the current index to the next entry of the <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput> type. <simplesect kind="return"><para>Reference to an altered this. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="683" column="24" bodyfile="dag_shaderModelVersion.h" bodystart="683" bodyend="687"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a5557545e63daf1ca9d78774bbe88caf2" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref></type>
+        <definition>constexpr VersionRangeIterator d3d::shadermodel::VersionRangeIterator&lt; V, VersionList &gt;::operator--</definition>
+        <argsstring>(int) const</argsstring>
+        <name>operator--</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator--</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Increment operator, moves the current index to the previous entry of the <computeroutput><ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref></computeroutput> type. <simplesect kind="return"><para>Copy of this reversed one. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="690" column="34" bodyfile="dag_shaderModelVersion.h" bodystart="690" bodyend="690"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a47e3f7c6b35c850f804eaf8e2bc5b104" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool operator==</definition>
+        <argsstring>(const VersionRangeIterator &amp;l, const VersionRangeIterator &amp;r)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Equal compare operator for to <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref>. <computeroutput>l</computeroutput> First value to compare. <computeroutput>r</computeroutput> Second value to compare. <simplesect kind="return"><para>Returns true when <computeroutput>l</computeroutput> and <computeroutput>r</computeroutput> do represent the same version value. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="695" column="25" bodyfile="dag_shaderModelVersion.h" bodystart="695" bodyend="695"/>
+      </memberdef>
+      <memberdef kind="friend" id="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a1d137f02128a4f2b38bb61a98036fade" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool operator!=</definition>
+        <argsstring>(const VersionRangeIterator &amp;l, const VersionRangeIterator &amp;r)</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>d3d::shadermodel::VersionRangeIterator::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Not equal compare operator for to <ref refid="classd3d_1_1shadermodel_1_1VersionRangeIterator" kindref="compound">VersionRangeIterator</ref>. <computeroutput>l</computeroutput> First value to compare. <computeroutput>r</computeroutput> Second value to compare. <simplesect kind="return"><para>Returns true when <computeroutput>l</computeroutput> and <computeroutput>r</computeroutput> do not represent the same version value. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="700" column="25" bodyfile="dag_shaderModelVersion.h" bodystart="700" bodyend="700"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1Version" kindref="compound">Version</ref> range iterator. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>V</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value type that the iterator represents. \pparam <ref refid="structd3d_1_1shadermodel_1_1VersionList" kindref="compound">VersionList</ref> List of versions that this iterator iterates over. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="dag_shaderModelVersion.h" line="655" column="1" bodyfile="dag_shaderModelVersion.h" bodystart="656" bodyend="701"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a96f182e6993290ae82e9e88fd27df5bf" prot="private" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>index</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a1d137f02128a4f2b38bb61a98036fade" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator!=</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a0b627ade76a0eaecd819d6c594be71e5" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator*</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1af77b74827da1357c43b32afed7a24486" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator++</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a9a1d7eb5fe0e011ba3602404c2df6931" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator++</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a15d188b900e97d06c9fc321455d470b7" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator--</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a5557545e63daf1ca9d78774bbe88caf2" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator--</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a47e3f7c6b35c850f804eaf8e2bc5b104" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>operator==</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a5f282e0a5015874d527c791fd11c4de4" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>VersionRangeIterator</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a9f65f40c6b01fdc6afe09318412e90af" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>VersionRangeIterator</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1VersionRangeIterator_1a78241102a6ba54055faabb510c16fa15" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRangeIterator</scope><name>VersionRangeIterator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

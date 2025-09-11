@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeRegisters_1_1VarLocation" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeRegisters::VarLocation</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeRegisters_1_1VarLocation_1ac62e3e3348c247634e307b6ddf460b21" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeRegisters::VarLocation::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>StcodeRegisters::VarLocation::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="86" column="19" bodyfile="cppStcodeAssembly.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRegisters_1_1VarLocation_1aaf53448aeb1d78eb5fafff88e691d00b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeRegisters::VarLocation::reg</definition>
+        <argsstring></argsstring>
+        <name>reg</name>
+        <qualifiedname>StcodeRegisters::VarLocation::reg</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="87" column="9" bodyfile="cppStcodeAssembly.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRegisters_1_1VarLocation_1a88a05453e12fcb5c774f03d5e98387af" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool StcodeRegisters::VarLocation::isNumeric</definition>
+        <argsstring></argsstring>
+        <name>isNumeric</name>
+        <qualifiedname>StcodeRegisters::VarLocation::isNumeric</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="89" column="10" bodyfile="cppStcodeAssembly.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRegisters_1_1VarLocation_1a1288ab9c7aaddedf1dc2e902e181b763" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeRegisters::VarLocation::regSize</definition>
+        <argsstring></argsstring>
+        <name>regSize</name>
+        <qualifiedname>StcodeRegisters::VarLocation::regSize</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="90" column="9" bodyfile="cppStcodeAssembly.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="84" column="3" bodyfile="cppStcodeAssembly.h" bodystart="85" bodyend="91"/>
+    <listofallmembers>
+      <member refid="structStcodeRegisters_1_1VarLocation_1a88a05453e12fcb5c774f03d5e98387af" prot="public" virt="non-virtual"><scope>StcodeRegisters::VarLocation</scope><name>isNumeric</name></member>
+      <member refid="structStcodeRegisters_1_1VarLocation_1ac62e3e3348c247634e307b6ddf460b21" prot="public" virt="non-virtual"><scope>StcodeRegisters::VarLocation</scope><name>name</name></member>
+      <member refid="structStcodeRegisters_1_1VarLocation_1aaf53448aeb1d78eb5fafff88e691d00b" prot="public" virt="non-virtual"><scope>StcodeRegisters::VarLocation</scope><name>reg</name></member>
+      <member refid="structStcodeRegisters_1_1VarLocation_1a1288ab9c7aaddedf1dc2e902e181b763" prot="public" virt="non-virtual"><scope>StcodeRegisters::VarLocation</scope><name>regSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

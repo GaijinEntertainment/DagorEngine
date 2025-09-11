@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGetMeshesCB_1_1Obj" kind="struct" language="C++" prot="public">
+    <compoundname>GetMeshesCB::Obj</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGetMeshesCB_1_1Obj_1a67a488b897742ee8ed64f3f35ac10762" prot="public" static="no" mutable="no">
+        <type>Mesh</type>
+        <definition>Mesh GetMeshesCB::Obj::m</definition>
+        <argsstring></argsstring>
+        <name>m</name>
+        <qualifiedname>GetMeshesCB::Obj::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="109" column="10" bodyfile="util2.cpp" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGetMeshesCB_1_1Obj_1a826998f7761399e24361bace417bb4c7" prot="public" static="no" mutable="no">
+        <type>AdjFaceList *</type>
+        <definition>AdjFaceList* GetMeshesCB::Obj::af</definition>
+        <argsstring></argsstring>
+        <name>af</name>
+        <qualifiedname>GetMeshesCB::Obj::af</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="110" column="17" bodyfile="util2.cpp" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGetMeshesCB_1_1Obj_1a526821ee358ba7eff94c9416799a1e49" prot="public" static="no" mutable="no">
+        <type>Box3</type>
+        <definition>Box3 GetMeshesCB::Obj::box</definition>
+        <argsstring></argsstring>
+        <name>box</name>
+        <qualifiedname>GetMeshesCB::Obj::box</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="111" column="10" bodyfile="util2.cpp" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGetMeshesCB_1_1Obj_1a58c924dcd59f902ca4de30c3cc1be2bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GetMeshesCB::Obj::Obj</definition>
+        <argsstring>(Mesh &amp;sm, Matrix3 &amp;tm, Box3 &amp;b)</argsstring>
+        <name>Obj</name>
+        <qualifiedname>GetMeshesCB::Obj::Obj</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>sm</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="112" column="5" bodyfile="util2.cpp" bodystart="112" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="structGetMeshesCB_1_1Obj_1a69213708c492ffdd08392a9563b2ddac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GetMeshesCB::Obj::~Obj</definition>
+        <argsstring>()</argsstring>
+        <name>~Obj</name>
+        <qualifiedname>GetMeshesCB::Obj::~Obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="121" column="5" bodyfile="util2.cpp" bodystart="121" bodyend="125"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util2.cpp" line="107" column="3" bodyfile="util2.cpp" bodystart="108" bodyend="126"/>
+    <listofallmembers>
+      <member refid="structGetMeshesCB_1_1Obj_1a826998f7761399e24361bace417bb4c7" prot="public" virt="non-virtual"><scope>GetMeshesCB::Obj</scope><name>af</name></member>
+      <member refid="structGetMeshesCB_1_1Obj_1a526821ee358ba7eff94c9416799a1e49" prot="public" virt="non-virtual"><scope>GetMeshesCB::Obj</scope><name>box</name></member>
+      <member refid="structGetMeshesCB_1_1Obj_1a67a488b897742ee8ed64f3f35ac10762" prot="public" virt="non-virtual"><scope>GetMeshesCB::Obj</scope><name>m</name></member>
+      <member refid="structGetMeshesCB_1_1Obj_1a58c924dcd59f902ca4de30c3cc1be2bc" prot="public" virt="non-virtual"><scope>GetMeshesCB::Obj</scope><name>Obj</name></member>
+      <member refid="structGetMeshesCB_1_1Obj_1a69213708c492ffdd08392a9563b2ddac" prot="public" virt="non-virtual"><scope>GetMeshesCB::Obj</scope><name>~Obj</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

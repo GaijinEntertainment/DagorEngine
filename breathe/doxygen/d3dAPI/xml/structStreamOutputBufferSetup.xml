@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStreamOutputBufferSetup" kind="struct" language="C++" prot="public">
+    <compoundname>StreamOutputBufferSetup</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* StreamOutputBufferSetup::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>StreamOutputBufferSetup::buffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The buffer to use for stream output. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="51" column="11" bodyfile="dag_decl.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t StreamOutputBufferSetup::byteOffset</definition>
+        <argsstring></argsstring>
+        <name>byteOffset</name>
+        <qualifiedname>StreamOutputBufferSetup::byteOffset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>The byte offset in the buffer to start writing to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="53" column="12" bodyfile="dag_decl.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* StreamOutputBufferSetup::counterBuffer</definition>
+        <argsstring></argsstring>
+        <name>counterBuffer</name>
+        <qualifiedname>StreamOutputBufferSetup::counterBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The buffer to use for stream output counter. The initial counter value must be zero. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="55" column="11" bodyfile="dag_decl.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t StreamOutputBufferSetup::byteOffsetCounter</definition>
+        <argsstring></argsstring>
+        <name>byteOffsetCounter</name>
+        <qualifiedname>StreamOutputBufferSetup::byteOffsetCounter</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>The byte counter location in the counter buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="57" column="12" bodyfile="dag_decl.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStreamOutputBufferSetup_1a4a09733f5be42e9fc0c2e4cdfcc38a5e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool StreamOutputBufferSetup::operator==</definition>
+        <argsstring>(const StreamOutputBufferSetup &amp;rhs) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>StreamOutputBufferSetup::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structStreamOutputBufferSetup" kindref="compound">StreamOutputBufferSetup</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="59" column="8" bodyfile="dag_decl.h" bodystart="59" bodyend="63"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>StreamOutputBufferSetup</label>
+        <link refid="structStreamOutputBufferSetup"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+          <edgelabel>counterBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="48" column="1" bodyfile="dag_decl.h" bodystart="49" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" prot="public" virt="non-virtual"><scope>StreamOutputBufferSetup</scope><name>buffer</name></member>
+      <member refid="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" prot="public" virt="non-virtual"><scope>StreamOutputBufferSetup</scope><name>byteOffset</name></member>
+      <member refid="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" prot="public" virt="non-virtual"><scope>StreamOutputBufferSetup</scope><name>byteOffsetCounter</name></member>
+      <member refid="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" prot="public" virt="non-virtual"><scope>StreamOutputBufferSetup</scope><name>counterBuffer</name></member>
+      <member refid="structStreamOutputBufferSetup_1a4a09733f5be42e9fc0c2e4cdfcc38a5e" prot="public" virt="non-virtual"><scope>StreamOutputBufferSetup</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

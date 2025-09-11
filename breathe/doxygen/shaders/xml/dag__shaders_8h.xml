@@ -1,0 +1,1104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaders_8h" kind="file" language="C++">
+    <compoundname>dag_shaders.h</compoundname>
+    <includes local="no">EASTL/fixed_function.h</includes>
+    <includes refid="dag__shaderCommon_8h" local="no">shaders/dag_shaderCommon.h</includes>
+    <includes refid="dag__shaderVar_8h" local="no">shaders/dag_shaderVar.h</includes>
+    <includes refid="dag__stcode_8h" local="no">shaders/dag_stcode.h</includes>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includes local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">memory/dag_mem.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includedby refid="dag__DebugPrimitivesVbuffer_8h" local="no">dag_DebugPrimitivesVbuffer.h</includedby>
+    <includedby refid="dag__DynamicShaderHelper_8h" local="no">dag_DynamicShaderHelper.h</includedby>
+    <includedby refid="dag__DynamicShadersBuffer_8h" local="no">dag_DynamicShadersBuffer.h</includedby>
+    <includedby refid="dag__dynShaderBuf_8h" local="no">dag_dynShaderBuf.h</includedby>
+    <includedby refid="dag__linkedListOfShadervars_8h" local="yes">dag_linkedListOfShadervars.h</includedby>
+    <includedby refid="dag__renderScene_8h" local="no">dag_renderScene.h</includedby>
+    <includedby refid="dag__shSkinMesh_8h" local="no">dag_shSkinMesh.h</includedby>
+    <includedby refid="dag__shaderMesh_8h" local="no">dag_shaderMesh.h</includedby>
+    <includedby refid="dag__shadersRes_8h" local="no">dag_shadersRes.h</includedby>
+    <incdepgraph>
+      <node id="11">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="3">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="10">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="21">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="22">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="25">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="24">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="16">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="13">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="17">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="15">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="26">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="12">
+        <label>stdint.h</label>
+      </node>
+      <node id="27">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="14">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_DebugPrimitivesVbuffer.h</label>
+        <link refid="dag__DebugPrimitivesVbuffer_8h_source"/>
+      </node>
+      <node id="3">
+        <label>dag_DynamicShaderHelper.h</label>
+        <link refid="dag__DynamicShaderHelper_8h_source"/>
+      </node>
+      <node id="4">
+        <label>dag_DynamicShadersBuffer.h</label>
+        <link refid="dag__DynamicShadersBuffer_8h_source"/>
+      </node>
+      <node id="10">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="5">
+        <label>dag_dynShaderBuf.h</label>
+        <link refid="dag__dynShaderBuf_8h_source"/>
+      </node>
+      <node id="13">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>dag_linkedListOfShadervars.h</label>
+        <link refid="dag__linkedListOfShadervars_8h_source"/>
+      </node>
+      <node id="11">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+      <node id="7">
+        <label>dag_renderScene.h</label>
+        <link refid="dag__renderScene_8h_source"/>
+      </node>
+      <node id="8">
+        <label>dag_shSkinMesh.h</label>
+        <link refid="dag__shSkinMesh_8h_source"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>dag_shadersRes.h</label>
+        <link refid="dag__shadersRes_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classShaderMaterial" prot="public">ShaderMaterial</innerclass>
+    <innerclass refid="classShaderElement" prot="public">ShaderElement</innerclass>
+    <innerclass refid="structdynrender_1_1RElem" prot="public">dynrender::RElem</innerclass>
+    <innernamespace refid="namespacedynrender">dynrender</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaders_8h_1a13e50441a92a606d6cfce6531a03cbef" prot="public" static="no">
+        <type>Sbuffer</type>
+        <definition>typedef Sbuffer Ibuffer</definition>
+        <argsstring></argsstring>
+        <name>Ibuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="18" column="17" bodyfile="dag_shaders.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaders_8h_1ac513f24daf7c0b66808c5b3681280fd9" prot="public" static="no">
+        <type>Sbuffer</type>
+        <definition>typedef Sbuffer Vbuffer</definition>
+        <argsstring></argsstring>
+        <name>Vbuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="19" column="17" bodyfile="dag_shaders.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaders_8h_1a36e97b3ed5dbc36b4b68fdb6ec554d87" prot="public" static="no">
+        <type>eastl::fixed_function&lt; sizeof(void *), void(bool)&gt;</type>
+        <definition>using ShaderReloadCb =  eastl::fixed_function&lt;sizeof(void *), void(bool)&gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderReloadCb</name>
+        <briefdescription>
+<para>Registers console processor for shader-related commands, such as &apos;reload_shader&apos;. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="238" column="1" bodyfile="dag_shaders.h" bodystart="238" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaders_8h_1a44a8786367044aa1a5350e6549518cc5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dgs_all_shader_vars_optionals</definition>
+        <argsstring></argsstring>
+        <name>dgs_all_shader_vars_optionals</name>
+        <briefdescription>
+<para>Global flag for allowing all shader variables to be treated as optional. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>variableId for shader variable name (with optional fatal when name not found) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="33" column="13" declfile="dag_shaders.h" declline="33" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaders_8h_1a397f25d90863f345d65d0cd64bc2c733" prot="public" static="no" mutable="no">
+        <type>void</type>
+        <definition>void void</definition>
+        <argsstring></argsstring>
+        <name>void</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="239" column="6" bodyfile="dag_shaders.h" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaders_8h_1af84a55a95f3e432872a781535d354402" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_shader_variable_id</definition>
+        <argsstring>(const char *name, bool is_optional=false)</argsstring>
+        <name>get_shader_variable_id</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="34" column="12" bodyfile="dag_shaders.h" bodystart="34" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1aec4104a5dc3518744f6cc8298046cb5c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_shader_glob_var_id</definition>
+        <argsstring>(const char *name, bool is_optional=false)</argsstring>
+        <name>get_shader_glob_var_id</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Obsolete. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="46" column="12" bodyfile="dag_shaders.h" bodystart="46" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a276350b24ab92911d31fb6d482b0edf6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int shader_channel_type_size</definition>
+        <argsstring>(int t)</argsstring>
+        <name>shader_channel_type_size</name>
+        <param>
+          <type>int</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+<para>Get the size in bytes of a shader channel type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Shader channel type enum. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Size of shader channel for specified type </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="57" column="5" declfile="dag_shaders.h" declline="57" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a238b14ecb4b77d036baaee3ad97655da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material</definition>
+        <argsstring>(const MaterialData &amp;m, bool sec_dump_for_exp=false, bool do_log=true)</argsstring>
+        <name>new_shader_material</name>
+        <param>
+          <type>const MaterialData &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>do_log</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="189" column="16" declfile="dag_shaders.h" declline="189" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1aa1ef5c426ca512503c0b512a50ceeff9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material_by_name_optional</definition>
+        <argsstring>(const char *shader_name, const char *mat_script=NULL, bool sec_dump_for_exp=false)</argsstring>
+        <name>new_shader_material_by_name_optional</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>mat_script</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="190" column="16" declfile="dag_shaders.h" declline="190" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a8bc76c7f5a274f58f0d5064a3dd80562" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material_by_name</definition>
+        <argsstring>(const char *shader_name, const char *mat_script=NULL, bool sec_dump_for_exp=false)</argsstring>
+        <name>new_shader_material_by_name</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>mat_script</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="192" column="16" declfile="dag_shaders.h" declline="192" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1ad5b3a5d06663a57cff2b02484e0b3afe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_exists</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>shader_exists</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="193" column="6" declfile="dag_shaders.h" declline="193" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1aa5ce5de87a2f30d76b5a7d065dc036ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_shader_class_name_by_material_name</definition>
+        <argsstring>(const char *mat_name)</argsstring>
+        <name>get_shader_class_name_by_material_name</name>
+        <param>
+          <type>const char *</type>
+          <declname>mat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="194" column="12" declfile="dag_shaders.h" declline="194" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a1f987d63e9ee26a47fef8a9057bcca73" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::shadermodel::Version</type>
+        <definition>d3d::shadermodel::Version getMaxFSHVersion</definition>
+        <argsstring>()</argsstring>
+        <name>getMaxFSHVersion</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="196" column="27" declfile="dag_shaders.h" declline="196" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1af2bab2b52a1a42115e52d6e3736b8333" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void startup_shaders</definition>
+        <argsstring>(const char *shbindump_base, d3d::shadermodel::Version shader_model_version=d3d::smAny)</argsstring>
+        <name>startup_shaders</name>
+        <param>
+          <type>const char *</type>
+          <declname>shbindump_base</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+          <defval>d3d::smAny</defval>
+        </param>
+        <briefdescription>
+<para>Startups shaders (if shbindump_base!= NULL schedules shaders data loading). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="199" column="6" declfile="dag_shaders.h" declline="199" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1ac74225e0b259787bd76b466aba73b64e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool load_shaders_bindump</definition>
+        <argsstring>(const char *src_filename, d3d::shadermodel::Version shader_model_version, bool sec_dump_for_exp=false)</argsstring>
+        <name>load_shaders_bindump</name>
+        <param>
+          <type>const char *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Direct load/unload shaders binary dump (called from shaders startup proc). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="202" column="6" declfile="dag_shaders.h" declline="202" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a6f194ecd60185f1ce0515494c9040e5f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void unload_shaders_bindump</definition>
+        <argsstring>(bool sec_dump_for_exp=false)</argsstring>
+        <name>unload_shaders_bindump</name>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="203" column="6" declfile="dag_shaders.h" declline="203" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a7fb6f0bba8e7da0dc4081e4d643329fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void register_job_manager_requiring_shaders_bindump</definition>
+        <argsstring>(int job_mgr_id)</argsstring>
+        <name>register_job_manager_requiring_shaders_bindump</name>
+        <param>
+          <type>int</type>
+          <declname>job_mgr_id</declname>
+        </param>
+        <briefdescription>
+<para>All job mangers whose jobs require shaders bindump to be loaded should call this function. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="206" column="6" declfile="dag_shaders.h" declline="206" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a89f3dd9c0021a7c272bbfeadfd2d805b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool load_shaders_bindump_with_fence</definition>
+        <argsstring>(const char *src_filename, d3d::shadermodel::Version shader_model_version)</argsstring>
+        <name>load_shaders_bindump_with_fence</name>
+        <param>
+          <type>const char *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <briefdescription>
+<para>(Re)load of shaders bindump which is allowed to be called concurrently with jobs that require valid dump (those on registered mgrs). Inside this call: 1) Manager registration via register_job_manager_requiring_shaders_bindump will be blocked. 2) All currently registered managers will be awaited to finish current work and then blocked. 3) Bindump will be (re)loaded. 4) The blocked managers (and in-flight registrations) will be released. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="217" column="6" declfile="dag_shaders.h" declline="217" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a039c5160272703b504c22c266f7c9202" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool load_shaders_debug_bindump</definition>
+        <argsstring>(d3d::shadermodel::Version version)</argsstring>
+        <name>load_shaders_debug_bindump</name>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>version</declname>
+        </param>
+        <briefdescription>
+<para>Load debug shaderdump (compiled with -debug). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="220" column="6" declfile="dag_shaders.h" declline="220" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1aad87f85f565da531eb38c7b3f32bb2a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool unload_shaders_debug_bindump</definition>
+        <argsstring>(d3d::shadermodel::Version version)</argsstring>
+        <name>unload_shaders_debug_bindump</name>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>version</declname>
+        </param>
+        <briefdescription>
+<para>Unload debug shaderdump (compiled with -debug). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="223" column="6" declfile="dag_shaders.h" declline="223" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1ada1388d27e40560eee063ccf329063f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_shaders_use_stateblock</definition>
+        <argsstring>(bool)</argsstring>
+        <name>enable_shaders_use_stateblock</name>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+<para>Enable usage of stateblocks in shaders (default is platform-specific). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="226" column="13" bodyfile="dag_shaders.h" bodystart="226" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a5fa6b25f0198d719b8da689829e9a684" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_shaders_emulate_stateblock</definition>
+        <argsstring>(bool)</argsstring>
+        <name>enable_shaders_emulate_stateblock</name>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+<para>Enable emulation of stateblocks in shaders (default is false). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="229" column="13" bodyfile="dag_shaders.h" bodystart="229" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a2fa947a3712417fa5255f8ffc5e575b4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void rebuild_shaders_stateblocks</definition>
+        <argsstring>()</argsstring>
+        <name>rebuild_shaders_stateblocks</name>
+        <briefdescription>
+<para>Discards shader stateblocks (useful after 3d reset or when internal texture data is changed). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="232" column="6" declfile="dag_shaders.h" declline="232" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1ad50528393a224a1e9f12372fef5b108d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void defrag_shaders_stateblocks</definition>
+        <argsstring>(bool force)</argsstring>
+        <name>defrag_shaders_stateblocks</name>
+        <param>
+          <type>bool</type>
+          <declname>force</declname>
+        </param>
+        <briefdescription>
+<para>Discards shader stateblocks, if too many were destroyed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="235" column="6" declfile="dag_shaders.h" declline="235" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1acbec28837223792a82db79eb7176d6a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders_set_reload_flags</definition>
+        <argsstring>()</argsstring>
+        <name>shaders_set_reload_flags</name>
+        <briefdescription>
+<para>Enable or disable shaders reloading depending on build configuration and settings. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="242" column="6" declfile="dag_shaders.h" declline="242" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a8da9cfe253fc74c6aff07af600389599" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_shader_global_time</definition>
+        <argsstring>()</argsstring>
+        <name>get_shader_global_time</name>
+        <briefdescription>
+<para>Shaders global time. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="245" column="7" declfile="dag_shaders.h" declline="245" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1ae4a332386071df4b4e796ec1f3dc9bdd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_shader_global_time</definition>
+        <argsstring>(float)</argsstring>
+        <name>set_shader_global_time</name>
+        <param>
+          <type>float</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="247" column="6" declfile="dag_shaders.h" declline="247" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a9202171a4210f033b6ee327de5c93d4c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void advance_shader_global_time</definition>
+        <argsstring>(float dt)</argsstring>
+        <name>advance_shader_global_time</name>
+        <param>
+          <type>float</type>
+          <declname>dt</declname>
+        </param>
+        <briefdescription>
+<para>Adds specified elapsed time to global time variable. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="250" column="6" declfile="dag_shaders.h" declline="250" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a3cb0001e716807146fc143272e44ec24" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>real</type>
+        <definition>real get_shader_global_time_phase</definition>
+        <argsstring>(float period, float offset)</argsstring>
+        <name>get_shader_global_time_phase</name>
+        <param>
+          <type>float</type>
+          <declname>period</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>global time phase (number in range [0,1)) for specified period and time offset. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="253" column="6" declfile="dag_shaders.h" declline="253" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1adc299188aece62b42bff0f2dde7e9959" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_stcode_special_tag_interp</definition>
+        <argsstring>(stcode::SpecialBlkTagInterpreter &amp;&amp;interp)</argsstring>
+        <name>set_stcode_special_tag_interp</name>
+        <param>
+          <type>stcode::SpecialBlkTagInterpreter &amp;&amp;</type>
+          <declname>interp</declname>
+        </param>
+        <briefdescription>
+<para>Sets interpreter for custom directives in stcode tag: stcode/tag:t=$directive in blk. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="256" column="6" declfile="dag_shaders.h" declline="256" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/fixed_function.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVar.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_stcode.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_texMgr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_mem.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Forward<sp/>declarations<sp/>for<sp/>external<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Sbuffer;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Sbuffer<sp/>Ibuffer;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Sbuffer<sp/>Vbuffer;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenSave;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenLoad;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">MaterialData;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TextureIdSet;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ScriptedShaderMaterial;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ScriptedShaderElement;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderMatData" kindref="compound">ShaderMatData</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">AdditionalInstanced;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dgs_all_shader_vars_optionals;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_shader_variable_id(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>varId<sp/>=<sp/>VariableMap::getVariableId(name);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!is_optional<sp/>&amp;&amp;<sp/>!VariableMap::isVariablePresent(varId)<sp/>&amp;&amp;<sp/>!dgs_all_shader_vars_optionals)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Shader<sp/>variable<sp/>&apos;%s&apos;<sp/>not<sp/>found.&quot;</highlight><highlight class="normal">,<sp/>name);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>G_UNUSED(is_optional);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>varId;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_shader_glob_var_id(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_shader_variable_id(name,<sp/>is_optional);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>shader_channel_type_size(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>t);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classShaderMaterial" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DObject</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DAG_DECLARE_NEW(tmpmem)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>decl_class_name(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref>)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>ScriptedShaderMaterial<sp/>&amp;native()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*(ScriptedShaderMaterial<sp/>*)</highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ScriptedShaderMaterial<sp/>&amp;native()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ScriptedShaderMaterial<sp/>*)</highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*clone()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_flags()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_flags(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mask)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_int_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_real_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/>v)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/>Color4<sp/>&amp;)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>v)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_sampler_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>d3d::SamplerHandle<sp/>v)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getColor4Variable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>Color4<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getRealVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>real<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getIntVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getTextureVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>TEXTUREID<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getSamplerVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>d3d::SamplerHandle<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>ShaderVarType<sp/>getVariableType(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="classShaderMaterial_1a8386a17e5dada743ac12f135cc44d1b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial_1a8386a17e5dada743ac12f135cc44d1b0" kindref="member">enum_channels</ref>(<ref refid="classShaderChannelsEnumCB" kindref="compound">ShaderChannelsEnumCB</ref><sp/>&amp;,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;ret_code_flags)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classShaderElement" kindref="compound">ShaderElement</ref><sp/>*make_elem(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>acquire_tex_refs,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*info)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderElement" kindref="compound">ShaderElement</ref><sp/>*make_elem(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*info<sp/>=<sp/>NULL)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_elem(</highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/>info);<sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isPositionPacked()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105" refid="classShaderMaterial_1a9d9b712da2804cc1bc5d14ac037d359c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial_1a9d9b712da2804cc1bc5d14ac037d359c" kindref="member">checkChannels</ref>(<ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref><sp/>*ch,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ch_count)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_num_textures()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>get_texture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_texture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/>TEXTUREID)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedTex(TextureIdSet<sp/>&amp;tex_id_list)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_old,<sp/>TEXTUREID<sp/>tex_id_new)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>getMatData(<ref refid="structShaderMatData" kindref="compound">ShaderMatData</ref><sp/>&amp;out_data)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121" refid="classShaderMaterial_1ad9e3f37235693326b06f3d897b802d32" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial_1ad9e3f37235693326b06f3d897b802d32" kindref="member">buildMaterialData</ref>(MaterialData<sp/>&amp;out_data,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*orig_mat_script<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="classShaderMaterial_1a495a281f4ec25016b4cea124b76a9dc6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderMaterial_1a495a281f4ec25016b4cea124b76a9dc6" kindref="member">getShaderClassName</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="classShaderMaterial_1a84cbed30e1d5bf801ddc87754592e4da" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial_1a84cbed30e1d5bf801ddc87754592e4da" kindref="member">isSelectedForDebug</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="classShaderMaterial_1a23da8b6e0f85c239bdaf1d46b2ce8faa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/><ref refid="classShaderMaterial_1a23da8b6e0f85c239bdaf1d46b2ce8faa" kindref="member">getInfo</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="classShaderMaterial_1a64ca4b657980328270ed3d0530c96cd9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderMaterial_1a64ca4b657980328270ed3d0530c96cd9" kindref="member">setLoadingString</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="classShaderMaterial_1adb155747a39e578b338443f3a539c3ae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderMaterial_1adb155747a39e578b338443f3a539c3ae" kindref="member">getLoadingString</ref>();</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*loadingStirngInfo;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="classShaderElement" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderElement" kindref="compound">ShaderElement</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DObject</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>decl_class_name(<ref refid="classShaderElement" kindref="compound">ShaderElement</ref>)</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>ScriptedShaderElement<sp/>&amp;native()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*(ScriptedShaderElement<sp/>*)</highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ScriptedShaderElement<sp/>&amp;native()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ScriptedShaderElement<sp/>*)</highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setStates()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setStates(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>setStates();<sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setStatesDispatch()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>render(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>minvert,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numvert,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sind,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numf,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>base_vertex<sp/>=<sp/>0,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prim<sp/>=<sp/>PRIM_TRILIST)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getTextureCount()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>getTexture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedTex(TextureIdSet<sp/>&amp;tex_id_list)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_prev,<sp/>TEXTUREID<sp/>tex_id_new)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasTexture(TEXTUREID<sp/>tex_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>acquireTexRefs()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>releaseTexRefs()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169" refid="classShaderElement_1a1a2e7a9770b6278636dbed7135e23d4c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderElement_1a1a2e7a9770b6278636dbed7135e23d4c" kindref="member">getShaderClassName</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setProgram(uint32_t<sp/>variant)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="classShaderElement_1a1a7d3f85104b8f3fc93895ee3b5dcdc9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderElement_1a1a7d3f85104b8f3fc93895ee3b5dcdc9" kindref="member">getVertexStride</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>dag::ConstSpan&lt;ShaderChannelId&gt;<sp/>getChannels()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>replaceVdecl(VDECL<sp/>vDecl)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>VDECL<sp/>getEffectiveVDecl()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getSupportedBlock(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variant,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setReqTexLevel(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>req_level<sp/>=<sp/>15)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>checkAndPrefetchMissingTextures()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="classShaderElement_1a0c60766c708dd5885f8e0339e09c0ec6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderElement_1a0c60766c708dd5885f8e0339e09c0ec6" kindref="member">invalidate_cached_state_block</ref>();</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>MaterialData<sp/>&amp;m,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>do_log<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material_by_name_optional(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*mat_script<sp/>=<sp/>NULL,</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material_by_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*mat_script<sp/>=<sp/>NULL,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>shader_exists(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_shader_class_name_by_material_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*mat_name);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal">d3d::shadermodel::Version<sp/>getMaxFSHVersion();</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>startup_shaders(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shbindump_base,<sp/>d3d::shadermodel::Version<sp/>shader_model_version<sp/>=<sp/>d3d::smAny);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>load_shaders_bindump(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*src_filename,<sp/>d3d::shadermodel::Version<sp/>shader_model_version,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unload_shaders_bindump(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>register_job_manager_requiring_shaders_bindump(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>job_mgr_id);</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>load_shaders_bindump_with_fence(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*src_filename,<sp/>d3d::shadermodel::Version<sp/>shader_model_version);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>load_shaders_debug_bindump(d3d::shadermodel::Version<sp/>version);</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>unload_shaders_debug_bindump(d3d::shadermodel::Version<sp/>version);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_shaders_use_stateblock(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="229"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_shaders_emulate_stateblock(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rebuild_shaders_stateblocks();</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>defrag_shaders_stateblocks(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="keyword">using<sp/></highlight><highlight class="normal">ShaderReloadCb<sp/>=<sp/>eastl::fixed_function&lt;</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*),<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)&gt;;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>shaders_register_console(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow_reload<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ShaderReloadCb<sp/>&amp;after_reload_cb<sp/>=<sp/>[](</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<sp/>{});</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>shaders_set_reload_flags();</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>get_shader_global_time();</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_shader_global_time(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>advance_shader_global_time(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>dt);</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight></codeline>
+<codeline lineno="253"><highlight class="normal">real<sp/>get_shader_global_time_phase(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>period,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>offset);</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"></highlight></codeline>
+<codeline lineno="256"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_stcode_special_tag_interp(stcode::SpecialBlkTagInterpreter<sp/>&amp;&amp;interp);</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight><highlight class="comment">//*<sp/>Low-level<sp/>Dynamic<sp/>Shader<sp/>Rendering</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dynrender</highlight></codeline>
+<codeline lineno="262"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="269" refid="structdynrender_1_1RElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdynrender_1_1RElem" kindref="compound">RElem</ref></highlight></codeline>
+<codeline lineno="270"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="271" refid="structdynrender_1_1RElem_1a82bb01730a2c9222efd31d6a07e3fe7a" refkind="member"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderElement&gt;<sp/><ref refid="structdynrender_1_1RElem_1a82bb01730a2c9222efd31d6a07e3fe7a" kindref="member">shElem</ref>;<sp/></highlight></codeline>
+<codeline lineno="272" refid="structdynrender_1_1RElem_1a5274c39c26d1b7bd0ce3e5e6ac14234d" refkind="member"><highlight class="normal"><sp/><sp/>Ibuffer<sp/>*<ref refid="structdynrender_1_1RElem_1a5274c39c26d1b7bd0ce3e5e6ac14234d" kindref="member">ib</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="273" refid="structdynrender_1_1RElem_1a7bd0e8095f94dd3e3c72721ea0777b30" refkind="member"><highlight class="normal"><sp/><sp/>Vbuffer<sp/>*<ref refid="structdynrender_1_1RElem_1a7bd0e8095f94dd3e3c72721ea0777b30" kindref="member">vb</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="274" refid="structdynrender_1_1RElem_1ae51739708affafbbeff3b5205690f809" refkind="member"><highlight class="normal"><sp/><sp/>VDECL<sp/><ref refid="structdynrender_1_1RElem_1ae51739708affafbbeff3b5205690f809" kindref="member">vDecl</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="275" refid="structdynrender_1_1RElem_1a915248d3f4a9a7a7ef661339ec420529" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structdynrender_1_1RElem_1a915248d3f4a9a7a7ef661339ec420529" kindref="member">stride</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>parameters<sp/>required<sp/>only<sp/>for<sp/>member<sp/>function<sp/>render()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>minVert;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numVert;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>startIndex;</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numPrim;</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"></highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structdynrender_1_1RElem" kindref="compound">RElem</ref>()<sp/>:<sp/><ref refid="structdynrender_1_1RElem_1a82bb01730a2c9222efd31d6a07e3fe7a" kindref="member">shElem</ref>(NULL),<sp/><ref refid="structdynrender_1_1RElem_1a5274c39c26d1b7bd0ce3e5e6ac14234d" kindref="member">ib</ref>(NULL),<sp/><ref refid="structdynrender_1_1RElem_1a7bd0e8095f94dd3e3c72721ea0777b30" kindref="member">vb</ref>(NULL),<sp/><ref refid="structdynrender_1_1RElem_1ae51739708affafbbeff3b5205690f809" kindref="member">vDecl</ref>(BAD_VDECL),<sp/><ref refid="structdynrender_1_1RElem_1a915248d3f4a9a7a7ef661339ec420529" kindref="member">stride</ref>(-1),<sp/>minVert(0),<sp/>numVert(0),<sp/>startIndex(0),<sp/>numPrim(0)<sp/>{}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="289" refid="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structdynrender_1_1RElem_1abe4da3079f92140157a9eec18c88c8be" kindref="member">render</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>indexed<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>base_vertex_index<sp/>=<sp/>0)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setBuffers(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>indexed<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setStates(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>indexed<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="292"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal">VDECL<sp/>addShaderVdecl(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref><sp/>*ch,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numch,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride<sp/>=<sp/>-1,<sp/>dag::Span&lt;VSDTYPE&gt;<sp/>add_vsd<sp/>=<sp/>{});</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getStride(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref><sp/>*ch,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numch);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>convert_channels_to_vsd(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref><sp/>*ch,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numch,<sp/>Tab&lt;VSDTYPE&gt;<sp/>&amp;out_vsd);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dynrender</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_shaders.h"/>
+  </compounddef>
+</doxygen>

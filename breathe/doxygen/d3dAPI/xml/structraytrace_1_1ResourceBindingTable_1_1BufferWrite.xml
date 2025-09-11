@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::BufferWrite</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1aa23f0a72cce20bd8af0583de9a4370ce" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::ResourceBindingTable::BufferWrite::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>raytrace::ResourceBindingTable::BufferWrite::buffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Buffer to write to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="857" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="857" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1a90cce9ba007c81dee25d168963550a20" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::BufferWrite::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::BufferWrite::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>u register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="859" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="859" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a buffer write on a u register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ResourceBindingTable::BufferWrite</label>
+        <link refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="854" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="855" bodyend="860"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1aa23f0a72cce20bd8af0583de9a4370ce" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::BufferWrite</scope><name>buffer</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1a90cce9ba007c81dee25d168963550a20" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::BufferWrite</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

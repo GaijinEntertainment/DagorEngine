@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacesgg" kind="namespace" language="C++">
+    <compoundname>sgg</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacesgg_1af096efd0bb762fa2ecf74e587a826a1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sgg::set_exe_path</definition>
+        <argsstring>(const char path[])</argsstring>
+        <name>set_exe_path</name>
+        <qualifiedname>sgg::set_exe_path</qualifiedname>
+        <param>
+          <type>const char</type>
+          <declname>path</declname>
+          <array>[]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndGlobal.h" line="6" column="6" declfile="ec_wndGlobal.h" declline="6" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesgg_1a10e344011e9515052bd5b3ce5aec74aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * sgg::get_exe_path</definition>
+        <argsstring>()</argsstring>
+        <name>get_exe_path</name>
+        <qualifiedname>sgg::get_exe_path</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndGlobal.h" line="8" column="12" declfile="ec_wndGlobal.h" declline="8" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesgg_1a82b536888fec955c60660e4bc21087a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * sgg::get_exe_path_full</definition>
+        <argsstring>()</argsstring>
+        <name>get_exe_path_full</name>
+        <qualifiedname>sgg::get_exe_path_full</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndGlobal.h" line="9" column="12" declfile="ec_wndGlobal.h" declline="9" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_wndGlobal.h" line="4" column="1"/>
+  </compounddef>
+</doxygen>

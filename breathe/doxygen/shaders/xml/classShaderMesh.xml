@@ -1,0 +1,915 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderMesh" kind="class" language="C++" prot="public">
+    <compoundname>ShaderMesh</compoundname>
+    <innerclass refid="structShaderMesh_1_1RElem" prot="public">ShaderMesh::RElem</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1d" prot="public" static="no" strong="no">
+        <type></type>
+        <name>Stage</name>
+        <qualifiedname>ShaderMesh::Stage</qualifiedname>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dad28963a5aa79e5820de0661d5d485b88" prot="public">
+          <name>STG_opaque</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da3efe96637bad34a92ce55424f09699ab" prot="public">
+          <name>STG_atest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da41df17239172b7db21161ffa56a492a3" prot="public">
+          <name>STG_imm_decal</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dad7358232439ed6dc44f833fde564b6c4" prot="public">
+          <name>STG_decal</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dac3c1679567d1bc7ca881a4be3ccca174" prot="public">
+          <name>STG_trans</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da35fe1f89dfd9d5202fc5b3933a027022" prot="public">
+          <name>STG_distortion</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da1f6373ce40029291ea4e845619bfeb06" prot="public">
+          <name>STG_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="343" column="3" bodyfile="dag_shaderMesh.h" bodystart="344" bodyend="352"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderMesh_1ab10c8670f2382b26bafbb91998702c4f" prot="private" static="no" mutable="no">
+        <type>PatchableTab&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+        <definition>PatchableTab&lt;RElem&gt; ShaderMesh::elems</definition>
+        <argsstring></argsstring>
+        <name>elems</name>
+        <qualifiedname>ShaderMesh::elems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="483" column="16" bodyfile="dag_shaderMesh.h" bodystart="483" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMesh_1a0e24c455407fd2167361fff81d3c7494" prot="private" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ShaderMesh::stageEndElemIdx[SC_STAGE_IDX_MASK+1]</definition>
+        <argsstring>[SC_STAGE_IDX_MASK+1]</argsstring>
+        <name>stageEndElemIdx</name>
+        <qualifiedname>ShaderMesh::stageEndElemIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="484" column="12" bodyfile="dag_shaderMesh.h" bodystart="484" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMesh_1aa2af7599b925db6ba0f1267454fc7ddb" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::_deprecatedMaxMatPass</definition>
+        <argsstring></argsstring>
+        <name>_deprecatedMaxMatPass</name>
+        <qualifiedname>ShaderMesh::_deprecatedMaxMatPass</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="486" column="7" bodyfile="dag_shaderMesh.h" bodystart="486" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMesh_1a1fead897a6790930ae7020b03068e023" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::_resv</definition>
+        <argsstring></argsstring>
+        <name>_resv</name>
+        <qualifiedname>ShaderMesh::_resv</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="487" column="7" bodyfile="dag_shaderMesh.h" bodystart="487" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderMesh_1abaf5afe2b4287c143833a57c1ee7cb86" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderMeshData</definition>
+        <argsstring></argsstring>
+        <name>ShaderMeshData</name>
+        <qualifiedname>ShaderMesh::ShaderMeshData</qualifiedname>
+        <param>
+          <type>ShaderMeshData</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="523" column="16" bodyfile="dag_shaderMesh.h" bodystart="523" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classShaderMesh_1ae50d3827b7031fad20f72a0b6508499f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> *</type>
+        <definition>static ShaderMesh * ShaderMesh::createSimple</definition>
+        <argsstring>(Mesh &amp;m, ShaderMaterial *mat, const char *info_str=NULL)</argsstring>
+        <name>createSimple</name>
+        <qualifiedname>ShaderMesh::createSimple</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>mat</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>info_str</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="390" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a6c22e945cab5b5f3750c16608d6d53b2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> *</type>
+        <definition>static ShaderMesh * ShaderMesh::createCopy</definition>
+        <argsstring>(const ShaderMesh &amp;sm)</argsstring>
+        <name>createCopy</name>
+        <qualifiedname>ShaderMesh::createCopy</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> &amp;</type>
+          <declname>sm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="393" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a572096df76ec5822d699a941ce6206c0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> *</type>
+        <definition>static ShaderMesh * ShaderMesh::load</definition>
+        <argsstring>(IGenLoad &amp;crd, int sz, ShaderMatVdata &amp;smvd, bool acqire_tex_refs=true)</argsstring>
+        <name>load</name>
+        <qualifiedname>ShaderMesh::load</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>smvd</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>acqire_tex_refs</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="396" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1ac39411fdd76a89d7472f95cc083db3e6" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> *</type>
+        <definition>static ShaderMesh * ShaderMesh::loadMem</definition>
+        <argsstring>(const void *p, int sz, ShaderMatVdata &amp;smvd, bool acqire_tex_refs=true)</argsstring>
+        <name>loadMem</name>
+        <qualifiedname>ShaderMesh::loadMem</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>smvd</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>acqire_tex_refs</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="397" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a10292a4d53653fc4003cbce981f27260" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMesh::duplicateMaterial</definition>
+        <argsstring>(TEXTUREID tex_id, dag::Span&lt; RElem &gt; elem, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMaterial</name>
+        <qualifiedname>ShaderMesh::duplicateMaterial</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+          <declname>elem</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="442" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1ac3a45fbf073174ee439946532c175fff" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMesh::duplicateMat</definition>
+        <argsstring>(ShaderMaterial *prev_m, dag::Span&lt; RElem &gt; elem, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMat</name>
+        <qualifiedname>ShaderMesh::duplicateMat</qualifiedname>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>prev_m</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+          <declname>elem</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="444" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a6f01700adf0274cd88eca5d77a32c2d3" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMesh::set_material_pass</definition>
+        <argsstring>(int mat_pass, int whole_pass_id)</argsstring>
+        <name>set_material_pass</name>
+        <qualifiedname>ShaderMesh::set_material_pass</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mat_pass</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>whole_pass_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="479" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderMesh_1a6f02b701b637f11b10895cec999610f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::ShaderMesh</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderMesh</name>
+        <qualifiedname>ShaderMesh::ShaderMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="401" column="3" bodyfile="dag_shaderMesh.h" bodystart="401" bodyend="401"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a5819b74486f270186a9d5bcbcf31cbbf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::~ShaderMesh</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderMesh</name>
+        <qualifiedname>ShaderMesh::~ShaderMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="402" column="3" bodyfile="dag_shaderMesh.h" bodystart="402" bodyend="402"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a3c10fc1c24a430876d40b83964feb0c3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::patchData</definition>
+        <argsstring>(void *base, ShaderMatVdata &amp;smvd)</argsstring>
+        <name>patchData</name>
+        <qualifiedname>ShaderMesh::patchData</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>smvd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="405" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a8702a3d17349e17f9bbbd47728a0187d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::clearData</definition>
+        <argsstring>()</argsstring>
+        <name>clearData</name>
+        <qualifiedname>ShaderMesh::clearData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="408" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1ab2a11acb6f62ee934ec0234ef8280b9f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::rebaseAndClone</definition>
+        <argsstring>(void *new_base, const void *old_base)</argsstring>
+        <name>rebaseAndClone</name>
+        <qualifiedname>ShaderMesh::rebaseAndClone</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>new_base</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>old_base</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="411" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1abfb35dcc47dd05a3f49d0db7cf5e852b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::render</definition>
+        <argsstring>() const</argsstring>
+        <name>render</name>
+        <qualifiedname>ShaderMesh::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="414" column="8" bodyfile="dag_shaderMesh.h" bodystart="414" bodyend="414"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a377e86b7180a7adec9d062c4f2d46672" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::render_trans</definition>
+        <argsstring>() const</argsstring>
+        <name>render_trans</name>
+        <qualifiedname>ShaderMesh::render_trans</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="415" column="8" bodyfile="dag_shaderMesh.h" bodystart="415" bodyend="415"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a7be5bee738c477bd5ec20be7e23eb1b6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::render_distortion</definition>
+        <argsstring>() const</argsstring>
+        <name>render_distortion</name>
+        <qualifiedname>ShaderMesh::render_distortion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="416" column="8" bodyfile="dag_shaderMesh.h" bodystart="416" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1ae1810749b6e0fbf462b3e80a9fc3a749" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename FilterFunctor</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderMesh::renderWithFilter</definition>
+        <argsstring>(FilterFunctor filter_cb) const</argsstring>
+        <name>renderWithFilter</name>
+        <qualifiedname>ShaderMesh::renderWithFilter</qualifiedname>
+        <param>
+          <type>FilterFunctor</type>
+          <declname>filter_cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="422" column="8" bodyfile="dag_shaderMesh.h" bodystart="422" bodyend="425"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1aeadf411f5ebb98e46394aecb07366ff5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::renderRawImmediate</definition>
+        <argsstring>(bool trans) const</argsstring>
+        <name>renderRawImmediate</name>
+        <qualifiedname>ShaderMesh::renderRawImmediate</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>trans</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="428" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a86709af0e285f340640525ccf18ea67e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::renderWithShader</definition>
+        <argsstring>(const ShaderElement &amp;shader_element, bool trans) const</argsstring>
+        <name>renderWithShader</name>
+        <qualifiedname>ShaderMesh::renderWithShader</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &amp;</type>
+          <declname>shader_element</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>trans</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="431" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a2ebb60ca1fce89b0354a383139d22d6d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::gatherUsedTex</definition>
+        <argsstring>(TextureIdSet &amp;tex_id_list) const</argsstring>
+        <name>gatherUsedTex</name>
+        <qualifiedname>ShaderMesh::gatherUsedTex</qualifiedname>
+        <param>
+          <type>TextureIdSet &amp;</type>
+          <declname>tex_id_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="433" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a5552781dceac8b8ae937c4fdf4b3b7f6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::gatherUsedMat</definition>
+        <argsstring>(Tab&lt; ShaderMaterial * &gt; &amp;mat_list) const</argsstring>
+        <name>gatherUsedMat</name>
+        <qualifiedname>ShaderMesh::gatherUsedMat</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>mat_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="434" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a1a92208be6301b614999e988808e972a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMesh::replaceTexture</definition>
+        <argsstring>(TEXTUREID tex_id_old, TEXTUREID tex_id_new)</argsstring>
+        <name>replaceTexture</name>
+        <qualifiedname>ShaderMesh::replaceTexture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_old</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="437" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1ad4cdf8e2d316dad1dec69d11f36fc696" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMesh::calcTotalFaces</definition>
+        <argsstring>() const</argsstring>
+        <name>calcTotalFaces</name>
+        <qualifiedname>ShaderMesh::calcTotalFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="440" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a15b35f64ff8d13ec0ad14feec5f3b30c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::duplicateMaterial</definition>
+        <argsstring>(TEXTUREID tex_id, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMaterial</name>
+        <qualifiedname>ShaderMesh::duplicateMaterial</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="446" column="8" bodyfile="dag_shaderMesh.h" bodystart="446" bodyend="449"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a3c4e1f68f27dcc903d48290ebf45c2b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::duplicateMat</definition>
+        <argsstring>(ShaderMaterial *prev_m, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMat</name>
+        <qualifiedname>ShaderMesh::duplicateMat</qualifiedname>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>prev_m</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="450" column="8" bodyfile="dag_shaderMesh.h" bodystart="450" bodyend="453"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a023c359907b55889743c23a87466d3bd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMesh::getVbInfo</definition>
+        <argsstring>(RElem &amp;elem, int usage, int usage_index, unsigned int &amp;stride, unsigned int &amp;offset, int &amp;type, int &amp;mod) const</argsstring>
+        <name>getVbInfo</name>
+        <qualifiedname>ShaderMesh::getVbInfo</qualifiedname>
+        <param>
+          <type><ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &amp;</type>
+          <declname>elem</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>usage</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>usage_index</declname>
+        </param>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>mod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="455" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a1d2abe688a9ead89e50e15c34361d535" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::acquireTexRefs</definition>
+        <argsstring>()</argsstring>
+        <name>acquireTexRefs</name>
+        <qualifiedname>ShaderMesh::acquireTexRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="457" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a5787a251b868dc3a035ceaf40a116996" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::releaseTexRefs</definition>
+        <argsstring>()</argsstring>
+        <name>releaseTexRefs</name>
+        <qualifiedname>ShaderMesh::releaseTexRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="458" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a1b7394a24ae4cd61abd3532ed13727c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::updateShaderElems</definition>
+        <argsstring>()</argsstring>
+        <name>updateShaderElems</name>
+        <qualifiedname>ShaderMesh::updateShaderElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="460" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a4e87915560f08efe8a9babfa410b559c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; RElem &gt; ShaderMesh::getAllElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getAllElems</name>
+        <qualifiedname>ShaderMesh::getAllElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="462" column="18" bodyfile="dag_shaderMesh.h" bodystart="462" bodyend="462"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1aeb280b4270b74c0d4e7c8fb84e17d600" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderMesh::getElemsCount</definition>
+        <argsstring>(uint32_t start_stage, uint32_t end_stage) const</argsstring>
+        <name>getElemsCount</name>
+        <qualifiedname>ShaderMesh::getElemsCount</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>start_stage</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>end_stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="463" column="12" bodyfile="dag_shaderMesh.h" bodystart="463" bodyend="467"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a1149d85f6e49da699b4feca38a012657" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+        <definition>dag::Span&lt; RElem &gt; ShaderMesh::getElems</definition>
+        <argsstring>(uint32_t start_stage, uint32_t end_stage) const</argsstring>
+        <name>getElems</name>
+        <qualifiedname>ShaderMesh::getElems</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>start_stage</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>end_stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="468" column="13" bodyfile="dag_shaderMesh.h" bodystart="468" bodyend="474"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a4d5700af3fbc257f25f251b2bcd7201b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+        <definition>dag::Span&lt; RElem &gt; ShaderMesh::getElems</definition>
+        <argsstring>(int stage) const</argsstring>
+        <name>getElems</name>
+        <qualifiedname>ShaderMesh::getElems</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="475" column="13" bodyfile="dag_shaderMesh.h" bodystart="475" bodyend="475"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMesh_1a6c6cbf8ee805fd7c02c35b8666de8cbb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; uint16_t &gt;</type>
+        <definition>dag::ConstSpan&lt; uint16_t &gt; ShaderMesh::getElemsIdx</definition>
+        <argsstring>() const</argsstring>
+        <name>getElemsIdx</name>
+        <qualifiedname>ShaderMesh::getElemsIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="476" column="18" bodyfile="dag_shaderMesh.h" bodystart="476" bodyend="476"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderMesh_1ae22e4026ab3a56d149cb11bcc434063a" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename FilterFunctor</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderMesh::render</definition>
+        <argsstring>(dag::Span&lt; RElem &gt; elem_array, FilterFunctor filter_cb) const</argsstring>
+        <name>render</name>
+        <qualifiedname>ShaderMesh::render</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &gt;</type>
+          <declname>elem_array</declname>
+        </param>
+        <param>
+          <type>FilterFunctor</type>
+          <declname>filter_cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="491" column="8" bodyfile="dag_shaderMesh.h" bodystart="491" bodyend="518"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="340" column="1" bodyfile="dag_shaderMesh.h" bodystart="341" bodyend="524"/>
+    <listofallmembers>
+      <member refid="classShaderMesh_1aa2af7599b925db6ba0f1267454fc7ddb" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>_deprecatedMaxMatPass</name></member>
+      <member refid="classShaderMesh_1a1fead897a6790930ae7020b03068e023" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>_resv</name></member>
+      <member refid="classShaderMesh_1a1d2abe688a9ead89e50e15c34361d535" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>acquireTexRefs</name></member>
+      <member refid="classShaderMesh_1ad4cdf8e2d316dad1dec69d11f36fc696" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>calcTotalFaces</name></member>
+      <member refid="classShaderMesh_1a8702a3d17349e17f9bbbd47728a0187d" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>clearData</name></member>
+      <member refid="classShaderMesh_1a6c22e945cab5b5f3750c16608d6d53b2" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>createCopy</name></member>
+      <member refid="classShaderMesh_1ae50d3827b7031fad20f72a0b6508499f" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>createSimple</name></member>
+      <member refid="classShaderMesh_1ac3a45fbf073174ee439946532c175fff" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>duplicateMat</name></member>
+      <member refid="classShaderMesh_1a3c4e1f68f27dcc903d48290ebf45c2b2" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>duplicateMat</name></member>
+      <member refid="classShaderMesh_1a10292a4d53653fc4003cbce981f27260" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>duplicateMaterial</name></member>
+      <member refid="classShaderMesh_1a15b35f64ff8d13ec0ad14feec5f3b30c" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>duplicateMaterial</name></member>
+      <member refid="classShaderMesh_1ab10c8670f2382b26bafbb91998702c4f" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>elems</name></member>
+      <member refid="classShaderMesh_1a5552781dceac8b8ae937c4fdf4b3b7f6" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>gatherUsedMat</name></member>
+      <member refid="classShaderMesh_1a2ebb60ca1fce89b0354a383139d22d6d" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>gatherUsedTex</name></member>
+      <member refid="classShaderMesh_1a4e87915560f08efe8a9babfa410b559c" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getAllElems</name></member>
+      <member refid="classShaderMesh_1a1149d85f6e49da699b4feca38a012657" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getElems</name></member>
+      <member refid="classShaderMesh_1a4d5700af3fbc257f25f251b2bcd7201b" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getElems</name></member>
+      <member refid="classShaderMesh_1aeb280b4270b74c0d4e7c8fb84e17d600" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getElemsCount</name></member>
+      <member refid="classShaderMesh_1a6c6cbf8ee805fd7c02c35b8666de8cbb" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getElemsIdx</name></member>
+      <member refid="classShaderMesh_1a023c359907b55889743c23a87466d3bd" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>getVbInfo</name></member>
+      <member refid="classShaderMesh_1a572096df76ec5822d699a941ce6206c0" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>load</name></member>
+      <member refid="classShaderMesh_1ac39411fdd76a89d7472f95cc083db3e6" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>loadMem</name></member>
+      <member refid="classShaderMesh_1a3c10fc1c24a430876d40b83964feb0c3" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>patchData</name></member>
+      <member refid="classShaderMesh_1ab2a11acb6f62ee934ec0234ef8280b9f" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>rebaseAndClone</name></member>
+      <member refid="classShaderMesh_1a5787a251b868dc3a035ceaf40a116996" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>releaseTexRefs</name></member>
+      <member refid="classShaderMesh_1abfb35dcc47dd05a3f49d0db7cf5e852b" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>render</name></member>
+      <member refid="classShaderMesh_1ae22e4026ab3a56d149cb11bcc434063a" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>render</name></member>
+      <member refid="classShaderMesh_1a7be5bee738c477bd5ec20be7e23eb1b6" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>render_distortion</name></member>
+      <member refid="classShaderMesh_1a377e86b7180a7adec9d062c4f2d46672" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>render_trans</name></member>
+      <member refid="classShaderMesh_1aeadf411f5ebb98e46394aecb07366ff5" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>renderRawImmediate</name></member>
+      <member refid="classShaderMesh_1ae1810749b6e0fbf462b3e80a9fc3a749" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>renderWithFilter</name></member>
+      <member refid="classShaderMesh_1a86709af0e285f340640525ccf18ea67e" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>renderWithShader</name></member>
+      <member refid="classShaderMesh_1a1a92208be6301b614999e988808e972a" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>replaceTexture</name></member>
+      <member refid="classShaderMesh_1a6f01700adf0274cd88eca5d77a32c2d3" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>set_material_pass</name></member>
+      <member refid="classShaderMesh_1a6f02b701b637f11b10895cec999610f6" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>ShaderMesh</name></member>
+      <member refid="classShaderMesh_1abaf5afe2b4287c143833a57c1ee7cb86" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>ShaderMeshData</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1d" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>Stage</name></member>
+      <member refid="classShaderMesh_1a0e24c455407fd2167361fff81d3c7494" prot="private" virt="non-virtual"><scope>ShaderMesh</scope><name>stageEndElemIdx</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da3efe96637bad34a92ce55424f09699ab" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_atest</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da1f6373ce40029291ea4e845619bfeb06" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_COUNT</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dad7358232439ed6dc44f833fde564b6c4" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_decal</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da35fe1f89dfd9d5202fc5b3933a027022" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_distortion</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1da41df17239172b7db21161ffa56a492a3" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_imm_decal</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dad28963a5aa79e5820de0661d5d485b88" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_opaque</name></member>
+      <member refid="classShaderMesh_1ac812708bab4e56f56f469d79a2981e1dac3c1679567d1bc7ca881a4be3ccca174" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>STG_trans</name></member>
+      <member refid="classShaderMesh_1a1b7394a24ae4cd61abd3532ed13727c6" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>updateShaderElems</name></member>
+      <member refid="classShaderMesh_1a5819b74486f270186a9d5bcbcf31cbbf" prot="public" virt="non-virtual"><scope>ShaderMesh</scope><name>~ShaderMesh</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

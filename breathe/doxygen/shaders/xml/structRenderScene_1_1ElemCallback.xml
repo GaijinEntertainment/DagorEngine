@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1ElemCallback" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>RenderScene::ElemCallback</compoundname>
+    <innerclass refid="structRenderScene_1_1ElemCallback_1_1Data" prot="public">RenderScene::ElemCallback::Data</innerclass>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderScene_1_1ElemCallback_1a5b564dd9c7867e187d7f5c3a5d429738" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderScene::ElemCallback::on_elem_found</definition>
+        <argsstring>(const Data &amp;data)=0</argsstring>
+        <name>on_elem_found</name>
+        <qualifiedname>RenderScene::ElemCallback::on_elem_found</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderScene_1_1ElemCallback_1_1Data" kindref="compound">Data</ref> &amp;</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="355" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderScene.h" line="333" column="3" bodyfile="dag_renderScene.h" bodystart="334" bodyend="356"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1ElemCallback_1a5b564dd9c7867e187d7f5c3a5d429738" prot="public" virt="pure-virtual"><scope>RenderScene::ElemCallback</scope><name>on_elem_found</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

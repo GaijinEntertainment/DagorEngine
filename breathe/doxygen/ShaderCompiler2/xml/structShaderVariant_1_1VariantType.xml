@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderVariant_1_1VariantType" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderVariant::VariantType</compoundname>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantType_1ac41c9fcfa36cd0e994689c101666a7bd" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+        <definition>BaseType ShaderVariant::VariantType::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderVariant::VariantType::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="24" column="12" bodyfile="shaderVariant.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantType_1a0bfde85cc8794c633c641e3aa4f32051" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+        <definition>ExtType ShaderVariant::VariantType::extType</definition>
+        <argsstring></argsstring>
+        <name>extType</name>
+        <qualifiedname>ShaderVariant::VariantType::extType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="25" column="11" bodyfile="shaderVariant.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantType_1aa4096a5d7cc4d33a52a4430a575bb975" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" kindref="member">ValueRange</ref></type>
+        <definition>ValueRange ShaderVariant::VariantType::valRange</definition>
+        <argsstring></argsstring>
+        <name>valRange</name>
+        <qualifiedname>ShaderVariant::VariantType::valRange</qualifiedname>
+        <initializer>{0, 0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="26" column="14" bodyfile="shaderVariant.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderVariant_1_1VariantType_1a69e7c12ed3501fa7d3a6662376dc1801" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantType::VariantType</definition>
+        <argsstring>()=default</argsstring>
+        <name>VariantType</name>
+        <qualifiedname>ShaderVariant::VariantType::VariantType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="22" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1VariantType_1a633eeb5f1588d36036b8b8ac4a2f80d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantType::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(const Interval *interval=nullptr)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderVariant::VariantType::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> *</type>
+          <declname>interval</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="27" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1VariantType_1a00202787a5ac04def303ac26e14fc90c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantType::VariantType</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype)</argsstring>
+        <name>VariantType</name>
+        <qualifiedname>ShaderVariant::VariantType::VariantType</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="29" column="10" bodyfile="shaderVariant.h" bodystart="29" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1VariantType_1a59388666b46c4efd2244564b95b58166" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariant::VariantType::isEqual</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype) const</argsstring>
+        <name>isEqual</name>
+        <qualifiedname>ShaderVariant::VariantType::isEqual</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="32" column="15" bodyfile="shaderVariant.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.h" line="19" column="1" bodyfile="shaderVariant.h" bodystart="20" bodyend="33"/>
+    <listofallmembers>
+      <member refid="structShaderVariant_1_1VariantType_1a633eeb5f1588d36036b8b8ac4a2f80d6" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1a0bfde85cc8794c633c641e3aa4f32051" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>extType</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1a59388666b46c4efd2244564b95b58166" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>isEqual</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1ac41c9fcfa36cd0e994689c101666a7bd" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>type</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1aa4096a5d7cc4d33a52a4430a575bb975" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>valRange</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1a69e7c12ed3501fa7d3a6662376dc1801" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>VariantType</name></member>
+      <member refid="structShaderVariant_1_1VariantType_1a00202787a5ac04def303ac26e14fc90c" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantType</scope><name>VariantType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

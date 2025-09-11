@@ -1,0 +1,255 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1ElemCallback_1_1Data" kind="struct" language="C++" prot="public">
+    <compoundname>RenderScene::ElemCallback::Data</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a38e51c9b5eb013ce8849475f184f3236" prot="public" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* RenderScene::ElemCallback::Data::vertices</definition>
+        <argsstring></argsstring>
+        <name>vertices</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::vertices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="337" column="15" bodyfile="dag_renderScene.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1aaa1990fb52b1611c5bc6cdea93b84536" prot="public" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* RenderScene::ElemCallback::Data::indices</definition>
+        <argsstring></argsstring>
+        <name>indices</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::indices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="338" column="15" bodyfile="dag_renderScene.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a79e6df296616423891beaead4fcda71c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::startVertex</definition>
+        <argsstring></argsstring>
+        <name>startVertex</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::startVertex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="339" column="11" bodyfile="dag_renderScene.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a0f53627dc60ea5fb8b1c3097dce1b82c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::startIndex</definition>
+        <argsstring></argsstring>
+        <name>startIndex</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::startIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="340" column="11" bodyfile="dag_renderScene.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1aa9b4a4278d8eea37dd3c142524af411f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::vertexCount</definition>
+        <argsstring></argsstring>
+        <name>vertexCount</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::vertexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="341" column="11" bodyfile="dag_renderScene.h" bodystart="341" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a13bae0abaa2f8e0e7da5bd2f996666a4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::indexCount</definition>
+        <argsstring></argsstring>
+        <name>indexCount</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::indexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="342" column="11" bodyfile="dag_renderScene.h" bodystart="342" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a087b3e4149768c932f4788e944350996" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::vertexStride</definition>
+        <argsstring></argsstring>
+        <name>vertexStride</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::vertexStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="343" column="11" bodyfile="dag_renderScene.h" bodystart="343" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a914c34dba222ef15ab2e2d4b2cb5bd07" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::positionOffset</definition>
+        <argsstring></argsstring>
+        <name>positionOffset</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::positionOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="344" column="11" bodyfile="dag_renderScene.h" bodystart="344" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a8a992ffdcceb7783331468e1fd08169e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::positionFormat</definition>
+        <argsstring></argsstring>
+        <name>positionFormat</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::positionFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="345" column="11" bodyfile="dag_renderScene.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a31c08d5cfda62abda67173070137e9db" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::texcoordOffset</definition>
+        <argsstring></argsstring>
+        <name>texcoordOffset</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::texcoordOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="346" column="11" bodyfile="dag_renderScene.h" bodystart="346" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a22121663835e57d7c0f4893b210ee021" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::texcoordFormat</definition>
+        <argsstring></argsstring>
+        <name>texcoordFormat</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::texcoordFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="347" column="11" bodyfile="dag_renderScene.h" bodystart="347" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1ad472d1bc8235100850ec71154db34fd2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::normalOffset</definition>
+        <argsstring></argsstring>
+        <name>normalOffset</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::normalOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="348" column="11" bodyfile="dag_renderScene.h" bodystart="348" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1af29551df6fa2c7c0d6a95e07fcca1226" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::normalFormat</definition>
+        <argsstring></argsstring>
+        <name>normalFormat</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::normalFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="349" column="11" bodyfile="dag_renderScene.h" bodystart="349" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a6cb5929c8d68738c0ad5ba06fb3f983a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::colorOffset</definition>
+        <argsstring></argsstring>
+        <name>colorOffset</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::colorOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="350" column="11" bodyfile="dag_renderScene.h" bodystart="350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a2b949648db666f5fab38462a253f3b5c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::ElemCallback::Data::colorFormat</definition>
+        <argsstring></argsstring>
+        <name>colorFormat</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::colorFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="351" column="11" bodyfile="dag_renderScene.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1ElemCallback_1_1Data_1a48a081516d94977ab7d67c4941d6fe14" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID RenderScene::ElemCallback::Data::albedoTextureId</definition>
+        <argsstring></argsstring>
+        <name>albedoTextureId</name>
+        <qualifiedname>RenderScene::ElemCallback::Data::albedoTextureId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="352" column="17" bodyfile="dag_renderScene.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderScene.h" line="335" column="5" bodyfile="dag_renderScene.h" bodystart="336" bodyend="353"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a48a081516d94977ab7d67c4941d6fe14" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>albedoTextureId</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a2b949648db666f5fab38462a253f3b5c" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>colorFormat</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a6cb5929c8d68738c0ad5ba06fb3f983a" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>colorOffset</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a13bae0abaa2f8e0e7da5bd2f996666a4" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>indexCount</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1aaa1990fb52b1611c5bc6cdea93b84536" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>indices</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1af29551df6fa2c7c0d6a95e07fcca1226" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>normalFormat</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1ad472d1bc8235100850ec71154db34fd2" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>normalOffset</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a8a992ffdcceb7783331468e1fd08169e" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>positionFormat</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a914c34dba222ef15ab2e2d4b2cb5bd07" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>positionOffset</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a0f53627dc60ea5fb8b1c3097dce1b82c" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>startIndex</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a79e6df296616423891beaead4fcda71c" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>startVertex</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a22121663835e57d7c0f4893b210ee021" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>texcoordFormat</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a31c08d5cfda62abda67173070137e9db" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>texcoordOffset</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1aa9b4a4278d8eea37dd3c142524af411f" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>vertexCount</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a087b3e4149768c932f4788e944350996" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>vertexStride</name></member>
+      <member refid="structRenderScene_1_1ElemCallback_1_1Data_1a38e51c9b5eb013ce8849475f184f3236" prot="public" virt="non-virtual"><scope>RenderScene::ElemCallback::Data</scope><name>vertices</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSkinnedMesh_1_1WorkData" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderSkinnedMesh::WorkData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1WorkData_1a0993859ab1b93577c35556ff3e3422db" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; TMatrix, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;TMatrix, MidmemAlloc&gt; ShaderSkinnedMesh::WorkData::tm</definition>
+        <argsstring></argsstring>
+        <name>tm</name>
+        <qualifiedname>ShaderSkinnedMesh::WorkData::tm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="89" column="14" bodyfile="dag_shSkinMesh.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1WorkData_1ab0d82858edb737fd436b028940eace7d" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; dag::Span&lt; Color4 &gt;, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;dag::Span&lt;Color4&gt;, MidmemAlloc&gt; ShaderSkinnedMesh::WorkData::matTabVprArray</definition>
+        <argsstring></argsstring>
+        <name>matTabVprArray</name>
+        <qualifiedname>ShaderSkinnedMesh::WorkData::matTabVprArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="90" column="14" bodyfile="dag_shSkinMesh.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1WorkData_1a4e5e5b00cb7f67d550510e42035e169f" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; Color4, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;Color4, MidmemAlloc&gt; ShaderSkinnedMesh::WorkData::vprArrayStor</definition>
+        <argsstring></argsstring>
+        <name>vprArrayStor</name>
+        <qualifiedname>ShaderSkinnedMesh::WorkData::vprArrayStor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="91" column="14" bodyfile="dag_shSkinMesh.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shSkinMesh.h" line="87" column="3" bodyfile="dag_shSkinMesh.h" bodystart="88" bodyend="92"/>
+    <listofallmembers>
+      <member refid="structShaderSkinnedMesh_1_1WorkData_1ab0d82858edb737fd436b028940eace7d" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::WorkData</scope><name>matTabVprArray</name></member>
+      <member refid="structShaderSkinnedMesh_1_1WorkData_1a0993859ab1b93577c35556ff3e3422db" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::WorkData</scope><name>tm</name></member>
+      <member refid="structShaderSkinnedMesh_1_1WorkData_1a4e5e5b00cb7f67d550510e42035e169f" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::WorkData</scope><name>vprArrayStor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,520 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classHlslRegAllocator" kind="class" language="C++" prot="public">
+    <compoundname>HlslRegAllocator</compoundname>
+    <includes refid="hlslRegisters_8h" local="no">hlslRegisters.h</includes>
+    <innerclass refid="structHlslRegAllocator_1_1Policy" prot="public">HlslRegAllocator::Policy</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1ReserveFailure" prot="public">HlslRegAllocator::ReserveFailure</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1ReserveSuccess" prot="public">HlslRegAllocator::ReserveSuccess</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1Slot" prot="private">HlslRegAllocator::Slot</innerclass>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classHlslRegAllocator_1aacf09f6ed5f0854a379b5a1205db3ed0" prot="private" static="no">
+        <type>int32_t(*)(<ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;, uint32_t)</type>
+        <definition>using HlslRegAllocator::allocator_scan_routine_t =  int32_t (*)(HlslRegAllocator &amp;, uint32_t)</definition>
+        <argsstring></argsstring>
+        <name>allocator_scan_routine_t</name>
+        <qualifiedname>HlslRegAllocator::allocator_scan_routine_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="100" column="3" bodyfile="hlslRegisters.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* HlslRegAllocator::SLOT_SEMANTIC_DESCS[]</definition>
+        <argsstring>[]</argsstring>
+        <name>SLOT_SEMANTIC_DESCS</name>
+        <qualifiedname>HlslRegAllocator::SLOT_SEMANTIC_DESCS</qualifiedname>
+        <initializer>{
+    &quot;allocated&quot;,                
+    &quot;hardcoded&quot;,                
+    &quot;supp blk&quot;,                 
+    &quot;predefined&quot;,               
+    &quot;implicit const buf&quot;,       
+    &quot;global const buf&quot;,         
+    &quot;material params const buf&quot; 
+  }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="103" column="31" bodyfile="hlslRegisters.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHlslRegAllocator_1ab7e50b1fbb35f345fa3e8790fcc327b4" prot="public" static="yes" mutable="no">
+        <type>const allocator_scan_routine_t</type>
+        <definition>const HlslRegAllocator::allocator_scan_routine_t HlslRegAllocator::DEFAULT_SCAN</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_SCAN</name>
+        <qualifiedname>HlslRegAllocator::DEFAULT_SCAN</qualifiedname>
+        <initializer>= +[](<ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;alloc, uint32_t count) {
+  for (uint32_t i = alloc.policy.base; i &lt;= alloc.policy.cap - count; ++i)
+  {
+    if (alloc.slots.size() &lt; i + count)
+      alloc.slots.resize(i + count);
+    uint32_t lastTaken = -1;
+    for (uint32_t j = i; j &lt; i + count; ++j)
+    {
+      if (alloc.slots[j].used)
+        lastTaken = j;
+    }
+
+    if (lastTaken == -1)
+      return int32_t(i);
+    else
+      i = lastTaken;
+  }
+  return int32_t{-1};
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="113" column="41" bodyfile="hlslRegisters.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHlslRegAllocator_1a0a0fb25b42e5cd874779eac543d809ab" prot="public" static="yes" mutable="no">
+        <type>const allocator_scan_routine_t</type>
+        <definition>const HlslRegAllocator::allocator_scan_routine_t HlslRegAllocator::BACKWARDS_SCAN</definition>
+        <argsstring></argsstring>
+        <name>BACKWARDS_SCAN</name>
+        <qualifiedname>HlslRegAllocator::BACKWARDS_SCAN</qualifiedname>
+        <initializer>= +[](<ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;alloc, uint32_t count) {
+  G_ASSERT(alloc.policy.cap &lt; INT16_MAX); 
+  for (uint32_t i = alloc.policy.cap - count; i != alloc.policy.base - 1; --i)
+  {
+    if (alloc.slots.size() &lt; i + count)
+      alloc.slots.resize(i + count);
+    uint32_t firstTaken = -1;
+    for (uint32_t j = i; j &lt; i + count; ++j)
+    {
+      if (alloc.slots[j].used)
+      {
+        firstTaken = j;
+        break;
+      }
+    }
+
+    if (firstTaken == -1)
+      return int32_t(i);
+    else
+      i = firstTaken - count + 1;
+  }
+  return int32_t{-1};
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="113" column="54" bodyfile="hlslRegisters.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classHlslRegAllocator_1a049266bece4d7386a88cbdbb000962ec" prot="private" static="no" mutable="no">
+        <type>dag::Vector&lt; Slot &gt;</type>
+        <definition>dag::Vector&lt;Slot&gt; HlslRegAllocator::slots</definition>
+        <argsstring></argsstring>
+        <name>slots</name>
+        <qualifiedname>HlslRegAllocator::slots</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="129" column="15" bodyfile="hlslRegisters.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHlslRegAllocator_1a7bd0e169559013e0b96a5066e6707363" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t HlslRegAllocator::minUsed</definition>
+        <argsstring></argsstring>
+        <name>minUsed</name>
+        <qualifiedname>HlslRegAllocator::minUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="130" column="12" bodyfile="hlslRegisters.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHlslRegAllocator_1a692948e6cf21f4d311d394c9baff252f" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t HlslRegAllocator::usedCap</definition>
+        <argsstring></argsstring>
+        <name>usedCap</name>
+        <qualifiedname>HlslRegAllocator::usedCap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="130" column="20" bodyfile="hlslRegisters.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHlslRegAllocator_1a7a997b88e28c6fa1edec36955b77523a" prot="private" static="no" mutable="no">
+        <type><ref refid="structHlslRegAllocator_1_1Policy" kindref="compound">Policy</ref></type>
+        <definition>Policy HlslRegAllocator::policy</definition>
+        <argsstring></argsstring>
+        <name>policy</name>
+        <qualifiedname>HlslRegAllocator::policy</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="131" column="10" bodyfile="hlslRegisters.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classHlslRegAllocator_1aab1c9b85f985e42d33cb8793ee0112c3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>HlslRegAllocator::HlslRegAllocator</definition>
+        <argsstring>()=default</argsstring>
+        <name>HlslRegAllocator</name>
+        <qualifiedname>HlslRegAllocator::HlslRegAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="134" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1affc189483f4372c4aad958b0794fcab1" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>HlslRegAllocator::HlslRegAllocator</definition>
+        <argsstring>(Policy policy)</argsstring>
+        <name>HlslRegAllocator</name>
+        <qualifiedname>HlslRegAllocator::HlslRegAllocator</qualifiedname>
+        <param>
+          <type><ref refid="structHlslRegAllocator_1_1Policy" kindref="compound">Policy</ref></type>
+          <declname>policy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="135" column="12" bodyfile="hlslRegisters.h" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange HlslRegAllocator::maxAllowedRange</definition>
+        <argsstring>() const</argsstring>
+        <name>maxAllowedRange</name>
+        <qualifiedname>HlslRegAllocator::maxAllowedRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="137" column="16" bodyfile="hlslRegisters.h" bodystart="137" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1af6f2fc8f858abd7ecdeaa771294f823a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange HlslRegAllocator::getRange</definition>
+        <argsstring>() const</argsstring>
+        <name>getRange</name>
+        <qualifiedname>HlslRegAllocator::getRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="139" column="16" bodyfile="hlslRegisters.h" bodystart="139" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1afe86acad3aaa2bae5ac69ed533331407" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange HlslRegAllocator::getRange</definition>
+        <argsstring>(HlslSlotSemantic semantic) const</argsstring>
+        <name>getRange</name>
+        <qualifiedname>HlslRegAllocator::getRange</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>semantic</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="146" column="16" bodyfile="hlslRegisters.h" bodystart="146" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a964d2f652f250019bdd65c09d8ccf81c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool HlslRegAllocator::hasRegs</definition>
+        <argsstring>() const</argsstring>
+        <name>hasRegs</name>
+        <qualifiedname>HlslRegAllocator::hasRegs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="151" column="8" bodyfile="hlslRegisters.h" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a79166c20bb4690775d53a027ecc896e3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool HlslRegAllocator::hasRegs</definition>
+        <argsstring>(HlslSlotSemantic semantic) const</argsstring>
+        <name>hasRegs</name>
+        <qualifiedname>HlslRegAllocator::hasRegs</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>semantic</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="152" column="8" bodyfile="hlslRegisters.h" bodystart="152" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a2b029b0d7921e51c2a6f6294cc0decd7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int32_t</type>
+        <definition>int32_t HlslRegAllocator::allocate</definition>
+        <argsstring>(uint32_t count=1)</argsstring>
+        <name>allocate</name>
+        <qualifiedname>HlslRegAllocator::allocate</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="158" column="11" bodyfile="hlslRegisters.h" bodystart="158" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1ac1c6103f9dbb6412948245937d360883" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref> &gt;</type>
+        <definition>eastl::optional&lt; HlslSlotSemantic &gt; HlslRegAllocator::peekSlotSemantic</definition>
+        <argsstring>(int32_t reg) const</argsstring>
+        <name>peekSlotSemantic</name>
+        <qualifiedname>HlslRegAllocator::peekSlotSemantic</qualifiedname>
+        <param>
+          <type>int32_t</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="187" column="19" bodyfile="hlslRegisters.h" bodystart="187" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1af3285ba44deadaf1f86ab4e24eda80d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Expected&lt; <ref refid="structHlslRegAllocator_1_1ReserveSuccess" kindref="compound">ReserveSuccess</ref>, <ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">ReserveFailure</ref> &gt;</type>
+        <definition>dag::Expected&lt; ReserveSuccess, ReserveFailure &gt; HlslRegAllocator::reserve</definition>
+        <argsstring>(HlslSlotSemantic semantic, int32_t reg, uint32_t count=1)</argsstring>
+        <name>reserve</name>
+        <qualifiedname>HlslRegAllocator::reserve</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>semantic</declname>
+        </param>
+        <param>
+          <type>int32_t</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="194" column="17" bodyfile="hlslRegisters.h" bodystart="194" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a5e73451984c98b704710b577882c8d72" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Expected&lt; <ref refid="structHlslRegAllocator_1_1ReserveSuccess" kindref="compound">ReserveSuccess</ref>, Tab&lt; <ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">ReserveFailure</ref> &gt; &gt;</type>
+        <definition>dag::Expected&lt; ReserveSuccess, Tab&lt; ReserveFailure &gt; &gt; HlslRegAllocator::reserveAllFrom</definition>
+        <argsstring>(const HlslRegAllocator &amp;supp)</argsstring>
+        <name>reserveAllFrom</name>
+        <qualifiedname>HlslRegAllocator::reserveAllFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;</type>
+          <declname>supp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="221" column="17" bodyfile="hlslRegisters.h" bodystart="221" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a6a3fcec872163e786ff567a8be13d748" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool HlslRegAllocator::unreserveIfUsed</definition>
+        <argsstring>(HlslSlotSemantic semantic, int32_t reg, uint32_t count=1)</argsstring>
+        <name>unreserveIfUsed</name>
+        <qualifiedname>HlslRegAllocator::unreserveIfUsed</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>semantic</declname>
+        </param>
+        <param>
+          <type>int32_t</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="243" column="8" bodyfile="hlslRegisters.h" bodystart="243" bodyend="258"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1aa79dbcec7d04fbdd6bab3e6ca2bd0e22" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void HlslRegAllocator::dumpUsage</definition>
+        <argsstring>(HlslRegisterSpace space, auto &amp;&amp;logger, auto &amp;&amp;info_provider) const</argsstring>
+        <name>dumpUsage</name>
+        <qualifiedname>HlslRegAllocator::dumpUsage</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>space</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>logger</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>info_provider</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="260" column="8" bodyfile="hlslRegisters.h" bodystart="260" bodyend="277"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TPred</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange HlslRegAllocator::getRangeImpl</definition>
+        <argsstring>(TPred &amp;&amp;pred) const</argsstring>
+        <name>getRangeImpl</name>
+        <qualifiedname>HlslRegAllocator::getRangeImpl</qualifiedname>
+        <param>
+          <type>TPred &amp;&amp;</type>
+          <declname>pred</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="280" column="16" bodyfile="hlslRegisters.h" bodystart="280" bodyend="297"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void HlslRegAllocator::updateRange</definition>
+        <argsstring>(int32_t reg, uint32_t count=1)</argsstring>
+        <name>updateRange</name>
+        <qualifiedname>HlslRegAllocator::updateRange</qualifiedname>
+        <param>
+          <type>int32_t</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="299" column="8" bodyfile="hlslRegisters.h" bodystart="299" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classHlslRegAllocator_1a44dd526b3083a1a4ccdbfdc055b13f5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void HlslRegAllocator::recalculateRange</definition>
+        <argsstring>()</argsstring>
+        <name>recalculateRange</name>
+        <qualifiedname>HlslRegAllocator::recalculateRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="305" column="8" bodyfile="hlslRegisters.h" bodystart="305" bodyend="310"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hlslRegisters.h" line="98" column="1" bodyfile="hlslRegisters.h" bodystart="99" bodyend="311"/>
+    <listofallmembers>
+      <member refid="classHlslRegAllocator_1a2b029b0d7921e51c2a6f6294cc0decd7" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>allocate</name></member>
+      <member refid="classHlslRegAllocator_1aacf09f6ed5f0854a379b5a1205db3ed0" prot="private" virt="non-virtual"><scope>HlslRegAllocator</scope><name>allocator_scan_routine_t</name></member>
+      <member refid="classHlslRegAllocator_1a0a0fb25b42e5cd874779eac543d809ab" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>BACKWARDS_SCAN</name></member>
+      <member refid="classHlslRegAllocator_1ab7e50b1fbb35f345fa3e8790fcc327b4" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>DEFAULT_SCAN</name></member>
+      <member refid="classHlslRegAllocator_1aa79dbcec7d04fbdd6bab3e6ca2bd0e22" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>dumpUsage</name></member>
+      <member refid="classHlslRegAllocator_1af6f2fc8f858abd7ecdeaa771294f823a" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>getRange</name></member>
+      <member refid="classHlslRegAllocator_1afe86acad3aaa2bae5ac69ed533331407" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>getRange</name></member>
+      <member refid="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>getRangeImpl</name></member>
+      <member refid="classHlslRegAllocator_1a964d2f652f250019bdd65c09d8ccf81c" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>hasRegs</name></member>
+      <member refid="classHlslRegAllocator_1a79166c20bb4690775d53a027ecc896e3" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>hasRegs</name></member>
+      <member refid="classHlslRegAllocator_1aab1c9b85f985e42d33cb8793ee0112c3" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>HlslRegAllocator</name></member>
+      <member refid="classHlslRegAllocator_1affc189483f4372c4aad958b0794fcab1" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>HlslRegAllocator</name></member>
+      <member refid="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>maxAllowedRange</name></member>
+      <member refid="classHlslRegAllocator_1a7bd0e169559013e0b96a5066e6707363" prot="private" virt="non-virtual"><scope>HlslRegAllocator</scope><name>minUsed</name></member>
+      <member refid="classHlslRegAllocator_1ac1c6103f9dbb6412948245937d360883" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>peekSlotSemantic</name></member>
+      <member refid="classHlslRegAllocator_1a7a997b88e28c6fa1edec36955b77523a" prot="private" virt="non-virtual"><scope>HlslRegAllocator</scope><name>policy</name></member>
+      <member refid="classHlslRegAllocator_1a44dd526b3083a1a4ccdbfdc055b13f5e" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>recalculateRange</name></member>
+      <member refid="classHlslRegAllocator_1af3285ba44deadaf1f86ab4e24eda80d1" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>reserve</name></member>
+      <member refid="classHlslRegAllocator_1a5e73451984c98b704710b577882c8d72" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>reserveAllFrom</name></member>
+      <member refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>SLOT_SEMANTIC_DESCS</name></member>
+      <member refid="classHlslRegAllocator_1a049266bece4d7386a88cbdbb000962ec" prot="private" virt="non-virtual"><scope>HlslRegAllocator</scope><name>slots</name></member>
+      <member refid="classHlslRegAllocator_1a6a3fcec872163e786ff567a8be13d748" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>unreserveIfUsed</name></member>
+      <member refid="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" prot="public" virt="non-virtual"><scope>HlslRegAllocator</scope><name>updateRange</name></member>
+      <member refid="classHlslRegAllocator_1a692948e6cf21f4d311d394c9baff252f" prot="private" virt="non-virtual"><scope>HlslRegAllocator</scope><name>usedCap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

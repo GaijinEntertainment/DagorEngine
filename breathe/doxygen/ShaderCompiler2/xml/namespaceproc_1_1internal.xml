@@ -1,0 +1,378 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceproc_1_1internal" kind="namespace" language="C++">
+    <compoundname>proc::internal</compoundname>
+    <innerclass refid="structproc_1_1internal_1_1ExecutionState" prot="public">proc::internal::ExecutionState</innerclass>
+    <innerclass refid="structproc_1_1internal_1_1ExtraStateData" prot="public">proc::internal::ExtraStateData</innerclass>
+    <innerclass refid="structproc_1_1internal_1_1OutputSink" prot="public">proc::internal::OutputSink</innerclass>
+    <innerclass refid="unionproc_1_1internal_1_1Pipe" prot="public">proc::internal::Pipe</innerclass>
+    <innerclass refid="structproc_1_1internal_1_1ProcessData" prot="public">proc::internal::ProcessData</innerclass>
+    <innerclass refid="structproc_1_1internal_1_1ProcessHandle" prot="public">proc::internal::ProcessHandle</innerclass>
+    <innerclass refid="structproc_1_1internal_1_1SigchldContext" prot="public">proc::internal::SigchldContext</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7c" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>SinkHandle</name>
+        <qualifiedname>proc::internal::SinkHandle</qualifiedname>
+        <enumvalue id="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7caccc0377a8afbf50e7094f5c23a8af223" prot="public">
+          <name>INVALID</name>
+          <initializer>= uint32_t(-1)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="27" column="1" bodyfile="processes_impl.h" bodystart="28" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24a" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>AwaitResult</name>
+        <qualifiedname>proc::internal::AwaitResult</qualifiedname>
+        <enumvalue id="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aaeabec104085a41ddaf3d1bf51e8662dd" prot="public">
+          <name>ALL_SUCCEEDED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aa1d645d8f91c3389ba01ed60174902e87" prot="public">
+          <name>SOME_FAILED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aaeb33eebbfae2724bc463f0e6ecfe7acb" prot="public">
+          <name>CANCELLED_BY_USER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aa070a0fb40f6c308ab544b227660aadff" prot="public">
+          <name>TIMEOUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="56" column="1" bodyfile="processes_impl.h" bodystart="57" bodyend="62"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceproc_1_1internal_1a8b2030d52046c536f22dc3f875c98c47" prot="public" static="no">
+        <type>sigaction</type>
+        <definition>using proc::internal::Sigaction = typedef sigaction</definition>
+        <argsstring></argsstring>
+        <name>Sigaction</name>
+        <qualifiedname>proc::internal::Sigaction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="26" column="1" bodyfile="processes_unix.cpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceproc_1_1internal_1a14600a831f3eac0fffde2ddedaa8a192" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int proc::internal::NO_TIMEOUT</definition>
+        <argsstring></argsstring>
+        <name>NO_TIMEOUT</name>
+        <qualifiedname>proc::internal::NO_TIMEOUT</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="64" column="15" bodyfile="processes_impl.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceproc_1_1internal_1a9c2384f6df049e9f7dca88033d33f5d4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t proc::internal::CANCELLATION_TOKEN</definition>
+        <argsstring></argsstring>
+        <name>CANCELLATION_TOKEN</name>
+        <qualifiedname>proc::internal::CANCELLATION_TOKEN</qualifiedname>
+        <initializer>= &apos;stop&apos;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="37" column="27" bodyfile="processes_unix.cpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceproc_1_1internal_1aecb48685d4611b60c52e0f79876492ef" prot="public" static="yes" mutable="no">
+        <type><ref refid="structproc_1_1internal_1_1SigchldContext" kindref="compound">SigchldContext</ref></type>
+        <definition>SigchldContext proc::internal::g_sigchld_ctx</definition>
+        <argsstring></argsstring>
+        <name>g_sigchld_ctx</name>
+        <qualifiedname>proc::internal::g_sigchld_ctx</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="59" column="23" bodyfile="processes_unix.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a4905227b272aef8099609719028dffba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::init_state</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>init_state</name>
+        <qualifiedname>proc::internal::init_state</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="61" column="6" bodyfile="processes_unix.cpp" bodystart="61" bodyend="95" declfile="processes_impl.h" declline="66" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a19b4179d06707dea59dea74999925c80" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::deinit_state</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>deinit_state</name>
+        <qualifiedname>proc::internal::deinit_state</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="97" column="6" bodyfile="processes_unix.cpp" bodystart="97" bodyend="105" declfile="processes_impl.h" declline="67" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a6f862e381c8b02a8b325d2a8553a1bd9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::start_execution</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>start_execution</name>
+        <qualifiedname>proc::internal::start_execution</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="107" column="6" bodyfile="processes_unix.cpp" bodystart="107" bodyend="107" declfile="processes_impl.h" declline="69" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1aece7975439e3ef6b29a1cba7bab509ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::end_execution</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>end_execution</name>
+        <qualifiedname>proc::internal::end_execution</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="109" column="6" bodyfile="processes_unix.cpp" bodystart="109" bodyend="114" declfile="processes_impl.h" declline="70" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a4a114e1b87e6f949387bf2de9d1d2b19" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24a" kindref="member">AwaitResult</ref></type>
+        <definition>AwaitResult proc::internal::await_processes</definition>
+        <argsstring>(ExecutionState &amp;state, bool listen_to_cancellation_event, int timeout_ms=NO_TIMEOUT)</argsstring>
+        <name>await_processes</name>
+        <qualifiedname>proc::internal::await_processes</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>listen_to_cancellation_event</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout_ms</declname>
+          <defval><ref refid="namespaceproc_1_1internal_1a14600a831f3eac0fffde2ddedaa8a192" kindref="member">NO_TIMEOUT</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="116" column="13" bodyfile="processes_unix.cpp" bodystart="116" bodyend="200" declfile="processes_impl.h" declline="72" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1ad837746d9e2f36aefca39e78d569ae4e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structproc_1_1internal_1_1ProcessHandle" kindref="compound">ProcessHandle</ref> &gt;</type>
+        <definition>eastl::optional&lt; ProcessHandle &gt; proc::internal::spawn_process</definition>
+        <argsstring>(ExecutionState &amp;state, ProcessTask &amp;&amp;task)</argsstring>
+        <name>spawn_process</name>
+        <qualifiedname>proc::internal::spawn_process</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref> &amp;&amp;</type>
+          <declname>task</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="225" column="17" bodyfile="processes_unix.cpp" bodystart="225" bodyend="260" declfile="processes_impl.h" declline="73" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1ace481c1794d7a8c1214e97993a7dbc48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::serve_process_output</definition>
+        <argsstring>(ExecutionState &amp;state, ProcessHandle &amp;hnd)</argsstring>
+        <name>serve_process_output</name>
+        <qualifiedname>proc::internal::serve_process_output</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ProcessHandle" kindref="compound">ProcessHandle</ref> &amp;</type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="262" column="6" bodyfile="processes_unix.cpp" bodystart="262" bodyend="285" declfile="processes_impl.h" declline="74" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a3a8e8a76befc94e8fb0412f6b498c634" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::send_interrupt_signal_to_process</definition>
+        <argsstring>(const ProcessHandle &amp;process)</argsstring>
+        <name>send_interrupt_signal_to_process</name>
+        <qualifiedname>proc::internal::send_interrupt_signal_to_process</qualifiedname>
+        <param>
+          <type>const <ref refid="structproc_1_1internal_1_1ProcessHandle" kindref="compound">ProcessHandle</ref> &amp;</type>
+          <declname>process</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="287" column="6" bodyfile="processes_unix.cpp" bodystart="287" bodyend="287" declfile="processes_impl.h" declline="75" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1aa7c8c1690b4664163b51eb9ca5351472" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::kill_process</definition>
+        <argsstring>(const ProcessHandle &amp;process)</argsstring>
+        <name>kill_process</name>
+        <qualifiedname>proc::internal::kill_process</qualifiedname>
+        <param>
+          <type>const <ref refid="structproc_1_1internal_1_1ProcessHandle" kindref="compound">ProcessHandle</ref> &amp;</type>
+          <declname>process</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="288" column="6" bodyfile="processes_unix.cpp" bodystart="288" bodyend="288" declfile="processes_impl.h" declline="76" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a6cd68800bcaada199b72a5320a36adf6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::internal::fire_cancellation_event</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>fire_cancellation_event</name>
+        <qualifiedname>proc::internal::fire_cancellation_event</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="290" column="6" bodyfile="processes_unix.cpp" bodystart="290" bodyend="294" declfile="processes_impl.h" declline="78" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a380409f5942021dd79e8103e08c5b9ea" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref></type>
+        <definition>static Pipe proc::internal::get_output_pipe</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>get_output_pipe</name>
+        <qualifiedname>proc::internal::get_output_pipe</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="202" column="13" bodyfile="processes_unix.cpp" bodystart="202" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1_1internal_1a380409f5942021dd79e8103e08c5b9ea" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref></type>
+        <definition>static Pipe proc::internal::get_output_pipe</definition>
+        <argsstring>(ExecutionState &amp;state)</argsstring>
+        <name>get_output_pipe</name>
+        <qualifiedname>proc::internal::get_output_pipe</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="115" column="13" bodyfile="processes_win.cpp" bodystart="115" bodyend="135"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes_impl.h" line="13" column="1"/>
+  </compounddef>
+</doxygen>

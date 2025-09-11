@@ -1,0 +1,313 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMatConvUtil" kind="class" language="C++" prot="public">
+    <compoundname>MatConvUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* MatConvUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>MatConvUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="46" column="9" bodyfile="matConvUtil.cpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* MatConvUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>MatConvUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="47" column="13" bodyfile="matConvUtil.cpp" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND MatConvUtil::hPanel</definition>
+        <argsstring></argsstring>
+        <name>hPanel</name>
+        <qualifiedname>MatConvUtil::hPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="48" column="8" bodyfile="matConvUtil.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structMatPair" kindref="compound">MatPair</ref> &gt;</type>
+        <definition>Tab&lt;MatPair&gt; MatConvUtil::convMats</definition>
+        <argsstring></argsstring>
+        <name>convMats</name>
+        <qualifiedname>MatConvUtil::convMats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="49" column="7" bodyfile="matConvUtil.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* MatConvUtil::atestEdit</definition>
+        <argsstring></argsstring>
+        <name>atestEdit</name>
+        <qualifiedname>MatConvUtil::atestEdit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="51" column="13" bodyfile="matConvUtil.cpp" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">IDagorMat::Sides</ref></type>
+        <definition>IDagorMat::Sides MatConvUtil::twosided</definition>
+        <argsstring></argsstring>
+        <name>twosided</name>
+        <qualifiedname>MatConvUtil::twosided</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="53" column="20" bodyfile="matConvUtil.cpp" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MatConvUtil::atest</definition>
+        <argsstring></argsstring>
+        <name>atest</name>
+        <qualifiedname>MatConvUtil::atest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="54" column="7" bodyfile="matConvUtil.cpp" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMatConvUtil_1aa1fa31f67869444e4f2bdf0b265da35b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MatConvUtil::MatConvUtil</definition>
+        <argsstring>()</argsstring>
+        <name>MatConvUtil</name>
+        <qualifiedname>MatConvUtil::MatConvUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="56" column="3" bodyfile="matConvUtil.cpp" bodystart="130" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1ae804a89bece4c9f718468cb90bec976d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>MatConvUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="57" column="8" bodyfile="matConvUtil.cpp" bodystart="141" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1a1ac5a65a22398b48e1532914e5736a95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>MatConvUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="58" column="8" bodyfile="matConvUtil.cpp" bodystart="148" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1a93ae83dba175b8bc507c943d594c2c42" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>MatConvUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="59" column="8" bodyfile="matConvUtil.cpp" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1ad4d81259cf2f75b9245293d4df7c9057" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::Init</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>Init</name>
+        <qualifiedname>MatConvUtil::Init</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="61" column="8" bodyfile="matConvUtil.cpp" bodystart="157" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1a84787a6506ab46f6cb27a54800c0f43f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::Destroy</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>Destroy</name>
+        <qualifiedname>MatConvUtil::Destroy</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="62" column="8" bodyfile="matConvUtil.cpp" bodystart="169" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MatConvUtil::convertMat</definition>
+        <argsstring>(Mtl *&amp;mat, int type, int lighting, const TCHAR *slotName)</argsstring>
+        <name>convertMat</name>
+        <qualifiedname>MatConvUtil::convertMat</qualifiedname>
+        <param>
+          <type>Mtl *&amp;</type>
+          <declname>mat</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lighting</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>slotName</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="64" column="8" bodyfile="matConvUtil.cpp" bodystart="181" bodyend="323"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatConvUtil::convertNodes</definition>
+        <argsstring>(int type, int lighting)</argsstring>
+        <name>convertNodes</name>
+        <qualifiedname>MatConvUtil::convertNodes</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lighting</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="65" column="8" bodyfile="matConvUtil.cpp" bodystart="326" bodyend="392"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>MatConvUtil</label>
+        <link refid="classMatConvUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>MatConvUtil</label>
+        <link refid="classMatConvUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="matConvUtil.cpp" line="43" column="1" bodyfile="matConvUtil.cpp" bodystart="44" bodyend="66"/>
+    <listofallmembers>
+      <member refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>atest</name></member>
+      <member refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>atestEdit</name></member>
+      <member refid="classMatConvUtil_1ae804a89bece4c9f718468cb90bec976d" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>convertMat</name></member>
+      <member refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>convertNodes</name></member>
+      <member refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>convMats</name></member>
+      <member refid="classMatConvUtil_1a93ae83dba175b8bc507c943d594c2c42" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>DeleteThis</name></member>
+      <member refid="classMatConvUtil_1a84787a6506ab46f6cb27a54800c0f43f" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>Destroy</name></member>
+      <member refid="classMatConvUtil_1a1ac5a65a22398b48e1532914e5736a95" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>EndEditParams</name></member>
+      <member refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>hPanel</name></member>
+      <member refid="classMatConvUtil_1ad4d81259cf2f75b9245293d4df7c9057" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>Init</name></member>
+      <member refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>ip</name></member>
+      <member refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>iu</name></member>
+      <member refid="classMatConvUtil_1aa1fa31f67869444e4f2bdf0b265da35b" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>MatConvUtil</name></member>
+      <member refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" prot="public" virt="non-virtual"><scope>MatConvUtil</scope><name>twosided</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

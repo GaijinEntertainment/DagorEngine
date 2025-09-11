@@ -1,0 +1,480 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedag_1_1buffers" kind="namespace" language="C++">
+    <compoundname>dag::buffers</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a176c2ac9df1ffedf2641dc2f62beaee3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_persistent_cb</definition>
+        <argsstring>(uint32_t registers_count, const char *name)</argsstring>
+        <name>create_persistent_cb</name>
+        <qualifiedname>dag::buffers::create_persistent_cb</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>registers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="697" column="19" bodyfile="dag_resPtr.h" bodystart="697" bodyend="700"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a35d5586287a30b347ab0fe46cb1b06d9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_one_frame_cb</definition>
+        <argsstring>(uint32_t registers_count, const char *name)</argsstring>
+        <name>create_one_frame_cb</name>
+        <qualifiedname>dag::buffers::create_one_frame_cb</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>registers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="702" column="19" bodyfile="dag_resPtr.h" bodystart="702" bodyend="705"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a4469621b058d3c7b1a3edc0b28553470" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_sr_byte_address</name>
+        <qualifiedname>dag::buffers::create_ua_sr_byte_address</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="708" column="19" bodyfile="dag_resPtr.h" bodystart="708" bodyend="711"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1ab21c187e88f156d58521854c66b0b014" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_sr_structured</name>
+        <qualifiedname>dag::buffers::create_ua_sr_structured</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="713" column="19" bodyfile="dag_resPtr.h" bodystart="713" bodyend="717"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a058dea5b77dc84fb39d28b9761ed9efa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name)</argsstring>
+        <name>create_ua_byte_address</name>
+        <qualifiedname>dag::buffers::create_ua_byte_address</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="720" column="19" bodyfile="dag_resPtr.h" bodystart="720" bodyend="723"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1aca6fcd4229be5f4e78bfb974bc9066ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name)</argsstring>
+        <name>create_ua_structured</name>
+        <qualifiedname>dag::buffers::create_ua_structured</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="725" column="19" bodyfile="dag_resPtr.h" bodystart="725" bodyend="728"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1acba7678e2df1e58d2278bf5057dde97f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_byte_address_readback</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_byte_address_readback</name>
+        <qualifiedname>dag::buffers::create_ua_byte_address_readback</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="731" column="19" bodyfile="dag_resPtr.h" bodystart="731" bodyend="734"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1abef38aafeaa7acdab2793cf638b40143" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_structured_readback</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_structured_readback</name>
+        <qualifiedname>dag::buffers::create_ua_structured_readback</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="736" column="19" bodyfile="dag_resPtr.h" bodystart="736" bodyend="741"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1aa92616fea8b898c5746e1224e9928d56" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_ua_indirect</definition>
+        <argsstring>(Indirect indirect_type, uint32_t records_count, const char *name)</argsstring>
+        <name>create_ua_indirect</name>
+        <qualifiedname>dag::buffers::create_ua_indirect</qualifiedname>
+        <param>
+          <type>Indirect</type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>records_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="744" column="19" bodyfile="dag_resPtr.h" bodystart="744" bodyend="747"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a59d131308280758d6ce31888142c2177" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_indirect</definition>
+        <argsstring>(Indirect indirect_type, uint32_t records_count, const char *name)</argsstring>
+        <name>create_indirect</name>
+        <qualifiedname>dag::buffers::create_indirect</qualifiedname>
+        <param>
+          <type>Indirect</type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>records_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="749" column="19" bodyfile="dag_resPtr.h" bodystart="749" bodyend="752"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1ac7b66e3239abd53f1fe479148915942f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_staging</definition>
+        <argsstring>(uint32_t size_in_bytes, const char *name)</argsstring>
+        <name>create_staging</name>
+        <qualifiedname>dag::buffers::create_staging</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="755" column="19" bodyfile="dag_resPtr.h" bodystart="755" bodyend="758"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1aeadac0efa2ae92b2caada013e0545bdb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_persistent_sr_tbuf</definition>
+        <argsstring>(uint32_t elements_count, uint32_t format, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_tbuf</name>
+        <qualifiedname>dag::buffers::create_persistent_sr_tbuf</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="760" column="19" bodyfile="dag_resPtr.h" bodystart="760" bodyend="764"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a1f1eb8f6378d715b2e695f47dbf66337" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_persistent_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_byte_address</name>
+        <qualifiedname>dag::buffers::create_persistent_sr_byte_address</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="766" column="19" bodyfile="dag_resPtr.h" bodystart="766" bodyend="769"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1ae897dfc12692c9bce912da20b86dfa61" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_persistent_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_structured</name>
+        <qualifiedname>dag::buffers::create_persistent_sr_structured</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Init</type>
+          <declname>buffer_init</declname>
+          <defval>Init::No</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="771" column="19" bodyfile="dag_resPtr.h" bodystart="771" bodyend="776"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a36ad7b277ded319c3024aa97d44ee562" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_one_frame_sr_tbuf</definition>
+        <argsstring>(uint32_t elements_count, uint32_t format, const char *name)</argsstring>
+        <name>create_one_frame_sr_tbuf</name>
+        <qualifiedname>dag::buffers::create_one_frame_sr_tbuf</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="778" column="19" bodyfile="dag_resPtr.h" bodystart="778" bodyend="781"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1af00d09a844e7693403a49f64657d3f72" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_one_frame_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name)</argsstring>
+        <name>create_one_frame_sr_byte_address</name>
+        <qualifiedname>dag::buffers::create_one_frame_sr_byte_address</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="783" column="19" bodyfile="dag_resPtr.h" bodystart="783" bodyend="786"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1a9e015fa00f9dc496cf51f1fb2cc54681" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_one_frame_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name)</argsstring>
+        <name>create_one_frame_sr_structured</name>
+        <qualifiedname>dag::buffers::create_one_frame_sr_structured</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="788" column="19" bodyfile="dag_resPtr.h" bodystart="788" bodyend="791"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1_1buffers_1aa398e723d23770b04294157bdfb8a4d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>ResFactory&lt; Sbuffer &gt; dag::buffers::create_raytrace_scratch_buffer</definition>
+        <argsstring>(uint32_t size_in_bytes, const char *name)</argsstring>
+        <name>create_raytrace_scratch_buffer</name>
+        <qualifiedname>dag::buffers::create_raytrace_scratch_buffer</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="793" column="19" bodyfile="dag_resPtr.h" bodystart="793" bodyend="796"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="691" column="1"/>
+  </compounddef>
+</doxygen>

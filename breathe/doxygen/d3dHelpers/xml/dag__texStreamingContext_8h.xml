@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__texStreamingContext_8h" kind="file" language="C++">
+    <compoundname>dag_texStreamingContext.h</compoundname>
+    <innerclass refid="classTexStreamingContext" prot="public">TexStreamingContext</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Driver3dPerspective;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classTexStreamingContext" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTexStreamingContext" kindref="compound">TexStreamingContext</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>multiplicator;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Explicitly<sp/>create<sp/>context<sp/>with<sp/>specified<sp/>multiplicator,<sp/>which<sp/>is<sp/>(current_perspective.wk<sp/>*<sp/>current_rendering_res_width)^2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Can<sp/>be<sp/>used<sp/>in<sp/>two<sp/>cases:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>1.<sp/>TexStreamingContext(0),<sp/>when<sp/>streaming<sp/>of<sp/>textures<sp/>is<sp/>not<sp/>needed<sp/>(shadows,<sp/>depth-only<sp/>rendering,<sp/>etc).<sp/>Will<sp/>request<sp/>lowest<sp/>mip</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>2.<sp/>TexStreamingContext(FLT_MAX)<sp/>-<sp/>all<sp/>used<sp/>textures<sp/>will<sp/>request<sp/>maximum<sp/>quality<sp/>mip<sp/>level.<sp/>Should<sp/>be<sp/>avoided<sp/>if<sp/>possible,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>since<sp/>it<sp/>reduces<sp/>effect<sp/>from<sp/>texture<sp/>streaming<sp/>with<sp/>computed<sp/>mip<sp/>levels.<sp/>Better<sp/>try<sp/>to<sp/>use<sp/>some<sp/>existing<sp/>context,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>built<sp/>from<sp/>perspective<sp/>and<sp/>width,<sp/>or<sp/>create<sp/>a<sp/>new<sp/>one<sp/>this<sp/>way.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classTexStreamingContext_1a9adc5e6cd5bc81015e70a9c8728efa36" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTexStreamingContext_1a9adc5e6cd5bc81015e70a9c8728efa36" kindref="member">TexStreamingContext</ref>()<sp/>:<sp/>multiplicator(-1.f)<sp/>{}</highlight></codeline>
+<codeline lineno="21" refid="classTexStreamingContext_1aeebafdb483924d1fba4ca71eab5a3c48" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTexStreamingContext_1aeebafdb483924d1fba4ca71eab5a3c48" kindref="member">TexStreamingContext</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mul)<sp/>:<sp/>multiplicator(mul)<sp/>{}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Create<sp/>a<sp/>context<sp/>correctly<sp/>computing<sp/>texture<sp/>mips<sp/>for<sp/>streaming</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classTexStreamingContext_1a4c7f79ad9eb478c0c3c68edb79c7aa3e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTexStreamingContext_1a4c7f79ad9eb478c0c3c68edb79c7aa3e" kindref="member">TexStreamingContext</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Driver3dPerspective<sp/>&amp;persp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width);</highlight></codeline>
+<codeline lineno="24" refid="classTexStreamingContext_1a464073347d16eb35f4f9f4f9a7f7238f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexStreamingContext_1a464073347d16eb35f4f9f4f9a7f7238f" kindref="member">getTexLevel</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>texScale,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>distSq<sp/>=<sp/>0.0f)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" kindref="member">MIN_TEX_LEVEL</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="27" refid="classTexStreamingContext_1ac74929552df808bdae4eb95c37ab6d2f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexStreamingContext_1ac74929552df808bdae4eb95c37ab6d2f" kindref="member">MIN_NON_STUB_LEVEL</ref><sp/>=<sp/><ref refid="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" kindref="member">MIN_TEX_LEVEL</ref><sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="28" refid="classTexStreamingContext_1a69506bbf531f1bf98e06954a6829bce8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexStreamingContext_1a69506bbf531f1bf98e06954a6829bce8" kindref="member">MAX_TEX_LEVEL</ref><sp/>=<sp/>15;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_texStreamingContext.h"/>
+  </compounddef>
+</doxygen>
