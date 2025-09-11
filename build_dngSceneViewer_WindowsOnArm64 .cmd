@@ -1,5 +1,5 @@
 pushd samples\dngSceneViewer\prog
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17
+jam -sPlatformArch=arm64
 pause
 call compile_all_prog_vromfs_WOA.cmd
 cd shaders

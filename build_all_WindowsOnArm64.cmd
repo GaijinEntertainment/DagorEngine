@@ -21,21 +21,21 @@ call compile_shaders_spirV.bat
 popd
 
 pushd prog\samples\physTest
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -f jamfile-test-jolt
+jam -sPlatformArch=arm64 
+jam -sPlatformArch=arm64  -f jamfile-test-jolt
 cd shaders
 call compile_game_shaders-dx11_WOA.bat
 popd
 
 pushd samples\skiesSample\prog
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17
+jam -sPlatformArch=arm64 
 cd shaders
 call compile_shaders_dx12_WOA.bat
 call compile_shaders_dx11_WOA.bat
 popd
 
 pushd samples\testGI\prog
-jam -sPlatformArch=arm64 -sPlatformSpec=vc17
+jam -sPlatformArch=arm64
 cd shaders
 call compile_shaders_dx12_WOA.bat
 call compile_shaders_dx11_WOA.bat
