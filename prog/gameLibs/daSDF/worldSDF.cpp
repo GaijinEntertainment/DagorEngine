@@ -105,6 +105,7 @@ struct WorldSDFImpl final : public WorldSDF
 
   int w = 128, d = 128;
   uint32_t updatedMask = 0;
+  bool cbuffersDirty = true;
   float clip0VoxelSize = 0.5;
   float temporalSpeed = 0.5f;
   uint32_t currentInstancesBufferSz = 0;
@@ -162,7 +163,7 @@ struct WorldSDFImpl final : public WorldSDF
       world_sdf_params.world_sdf_lt_invalid = Point4(-1e9f, 1e9f, 1e9f, 0);
       world_sdf_params.world_sdf_to_tc_add_invalid = Point4::ZERO;
       std::memset(world_sdf_coord_lt.data(), 0, sizeof(world_sdf_coord_lt));
-      updateCBuffers();
+      cbuffersDirty = true;
       updatedMask = 0;
     }
   }
@@ -380,6 +381,7 @@ struct WorldSDFImpl final : public WorldSDF
       logerr("WorldSDF: could not update buffer %s", world_sdf_coord_lt_buf.getBuf()->getBufName());
       return;
     }
+    cbuffersDirty = false;
   }
 
   UpdateStatus updateMip(int clip, const Point3 &originPos, IPoint3 center_coord, float voxelSize, const request_instances_cb &cb,
@@ -909,6 +911,8 @@ struct WorldSDFImpl final : public WorldSDF
     if (clipmap.empty())
       return;
     uint32_t mask = updateNoPrefetch(pos, cb, render_cb, allow_update_mask);
+    if (cbuffersDirty)
+      updateCBuffers();
     prefetchAll(pos, rcb, mask);
     updatedMask |= mask;
   }
