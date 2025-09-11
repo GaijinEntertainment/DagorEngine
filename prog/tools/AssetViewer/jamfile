@@ -5,6 +5,10 @@ BuildingTools = yes ;
 PhysName = Jolt ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
+UseD3DMulti = yes ;
+UseD3DMultiList_windows = DX11 stub ;
+UseD3DMultiList_linux   = vulkan stub ;
+
 if $(Platform) = windows {
   PlatformSpec = vc17 ;
 }
@@ -20,13 +24,6 @@ HaveConsole = no ;
 HaveSound = no ;
 HaveSoundNet = no ;
 include $(Root)/prog/daNetGame/setup.jam ;
-
-UseD3DMulti = yes ;
-
-switch $(Platform) {
-  case windows : UseD3DMultiList = DX11 stub ;
-  case linux :   UseD3DMultiList = vulkan stub ;
-}
 
 UseQuirrel = sq3r+ ;
 

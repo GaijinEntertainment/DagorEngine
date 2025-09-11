@@ -2,6 +2,8 @@ DasAotCompilerBuild = yes ;
 UseQuirrel = sq3r ;
 PhysName  ?= Jolt ;
 UseD3DMulti       ?= yes ;
+UseD3DMultiList   ?= null ;
+UseD3DMultiForced ?= windows ;
 CheckedContainers ?= yes ;
 Exceptions        ?= no ;
 if $(UseWholeOpt) != yes { UseLLDLink ?= yes ; }

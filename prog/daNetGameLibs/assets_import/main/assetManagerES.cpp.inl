@@ -11,6 +11,7 @@
 #include <assets/assetExporter.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetRefs.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <folders/folders.h>
@@ -90,7 +91,7 @@ public:
     {
       visuallog::logmsg(String(0, " %s asset <%d> changed", asset->getName(), asset->getTypeStr()));
       if (asset->getType() == asset->getMgr().getTexAssetTypeId())
-        reregister_texture_asset_manager_factory(*asset);
+        ::reregister_texture_in_build_on_demand_factory(*asset);
       invalidate_asset_dependencies(*asset);
       g_entity_mgr->broadcastEvent(AssetChangedEvent(asset));
     }
@@ -176,7 +177,7 @@ static void init_asset_manager_es(const ecs::Event &,
 
   install_asset_manager_hooks();
 
-  init_asset_import_texture_factory();
+  texconvcache::init_build_on_demand_tex_factory(asset__manager, &messagePipe);
 
   for (int i = 0, e = asset__manager.getAssetTypesCount(); i < e; ++i)
   {

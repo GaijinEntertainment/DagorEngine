@@ -398,8 +398,13 @@ if ! $(__DEFAULTS_INCLUDED) {
     }
 
     if $(Platform) in windows linux macOS && $(UseD3DMulti) = yes {
-      if ! -D_TARGET_D3D_MULTI in $(GlobalCPPopt) { GlobalCPPopt += -D_TARGET_D3D_MULTI ; }
-      out = $(out)~m ;
+      include $(Root)/prog/engine/drv/drv3d_pc_multi/resolve_d3d_multi_list.jam ;
+      if ! $(UseD3DMultiSingle) {
+        if ! -D_TARGET_D3D_MULTI in $(GlobalCPPopt) { GlobalCPPopt += -D_TARGET_D3D_MULTI ; }
+        out = $(out)~m ;
+      }
+    } else {
+      UseD3DMulti = no ; # force it off to not mangle anything anywhere
     }
 
     if $(MSVectorcall) = yes && $(PlatformArch) = x86_64 && $(Platform) in windows xboxOne scarlett {

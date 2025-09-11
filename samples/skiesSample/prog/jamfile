@@ -1,7 +1,5 @@
 #Platform ?= macOS ;
 
-UseD3DMultiList    = D3D_ALL ;
-
 Root    ?= ../../.. ;
 Location = samples/skiesSample/prog ;
 UseD3DMulti ?= yes ;

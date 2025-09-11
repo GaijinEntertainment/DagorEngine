@@ -1,33 +1,21 @@
-if $(UseD3DMulti) = no { Exit UseD3DMulti must be defined as 'yes' or not defined at all ; }
 Root    ?= ../../../.. ;
 Location = prog/engine/drv/drv3d_pc_multi ;
 StrictCompile = yes ;
 
-rule ValidateUseD3DMultiList
-{
-  local valid_windows = stub DX11 DX12 vulkan ;
-  local valid_macOS   = stub Metal ;
-  local valid_linux   = stub vulkan ;
-  local valid_nswitch = stub vulkan ;
-
-  local ret_list = ;
-  for v in $(valid_$(Platform)) { if $(v) in $(1) { ret_list += $(v) ; } }
-  if ! $(ret_list) { Exit UseD3DMultiList\=\[ $(1) \] became empty for Platform\=$(Platform) ; }
-  return $(ret_list) ;
-}
-
-UseD3DMulti = yes ;
+UseD3DMulti ?= yes ;
+if $(UseD3DMulti) != yes { Exit ERROR: UseD3DMulti must be defined as 'yes' or not defined at all to use $(Location) ; }
 
 include $(Root)/prog/_jBuild/defaults.jam ;
+if $(UseD3DMultiSingle) {
+  StrictCompile = ;
+  include $(Root)/$(Location:D)/drv3d_$(UseD3DMultiSingle)/jamfile ;
+  return ;
+}
 
 TargetType  = lib ;
 Target      = engine/drv/drv3d_pc_multi.lib ;
 
-UseD3DMultiList ?= D3D_ALL ;
-if $(UseD3DMultiList) = D3D_ALL {
-  UseD3DMultiList = [ ValidateUseD3DMultiList stub DX11 DX12 vulkan Metal ] ;
-} else {
-  UseD3DMultiList = [ ValidateUseD3DMultiList $(UseD3DMultiList) ] ;
+if $(UseD3DMultiList) != [ ValidateUseD3DMultiList stub DX11 DX12 vulkan Metal ] {
   Target = $(Target:S=~$(UseD3DMultiList:J=~).lib) ;
 }
 

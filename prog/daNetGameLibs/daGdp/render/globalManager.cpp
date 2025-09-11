@@ -72,13 +72,13 @@ void GlobalManager::recreateViews()
   G_ASSERT(!viewsAreCreated);
   G_ASSERT(views.empty());
 
+  init_and_get_blue_noise();
+
   if (!config.enabled)
   {
     viewsAreCreated = true;
     return;
   }
-
-  init_and_get_blue_noise();
 
   // Main view is always present.
   ViewInfo &mainCamera = views.push_back().info;

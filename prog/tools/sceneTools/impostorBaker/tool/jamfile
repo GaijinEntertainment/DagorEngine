@@ -1,17 +1,13 @@
 Root    ?= ../../../../.. ;
 KernelLinkage = dynamic ;
 UseD3DMulti = yes ;
+UseD3DMultiList_windows = DX12 DX11 ;
+UseD3DMultiList_linux   = vulkan ;
+UseD3DMultiList_macOS   = Metal ;
 LinuxUseX11 = no ;
 
 Location = prog/tools/sceneTools/impostorBaker/tool ;
 include $(Root)/prog/tools/tools_setup.jam ;
-
-switch $(Platform) {
-  case windows : UseD3DMultiList = DX12 DX11 ;
-  case linux :   UseD3DMultiList = vulkan ;
-  case macOS :   UseD3DMultiList = Metal ;
-}
-
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 if $(Platform) in windows {

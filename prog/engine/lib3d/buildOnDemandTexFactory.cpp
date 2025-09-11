@@ -5,6 +5,7 @@
 #include <3d/dag_createTex.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_string.h>
+#include <util/dag_finally.h>
 #include <3d/dag_texIdSet.h>
 #include <3d/ddsxTex.h>
 #include <3d/ddsxTexMipOrder.h>
@@ -40,6 +41,7 @@ struct TexIdToLoad
 struct SharedData
 {
   Tab<ddsx::Header> ddsxHdr;
+  Tab<uint64_t> textureLoadingState;
   DDSxPrebuildCtx *dCtx = nullptr;
   unsigned usageCount = 0;
   unsigned texLoadingAllowed = unsigned(true);
@@ -582,6 +584,16 @@ public:
   bool loadTex(TEXTUREID tid, unsigned nameId, TexQL ql)
   {
     unsigned idx = tid.index();
+
+    // set in-loading and successful loading state bits
+    interlocked_or(shared.textureLoadingState[idx / 32u], uint64_t(0b11) << (uint64_t(idx % 32u) * 2u));
+    // clear in loading bit on exit
+    FINALLY([&] { interlocked_and(shared.textureLoadingState[idx / 32u], ~(uint64_t(0b01) << (uint64_t(idx % 32u) * 2u))); });
+    // clear successful bit on fail
+    const auto setLoadingFailed = [&] {
+      interlocked_and(shared.textureLoadingState[idx / 32u], ~(uint64_t(0b10) << (uint64_t(idx % 32u) * 2u)));
+    };
+
     if (ql == RMGR.resQS[idx].getCurQL() && RMGR.resQS[idx].getRdLev() <= RMGR.resQS[idx].getLdLev())
     {
       RMGR.cancelReading(idx);
@@ -604,6 +616,7 @@ public:
       dag::Span<char> tex_buf = build_helper->getDDSxTexData(nameId);
       if (tex_buf.empty())
       {
+        setLoadingFailed();
         logerr("cannot convert <%s> tex asset", build_helper->getTexName(nameId));
         RMGR.cancelReading(idx);
         return false;
@@ -651,7 +664,10 @@ public:
       build_helper->releaseDDSxTexData(tex_buf);
       if (ldRet == TexLoadRes::ERR)
         if (!d3d::is_in_device_reset_now())
+        {
+          setLoadingFailed();
           logerr("failed loading tex %s", build_helper->getTexName(nameId));
+        }
 
       if (ldRet != TexLoadRes::OK)
         onCompleted(idx);
@@ -796,6 +812,8 @@ void build_on_demand_tex_factory::SharedData::addRef()
     };
     ddsxHdr.resize(OpenD3dResManagerData::getMaxTotalIndexCount());
     mem_set_0(ddsxHdr);
+    textureLoadingState.resize((OpenD3dResManagerData::getMaxTotalIndexCount() + 31u) / 32u);
+    mem_set_0(textureLoadingState);
   }
   if (!dCtx)
     dCtx = new DDSxPrebuildCtx(cpujobs::get_logical_core_count());
@@ -857,6 +875,7 @@ void build_on_demand_tex_factory::term(TextureFactory *f)
   tql::on_frame_finished = base_engine_on_frame_finished;
   ddsx_bod_tf.term();
 }
+TextureFactory *build_on_demand_tex_factory::get() { return ddsx_bod_tf.build_helper ? &ddsx_bod_tf : nullptr; }
 bool build_on_demand_tex_factory::cease_loading(TextureFactory *f, bool allow_further_tex_loading)
 {
   if (f != &ddsx_bod_tf)
@@ -945,6 +964,11 @@ bool get_managed_tex_entry_desc(TEXTUREID tid, ManagedTexEntryDesc &out_desc)
     else
       out_desc.qResSz[ql] = 0;
   }
+  uint64_t texStateBits =
+    (interlocked_relaxed_load(build_on_demand_tex_factory::shared.textureLoadingState[idx / 32u]) >> uint64_t((idx % 32u) * 2u)) &
+    0x11u;
+  out_desc.isLoadedWithErrors = !bool(texStateBits >> 1u);
+  out_desc.isLoading = bool(texStateBits & 1u);
   return true;
 }
 
