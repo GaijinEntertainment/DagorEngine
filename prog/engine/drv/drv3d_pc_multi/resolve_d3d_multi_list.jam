@@ -1,0 +1,30 @@
+rule ValidateUseD3DMultiList
+{
+  local valid_windows = stub DX11 DX12 vulkan null ;
+  local valid_macOS   = stub Metal null ;
+  local valid_linux   = stub vulkan null ;
+
+  local ret_list = ;
+  for v in $(valid_$(Platform)) { if $(v) in $(1) { ret_list += $(v) ; } }
+  if ! $(ret_list) { Exit ERROR: UseD3DMultiList\=\[ $(1) \] became empty for Platform\=$(Platform) ; }
+  return $(ret_list) ;
+}
+
+UseD3DMultiList = $(UseD3DMultiList_$(Platform):E=$(UseD3DMultiList:E=D3D_ALL)) ;
+if $(UseD3DMultiList) = D3D_ALL {
+  UseD3DMultiList = [ ValidateUseD3DMultiList DX11 DX12 vulkan Metal ] ;
+} else if $(UseD3DMultiList) = D3D_ALL_WITH_STUB {
+  UseD3DMultiList = [ ValidateUseD3DMultiList stub DX11 DX12 vulkan Metal ] ;
+} else {
+  UseD3DMultiList = [ ValidateUseD3DMultiList $(UseD3DMultiList) ] ;
+}
+
+UseD3DMultiList__applied ?= $(UseD3DMultiList) ;
+if $(UseD3DMultiList) != $(UseD3DMultiList__applied) {
+  Exit ERROR: UseD3DMultiList changed from \"$(UseD3DMultiList__applied:J=\ )\" to \"$(UseD3DMultiList:J=\ )\" ;
+}
+
+if ! $(UseD3DMultiList[2:]) && ! $(Platform) in $(UseD3DMultiForced) {
+  UseD3DMultiSingle = $(UseD3DMultiList[1]) ;
+  #echo note: UseD3DMultiList=\"$(UseD3DMultiList:J=\ )\" so we use single-driver build path (at\ $(Target)) ;
+}

@@ -5,11 +5,8 @@ BuildingTools = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
-
-switch $(Platform) {
-  case windows : UseD3DMultiList = DX9 DX11 stub ;
-  case linux :   UseD3DMultiList = vulkan stub ;
-}
+UseD3DMultiList_windows = DX11 stub ;
+UseD3DMultiList_linux   = vulkan stub ;
 
 TargetType  = exe ;
 Target = tools/sceneTools/daEditorX/daEditor3x.exe ;

@@ -2,7 +2,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 AgilitySdkDest ?= /D3D12 ;
 
-if $(Platform) in windows && ( DX12 in $(UseD3DMultiList) || $(UseD3DMultiList) = D3D_ALL || $(UseD3DMultiList) in null ) {
+if $(Platform) in windows && ( $(UseD3DMulti) != yes || DX12 in $(UseD3DMultiList) ) {
   local AgilitySdkDir = $(_DEVTOOL)/Agility.SDK.$(AgilitySdkVer) ;
 
   if $(PlatformArch) in x86_64 arm64 {

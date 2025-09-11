@@ -77,9 +77,10 @@ include $(Root)/prog/_jBuild/defPlatform.jam ; # Note - $(Platform) is not defin
 
 if $(Platform) in windows linux macOS {
   UseD3DMulti ?= yes ;
+  UseD3DMultiForced = windows ; # we want same output for client/dedicated/aot on Windows to speed compilation
   if $(IsHeadless) != yes {
     local list ;
-    if $(Config) != rel { list += stub ; }
+    if $(Platform) = windows && $(Config) != rel { list += stub ; }
     switch $(Platform) {
       case windows : list += DX11 vulkan ;  if $(PlatformArch) != x86 { list += DX12 ; }
       case linux :   list += vulkan ;

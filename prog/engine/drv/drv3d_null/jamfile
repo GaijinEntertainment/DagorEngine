@@ -4,8 +4,8 @@ Location = prog/engine/drv/drv3d_null ;
 TargetType  = lib ;
 Target      = engine/drv/drv3d_null.lib ;
 
-if $(UseD3DMulti) = yes {
-  if ! $(UseD3DMultiList) in null { Exit $(Target) cannot be built with UseD3DMulti=$(UseD3DMulti) and UseD3DMultiList=$(UseD3DMultiList) ; }
+if $(UseD3DMulti) = yes && ! $(UseD3DMultiSingle) {
+  if ! $(UseD3DMultiList) in null { Exit ERROR: $(Target) cannot be built with UseD3DMulti=$(UseD3DMulti) and UseD3DMultiList=$(UseD3DMultiList) ; }
   Target = $(Target:S=-m.lib) ;
   Sources = d3d_stub_m.cpp ;
 } else {

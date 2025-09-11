@@ -6,8 +6,9 @@ Location = prog/samples/physTest ;
 TargetType  = exe ;
 Target      = samples/physTest$(PhysEngine) ;
 
-UseD3DMultiList = DX11 vulkan Metal stub ;
 UseD3DMulti = yes ;
+UseD3DMultiList = DX11 vulkan Metal ;
+if $(Headless) = yes { UseD3DMultiList = stub ; }
 
 OutDir      = $(Root)/samples/physTest ;
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -49,7 +50,6 @@ UseProgLibs =
 ;
 
 if $(Headless) = yes {
-  UseD3DMultiList = stub ;
   UseProgLibs +=
     engine/drv/hid_nulldrv
   ;
