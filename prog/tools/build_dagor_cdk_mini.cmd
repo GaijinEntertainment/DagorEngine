@@ -19,7 +19,7 @@ jam -s Root=../.. -f sceneTools/findUnusedTex/jamfile
   if errorlevel 1 goto error
 
 rem daImpostorBaker
-jam -s Root=../.. -f sceneTools/impostorBaker/jamfile
+jam -s Root=../.. -f sceneTools/impostorBaker/tool/jamfile
   if errorlevel 1 goto error
 
 rem DDSx plugins
