@@ -629,3 +629,7 @@ public:
   }
   static void na_func() { DAG_FATAL("D3DI function not implemented"); }
 } __drv3d_vtable_init;
+
+#if _TARGET_PC_MACOSX && !USE_MULTI_D3D_Metal
+void destroy_cached_window_data(void *) {}
+#endif

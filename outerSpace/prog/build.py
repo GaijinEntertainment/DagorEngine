@@ -28,7 +28,8 @@ if 'code' in BUILD_COMPONENTS:
        '-f', '../../prog/daNetGame-das-aot/jamfile'] + AOT_COMPILER_JAM_OPTIONS)
   run(['jam', '-sNeedDasAotCompile=yes'] + PROJ_JAM_OPTIONS)
   run(['jam', '-sNeedDasAotCompile=yes', '-sDedicated=yes'] + PROJ_JAM_OPTIONS)
-  run(['jam', '-sNeedDasAotCompile=yes', '-sDedicated=yes', '-sTargetType=dll'] + PROJ_JAM_OPTIONS)
+  if DAGOR_HOST == 'windows':
+    run(['jam', '-sNeedDasAotCompile=yes', '-sDedicated=yes', '-sTargetType=dll'] + PROJ_JAM_OPTIONS)
 
   run(['jam', '-sProjectPath=outerSpace', '-sRoot=../..', '-f', '../../prog/tools/relay/jamfile'])
 
