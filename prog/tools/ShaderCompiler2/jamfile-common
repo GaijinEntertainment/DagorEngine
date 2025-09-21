@@ -1,6 +1,5 @@
 PlatformArch_windows ?= x86_64 ;
 PlatformSpec_windows ?= clang ;
-include $(Root)/prog/_jBuild/defPlatform.jam ;
 if ! $(Location) { Exit Location must be defined before including jamfile-common ; }
 
 SkipLicenseBuild = no ;

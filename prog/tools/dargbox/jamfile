@@ -24,7 +24,7 @@ if $(Platform) in android iOS { OutDir = $(OutDir)/$(LegacyPlatformSuffix) ; }
 
 if $(Platform) in windows linux { UseD3DMulti ?= yes ; }
 
-if $(Platform) in windows {
+if $(Platform) in windows && ! $(PlatformArch) in arm64 {
   VRDeviceSupport ?= yes ;
 }
 

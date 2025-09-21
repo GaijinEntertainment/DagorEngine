@@ -12,6 +12,9 @@ DAGOR_HOST_ARCH = 'x86_64'
 
 if sys.platform.startswith('win'):
   DAGOR_HOST = 'windows'
+  if (os.environ.get('PROCESSOR_ARCHITECTURE', '') == 'ARM64' or
+     ('ARMv' in os.environ.get('PROCESSOR_IDENTIFIER', '') and '64-bit' in os.environ.get('PROCESSOR_IDENTIFIER', ''))):
+    DAGOR_HOST_ARCH = 'arm64'
   DAGOR_TOOLS_FOLDER = os.path.realpath('{0}/tools/dagor_cdk/windows-{1}'.format(DAGOR_ROOT_FOLDER, DAGOR_HOST_ARCH))
 elif sys.platform.startswith('darwin'):
   DAGOR_HOST = 'macOS'

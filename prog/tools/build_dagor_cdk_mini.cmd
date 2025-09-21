@@ -1,4 +1,5 @@
 @echo off
+if not "%1" == "" set PlatformArch=%1
 
 rem DaEditorX
 jam -s Root=../.. -f sceneTools/daEditorX/jamfile-editor

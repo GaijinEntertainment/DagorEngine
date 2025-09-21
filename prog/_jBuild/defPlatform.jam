@@ -21,6 +21,20 @@ switch $(OS) {
   case MACOSX : Platform  ?= macOS ;
   case LINUX  : Platform  ?= linux ;
 }
+if $(OS) = NT {
+  if (64-bit) in $(PROCESSOR_IDENTIFIER) {
+    switch $(PROCESSOR_IDENTIFIER) {
+      case ARMv* : WindowsHostArch = arm64 ; PlatformArch_windows ?= arm64 ;
+    }
+  }
+  switch $(PROCESSOR_ARCHITECTURE) {
+    case x86   : WindowsHostArch ?= x86 ;
+    case AMD64 : WindowsHostArch ?= x86_64 ;
+    case ARM64 : WindowsHostArch = arm64  ; PlatformArch_windows ?= arm64 ;
+  }
+  WindowsHostArch ?= x86_64 ;
+}
+
 PlatformArch_windows ?= x86 ;
 PlatformArch_linux ?= x86_64 ;
 PlatformArch_macOS ?= x86_64 ;
