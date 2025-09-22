@@ -1,0 +1,650 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="cppStcodePlatformInfo_8h" kind="file" language="C++">
+    <compoundname>cppStcodePlatformInfo.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includedby refid="globalConfig_8h" local="yes">globalConfig.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="15">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="14">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="16">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="42">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="38">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="37">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="25">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>globalConfig.cpp</label>
+        <link refid="globalConfig_8cpp"/>
+      </node>
+      <node id="2">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>hlslRegisters.cpp</label>
+        <link refid="hlslRegisters_8cpp"/>
+      </node>
+      <node id="6">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="7">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="27">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="30">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="29">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="33">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="9">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="10">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="11">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="47">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="20">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="35">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="36">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="52">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="28">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="19">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="46">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="49">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="24">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="39">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="41">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>StcodeTargetArch</name>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" prot="public">
+          <name>DEFAULT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05afd1a4608b5b463bc7a41d86a1662d3b7" prot="public">
+          <name>X86</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a840030b2e70cfe0155e29ee926dbd8ae" prot="public">
+          <name>X86_64</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ab9b55c80d095761ac7757ced0fedadc4" prot="public">
+          <name>ARM64</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a200bde2af858215e5832240fa79e5f84" prot="public">
+          <name>ARM64_E</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a0c2362f00f66e3ef1e9e73c437dd16ef" prot="public">
+          <name>ARM_V7</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ac2912942cd2efd3e3123525ad72ff744" prot="public">
+          <name>ARM_V7S</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5674918c587536ff5492728caf954590" prot="public">
+          <name>ARMEABI_V7A</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05aef7a7a2678567b43d0cf274d775979e0" prot="public">
+          <name>ARM64_V8A</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ad8b3e50d7c8ecaef026c0ebffd9b5e85" prot="public">
+          <name>I386</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a151eb791f8401bc2f4dd1b64308466dd" prot="public">
+          <name>E2K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePlatformInfo.h" line="7" column="1" bodyfile="cppStcodePlatformInfo.h" bodystart="8" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="enum" id="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>StcodeTargetPlatform</name>
+        <enumvalue id="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88a5b39c8b553c821e7cddc6da64b5bd2ee" prot="public">
+          <name>DEFAULT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePlatformInfo.h" line="22" column="1" bodyfile="cppStcodePlatformInfo.h" bodystart="23" bodyend="33"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="cppStcodePlatformInfo_8h_1aa320f8a2356ec64cf8e01425419ed803" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" kindref="member">StcodeTargetArch</ref></type>
+        <definition>constexpr StcodeTargetArch ALL_STCODE_ARCHS[]</definition>
+        <argsstring>[]</argsstring>
+        <name>ALL_STCODE_ARCHS</name>
+        <initializer>= {
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetArch::DEFAULT</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05afd1a4608b5b463bc7a41d86a1662d3b7" kindref="member">StcodeTargetArch::X86</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a840030b2e70cfe0155e29ee926dbd8ae" kindref="member">StcodeTargetArch::X86_64</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ab9b55c80d095761ac7757ced0fedadc4" kindref="member">StcodeTargetArch::ARM64</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a200bde2af858215e5832240fa79e5f84" kindref="member">StcodeTargetArch::ARM64_E</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a0c2362f00f66e3ef1e9e73c437dd16ef" kindref="member">StcodeTargetArch::ARM_V7</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ac2912942cd2efd3e3123525ad72ff744" kindref="member">StcodeTargetArch::ARM_V7S</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5674918c587536ff5492728caf954590" kindref="member">StcodeTargetArch::ARMEABI_V7A</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05aef7a7a2678567b43d0cf274d775979e0" kindref="member">StcodeTargetArch::ARM64_V8A</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ad8b3e50d7c8ecaef026c0ebffd9b5e85" kindref="member">StcodeTargetArch::I386</ref>,
+  <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a151eb791f8401bc2f4dd1b64308466dd" kindref="member">StcodeTargetArch::E2K</ref>,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePlatformInfo.h" line="35" column="35" bodyfile="cppStcodePlatformInfo.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="cppStcodePlatformInfo_8h_1adb1f7b635defcdbf0b3b0c03d47a5d8b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" kindref="member">StcodeTargetPlatform</ref></type>
+        <definition>constexpr StcodeTargetPlatform ALL_STCODE_PLATFORMS[]</definition>
+        <argsstring>[]</argsstring>
+        <name>ALL_STCODE_PLATFORMS</name>
+        <initializer>= {
+  <ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetPlatform::DEFAULT</ref>,
+
+
+
+
+
+
+
+
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePlatformInfo.h" line="48" column="39" bodyfile="cppStcodePlatformInfo.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>trunc<sp/>w/<sp/>defines</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" kindref="member">StcodeTargetArch</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">DEFAULT</ref>,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05afd1a4608b5b463bc7a41d86a1662d3b7" kindref="member">X86</ref>,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a840030b2e70cfe0155e29ee926dbd8ae" kindref="member">X86_64</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ab9b55c80d095761ac7757ced0fedadc4" kindref="member">ARM64</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a200bde2af858215e5832240fa79e5f84" kindref="member">ARM64_E</ref>,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a0c2362f00f66e3ef1e9e73c437dd16ef" kindref="member">ARM_V7</ref>,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ac2912942cd2efd3e3123525ad72ff744" kindref="member">ARM_V7S</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5674918c587536ff5492728caf954590" kindref="member">ARMEABI_V7A</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05aef7a7a2678567b43d0cf274d775979e0" kindref="member">ARM64_V8A</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ad8b3e50d7c8ecaef026c0ebffd9b5e85" kindref="member">I386</ref>,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a151eb791f8401bc2f4dd1b64308466dd" kindref="member">E2K</ref>,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" kindref="member">StcodeTargetPlatform</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">DEFAULT</ref>,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_SPIRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>PC,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>ANDROID,</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>NSWITCH,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_METAL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>MACOSX,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>IOS,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="cppStcodePlatformInfo_8h_1aa320f8a2356ec64cf8e01425419ed803" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" kindref="member">StcodeTargetArch</ref><sp/><ref refid="cppStcodePlatformInfo_8h_1aa320f8a2356ec64cf8e01425419ed803" kindref="member">ALL_STCODE_ARCHS</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetArch::DEFAULT</ref>,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05afd1a4608b5b463bc7a41d86a1662d3b7" kindref="member">StcodeTargetArch::X86</ref>,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a840030b2e70cfe0155e29ee926dbd8ae" kindref="member">StcodeTargetArch::X86_64</ref>,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ab9b55c80d095761ac7757ced0fedadc4" kindref="member">StcodeTargetArch::ARM64</ref>,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a200bde2af858215e5832240fa79e5f84" kindref="member">StcodeTargetArch::ARM64_E</ref>,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a0c2362f00f66e3ef1e9e73c437dd16ef" kindref="member">StcodeTargetArch::ARM_V7</ref>,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ac2912942cd2efd3e3123525ad72ff744" kindref="member">StcodeTargetArch::ARM_V7S</ref>,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5674918c587536ff5492728caf954590" kindref="member">StcodeTargetArch::ARMEABI_V7A</ref>,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05aef7a7a2678567b43d0cf274d775979e0" kindref="member">StcodeTargetArch::ARM64_V8A</ref>,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05ad8b3e50d7c8ecaef026c0ebffd9b5e85" kindref="member">StcodeTargetArch::I386</ref>,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a151eb791f8401bc2f4dd1b64308466dd" kindref="member">StcodeTargetArch::E2K</ref>,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="48" refid="cppStcodePlatformInfo_8h_1adb1f7b635defcdbf0b3b0c03d47a5d8b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" kindref="member">StcodeTargetPlatform</ref><sp/><ref refid="cppStcodePlatformInfo_8h_1adb1f7b635defcdbf0b3b0c03d47a5d8b" kindref="member">ALL_STCODE_PLATFORMS</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetPlatform::DEFAULT</ref>,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_SPIRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>StcodeTargetPlatform::PC,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>StcodeTargetPlatform::ANDROID,</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>StcodeTargetPlatform::NSWITCH,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_METAL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>StcodeTargetPlatform::MACOSX,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>StcodeTargetPlatform::IOS,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="cppStcodePlatformInfo.h"/>
+  </compounddef>
+</doxygen>

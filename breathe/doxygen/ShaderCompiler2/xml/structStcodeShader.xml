@@ -1,0 +1,407 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeShader" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeShader</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+    <innerclass refid="structStcodeShader_1_1InterfaceStrings" prot="public">StcodeShader::InterfaceStrings</innerclass>
+    <innerclass refid="structStcodeShader_1_1RegisterTable" prot="public">StcodeShader::RegisterTable</innerclass>
+    <innerclass refid="structStcodeShader_1_1RoutineRemappingTables" prot="public">StcodeShader::RoutineRemappingTables</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeShader_1a263399922da422133761280ed69e664e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool StcodeShader::hasCode</definition>
+        <argsstring></argsstring>
+        <name>hasCode</name>
+        <qualifiedname>StcodeShader::hasCode</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="399" column="8" bodyfile="cppStcodeAssembly.h" bodystart="399" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a0eb8bc68674356efadc910b83b377057" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeAccumulator" kindref="compound">StcodeAccumulator</ref></type>
+        <definition>StcodeAccumulator StcodeShader::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>StcodeShader::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="400" column="21" bodyfile="cppStcodeAssembly.h" bodystart="400" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a01c03b612786960a7e5fe1909f5cac30" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeGlobalVars" kindref="compound">StcodeGlobalVars</ref></type>
+        <definition>StcodeGlobalVars StcodeShader::globVars</definition>
+        <argsstring></argsstring>
+        <name>globVars</name>
+        <qualifiedname>StcodeShader::globVars</qualifiedname>
+        <initializer>{<ref refid="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112a688be6b57b2ae8580215def4a96efdc1" kindref="member">StcodeGlobalVars::Type::REFERENCED_BY_SHADER</ref>}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="401" column="20" bodyfile="cppStcodeAssembly.h" bodystart="401" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1acd6a0a3ecb9b166c011c34d269bf561f" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeShader::shaderName</definition>
+        <argsstring></argsstring>
+        <name>shaderName</name>
+        <qualifiedname>StcodeShader::shaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="402" column="17" bodyfile="cppStcodeAssembly.h" bodystart="402" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1adc30de4d892b6a90585434de98a1cafb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeShader::curStvarId</definition>
+        <argsstring></argsstring>
+        <name>curStvarId</name>
+        <qualifiedname>StcodeShader::curStvarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="403" column="7" bodyfile="cppStcodeAssembly.h" bodystart="403" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1ae1da4c67798cda2f7e2fbc8be42c8285" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+        <definition>Tab&lt;CryptoHash&gt; StcodeShader::dynamicRoutineHashes</definition>
+        <argsstring></argsstring>
+        <name>dynamicRoutineHashes</name>
+        <qualifiedname>StcodeShader::dynamicRoutineHashes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="405" column="7" bodyfile="cppStcodeAssembly.h" bodystart="405" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a4d978241d88464a82844489fcda09685" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+        <definition>Tab&lt;CryptoHash&gt; StcodeShader::staticRoutineHashes</definition>
+        <argsstring></argsstring>
+        <name>staticRoutineHashes</name>
+        <qualifiedname>StcodeShader::staticRoutineHashes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="406" column="7" bodyfile="cppStcodeAssembly.h" bodystart="406" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a4f2eeefb69c7f781961e8fd2dd71fba5" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+        <definition>Tab&lt;CryptoHash&gt; StcodeShader::stvarHashes</definition>
+        <argsstring></argsstring>
+        <name>stvarHashes</name>
+        <qualifiedname>StcodeShader::stvarHashes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="407" column="7" bodyfile="cppStcodeAssembly.h" bodystart="407" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a06e085d179bc8bc3d7291ca7571d9d38" prot="public" static="no" mutable="no">
+        <type>Tab&lt; bindump::string &gt;</type>
+        <definition>Tab&lt;bindump::string&gt; StcodeShader::dynamicRoutineNames</definition>
+        <argsstring></argsstring>
+        <name>dynamicRoutineNames</name>
+        <qualifiedname>StcodeShader::dynamicRoutineNames</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="408" column="7" bodyfile="cppStcodeAssembly.h" bodystart="408" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1aa2274b5285ec7958fc49a1ce87d5ac8b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; bindump::string &gt;</type>
+        <definition>Tab&lt;bindump::string&gt; StcodeShader::staticRoutineNames</definition>
+        <argsstring></argsstring>
+        <name>staticRoutineNames</name>
+        <qualifiedname>StcodeShader::staticRoutineNames</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="409" column="7" bodyfile="cppStcodeAssembly.h" bodystart="409" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1a0fc5dcef4db2f3f00b1ceb1655311c00" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeShader_1_1RegisterTable" kindref="compound">RegisterTable</ref></type>
+        <definition>RegisterTable StcodeShader::regTable</definition>
+        <argsstring></argsstring>
+        <name>regTable</name>
+        <qualifiedname>StcodeShader::regTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="410" column="17" bodyfile="cppStcodeAssembly.h" bodystart="410" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeShader_1a3562a2aff09410fe179e9f451d0002d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeShader::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>StcodeShader::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="412" column="8" bodyfile="cppStcodeAssembly.h" bodystart="412" bodyend="412"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1a328a8dc795491ff3da3d032bc46c7f51" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeShader::addStaticVarLocations</definition>
+        <argsstring>(StcodeStaticVars &amp;&amp;locations)</argsstring>
+        <name>addStaticVarLocations</name>
+        <qualifiedname>StcodeShader::addStaticVarLocations</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeStaticVars" kindref="compound">StcodeStaticVars</ref> &amp;&amp;</type>
+          <declname>locations</declname>
+        </param>
+        <briefdescription>
+<para><ref refid="structStcodeShader" kindref="compound">StcodeShader</ref> ///. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="414" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="778" bodyend="807"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1ae3c24ffd52b1236b13e7715878a9c387" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeShader::addRegisterTableWithIndex</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;&amp;table)</argsstring>
+        <name>addRegisterTableWithIndex</name>
+        <qualifiedname>StcodeShader::addRegisterTableWithIndex</qualifiedname>
+        <param>
+          <type>Tab&lt; int &gt; &amp;&amp;</type>
+          <declname>table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="415" column="7" bodyfile="cppStcodeAssembly.cpp" bodystart="815" bodyend="828"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1a36813a7078bf6490784b97e700de11b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeShader::addRegisterTableWithOffset</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;&amp;table)</argsstring>
+        <name>addRegisterTableWithOffset</name>
+        <qualifiedname>StcodeShader::addRegisterTableWithOffset</qualifiedname>
+        <param>
+          <type>Tab&lt; int &gt; &amp;&amp;</type>
+          <declname>table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="416" column="7" bodyfile="cppStcodeAssembly.cpp" bodystart="830" bodyend="844"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1af574f4aa9ce369abcfeaccee84e198a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeShader::addCode</definition>
+        <argsstring>(DynamicStcodeRoutine &amp;&amp;routine, HlslRegRange ps_or_cs_const_range, HlslRegRange vs_const_range)</argsstring>
+        <name>addCode</name>
+        <qualifiedname>StcodeShader::addCode</qualifiedname>
+        <param>
+          <type><ref refid="structDynamicStcodeRoutine" kindref="compound">DynamicStcodeRoutine</ref> &amp;&amp;</type>
+          <declname>routine</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>ps_or_cs_const_range</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>vs_const_range</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="418" column="7" bodyfile="cppStcodeAssembly.cpp" bodystart="846" bodyend="866"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1af10292595585cea196e5daf2e06da025" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeShader::addCode</definition>
+        <argsstring>(StaticStcodeRoutine &amp;&amp;routine, HlslRegRange const_range, SlotTexturesRangeInfo ps_tex_smp_range, SlotTexturesRangeInfo vs_tex_smp_range)</argsstring>
+        <name>addCode</name>
+        <qualifiedname>StcodeShader::addCode</qualifiedname>
+        <param>
+          <type><ref refid="structStaticStcodeRoutine" kindref="compound">StaticStcodeRoutine</ref> &amp;&amp;</type>
+          <declname>routine</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>const_range</declname>
+        </param>
+        <param>
+          <type>SlotTexturesRangeInfo</type>
+          <declname>ps_tex_smp_range</declname>
+        </param>
+        <param>
+          <type>SlotTexturesRangeInfo</type>
+          <declname>vs_tex_smp_range</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="419" column="7" bodyfile="cppStcodeAssembly.cpp" bodystart="868" bodyend="889"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1ac8074e036f8c87ab87d9b9567faca319" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeShader_1_1RoutineRemappingTables" kindref="compound">RoutineRemappingTables</ref></type>
+        <definition>StcodeShader::RoutineRemappingTables StcodeShader::linkRoutinesFromFile</definition>
+        <argsstring>(dag::ConstSpan&lt; CryptoHash &gt; dynamic_routine_hashes, dag::ConstSpan&lt; CryptoHash &gt; static_routine_hashes, const char *fn)</argsstring>
+        <name>linkRoutinesFromFile</name>
+        <qualifiedname>StcodeShader::linkRoutinesFromFile</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+          <declname>dynamic_routine_hashes</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &gt;</type>
+          <declname>static_routine_hashes</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="422" column="26" bodyfile="cppStcodeAssembly.cpp" bodystart="891" bodyend="927"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeShader_1a3506a62de760339f550342a82977ffd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeShader_1_1InterfaceStrings" kindref="compound">InterfaceStrings</ref></type>
+        <definition>StcodeShader::InterfaceStrings StcodeShader::releaseAssembledInterfaceCode</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAssembledInterfaceCode</name>
+        <qualifiedname>StcodeShader::releaseAssembledInterfaceCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="425" column="20" bodyfile="cppStcodeAssembly.cpp" bodystart="929" bodyend="960"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>StcodeAccumulator</label>
+        <link refid="structStcodeAccumulator"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cppStrings</edgelabel>
+          <edgelabel>headerStrings</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="4">
+        <label>StcodeGlobalVars</label>
+        <link refid="structStcodeGlobalVars"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cppCode</edgelabel>
+          <edgelabel>fetchersOrFwdCpp</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>StcodeShader</label>
+        <link refid="structStcodeShader"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>globVars</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>regTable</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>StcodeShader::RegisterTable</label>
+        <link refid="structStcodeShader_1_1RegisterTable"/>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="380" column="1" bodyfile="cppStcodeAssembly.h" bodystart="381" bodyend="426"/>
+    <listofallmembers>
+      <member refid="structStcodeShader_1af574f4aa9ce369abcfeaccee84e198a6" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>addCode</name></member>
+      <member refid="structStcodeShader_1af10292595585cea196e5daf2e06da025" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>addCode</name></member>
+      <member refid="structStcodeShader_1ae3c24ffd52b1236b13e7715878a9c387" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>addRegisterTableWithIndex</name></member>
+      <member refid="structStcodeShader_1a36813a7078bf6490784b97e700de11b7" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>addRegisterTableWithOffset</name></member>
+      <member refid="structStcodeShader_1a328a8dc795491ff3da3d032bc46c7f51" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>addStaticVarLocations</name></member>
+      <member refid="structStcodeShader_1a0eb8bc68674356efadc910b83b377057" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>code</name></member>
+      <member refid="structStcodeShader_1adc30de4d892b6a90585434de98a1cafb" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>curStvarId</name></member>
+      <member refid="structStcodeShader_1ae1da4c67798cda2f7e2fbc8be42c8285" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>dynamicRoutineHashes</name></member>
+      <member refid="structStcodeShader_1a06e085d179bc8bc3d7291ca7571d9d38" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>dynamicRoutineNames</name></member>
+      <member refid="structStcodeShader_1a01c03b612786960a7e5fe1909f5cac30" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>globVars</name></member>
+      <member refid="structStcodeShader_1a263399922da422133761280ed69e664e" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>hasCode</name></member>
+      <member refid="structStcodeShader_1ac8074e036f8c87ab87d9b9567faca319" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>linkRoutinesFromFile</name></member>
+      <member refid="structStcodeShader_1a0fc5dcef4db2f3f00b1ceb1655311c00" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>regTable</name></member>
+      <member refid="structStcodeShader_1a3506a62de760339f550342a82977ffd0" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>releaseAssembledInterfaceCode</name></member>
+      <member refid="structStcodeShader_1a3562a2aff09410fe179e9f451d0002d8" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>reset</name></member>
+      <member refid="structStcodeShader_1acd6a0a3ecb9b166c011c34d269bf561f" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>shaderName</name></member>
+      <member refid="structStcodeShader_1a4d978241d88464a82844489fcda09685" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>staticRoutineHashes</name></member>
+      <member refid="structStcodeShader_1aa2274b5285ec7958fc49a1ce87d5ac8b" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>staticRoutineNames</name></member>
+      <member refid="structStcodeShader_1a4f2eeefb69c7f781961e8fd2dd71fba5" prot="public" virt="non-virtual"><scope>StcodeShader</scope><name>stvarHashes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

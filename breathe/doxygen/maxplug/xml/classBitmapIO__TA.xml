@@ -1,0 +1,475 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBitmapIO__TA" kind="class" language="C++" prot="public">
+    <compoundname>BitmapIO_TA</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">BitmapIO</basecompoundref>
+    <includes refid="ta_8h" local="no">ta.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBitmapIO__TA_1af9d6a097595f4a748cad375711b8797c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BitmapIO_TA::BitmapIO_TA</definition>
+        <argsstring>()</argsstring>
+        <name>BitmapIO_TA</name>
+        <qualifiedname>BitmapIO_TA::BitmapIO_TA</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="13" column="3" bodyfile="ta.cpp" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a661511274b5eae27afa095682364bb95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BitmapIO_TA::~BitmapIO_TA</definition>
+        <argsstring>() override</argsstring>
+        <name>~BitmapIO_TA</name>
+        <qualifiedname>BitmapIO_TA::~BitmapIO_TA</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="15" column="3" bodyfile="ta.cpp" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1ad5f4726ee938adc0de8f8d5e7729b447" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BitmapIO_TA::ExtCount</definition>
+        <argsstring>() override</argsstring>
+        <name>ExtCount</name>
+        <qualifiedname>BitmapIO_TA::ExtCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="19" column="7" bodyfile="ta.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a62f751d22e10900b17493c278a8cf673" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::Ext</definition>
+        <argsstring>(int n) override</argsstring>
+        <name>Ext</name>
+        <qualifiedname>BitmapIO_TA::Ext</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="23" column="15" bodyfile="ta.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a53b2c392defeadeecf26ed8d023f2dfa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::LongDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>LongDesc</name>
+        <qualifiedname>BitmapIO_TA::LongDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="27" column="15" bodyfile="ta.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a45147205ce7a741eea8af909c882c1b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::ShortDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>ShortDesc</name>
+        <qualifiedname>BitmapIO_TA::ShortDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="28" column="15" bodyfile="ta.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1aac4fab1dc5d613502b4fdb9f88bff33e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::AuthorName</definition>
+        <argsstring>() override</argsstring>
+        <name>AuthorName</name>
+        <qualifiedname>BitmapIO_TA::AuthorName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="32" column="15" bodyfile="ta.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1aee7f18705835bd6e93b842d99d55443c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::CopyrightMessage</definition>
+        <argsstring>() override</argsstring>
+        <name>CopyrightMessage</name>
+        <qualifiedname>BitmapIO_TA::CopyrightMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="33" column="15" bodyfile="ta.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a0f374401a4f2d355cc7627b0e57e3a0e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::OtherMessage1</definition>
+        <argsstring>()</argsstring>
+        <name>OtherMessage1</name>
+        <qualifiedname>BitmapIO_TA::OtherMessage1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="34" column="15" bodyfile="ta.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a03f6ba9f94d857ab645bc6e0f47a05d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * BitmapIO_TA::OtherMessage2</definition>
+        <argsstring>()</argsstring>
+        <name>OtherMessage2</name>
+        <qualifiedname>BitmapIO_TA::OtherMessage2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="35" column="15" bodyfile="ta.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a124a23377f4f7e234f12613fafb66739" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int BitmapIO_TA::Version</definition>
+        <argsstring>() override</argsstring>
+        <name>Version</name>
+        <qualifiedname>BitmapIO_TA::Version</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="37" column="16" bodyfile="ta.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1ad9fcc9e8fafc9a9ee89d4b7d665c7a7e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BitmapIO_TA::Capability</definition>
+        <argsstring>() override</argsstring>
+        <name>Capability</name>
+        <qualifiedname>BitmapIO_TA::Capability</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="41" column="7" bodyfile="ta.h" bodystart="41" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1ab75230e398aa2a5fc1e31482c58a1e2f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL BitmapIO_TA::LoadConfigure</definition>
+        <argsstring>(void *ptr)</argsstring>
+        <name>LoadConfigure</name>
+        <qualifiedname>BitmapIO_TA::LoadConfigure</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="55" column="8" bodyfile="ta.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a4bbcb2238481c6b327edea8427a14ab3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL BitmapIO_TA::SaveConfigure</definition>
+        <argsstring>(void *ptr) override</argsstring>
+        <name>SaveConfigure</name>
+        <qualifiedname>BitmapIO_TA::SaveConfigure</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="57" column="8" bodyfile="ta.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a439935b0ce231d4d1899eb187af61f00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD BitmapIO_TA::EvaluateConfigure</definition>
+        <argsstring>() override</argsstring>
+        <name>EvaluateConfigure</name>
+        <qualifiedname>BitmapIO_TA::EvaluateConfigure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="58" column="9" bodyfile="ta.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a29d7d07d650b0cc7a78b8e11064ef070" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BitmapIO_TA::ShowAbout</definition>
+        <argsstring>(HWND hWnd) override</argsstring>
+        <name>ShowAbout</name>
+        <qualifiedname>BitmapIO_TA::ShowAbout</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="62" column="8" bodyfile="ta.cpp" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a1d69ad723c73e117a7a517e8e31168f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL BitmapIO_TA::ShowControl</definition>
+        <argsstring>(HWND hWnd, DWORD flag) override</argsstring>
+        <name>ShowControl</name>
+        <qualifiedname>BitmapIO_TA::ShowControl</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>flag</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="66" column="8" bodyfile="ta.cpp" bodystart="38" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a0b5301ad9fdfe8f471aa7f5d56354e82" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BMMRES</type>
+        <definition>BMMRES BitmapIO_TA::GetImageInfo</definition>
+        <argsstring>(BitmapInfo *bi) override</argsstring>
+        <name>GetImageInfo</name>
+        <qualifiedname>BitmapIO_TA::GetImageInfo</qualifiedname>
+        <param>
+          <type>BitmapInfo *</type>
+          <declname>bi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="71" column="10" bodyfile="ta.cpp" bodystart="59" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1aae77441b9365cf6ed7a3b184802b4303" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BMMRES</type>
+        <definition>BMMRES BitmapIO_TA::GetImageName</definition>
+        <argsstring>(BitmapInfo *fbi, TCHAR *filename) override</argsstring>
+        <name>GetImageName</name>
+        <qualifiedname>BitmapIO_TA::GetImageName</qualifiedname>
+        <param>
+          <type>BitmapInfo *</type>
+          <declname>fbi</declname>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="75" column="10" bodyfile="ta.cpp" bodystart="104" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a44d13077a586f438801bc34359a981eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BitmapStorage *</type>
+        <definition>BitmapStorage * BitmapIO_TA::Load</definition>
+        <argsstring>(BitmapInfo *fbi, Bitmap *map, BMMRES *status) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>BitmapIO_TA::Load</qualifiedname>
+        <param>
+          <type>BitmapInfo *</type>
+          <declname>fbi</declname>
+        </param>
+        <param>
+          <type>Bitmap *</type>
+          <declname>map</declname>
+        </param>
+        <param>
+          <type>BMMRES *</type>
+          <declname>status</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="77" column="17" bodyfile="ta.cpp" bodystart="98" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1acc33b5aefa5cf8867add8730e55f0bef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BMMRES</type>
+        <definition>BMMRES BitmapIO_TA::OpenOutput</definition>
+        <argsstring>(BitmapInfo *bi, Bitmap *map) override</argsstring>
+        <name>OpenOutput</name>
+        <qualifiedname>BitmapIO_TA::OpenOutput</qualifiedname>
+        <param>
+          <type>BitmapInfo *</type>
+          <declname>bi</declname>
+        </param>
+        <param>
+          <type>Bitmap *</type>
+          <declname>map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="78" column="10" bodyfile="ta.cpp" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a2b209e661a8f0856581fceaaacd0c106" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BMMRES</type>
+        <definition>BMMRES BitmapIO_TA::Write</definition>
+        <argsstring>(int frame) override</argsstring>
+        <name>Write</name>
+        <qualifiedname>BitmapIO_TA::Write</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>frame</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="79" column="10" bodyfile="ta.cpp" bodystart="159" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1a756c124cf11d2f10bbf8dc7082a33040" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BitmapIO_TA::Close</definition>
+        <argsstring>(int flag) override</argsstring>
+        <name>Close</name>
+        <qualifiedname>BitmapIO_TA::Close</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>flag</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="80" column="7" bodyfile="ta.cpp" bodystart="161" bodyend="161"/>
+      </memberdef>
+      <memberdef kind="function" id="classBitmapIO__TA_1ac958d37e7c70b90ad1d4ea6112f8ac95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL BitmapIO_TA::Control</definition>
+        <argsstring>(HWND, UINT, WPARAM, LPARAM)</argsstring>
+        <name>Control</name>
+        <qualifiedname>BitmapIO_TA::Control</qualifiedname>
+        <param>
+          <type>HWND</type>
+        </param>
+        <param>
+          <type>UINT</type>
+        </param>
+        <param>
+          <type>WPARAM</type>
+        </param>
+        <param>
+          <type>LPARAM</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.h" line="83" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BitmapIO</label>
+      </node>
+      <node id="1">
+        <label>BitmapIO_TA</label>
+        <link refid="classBitmapIO__TA"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BitmapIO</label>
+      </node>
+      <node id="1">
+        <label>BitmapIO_TA</label>
+        <link refid="classBitmapIO__TA"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ta.h" line="8" column="1" bodyfile="ta.h" bodystart="9" bodyend="84"/>
+    <listofallmembers>
+      <member refid="classBitmapIO__TA_1aac4fab1dc5d613502b4fdb9f88bff33e" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>AuthorName</name></member>
+      <member refid="classBitmapIO__TA_1af9d6a097595f4a748cad375711b8797c" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>BitmapIO_TA</name></member>
+      <member refid="classBitmapIO__TA_1ad9fcc9e8fafc9a9ee89d4b7d665c7a7e" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Capability</name></member>
+      <member refid="classBitmapIO__TA_1a756c124cf11d2f10bbf8dc7082a33040" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Close</name></member>
+      <member refid="classBitmapIO__TA_1ac958d37e7c70b90ad1d4ea6112f8ac95" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Control</name></member>
+      <member refid="classBitmapIO__TA_1aee7f18705835bd6e93b842d99d55443c" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>CopyrightMessage</name></member>
+      <member refid="classBitmapIO__TA_1a439935b0ce231d4d1899eb187af61f00" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>EvaluateConfigure</name></member>
+      <member refid="classBitmapIO__TA_1a62f751d22e10900b17493c278a8cf673" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Ext</name></member>
+      <member refid="classBitmapIO__TA_1ad5f4726ee938adc0de8f8d5e7729b447" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>ExtCount</name></member>
+      <member refid="classBitmapIO__TA_1a0b5301ad9fdfe8f471aa7f5d56354e82" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>GetImageInfo</name></member>
+      <member refid="classBitmapIO__TA_1aae77441b9365cf6ed7a3b184802b4303" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>GetImageName</name></member>
+      <member refid="classBitmapIO__TA_1a44d13077a586f438801bc34359a981eb" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Load</name></member>
+      <member refid="classBitmapIO__TA_1ab75230e398aa2a5fc1e31482c58a1e2f" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>LoadConfigure</name></member>
+      <member refid="classBitmapIO__TA_1a53b2c392defeadeecf26ed8d023f2dfa" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>LongDesc</name></member>
+      <member refid="classBitmapIO__TA_1acc33b5aefa5cf8867add8730e55f0bef" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>OpenOutput</name></member>
+      <member refid="classBitmapIO__TA_1a0f374401a4f2d355cc7627b0e57e3a0e" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>OtherMessage1</name></member>
+      <member refid="classBitmapIO__TA_1a03f6ba9f94d857ab645bc6e0f47a05d6" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>OtherMessage2</name></member>
+      <member refid="classBitmapIO__TA_1a4bbcb2238481c6b327edea8427a14ab3" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>SaveConfigure</name></member>
+      <member refid="classBitmapIO__TA_1a45147205ce7a741eea8af909c882c1b0" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>ShortDesc</name></member>
+      <member refid="classBitmapIO__TA_1a29d7d07d650b0cc7a78b8e11064ef070" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>ShowAbout</name></member>
+      <member refid="classBitmapIO__TA_1a1d69ad723c73e117a7a517e8e31168f2" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>ShowControl</name></member>
+      <member refid="classBitmapIO__TA_1a124a23377f4f7e234f12613fafb66739" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Version</name></member>
+      <member refid="classBitmapIO__TA_1a2b209e661a8f0856581fceaaacd0c106" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>Write</name></member>
+      <member refid="classBitmapIO__TA_1a661511274b5eae27afa095682364bb95" prot="public" virt="non-virtual"><scope>BitmapIO_TA</scope><name>~BitmapIO_TA</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

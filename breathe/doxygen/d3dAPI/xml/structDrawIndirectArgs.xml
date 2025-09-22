@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDrawIndirectArgs" kind="struct" language="C++" prot="public">
+    <compoundname>DrawIndirectArgs</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDrawIndirectArgs_1a9250886021fe8650437b1a5db9ef0ff3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::vertexCountPerInstance</definition>
+        <argsstring></argsstring>
+        <name>vertexCountPerInstance</name>
+        <qualifiedname>DrawIndirectArgs::vertexCountPerInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="224" column="12" bodyfile="dag_decl.h" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndirectArgs_1a6c4c9e45a922628403027a173ec122ed" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::instanceCount</definition>
+        <argsstring></argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>DrawIndirectArgs::instanceCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="225" column="12" bodyfile="dag_decl.h" bodystart="225" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndirectArgs_1ab448956bcdcf2943cff87b97f20d8919" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::startVertexLocation</definition>
+        <argsstring></argsstring>
+        <name>startVertexLocation</name>
+        <qualifiedname>DrawIndirectArgs::startVertexLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="226" column="12" bodyfile="dag_decl.h" bodystart="226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndirectArgs_1a0177383281a588305895af6dbe626893" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::startInstanceLocation</definition>
+        <argsstring></argsstring>
+        <name>startInstanceLocation</name>
+        <qualifiedname>DrawIndirectArgs::startInstanceLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="227" column="12" bodyfile="dag_decl.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="222" column="1" bodyfile="dag_decl.h" bodystart="223" bodyend="228"/>
+    <listofallmembers>
+      <member refid="structDrawIndirectArgs_1a6c4c9e45a922628403027a173ec122ed" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>instanceCount</name></member>
+      <member refid="structDrawIndirectArgs_1a0177383281a588305895af6dbe626893" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>startInstanceLocation</name></member>
+      <member refid="structDrawIndirectArgs_1ab448956bcdcf2943cff87b97f20d8919" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>startVertexLocation</name></member>
+      <member refid="structDrawIndirectArgs_1a9250886021fe8650437b1a5db9ef0ff3" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>vertexCountPerInstance</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

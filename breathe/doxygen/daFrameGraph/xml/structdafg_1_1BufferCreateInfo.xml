@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1BufferCreateInfo" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::BufferCreateInfo</compoundname>
+    <includes refid="resourceCreation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1BufferCreateInfo_1a07b765f5dc38ecfce27c9af11706552f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::BufferCreateInfo::elementSize</definition>
+        <argsstring></argsstring>
+        <name>elementSize</name>
+        <qualifiedname>dafg::BufferCreateInfo::elementSize</qualifiedname>
+        <briefdescription>
+<para>Size of a single element in bytes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="75" column="12" bodyfile="resourceCreation.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1BufferCreateInfo_1ab501349a1802f0464b7979afa0a4a0f7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::BufferCreateInfo::elementCount</definition>
+        <argsstring></argsstring>
+        <name>elementCount</name>
+        <qualifiedname>dafg::BufferCreateInfo::elementCount</qualifiedname>
+        <briefdescription>
+<para>Amount of elements in this buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="77" column="12" bodyfile="resourceCreation.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1BufferCreateInfo_1a8382382f1397163e71e676facf411d61" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::BufferCreateInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>dafg::BufferCreateInfo::flags</qualifiedname>
+        <briefdescription>
+<para>Use SBCF_ flags here. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="79" column="12" bodyfile="resourceCreation.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1BufferCreateInfo_1a7b6fda4b01c1802c8e05df0d9508ab60" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::BufferCreateInfo::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>dafg::BufferCreateInfo::format</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This is for so-called T-buffers, which are basically 1d textures masquerading as buffers. If you are not targeting DX10, don&apos;t use these </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="84" column="12" bodyfile="resourceCreation.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>An effort to create a less error-prone buffers API is currently ongoing, this structure exposes the to-be-deprecated \inlinerst :cpp:func:<computeroutput>d3d::create_sbuffer</computeroutput> \endrst buffer creation mechanism. You are on your own trying to figure out how to use this. </para>
+    </detaileddescription>
+    <location file="resourceCreation.h" line="72" column="1" bodyfile="resourceCreation.h" bodystart="73" bodyend="85"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1BufferCreateInfo_1ab501349a1802f0464b7979afa0a4a0f7" prot="public" virt="non-virtual"><scope>dafg::BufferCreateInfo</scope><name>elementCount</name></member>
+      <member refid="structdafg_1_1BufferCreateInfo_1a07b765f5dc38ecfce27c9af11706552f" prot="public" virt="non-virtual"><scope>dafg::BufferCreateInfo</scope><name>elementSize</name></member>
+      <member refid="structdafg_1_1BufferCreateInfo_1a8382382f1397163e71e676facf411d61" prot="public" virt="non-virtual"><scope>dafg::BufferCreateInfo</scope><name>flags</name></member>
+      <member refid="structdafg_1_1BufferCreateInfo_1a7b6fda4b01c1802c8e05df0d9508ab60" prot="public" virt="non-virtual"><scope>dafg::BufferCreateInfo</scope><name>format</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

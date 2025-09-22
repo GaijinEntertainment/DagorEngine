@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceDumpBase" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDumpBase</compoundname>
+    <derivedcompoundref refid="structResourceDumpBuffer" prot="public" virt="non-virtual">ResourceDumpBuffer</derivedcompoundref>
+    <derivedcompoundref refid="structResourceDumpRayTrace" prot="public" virt="non-virtual">ResourceDumpRayTrace</derivedcompoundref>
+    <derivedcompoundref refid="structResourceDumpTexture" prot="public" virt="non-virtual">ResourceDumpTexture</derivedcompoundref>
+    <includes refid="dag__resourceDump_8h" local="no">dag_resourceDump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceDumpBase::gpuAddress</definition>
+        <argsstring></argsstring>
+        <name>gpuAddress</name>
+        <qualifiedname>ResourceDumpBase::gpuAddress</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="31" column="12" bodyfile="dag_resourceDump.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceDumpBase::heapId</definition>
+        <argsstring></argsstring>
+        <name>heapId</name>
+        <qualifiedname>ResourceDumpBase::heapId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="31" column="23" bodyfile="dag_resourceDump.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceDumpBase::heapOffset</definition>
+        <argsstring></argsstring>
+        <name>heapOffset</name>
+        <qualifiedname>ResourceDumpBase::heapOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="31" column="30" bodyfile="dag_resourceDump.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="2">
+        <label>ResourceDumpBuffer</label>
+        <link refid="structResourceDumpBuffer"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ResourceDumpRayTrace</label>
+        <link refid="structResourceDumpRayTrace"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceDumpTexture</label>
+        <link refid="structResourceDumpTexture"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_resourceDump.h" line="29" column="1" bodyfile="dag_resourceDump.h" bodystart="30" bodyend="32"/>
+    <listofallmembers>
+      <member refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" prot="public" virt="non-virtual"><scope>ResourceDumpBase</scope><name>gpuAddress</name></member>
+      <member refid="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" prot="public" virt="non-virtual"><scope>ResourceDumpBase</scope><name>heapId</name></member>
+      <member refid="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" prot="public" virt="non-virtual"><scope>ResourceDumpBase</scope><name>heapOffset</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

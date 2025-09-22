@@ -1,0 +1,511 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classImage2DReadOnly" kind="class" language="C++" prot="public">
+    <compoundname>Image2DReadOnly</compoundname>
+    <derivedcompoundref refid="classImage2D" prot="public" virt="non-virtual">Image2D</derivedcompoundref>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>Image2DReadOnly::width</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="12" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>Image2DReadOnly::height</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="18" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::byteStride</definition>
+        <argsstring></argsstring>
+        <name>byteStride</name>
+        <qualifiedname>Image2DReadOnly::byteStride</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="25" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>Image2DReadOnly::format</qualifiedname>
+        <initializer>{TEXFMT_DEFAULT}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="36" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::widthInElems</definition>
+        <argsstring></argsstring>
+        <name>widthInElems</name>
+        <qualifiedname>Image2DReadOnly::widthInElems</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="87" column="12" bodyfile="dag_lockTexture.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::heightInElems</definition>
+        <argsstring></argsstring>
+        <name>heightInElems</name>
+        <qualifiedname>Image2DReadOnly::heightInElems</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="87" column="25" bodyfile="dag_lockTexture.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::bytesPerElement</definition>
+        <argsstring></argsstring>
+        <name>bytesPerElement</name>
+        <qualifiedname>Image2DReadOnly::bytesPerElement</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="88" column="12" bodyfile="dag_lockTexture.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" prot="protected" static="no" mutable="no">
+        <type>uint8_t *</type>
+        <definition>uint8_t* Image2DReadOnly::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>Image2DReadOnly::data</qualifiedname>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="89" column="11" bodyfile="dag_lockTexture.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="classImage2DReadOnly_1a317a6a49ce6aacde120b61b54539a4b9" prot="protected" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool Image2DReadOnly::isReadOnly</definition>
+        <argsstring></argsstring>
+        <name>isReadOnly</name>
+        <qualifiedname>Image2DReadOnly::isReadOnly</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="91" column="25" bodyfile="dag_lockTexture.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classImage2DReadOnly_1a8f900f4198b499fc810f919c64dbd503" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::getWidthInElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getWidthInElems</name>
+        <qualifiedname>Image2DReadOnly::getWidthInElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="19" column="12" bodyfile="dag_lockTexture.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a8971c8ff36f048b1fb6e002d3d1ddd2d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::getHeightInElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getHeightInElems</name>
+        <qualifiedname>Image2DReadOnly::getHeightInElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="20" column="12" bodyfile="dag_lockTexture.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a6d0840a5debdf27313e42d74475ba43c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::getByteStride</definition>
+        <argsstring>() const</argsstring>
+        <name>getByteStride</name>
+        <qualifiedname>Image2DReadOnly::getByteStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="21" column="12" bodyfile="dag_lockTexture.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a8dc33cc78f05827245294b314230c3e5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t Image2DReadOnly::getBytesPerElement</definition>
+        <argsstring>() const</argsstring>
+        <name>getBytesPerElement</name>
+        <qualifiedname>Image2DReadOnly::getBytesPerElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="22" column="12" bodyfile="dag_lockTexture.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1adaa755a4a7a9b19b9a043410c7d29531" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const uint8_t *</type>
+        <definition>const uint8_t * Image2DReadOnly::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>Image2DReadOnly::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="24" column="17" bodyfile="dag_lockTexture.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a17514973178e68b7109aae29f4c16d75" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classImage2DView" kindref="compound">Image2DView</ref>&lt; const T &gt;</type>
+        <definition>Image2DView&lt; const T &gt; Image2DReadOnly::cast</definition>
+        <argsstring>() const</argsstring>
+        <name>cast</name>
+        <qualifiedname>Image2DReadOnly::cast</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="27" column="15" bodyfile="dag_lockTexture.h" bodystart="27" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void Image2DReadOnly::readElems</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst, uint32_t row, uint32_t offset_in_elems, uint32_t elems_count) const</argsstring>
+        <name>readElems</name>
+        <qualifiedname>Image2DReadOnly::readElems</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset_in_elems</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elems_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="33" column="8" bodyfile="dag_lockTexture.h" bodystart="33" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void Image2DReadOnly::readRows</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst, uint32_t first_row, uint32_t row_count) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>Image2DReadOnly::readRows</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="41" column="8" bodyfile="dag_lockTexture.h" bodystart="41" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a372ea9ae21b4282c368cb4c95aff527b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void Image2DReadOnly::readRows</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>Image2DReadOnly::readRows</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="50" column="8" bodyfile="dag_lockTexture.h" bodystart="50" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classImage2DReadOnly_1a9ffcd924137cd8fb9cb23b8376602952" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Image2DReadOnly::Image2DReadOnly</definition>
+        <argsstring>()=default</argsstring>
+        <name>Image2DReadOnly</name>
+        <qualifiedname>Image2DReadOnly::Image2DReadOnly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="56" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1aa92e566c8199d89cce12c7ecc84d24b8" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Image2DReadOnly::Image2DReadOnly</definition>
+        <argsstring>(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt)</argsstring>
+        <name>Image2DReadOnly</name>
+        <qualifiedname>Image2DReadOnly::Image2DReadOnly</qualifiedname>
+        <param>
+          <type>uint8_t *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>byte_stride</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="58" column="3" bodyfile="dag_lockTexture.h" bodystart="58" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Image2DReadOnly::checkRowAccess</definition>
+        <argsstring>(uint32_t first_row, uint32_t row_count, uint32_t bytes_offset, uint32_t row_size_bytes) const</argsstring>
+        <name>checkRowAccess</name>
+        <qualifiedname>Image2DReadOnly::checkRowAccess</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>bytes_offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_size_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="71" column="8" bodyfile="dag_lockTexture.h" bodystart="71" bodyend="84"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classImage2DReadOnly_1a449a652044daa35e4c360119aed249e1" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Image2DReadOnly::readElems</definition>
+        <argsstring>(void *dst, uint32_t row, uint32_t offset_in_bytes, uint32_t size_in_bytes) const</argsstring>
+        <name>readElems</name>
+        <qualifiedname>Image2DReadOnly::readElems</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset_in_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="94" column="8" bodyfile="dag_lockTexture.h" bodystart="94" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DReadOnly_1ae8f300d0c7aed8f30ee5830a4a3939bc" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Image2DReadOnly::readRows</definition>
+        <argsstring>(void *dst, uint32_t first_row, uint32_t rows_count, uint32_t row_size_bytes) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>Image2DReadOnly::readRows</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>rows_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_size_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="100" column="8" bodyfile="dag_lockTexture.h" bodystart="100" bodyend="117"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>Image2D</label>
+        <link refid="classImage2D"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Image2DReadOnly</label>
+        <link refid="classImage2DReadOnly"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_lockTexture.h" line="16" column="1" bodyfile="dag_lockTexture.h" bodystart="17" bodyend="118"/>
+    <listofallmembers>
+      <member refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>bytesPerElement</name></member>
+      <member refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>byteStride</name></member>
+      <member refid="classImage2DReadOnly_1a17514973178e68b7109aae29f4c16d75" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>cast</name></member>
+      <member refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>checkRowAccess</name></member>
+      <member refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>data</name></member>
+      <member refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>format</name></member>
+      <member refid="classImage2DReadOnly_1adaa755a4a7a9b19b9a043410c7d29531" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>get</name></member>
+      <member refid="classImage2DReadOnly_1a8dc33cc78f05827245294b314230c3e5" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>getBytesPerElement</name></member>
+      <member refid="classImage2DReadOnly_1a6d0840a5debdf27313e42d74475ba43c" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>getByteStride</name></member>
+      <member refid="classImage2DReadOnly_1a8971c8ff36f048b1fb6e002d3d1ddd2d" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>getHeightInElems</name></member>
+      <member refid="classImage2DReadOnly_1a8f900f4198b499fc810f919c64dbd503" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>getWidthInElems</name></member>
+      <member refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>height</name></member>
+      <member refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>heightInElems</name></member>
+      <member refid="classImage2DReadOnly_1a9ffcd924137cd8fb9cb23b8376602952" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>Image2DReadOnly</name></member>
+      <member refid="classImage2DReadOnly_1aa92e566c8199d89cce12c7ecc84d24b8" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>Image2DReadOnly</name></member>
+      <member refid="classImage2DReadOnly_1a317a6a49ce6aacde120b61b54539a4b9" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>isReadOnly</name></member>
+      <member refid="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>readElems</name></member>
+      <member refid="classImage2DReadOnly_1a449a652044daa35e4c360119aed249e1" prot="private" virt="non-virtual"><scope>Image2DReadOnly</scope><name>readElems</name></member>
+      <member refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>readRows</name></member>
+      <member refid="classImage2DReadOnly_1a372ea9ae21b4282c368cb4c95aff527b" prot="public" virt="non-virtual"><scope>Image2DReadOnly</scope><name>readRows</name></member>
+      <member refid="classImage2DReadOnly_1ae8f300d0c7aed8f30ee5830a4a3939bc" prot="private" virt="non-virtual"><scope>Image2DReadOnly</scope><name>readRows</name></member>
+      <member refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>width</name></member>
+      <member refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" prot="protected" virt="non-virtual"><scope>Image2DReadOnly</scope><name>widthInElems</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

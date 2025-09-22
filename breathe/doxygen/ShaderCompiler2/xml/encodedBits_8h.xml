@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="encodedBits_8h" kind="file" language="C++">
+    <compoundname>encodedBits.h</compoundname>
+    <innernamespace refid="namespaceencoded__bits">encoded_bits</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="namespaceencoded__bits" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceencoded__bits" kindref="compound">encoded_bits</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837aa7834d96d5e3de53f430b56088069257" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837aa7834d96d5e3de53f430b56088069257" kindref="member">SkipValidation</ref>,</highlight></codeline>
+<codeline lineno="9" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a6d5ea8ffbf9ea098bcb708e6dd6f3a43" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a6d5ea8ffbf9ea098bcb708e6dd6f3a43" kindref="member">Optimize</ref>,</highlight></codeline>
+<codeline lineno="10" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a8ef76ab6c6c286aed8ac1955b3466f6d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a8ef76ab6c6c286aed8ac1955b3466f6d" kindref="member">DebugInfo</ref>,</highlight></codeline>
+<codeline lineno="11" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a30942171a2d46016589ec94fcfe4f3b7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a30942171a2d46016589ec94fcfe4f3b7" kindref="member">ScarlettW32</ref>,</highlight></codeline>
+<codeline lineno="12" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a9c3974327e760551d9abe5f1f61df3d9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a9c3974327e760551d9abe5f1f61df3d9" kindref="member">HLSL2021</ref>,</highlight></codeline>
+<codeline lineno="13" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837ae037fff6ab2d5b3b2a11e71f27d65209" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837ae037fff6ab2d5b3b2a11e71f27d65209" kindref="member">EnableFp16</ref>,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a0f7fe01152493b575383d285992b9cb2" kindref="member">BitCount</ref></highlight></codeline>
+<codeline lineno="16" refid="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a0f7fe01152493b575383d285992b9cb2" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ProfileLength<sp/>=<sp/>6;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ExtraBytes<sp/>=<sp/>ProfileLength<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>encoded_bits</highlight></codeline>
+    </programlisting>
+    <location file="encodedBits.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDivideE" kind="struct" language="C++" prot="public">
+    <compoundname>DivideE</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDivideE_1ad3b184af1b859fb7b98d4ccdeba5d6ad" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DivideE::ed</definition>
+        <argsstring></argsstring>
+        <name>ed</name>
+        <qualifiedname>DivideE::ed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4753" column="7" bodyfile="util.cpp" bodystart="4753" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDivideE_1a28fe74cbb0a50326cb7991319b51dea7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DivideE::order[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>order</name>
+        <qualifiedname>DivideE::order</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4754" column="7" bodyfile="util.cpp" bodystart="4754" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDivideE_1ab9e0c8f12f1ced4aba9af809f8dbb42a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; DivideE::vrt</definition>
+        <argsstring></argsstring>
+        <name>vrt</name>
+        <qualifiedname>DivideE::vrt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4755" column="7" bodyfile="util.cpp" bodystart="4755" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDivideE_1aea7aca76d676c04fc51dea23aaa62881" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int[2]&gt;</type>
+        <definition>Tab&lt;int[2]&gt; DivideE::tvrt[MESHSMOOTHMAPS_SUPPORT]</definition>
+        <argsstring>[MESHSMOOTHMAPS_SUPPORT]</argsstring>
+        <name>tvrt</name>
+        <qualifiedname>DivideE::tvrt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4756" column="7" bodyfile="util.cpp" bodystart="4756" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util.cpp" line="4751" column="1" bodyfile="util.cpp" bodystart="4752" bodyend="4757"/>
+    <listofallmembers>
+      <member refid="structDivideE_1ad3b184af1b859fb7b98d4ccdeba5d6ad" prot="public" virt="non-virtual"><scope>DivideE</scope><name>ed</name></member>
+      <member refid="structDivideE_1a28fe74cbb0a50326cb7991319b51dea7" prot="public" virt="non-virtual"><scope>DivideE</scope><name>order</name></member>
+      <member refid="structDivideE_1aea7aca76d676c04fc51dea23aaa62881" prot="public" virt="non-virtual"><scope>DivideE</scope><name>tvrt</name></member>
+      <member refid="structDivideE_1ab9e0c8f12f1ced4aba9af809f8dbb42a" prot="public" virt="non-virtual"><scope>DivideE</scope><name>vrt</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

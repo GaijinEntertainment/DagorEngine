@@ -1,0 +1,244 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderBlockTable" kind="class" language="C++" prot="public">
+    <compoundname>ShaderBlockTable</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderBlockTable_1ac563d5f85492b483019e3226c882b0a2" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+        <definition>Tab&lt;ShaderStateBlock *&gt; ShaderBlockTable::blocks</definition>
+        <argsstring></argsstring>
+        <name>blocks</name>
+        <qualifiedname>ShaderBlockTable::blocks</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="209" column="7" bodyfile="namedConst.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBlockTable_1a479dc45cf87b6a0b280b49daefc7da95" prot="private" static="no" mutable="no">
+        <type>FastNameMap</type>
+        <definition>FastNameMap ShaderBlockTable::blockNames</definition>
+        <argsstring></argsstring>
+        <name>blockNames</name>
+        <qualifiedname>ShaderBlockTable::blockNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="210" column="15" bodyfile="namedConst.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBlockTable_1a0c212d6321052b28d970b11c0617c8f1" prot="private" static="no" mutable="no">
+        <type>bindump::Ptr&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt;</type>
+        <definition>bindump::Ptr&lt;ShaderStateBlock&gt; ShaderBlockTable::emptyBlk</definition>
+        <argsstring></argsstring>
+        <name>emptyBlk</name>
+        <qualifiedname>ShaderBlockTable::emptyBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="218" column="16" bodyfile="namedConst.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderBlockTable_1ad96d22e9c91ae4dd9b148f365c992464" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockTable::ShaderBlockTable</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderBlockTable</name>
+        <qualifiedname>ShaderBlockTable::ShaderBlockTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="221" column="3" bodyfile="namedConst.h" bodystart="221" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1af5fdea08c003ccf7a805dd32e7afb7e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockTable::~ShaderBlockTable</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderBlockTable</name>
+        <qualifiedname>ShaderBlockTable::~ShaderBlockTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="222" column="3" bodyfile="namedConst.cpp" bodystart="611" bodyend="619"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1ad5ec754c23a14e7d4f73cba66147c486" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderBlockTable::registerBlock</definition>
+        <argsstring>(ShaderStateBlock *blk, bool allow_identical_redecl=false)</argsstring>
+        <name>registerBlock</name>
+        <qualifiedname>ShaderBlockTable::registerBlock</qualifiedname>
+        <param>
+          <type><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> *</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_identical_redecl</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="224" column="8" bodyfile="namedConst.cpp" bodystart="621" bodyend="653"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a208a9d0ca182b150a9183de1d3d14f6a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> *</type>
+        <definition>ShaderStateBlock * ShaderBlockTable::findBlock</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>findBlock</name>
+        <qualifiedname>ShaderBlockTable::findBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="225" column="20" bodyfile="namedConst.cpp" bodystart="655" bodyend="659"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a4450c0258b8f233e2ab12aeb91abb676" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderBlockTable::countBlock</definition>
+        <argsstring>(ShaderBlockLevel level=ShaderBlockLevel::UNDEFINED) const</argsstring>
+        <name>countBlock</name>
+        <qualifiedname>ShaderBlockTable::countBlock</qualifiedname>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>level</declname>
+          <defval><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca0db45d2a4141101bdfe48e3314cfbca3" kindref="member">ShaderBlockLevel::UNDEFINED</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="226" column="7" bodyfile="namedConst.cpp" bodystart="663" bodyend="669"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a4ed91dd95664704f8d17f5d6c8357ea9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> *</type>
+        <definition>ShaderStateBlock * ShaderBlockTable::emptyBlock</definition>
+        <argsstring>()</argsstring>
+        <name>emptyBlock</name>
+        <qualifiedname>ShaderBlockTable::emptyBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="229" column="20" bodyfile="namedConst.h" bodystart="229" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a6c21172f43bb9807f35817c96e063bf1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> *</type>
+        <definition>const ShaderStateBlock * ShaderBlockTable::emptyBlock</definition>
+        <argsstring>() const</argsstring>
+        <name>emptyBlock</name>
+        <qualifiedname>ShaderBlockTable::emptyBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="230" column="26" bodyfile="namedConst.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a2d59b777ab3d6b7e1875d8ad295fe560" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+        <definition>Tab&lt; ShaderStateBlock * &gt; ShaderBlockTable::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>ShaderBlockTable::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="232" column="7" bodyfile="namedConst.cpp" bodystart="661" bodyend="661"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a439f320715d613f530f4e460d05eaf92" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bindump::Ptr&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt;</type>
+        <definition>bindump::Ptr&lt; ShaderStateBlock &gt; ShaderBlockTable::releaseEmptyBlock</definition>
+        <argsstring>()</argsstring>
+        <name>releaseEmptyBlock</name>
+        <qualifiedname>ShaderBlockTable::releaseEmptyBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="233" column="16" bodyfile="namedConst.h" bodystart="233" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockTable_1a969c81dcaa52660a6012dd5213705719" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderBlockTable::link</definition>
+        <argsstring>(Tab&lt; ShaderStateBlock * &gt; &amp;loaded_blocks, dag::ConstSpan&lt; int &gt; stcode_remap, dag::ConstSpan&lt; int &gt; external_stcode_remap)</argsstring>
+        <name>link</name>
+        <qualifiedname>ShaderBlockTable::link</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt; &amp;</type>
+          <declname>loaded_blocks</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>stcode_remap</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>external_stcode_remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="235" column="8" bodyfile="namedConst.cpp" bodystart="671" bodyend="706"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namedConst.h" line="207" column="1" bodyfile="namedConst.h" bodystart="208" bodyend="236"/>
+    <listofallmembers>
+      <member refid="classShaderBlockTable_1a479dc45cf87b6a0b280b49daefc7da95" prot="private" virt="non-virtual"><scope>ShaderBlockTable</scope><name>blockNames</name></member>
+      <member refid="classShaderBlockTable_1ac563d5f85492b483019e3226c882b0a2" prot="private" virt="non-virtual"><scope>ShaderBlockTable</scope><name>blocks</name></member>
+      <member refid="classShaderBlockTable_1a4450c0258b8f233e2ab12aeb91abb676" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>countBlock</name></member>
+      <member refid="classShaderBlockTable_1a0c212d6321052b28d970b11c0617c8f1" prot="private" virt="non-virtual"><scope>ShaderBlockTable</scope><name>emptyBlk</name></member>
+      <member refid="classShaderBlockTable_1a4ed91dd95664704f8d17f5d6c8357ea9" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>emptyBlock</name></member>
+      <member refid="classShaderBlockTable_1a6c21172f43bb9807f35817c96e063bf1" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>emptyBlock</name></member>
+      <member refid="classShaderBlockTable_1a208a9d0ca182b150a9183de1d3d14f6a" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>findBlock</name></member>
+      <member refid="classShaderBlockTable_1a969c81dcaa52660a6012dd5213705719" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>link</name></member>
+      <member refid="classShaderBlockTable_1ad5ec754c23a14e7d4f73cba66147c486" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>registerBlock</name></member>
+      <member refid="classShaderBlockTable_1a2d59b777ab3d6b7e1875d8ad295fe560" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>release</name></member>
+      <member refid="classShaderBlockTable_1a439f320715d613f530f4e460d05eaf92" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>releaseEmptyBlock</name></member>
+      <member refid="classShaderBlockTable_1ad96d22e9c91ae4dd9b148f365c992464" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>ShaderBlockTable</name></member>
+      <member refid="classShaderBlockTable_1af5fdea08c003ccf7a805dd32e7afb7e7" prot="public" virt="non-virtual"><scope>ShaderBlockTable</scope><name>~ShaderBlockTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

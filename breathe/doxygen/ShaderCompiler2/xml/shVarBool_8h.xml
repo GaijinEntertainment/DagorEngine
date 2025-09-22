@@ -1,0 +1,240 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shVarBool_8h" kind="file" language="C++">
+    <compoundname>shVarBool.h</compoundname>
+    <includedby refid="condParser_8cpp" local="yes">condParser.cpp</includedby>
+    <includedby refid="condParser_8h" local="yes">condParser.h</includedby>
+    <includedby refid="shsem_8h" local="yes">shsem.h</includedby>
+    <invincdepgraph>
+      <node id="6">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="5">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>condParser.h</label>
+        <link refid="condParser_8h"/>
+      </node>
+      <node id="22">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="15">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="14">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="24">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="4">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="13">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="19">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="21">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classShVarBool" prot="public">ShVarBool</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>shader<sp/>boolean<sp/>variable<sp/>(for<sp/>boolean<sp/>expr<sp/>eval)</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="classShVarBool" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="11" refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>;<sp/></highlight><highlight class="comment">//<sp/>if<sp/>true,<sp/>value<sp/>is<sp/>never<sp/>changing<sp/>in<sp/>the<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>boolean<sp/>value</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classShVarBool_1a63c5932488b192adbcf31dcd6a61240a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a63c5932488b192adbcf31dcd6a61240a" kindref="member">ShVarBool</ref>()<sp/>:<sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>(false),<sp/><ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>(true)<sp/>{}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classShVarBool_1a2e9dd70caa41134044d51d56fd1908ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a2e9dd70caa41134044d51d56fd1908ee" kindref="member">ShVarBool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>&amp;other)<sp/>{<sp/><ref refid="classShVarBool_1a9c1abf96513e6b351579c41fda54b1b6" kindref="member">operator=</ref>(other);<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classShVarBool_1a13373c655bd973c5b22dc9bb4cd58637" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a13373c655bd973c5b22dc9bb4cd58637" kindref="member">ShVarBool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>b,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_const)<sp/>:<sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>(is_const),<sp/><ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>(b)<sp/>{}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classShVarBool_1a9c1abf96513e6b351579c41fda54b1b6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>&amp;<ref refid="classShVarBool_1a9c1abf96513e6b351579c41fda54b1b6" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>&amp;other)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref><sp/>=<sp/>other.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>=<sp/>other.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="classShVarBool_1a22ac3ccec93fb32fe9e7045fb27f4a68" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/><ref refid="classShVarBool_1a22ac3ccec93fb32fe9e7045fb27f4a68" kindref="member">operator!</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a63c5932488b192adbcf31dcd6a61240a" kindref="member">ShVarBool</ref>(!<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>,<sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classShVarBool_1a9e76c09f1acf2f70c4635f3ff376a178" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/><ref refid="classShVarBool_1a9e76c09f1acf2f70c4635f3ff376a178" kindref="member">operator&amp;&amp;</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>&amp;other)</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>?<sp/>other<sp/>:<sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(other.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>other.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>?<sp/>*this<sp/>:<sp/>other;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a63c5932488b192adbcf31dcd6a61240a" kindref="member">ShVarBool</ref>(<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>&amp;&amp;<sp/>other.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>,<sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref><sp/>&amp;&amp;<sp/>other.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="classShVarBool_1a4ca21832cc70c98ef5cf6b3d2f4e8c57" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/><ref refid="classShVarBool_1a4ca21832cc70c98ef5cf6b3d2f4e8c57" kindref="member">operator||</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>&amp;other)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShVarBool_1a63c5932488b192adbcf31dcd6a61240a" kindref="member">ShVarBool</ref>(<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>||<sp/>other.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>,<sp/><ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref><sp/>&amp;&amp;<sp/>other.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="shVarBool.h"/>
+  </compounddef>
+</doxygen>

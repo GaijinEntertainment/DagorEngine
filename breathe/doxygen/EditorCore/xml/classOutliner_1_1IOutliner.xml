@@ -1,0 +1,958 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classOutliner_1_1IOutliner" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>Outliner::IOutliner</compoundname>
+    <includes refid="ec__outlinerInterface_8h" local="no">ec_outlinerInterface.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a995a72b08a85284d1ff43746ac4f5c64" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Outliner::IOutliner::getTypeCount</definition>
+        <argsstring>()=0</argsstring>
+        <name>getTypeCount</name>
+        <qualifiedname>Outliner::IOutliner::getTypeCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="15" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a59a4869ac09d9e6428f04972be22de95" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * Outliner::IOutliner::getTypeName</definition>
+        <argsstring>(int type, bool plural=false)=0</argsstring>
+        <name>getTypeName</name>
+        <qualifiedname>Outliner::IOutliner::getTypeName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>plural</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="16" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a42ed8496f16a75302106dd96a7ef2036" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isTypeVisible</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>isTypeVisible</name>
+        <qualifiedname>Outliner::IOutliner::isTypeVisible</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="17" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aaa41cc54a0379a8ca8d79e2a145af220" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isTypeLocked</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>isTypeLocked</name>
+        <qualifiedname>Outliner::IOutliner::isTypeLocked</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="18" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a3fcc4ff0cd2ed1092d463ad6e0c50ce7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canAddNewLayerWithName</definition>
+        <argsstring>(int type, const char *name, String &amp;error_message)=0</argsstring>
+        <name>canAddNewLayerWithName</name>
+        <qualifiedname>Outliner::IOutliner::canAddNewLayerWithName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>error_message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="19" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a1131ed9c3cbf33fec4f5bccc625d1f4a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::selectAllTypeObjects</definition>
+        <argsstring>(int type, bool select)=0</argsstring>
+        <name>selectAllTypeObjects</name>
+        <qualifiedname>Outliner::IOutliner::selectAllTypeObjects</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>select</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="21" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1ab388feedeaca2708d3896b27f81bef5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleTypeVisibility</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>toggleTypeVisibility</name>
+        <qualifiedname>Outliner::IOutliner::toggleTypeVisibility</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="22" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a4ea6faebe8c57a2de308bde3374c7483" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleTypeLock</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>toggleTypeLock</name>
+        <qualifiedname>Outliner::IOutliner::toggleTypeLock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="23" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1afc54e83cfa179dd28447dcbdde411a4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Outliner::IOutliner::addNewLayer</definition>
+        <argsstring>(int type, const char *name)=0</argsstring>
+        <name>addNewLayer</name>
+        <qualifiedname>Outliner::IOutliner::addNewLayer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="26" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a91e65e62377406597033e5fd6047443c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Outliner::IOutliner::getLayerCount</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>getLayerCount</name>
+        <qualifiedname>Outliner::IOutliner::getLayerCount</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="28" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a8432edf54311981bf4cb8a7096d723c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * Outliner::IOutliner::getLayerName</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>getLayerName</name>
+        <qualifiedname>Outliner::IOutliner::getLayerName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="29" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a33bb04e906b39be85797e12b63fff905" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerActive</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerActive</name>
+        <qualifiedname>Outliner::IOutliner::isLayerActive</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="30" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a83264366f390441a123c334201ac77f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerVisible</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerVisible</name>
+        <qualifiedname>Outliner::IOutliner::isLayerVisible</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1af47561f3b751ab2bc7aa5d610a158ae2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerLocked</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerLocked</name>
+        <qualifiedname>Outliner::IOutliner::isLayerLocked</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="32" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a4dc6cde0f3e3e46a021969d24139d9b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerAppliedToMask</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerAppliedToMask</name>
+        <qualifiedname>Outliner::IOutliner::isLayerAppliedToMask</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aede6e9b3b55e4e8ae296ddd79d274e95" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerExported</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerExported</name>
+        <qualifiedname>Outliner::IOutliner::isLayerExported</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="34" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aee26b248af31eabdec44713cbdb13333" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canChangeLayerVisibility</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>canChangeLayerVisibility</name>
+        <qualifiedname>Outliner::IOutliner::canChangeLayerVisibility</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a25bef2fe58edd18642071178b85685e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canChangeLayerLock</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>canChangeLayerLock</name>
+        <qualifiedname>Outliner::IOutliner::canChangeLayerLock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="36" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a825b43c22b2988a9ac514bfe03aed257" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isLayerRenameable</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>isLayerRenameable</name>
+        <qualifiedname>Outliner::IOutliner::isLayerRenameable</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1abdc7e74cc90a2491ceb75bd08c0635b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canRenameLayerTo</definition>
+        <argsstring>(int type, int per_type_layer_index, const char *name, String &amp;error_message)=0</argsstring>
+        <name>canRenameLayerTo</name>
+        <qualifiedname>Outliner::IOutliner::canRenameLayerTo</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>error_message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="38" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aa5e83464ddefcb051b8a8741fbe27056" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::setLayerActive</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>setLayerActive</name>
+        <qualifiedname>Outliner::IOutliner::setLayerActive</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="40" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a4ae5d0d9126a31ddedcf71360265fd55" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::selectAllLayerObjects</definition>
+        <argsstring>(int type, int per_type_layer_index, bool select)=0</argsstring>
+        <name>selectAllLayerObjects</name>
+        <qualifiedname>Outliner::IOutliner::selectAllLayerObjects</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>select</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="41" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1ac95c6e73fe100465c803739db71a6a38" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleLayerVisibility</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>toggleLayerVisibility</name>
+        <qualifiedname>Outliner::IOutliner::toggleLayerVisibility</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="42" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aa9beea31af7efbc02e77c9069416602b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleLayerLock</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>toggleLayerLock</name>
+        <qualifiedname>Outliner::IOutliner::toggleLayerLock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a5d63b4fe73a32a43626790ad0da72095" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleLayerApplyToMask</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>toggleLayerApplyToMask</name>
+        <qualifiedname>Outliner::IOutliner::toggleLayerApplyToMask</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="44" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a72385b63d9c665209b5cc0bf49ab93ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::toggleLayerExport</definition>
+        <argsstring>(int type, int per_type_layer_index)=0</argsstring>
+        <name>toggleLayerExport</name>
+        <qualifiedname>Outliner::IOutliner::toggleLayerExport</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a9e7b1a2c8f4a28757c7081a016e17e1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::renameLayer</definition>
+        <argsstring>(int type, int per_type_layer_index, const char *name)=0</argsstring>
+        <name>renameLayer</name>
+        <qualifiedname>Outliner::IOutliner::renameLayer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a8144f1b4f40f303ab2022e76bffb1fe6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isObjectSelected</definition>
+        <argsstring>(RenderableEditableObject &amp;object)=0</argsstring>
+        <name>isObjectSelected</name>
+        <qualifiedname>Outliner::IOutliner::isObjectSelected</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aa756439298044d1079a30bffdf140428" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canSelectObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)=0</argsstring>
+        <name>canSelectObject</name>
+        <qualifiedname>Outliner::IOutliner::canSelectObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="49" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1aceb05cebb6da219c43bf1069ecb5517a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::canRenameObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object, const char *name, String &amp;error_message)=0</argsstring>
+        <name>canRenameObject</name>
+        <qualifiedname>Outliner::IOutliner::canRenameObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>error_message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a779681f46d720e9a0c4393b9174c1f70" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::getObjectTypeAndPerTypeLayerIndex</definition>
+        <argsstring>(RenderableEditableObject &amp;object, int &amp;type, int &amp;per_type_layer_index)=0</argsstring>
+        <name>getObjectTypeAndPerTypeLayerIndex</name>
+        <qualifiedname>Outliner::IOutliner::getObjectTypeAndPerTypeLayerIndex</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="51" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a775fe21242a2a67b25b2b29027971c15" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * Outliner::IOutliner::getObjectAssetName</definition>
+        <argsstring>(RenderableEditableObject &amp;object)=0</argsstring>
+        <name>getObjectAssetName</name>
+        <qualifiedname>Outliner::IOutliner::getObjectAssetName</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="52" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1ac1ad2a9485a1983f024f7dc131635b4e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Outliner::IOutliner::getObjectAssetType</definition>
+        <argsstring>(RenderableEditableObject &amp;object, const char *&amp;asset_type_name)=0</argsstring>
+        <name>getObjectAssetType</name>
+        <qualifiedname>Outliner::IOutliner::getObjectAssetType</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <param>
+          <type>const char *&amp;</type>
+          <declname>asset_type_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="55" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1af0486b9dd77a0300b1dcfb9725d7f102" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool Outliner::IOutliner::isSampleObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)=0</argsstring>
+        <name>isSampleObject</name>
+        <qualifiedname>Outliner::IOutliner::isSampleObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="58" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1adfbc4dec81a03ed9cba2c7d3dcd5dfb1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::startObjectSelection</definition>
+        <argsstring>()=0</argsstring>
+        <name>startObjectSelection</name>
+        <qualifiedname>Outliner::IOutliner::startObjectSelection</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="60" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a6a4a3a50934b99f2606a6b7697b80aaa" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::setObjectSelected</definition>
+        <argsstring>(RenderableEditableObject &amp;object, bool selected)=0</argsstring>
+        <name>setObjectSelected</name>
+        <qualifiedname>Outliner::IOutliner::setObjectSelected</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>selected</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="61" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a095e52b9a2b5290aded185b929a0423e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::endObjectSelection</definition>
+        <argsstring>()=0</argsstring>
+        <name>endObjectSelection</name>
+        <qualifiedname>Outliner::IOutliner::endObjectSelection</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="62" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a1f1a0da6ef5c2c2b675eba96fbfffec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::unselectAllObjects</definition>
+        <argsstring>()=0</argsstring>
+        <name>unselectAllObjects</name>
+        <qualifiedname>Outliner::IOutliner::unselectAllObjects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="63" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a3a116cbb20a118a34a5c4f6b76e31c61" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::moveObjectsToLayer</definition>
+        <argsstring>(dag::Span&lt; RenderableEditableObject * &gt; objects, int type, int per_type_destination_layer_index)=0</argsstring>
+        <name>moveObjectsToLayer</name>
+        <qualifiedname>Outliner::IOutliner::moveObjectsToLayer</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_destination_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="64" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1ae5babb5a2d7a051c352274da6cdc220a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::renameObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object, const char *name)=0</argsstring>
+        <name>renameObject</name>
+        <qualifiedname>Outliner::IOutliner::renameObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="65" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a0bc96d015aa9b9e7ed8abf0770441e0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::changeObjectAsset</definition>
+        <argsstring>(dag::Span&lt; RenderableEditableObject * &gt; objects)=0</argsstring>
+        <name>changeObjectAsset</name>
+        <qualifiedname>Outliner::IOutliner::changeObjectAsset</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="66" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a101224cfd57baeb1dab0e86b9d9acb36" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::deleteObjects</definition>
+        <argsstring>(dag::Span&lt; RenderableEditableObject * &gt; objects)=0</argsstring>
+        <name>deleteObjects</name>
+        <qualifiedname>Outliner::IOutliner::deleteObjects</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1IOutliner_1a038c390197ce708814eb0440ee287680" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::IOutliner::zoomAndCenterObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)=0</argsstring>
+        <name>zoomAndCenterObject</name>
+        <qualifiedname>Outliner::IOutliner::zoomAndCenterObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outlinerInterface.h" line="68" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_outlinerInterface.h" line="12" column="1" bodyfile="ec_outlinerInterface.h" bodystart="13" bodyend="69"/>
+    <listofallmembers>
+      <member refid="classOutliner_1_1IOutliner_1afc54e83cfa179dd28447dcbdde411a4b" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>addNewLayer</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a3fcc4ff0cd2ed1092d463ad6e0c50ce7" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canAddNewLayerWithName</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a25bef2fe58edd18642071178b85685e8" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canChangeLayerLock</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aee26b248af31eabdec44713cbdb13333" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canChangeLayerVisibility</name></member>
+      <member refid="classOutliner_1_1IOutliner_1abdc7e74cc90a2491ceb75bd08c0635b6" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canRenameLayerTo</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aceb05cebb6da219c43bf1069ecb5517a" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canRenameObject</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aa756439298044d1079a30bffdf140428" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>canSelectObject</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a0bc96d015aa9b9e7ed8abf0770441e0d" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>changeObjectAsset</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a101224cfd57baeb1dab0e86b9d9acb36" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>deleteObjects</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a095e52b9a2b5290aded185b929a0423e" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>endObjectSelection</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a91e65e62377406597033e5fd6047443c" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getLayerCount</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a8432edf54311981bf4cb8a7096d723c8" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getLayerName</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a775fe21242a2a67b25b2b29027971c15" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getObjectAssetName</name></member>
+      <member refid="classOutliner_1_1IOutliner_1ac1ad2a9485a1983f024f7dc131635b4e" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getObjectAssetType</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a779681f46d720e9a0c4393b9174c1f70" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getObjectTypeAndPerTypeLayerIndex</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a995a72b08a85284d1ff43746ac4f5c64" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getTypeCount</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a59a4869ac09d9e6428f04972be22de95" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>getTypeName</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a33bb04e906b39be85797e12b63fff905" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerActive</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a4dc6cde0f3e3e46a021969d24139d9b3" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerAppliedToMask</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aede6e9b3b55e4e8ae296ddd79d274e95" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerExported</name></member>
+      <member refid="classOutliner_1_1IOutliner_1af47561f3b751ab2bc7aa5d610a158ae2" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerLocked</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a825b43c22b2988a9ac514bfe03aed257" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerRenameable</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a83264366f390441a123c334201ac77f5" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isLayerVisible</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a8144f1b4f40f303ab2022e76bffb1fe6" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isObjectSelected</name></member>
+      <member refid="classOutliner_1_1IOutliner_1af0486b9dd77a0300b1dcfb9725d7f102" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isSampleObject</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aaa41cc54a0379a8ca8d79e2a145af220" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isTypeLocked</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a42ed8496f16a75302106dd96a7ef2036" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>isTypeVisible</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a3a116cbb20a118a34a5c4f6b76e31c61" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>moveObjectsToLayer</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a9e7b1a2c8f4a28757c7081a016e17e1e" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>renameLayer</name></member>
+      <member refid="classOutliner_1_1IOutliner_1ae5babb5a2d7a051c352274da6cdc220a" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>renameObject</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a4ae5d0d9126a31ddedcf71360265fd55" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>selectAllLayerObjects</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a1131ed9c3cbf33fec4f5bccc625d1f4a" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>selectAllTypeObjects</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aa5e83464ddefcb051b8a8741fbe27056" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>setLayerActive</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a6a4a3a50934b99f2606a6b7697b80aaa" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>setObjectSelected</name></member>
+      <member refid="classOutliner_1_1IOutliner_1adfbc4dec81a03ed9cba2c7d3dcd5dfb1" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>startObjectSelection</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a5d63b4fe73a32a43626790ad0da72095" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleLayerApplyToMask</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a72385b63d9c665209b5cc0bf49ab93ae" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleLayerExport</name></member>
+      <member refid="classOutliner_1_1IOutliner_1aa9beea31af7efbc02e77c9069416602b" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleLayerLock</name></member>
+      <member refid="classOutliner_1_1IOutliner_1ac95c6e73fe100465c803739db71a6a38" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleLayerVisibility</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a4ea6faebe8c57a2de308bde3374c7483" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleTypeLock</name></member>
+      <member refid="classOutliner_1_1IOutliner_1ab388feedeaca2708d3896b27f81bef5e" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>toggleTypeVisibility</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a1f1a0da6ef5c2c2b675eba96fbfffec2" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>unselectAllObjects</name></member>
+      <member refid="classOutliner_1_1IOutliner_1a038c390197ce708814eb0440ee287680" prot="public" virt="pure-virtual"><scope>Outliner::IOutliner</scope><name>zoomAndCenterObject</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

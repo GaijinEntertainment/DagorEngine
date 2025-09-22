@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIHDRChangeSettingsClient" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IHDRChangeSettingsClient</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIHDRChangeSettingsClient_1a89a314a7b990ed7ee8a9a186449a0ab9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IHDRChangeSettingsClient::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IHDRChangeSettingsClient::HUID</qualifiedname>
+        <initializer>= 0x006003ABu</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="89" column="29" bodyfile="ec_interface_ex.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIHDRChangeSettingsClient_1a34584d131f77e5be79a2244d25458b9e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IHDRChangeSettingsClient::onHDRSettingsChanged</definition>
+        <argsstring>()=0</argsstring>
+        <name>onHDRSettingsChanged</name>
+        <qualifiedname>IHDRChangeSettingsClient::onHDRSettingsChanged</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="90" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="86" column="1" bodyfile="ec_interface_ex.h" bodystart="87" bodyend="91"/>
+    <listofallmembers>
+      <member refid="classIHDRChangeSettingsClient_1a89a314a7b990ed7ee8a9a186449a0ab9" prot="public" virt="non-virtual"><scope>IHDRChangeSettingsClient</scope><name>HUID</name></member>
+      <member refid="classIHDRChangeSettingsClient_1a34584d131f77e5be79a2244d25458b9e" prot="public" virt="pure-virtual"><scope>IHDRChangeSettingsClient</scope><name>onHDRSettingsChanged</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classstcode_1_1ScopedCustomConstSetter" kind="class" language="C++" prot="public">
+    <compoundname>stcode::ScopedCustomConstSetter</compoundname>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classstcode_1_1ScopedCustomConstSetter_1a71563a5ea6e80a310438ca4307b31d2d" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>stcode::ScopedCustomConstSetter::ScopedCustomConstSetter</definition>
+        <argsstring>(shaders_internal::ConstSetter *)</argsstring>
+        <name>ScopedCustomConstSetter</name>
+        <qualifiedname>stcode::ScopedCustomConstSetter::ScopedCustomConstSetter</qualifiedname>
+        <param>
+          <type>shaders_internal::ConstSetter *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="97" column="3" bodyfile="dag_stcode.h" bodystart="97" bodyend="97"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_stcode.h" line="95" column="1" bodyfile="dag_stcode.h" bodystart="96" bodyend="98"/>
+    <listofallmembers>
+      <member refid="classstcode_1_1ScopedCustomConstSetter_1a71563a5ea6e80a310438ca4307b31d2d" prot="private" virt="non-virtual"><scope>stcode::ScopedCustomConstSetter</scope><name>ScopedCustomConstSetter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

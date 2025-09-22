@@ -1,0 +1,327 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structmkbindump_1_1SharedStorage" kind="struct" language="C++" prot="public">
+    <compoundname>mkbindump::SharedStorage</compoundname>
+    <includes refid="makeBindump_8h" local="no">makeBindump.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmkbindump_1_1SharedStorage_1af73e7327c185e48a967f7c815a46caab" prot="public" static="no" mutable="no">
+        <type>Tab&lt; T &gt;</type>
+        <definition>Tab&lt;T&gt; mkbindump::SharedStorage&lt; T &gt;::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>mkbindump::SharedStorage::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="185" column="7" bodyfile="makeBindump.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1SharedStorage_1a92ebb47089c4cdbb563f8ef822d59f25" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; mkbindump::SharedStorage&lt; T &gt;::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>mkbindump::SharedStorage::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="186" column="7" bodyfile="makeBindump.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1SharedStorage_1a252d0576b698748cb3638e9de7068013" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::SharedStorage&lt; T &gt;::base</definition>
+        <argsstring></argsstring>
+        <name>base</name>
+        <qualifiedname>mkbindump::SharedStorage::base</qualifiedname>
+        <briefdescription>
+<para>user accessible base offset of storage in dump </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="188" column="7" bodyfile="makeBindump.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structmkbindump_1_1SharedStorage_1a865fee3660600ba89ffd2755c594a268" prot="private" static="no" mutable="no">
+        <type>bindump::VecHolder&lt; T &gt;</type>
+        <definition>bindump::VecHolder&lt;T&gt; mkbindump::SharedStorage&lt; T &gt;::vecHolder</definition>
+        <argsstring></argsstring>
+        <name>vecHolder</name>
+        <qualifiedname>mkbindump::SharedStorage::vecHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="197" column="22" bodyfile="makeBindump.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a00aaa373518f8e45b3f0ef4850493067" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::SharedStorage&lt; T &gt;::SharedStorage</definition>
+        <argsstring>()</argsstring>
+        <name>SharedStorage</name>
+        <qualifiedname>mkbindump::SharedStorage::SharedStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="74" column="3" bodyfile="makeBindump.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a22f6c25f69bd3eb5185ea58d234b0615" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool mkbindump::SharedStorage&lt; T &gt;::getRef</definition>
+        <argsstring>(int &amp;dest_start, const T *val, int count, int opt_thres=4, int div=1)</argsstring>
+        <name>getRef</name>
+        <qualifiedname>mkbindump::SharedStorage::getRef</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>dest_start</declname>
+        </param>
+        <param>
+          <type>const T *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>opt_thres</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>div</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Searches through storage to find the same data as pointed by (&apos;val&apos;,&apos;count&apos;)<itemizedlist>
+<listitem><para>&apos;opt_thresh&apos; defines maximum data count for which full search will be conducted; index when &apos;count&apos; is greater than &apos;opt_thresh&apos;, storage will search only from origins previously added data</para>
+</listitem><listitem><para>&apos;div&apos; can be used to obtain aligment greater that 1 unit Returns true if data found and fills &apos;dest_start&apos; with start index in storage data Return false if data not found, adds new data to storage and fills &apos;dest_start&apos; with start </para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="83" column="8" bodyfile="makeBindump.h" bodystart="83" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1ad32f2f89ef08f15c50d8ce17ce05a32c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool mkbindump::SharedStorage&lt; T &gt;::getRef</definition>
+        <argsstring>(int64_t &amp;dest_start, const T *val, int count, int opt_thres=4, int div=1)</argsstring>
+        <name>getRef</name>
+        <qualifiedname>mkbindump::SharedStorage::getRef</qualifiedname>
+        <param>
+          <type>int64_t &amp;</type>
+          <declname>dest_start</declname>
+        </param>
+        <param>
+          <type>const T *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>opt_thres</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>div</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="121" column="8" bodyfile="makeBindump.h" bodystart="121" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a0d2e8c2f95988e607d2112c3a54152f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool mkbindump::SharedStorage&lt; T &gt;::getRef</definition>
+        <argsstring>(Ref &amp;dest, const T *val, int count, int opt_thres=4, int div=1)</argsstring>
+        <name>getRef</name>
+        <qualifiedname>mkbindump::SharedStorage::getRef</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1Ref" kindref="compound">Ref</ref> &amp;</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const T *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>opt_thres</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>div</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The same as previous version of <ref refid="structmkbindump_1_1SharedStorage_1a22f6c25f69bd3eb5185ea58d234b0615" kindref="member">getRef()</ref>, but works with <ref refid="structmkbindump_1_1Ref" kindref="compound">Ref</ref> destination, filling both &apos;dest.start&apos; and &apos;dest.count&apos; fields of &apos;dest&apos; This method also records origins of added data (to perform more effective searches) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="132" column="8" bodyfile="makeBindump.h" bodystart="132" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a6fd4c674f049f1662a94a30b8aaf75a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool mkbindump::SharedStorage&lt; T &gt;::getRef</definition>
+        <argsstring>(bindump::Span&lt; T &gt; &amp;dest, const T *val, int count, int opt_thres=4, int div=1)</argsstring>
+        <name>getRef</name>
+        <qualifiedname>mkbindump::SharedStorage::getRef</qualifiedname>
+        <param>
+          <type>bindump::Span&lt; T &gt; &amp;</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const T *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>opt_thres</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>div</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="147" column="8" bodyfile="makeBindump.h" bodystart="147" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1acbe65785c1409a37ecffce2b8d87d0ee" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::SharedStorage&lt; T &gt;::indexToOffset</definition>
+        <argsstring>(int idx) const</argsstring>
+        <name>indexToOffset</name>
+        <qualifiedname>mkbindump::SharedStorage::indexToOffset</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+<para>returns offset in dump for given index in storage (using current base) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="166" column="7" bodyfile="makeBindump.h" bodystart="166" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a0288ee836b067b85fc05dbbe956d8d75" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::SharedStorage&lt; T &gt;::refIndexToOffset</definition>
+        <argsstring>(Ref &amp;ref) const</argsstring>
+        <name>refIndexToOffset</name>
+        <qualifiedname>mkbindump::SharedStorage::refIndexToOffset</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1Ref" kindref="compound">Ref</ref> &amp;</type>
+          <declname>ref</declname>
+        </param>
+        <briefdescription>
+<para>converts <ref refid="structmkbindump_1_1Ref_1aa057cb1482b2262d7124e78fb72cfc62" kindref="member">Ref.start</ref> meaning index in storage to offset in dump (using current base) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="169" column="8" bodyfile="makeBindump.h" bodystart="169" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1ae1b1ad457361c12fc224d071f5897eac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::SharedStorage&lt; T &gt;::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>mkbindump::SharedStorage::clear</qualifiedname>
+        <briefdescription>
+<para>released all used memory and reinit storage </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="178" column="8" bodyfile="makeBindump.h" bodystart="178" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1SharedStorage_1a8f7ad0e4c93b1376fe40bab21548a6d9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bindump::VecHolder&lt; T &gt; &amp;</type>
+        <definition>bindump::VecHolder&lt; T &gt; &amp; mkbindump::SharedStorage&lt; T &gt;::getVecHolder</definition>
+        <argsstring>()</argsstring>
+        <name>getVecHolder</name>
+        <qualifiedname>mkbindump::SharedStorage::getVecHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="190" column="22" bodyfile="makeBindump.h" bodystart="190" bodyend="194"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Read-only Shared storage capable of reusing existing data References to storage data can point to the same data or even partiall overlap </para>
+    </detaileddescription>
+    <location file="makeBindump.h" line="72" column="1" bodyfile="makeBindump.h" bodystart="73" bodyend="198"/>
+    <listofallmembers>
+      <member refid="structmkbindump_1_1SharedStorage_1a252d0576b698748cb3638e9de7068013" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>base</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1ae1b1ad457361c12fc224d071f5897eac" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>clear</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1af73e7327c185e48a967f7c815a46caab" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>data</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a22f6c25f69bd3eb5185ea58d234b0615" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>getRef</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1ad32f2f89ef08f15c50d8ce17ce05a32c" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>getRef</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a0d2e8c2f95988e607d2112c3a54152f3" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>getRef</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a6fd4c674f049f1662a94a30b8aaf75a3" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>getRef</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a8f7ad0e4c93b1376fe40bab21548a6d9" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>getVecHolder</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1acbe65785c1409a37ecffce2b8d87d0ee" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>indexToOffset</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a92ebb47089c4cdbb563f8ef822d59f25" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>pos</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a0288ee836b067b85fc05dbbe956d8d75" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>refIndexToOffset</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a00aaa373518f8e45b3f0ef4850493067" prot="public" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>SharedStorage</name></member>
+      <member refid="structmkbindump_1_1SharedStorage_1a865fee3660600ba89ffd2755c594a268" prot="private" virt="non-virtual"><scope>mkbindump::SharedStorage</scope><name>vecHolder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

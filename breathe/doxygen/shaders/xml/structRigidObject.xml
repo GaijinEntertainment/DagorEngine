@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRigidObject" kind="struct" language="C++" prot="protected">
+    <compoundname>RigidObject</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRigidObject_1a1c2faaa9cc681331931ab1cd698d7e69" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; ShaderMeshResource &gt;</type>
+        <definition>PatchablePtr&lt;ShaderMeshResource&gt; RigidObject::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>RigidObject::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="169" column="18" bodyfile="dag_dynSceneRes.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRigidObject_1a25fdb27ca03b0becbe20353961c8dd9d" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RigidObject::sph_c</definition>
+        <argsstring></argsstring>
+        <name>sph_c</name>
+        <qualifiedname>RigidObject::sph_c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="170" column="12" bodyfile="dag_dynSceneRes.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRigidObject_1aae48dde86e7188b6963625722175dad2" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RigidObject::sph_r</definition>
+        <argsstring></argsstring>
+        <name>sph_r</name>
+        <qualifiedname>RigidObject::sph_r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="171" column="10" bodyfile="dag_dynSceneRes.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRigidObject_1ae15a71d878b59e60fa1936fc9867dbd6" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t RigidObject::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <qualifiedname>RigidObject::nodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="172" column="13" bodyfile="dag_dynSceneRes.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRigidObject_1ad6f969ccc08c6ad5c1683a5dda3c7fdf" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RigidObject::__resv</definition>
+        <argsstring></argsstring>
+        <name>__resv</name>
+        <qualifiedname>RigidObject::__resv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="173" column="14" bodyfile="dag_dynSceneRes.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRigidObject_1a6864650d7aac33eba0821b62a911ecb1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RigidObject::PATCHABLE_DATA64</definition>
+        <argsstring>(Ptr&lt; InstShaderMeshResource &gt;, mesh)</argsstring>
+        <name>PATCHABLE_DATA64</name>
+        <qualifiedname>RigidObject::PATCHABLE_DATA64</qualifiedname>
+        <param>
+          <type>Ptr&lt; InstShaderMeshResource &gt;</type>
+        </param>
+        <param>
+          <type>mesh</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="71" column="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynSceneRes.h" line="167" column="3" bodyfile="dag_dynSceneRes.h" bodystart="168" bodyend="174"/>
+    <listofallmembers>
+      <member refid="structRigidObject_1ad6f969ccc08c6ad5c1683a5dda3c7fdf" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>__resv</name></member>
+      <member refid="structRigidObject_1a1c2faaa9cc681331931ab1cd698d7e69" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>mesh</name></member>
+      <member refid="structRigidObject_1ae15a71d878b59e60fa1936fc9867dbd6" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>nodeId</name></member>
+      <member refid="structRigidObject_1a6864650d7aac33eba0821b62a911ecb1" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>PATCHABLE_DATA64</name></member>
+      <member refid="structRigidObject_1a25fdb27ca03b0becbe20353961c8dd9d" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>sph_c</name></member>
+      <member refid="structRigidObject_1aae48dde86e7188b6963625722175dad2" prot="public" virt="non-virtual"><scope>RigidObject</scope><name>sph_r</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

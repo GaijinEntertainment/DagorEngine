@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classHideMapsCB" kind="class" language="C++" prot="public">
+    <compoundname>HideMapsCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classHideMapsCB_1aa5c7468b8b7eca00287d544421a510dc" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* HideMapsCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>HideMapsCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1626" column="13" bodyfile="util.cpp" bodystart="1626" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classHideMapsCB_1ad282411a8249764915d8bb34c377968f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>HideMapsCB::HideMapsCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>HideMapsCB</name>
+        <qualifiedname>HideMapsCB::HideMapsCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1627" column="3" bodyfile="util.cpp" bodystart="1627" bodyend="1627"/>
+      </memberdef>
+      <memberdef kind="function" id="classHideMapsCB_1a388a0c39442681d8d33a78b3d65897c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void HideMapsCB::hide_map</definition>
+        <argsstring>(Mtl *m, Mtl *topm, int sub)</argsstring>
+        <name>hide_map</name>
+        <qualifiedname>HideMapsCB::hide_map</qualifiedname>
+        <param>
+          <type>Mtl *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Mtl *</type>
+          <declname>topm</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sub</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1628" column="8" bodyfile="util.cpp" bodystart="1628" bodyend="1638"/>
+      </memberdef>
+      <memberdef kind="function" id="classHideMapsCB_1ab6e07cfd1a05648a4ba8360443668d1f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int HideMapsCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>HideMapsCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1639" column="7" bodyfile="util.cpp" bodystart="1639" bodyend="1663"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>HideMapsCB</label>
+        <link refid="classHideMapsCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>HideMapsCB</label>
+        <link refid="classHideMapsCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="1623" column="1" bodyfile="util.cpp" bodystart="1624" bodyend="1664"/>
+    <listofallmembers>
+      <member refid="classHideMapsCB_1a388a0c39442681d8d33a78b3d65897c0" prot="public" virt="non-virtual"><scope>HideMapsCB</scope><name>hide_map</name></member>
+      <member refid="classHideMapsCB_1ad282411a8249764915d8bb34c377968f" prot="public" virt="non-virtual"><scope>HideMapsCB</scope><name>HideMapsCB</name></member>
+      <member refid="classHideMapsCB_1aa5c7468b8b7eca00287d544421a510dc" prot="public" virt="non-virtual"><scope>HideMapsCB</scope><name>ip</name></member>
+      <member refid="classHideMapsCB_1ab6e07cfd1a05648a4ba8360443668d1f" prot="public" virt="virtual"><scope>HideMapsCB</scope><name>proc</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>HideMapsCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

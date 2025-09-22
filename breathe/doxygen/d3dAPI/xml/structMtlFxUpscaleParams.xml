@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMtlFxUpscaleParams" kind="struct" language="C++" prot="public">
+    <compoundname>MtlFxUpscaleParams</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>MtlFxUpscaleParams::color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="350" column="15" bodyfile="dag_decl.h" bodystart="350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <qualifiedname>MtlFxUpscaleParams::output</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="351" column="15" bodyfile="dag_decl.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405" kindref="member">MtlfxColorMode</ref></type>
+        <definition>MtlfxColorMode MtlFxUpscaleParams::colorMode</definition>
+        <argsstring></argsstring>
+        <name>colorMode</name>
+        <qualifiedname>MtlFxUpscaleParams::colorMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="352" column="18" bodyfile="dag_decl.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>MtlFxUpscaleParams</label>
+        <link refid="structMtlFxUpscaleParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>output</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="348" column="1" bodyfile="dag_decl.h" bodystart="349" bodyend="353"/>
+    <listofallmembers>
+      <member refid="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>color</name></member>
+      <member refid="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>colorMode</name></member>
+      <member refid="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>output</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

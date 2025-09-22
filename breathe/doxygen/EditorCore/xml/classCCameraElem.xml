@@ -1,0 +1,1269 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCCameraElem" kind="class" language="C++" prot="public">
+    <compoundname>CCameraElem</compoundname>
+    <derivedcompoundref refid="classFpsCameraElem" prot="public" virt="non-virtual">FpsCameraElem</derivedcompoundref>
+    <derivedcompoundref refid="classFreeCameraElem" prot="public" virt="non-virtual">FreeCameraElem</derivedcompoundref>
+    <derivedcompoundref refid="classMaxCameraElem" prot="public" virt="non-virtual">MaxCameraElem</derivedcompoundref>
+    <derivedcompoundref refid="classTpsCameraElem" prot="public" virt="non-virtual">TpsCameraElem</derivedcompoundref>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Camera manipulation methods.</header>
+      <memberdef kind="variable" id="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" prot="protected" static="no" mutable="no">
+        <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+        <definition>CameraConfig* CCameraElem::config</definition>
+        <argsstring></argsstring>
+        <name>config</name>
+        <qualifiedname>CCameraElem::config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="137" column="16" bodyfile="ec_camera_elem.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CCameraElem::setAboveSurfFuture</definition>
+        <argsstring></argsstring>
+        <name>setAboveSurfFuture</name>
+        <qualifiedname>CCameraElem::setAboveSurfFuture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="152" column="8" bodyfile="ec_camera_elem.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CCameraElem::initPosition</definition>
+        <argsstring></argsstring>
+        <name>initPosition</name>
+        <qualifiedname>CCameraElem::initPosition</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="153" column="8" bodyfile="ec_camera_elem.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::forwardZFuture</definition>
+        <argsstring></argsstring>
+        <name>forwardZFuture</name>
+        <qualifiedname>CCameraElem::forwardZFuture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="154" column="8" bodyfile="ec_camera_elem.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::forwardZCurrent</definition>
+        <argsstring></argsstring>
+        <name>forwardZCurrent</name>
+        <qualifiedname>CCameraElem::forwardZCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="155" column="8" bodyfile="ec_camera_elem.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::rotateXFuture</definition>
+        <argsstring></argsstring>
+        <name>rotateXFuture</name>
+        <qualifiedname>CCameraElem::rotateXFuture</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="156" column="8" bodyfile="ec_camera_elem.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::rotateXCurrent</definition>
+        <argsstring></argsstring>
+        <name>rotateXCurrent</name>
+        <qualifiedname>CCameraElem::rotateXCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="157" column="8" bodyfile="ec_camera_elem.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::rotateYFuture</definition>
+        <argsstring></argsstring>
+        <name>rotateYFuture</name>
+        <qualifiedname>CCameraElem::rotateYFuture</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="158" column="8" bodyfile="ec_camera_elem.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::rotateYCurrent</definition>
+        <argsstring></argsstring>
+        <name>rotateYCurrent</name>
+        <qualifiedname>CCameraElem::rotateYCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="159" column="8" bodyfile="ec_camera_elem.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::strifeXFuture</definition>
+        <argsstring></argsstring>
+        <name>strifeXFuture</name>
+        <qualifiedname>CCameraElem::strifeXFuture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="160" column="8" bodyfile="ec_camera_elem.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::strifeXCurrent</definition>
+        <argsstring></argsstring>
+        <name>strifeXCurrent</name>
+        <qualifiedname>CCameraElem::strifeXCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="161" column="8" bodyfile="ec_camera_elem.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::strifeYFuture</definition>
+        <argsstring></argsstring>
+        <name>strifeYFuture</name>
+        <qualifiedname>CCameraElem::strifeYFuture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="162" column="8" bodyfile="ec_camera_elem.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a93fca12593aee136a810777de9f08e61" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::strifeYCurrent</definition>
+        <argsstring></argsstring>
+        <name>strifeYCurrent</name>
+        <qualifiedname>CCameraElem::strifeYCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="163" column="8" bodyfile="ec_camera_elem.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::upYCurrent</definition>
+        <argsstring></argsstring>
+        <name>upYCurrent</name>
+        <qualifiedname>CCameraElem::upYCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="164" column="8" bodyfile="ec_camera_elem.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real CCameraElem::upYFuture</definition>
+        <argsstring></argsstring>
+        <name>upYFuture</name>
+        <qualifiedname>CCameraElem::upYFuture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="165" column="8" bodyfile="ec_camera_elem.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CCameraElem::multiply</definition>
+        <argsstring></argsstring>
+        <name>multiply</name>
+        <qualifiedname>CCameraElem::multiply</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="166" column="8" bodyfile="ec_camera_elem.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CCameraElem::bow</definition>
+        <argsstring></argsstring>
+        <name>bow</name>
+        <qualifiedname>CCameraElem::bow</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="167" column="8" bodyfile="ec_camera_elem.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CCameraElem::aboveSurface</definition>
+        <argsstring></argsstring>
+        <name>aboveSurface</name>
+        <qualifiedname>CCameraElem::aboveSurface</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="168" column="8" bodyfile="ec_camera_elem.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CCameraElem::thisCamType</definition>
+        <argsstring></argsstring>
+        <name>thisCamType</name>
+        <qualifiedname>CCameraElem::thisCamType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="169" column="7" bodyfile="ec_camera_elem.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" prot="protected" static="yes" mutable="no">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>IGenViewportWnd* CCameraElem::vpw</definition>
+        <argsstring></argsstring>
+        <name>vpw</name>
+        <qualifiedname>CCameraElem::vpw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="149" column="26" bodyfile="ec_camera_elem.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" prot="protected" static="yes" mutable="no">
+        <type>int</type>
+        <definition>int CCameraElem::currentType</definition>
+        <argsstring></argsstring>
+        <name>currentType</name>
+        <qualifiedname>CCameraElem::currentType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="150" column="14" bodyfile="ec_camera_elem.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" prot="protected" static="yes" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 CCameraElem::freeCamEnterPos</definition>
+        <argsstring></argsstring>
+        <name>freeCamEnterPos</name>
+        <qualifiedname>CCameraElem::freeCamEnterPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="151" column="18" bodyfile="ec_camera_elem.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a2785cf40d68476457beae35149a99b5c" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::rotate</definition>
+        <argsstring>(real dX, real dY, bool multiplySencetive, bool aroundSelection)</argsstring>
+        <name>rotate</name>
+        <qualifiedname>CCameraElem::rotate</qualifiedname>
+        <reimplementedby refid="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481">rotate</reimplementedby>
+        <param>
+          <type>real</type>
+          <declname>dX</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>dY</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>aroundSelection</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rotate camera. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dX</parametername>
+<parametername direction="in">dY</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- rotation angles for X,Y axes </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiplySencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">aroundSelection</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use rotation center, <bold>false:</bold> rotation center is not used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="102" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::moveForward</definition>
+        <argsstring>(real dZ, bool multiplySencetive, IGenViewportWnd *wnd=NULL)</argsstring>
+        <name>moveForward</name>
+        <qualifiedname>CCameraElem::moveForward</qualifiedname>
+        <reimplementedby refid="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb">moveForward</reimplementedby>
+        <reimplementedby refid="classFpsCameraElem_1a85772a67f1b3f995fca09fc93c7e7ef4">moveForward</reimplementedby>
+        <param>
+          <type>real</type>
+          <declname>dZ</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Move camera in Z direction. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dZ</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera Z-shift </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiplySencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="108" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::strife</definition>
+        <argsstring>(real dx, real dy, bool multiply_sencetive, bool config_sencetive)</argsstring>
+        <name>strife</name>
+        <qualifiedname>CCameraElem::strife</qualifiedname>
+        <reimplementedby refid="classFpsCameraElem_1a915ca547c540086a4b12f451e2222929">strife</reimplementedby>
+        <reimplementedby refid="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d">strife</reimplementedby>
+        <param>
+          <type>real</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiply_sencetive</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>config_sencetive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Strife camera (move along X,Y surface). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dx</parametername>
+<parametername direction="in">dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera shift in X,Y directions </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiply_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">config_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use camera&apos;s &apos;Turbo&apos; coefficient (acceleration for &apos;free&apos; / &apos;FPS&apos; camera if [Shift] key pressed), <bold>false:</bold> &apos;Turbo&apos; coefficient is not used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="118" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::act</definition>
+        <argsstring>()</argsstring>
+        <name>act</name>
+        <qualifiedname>CCameraElem::act</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="122" column="8" bodyfile="ec_camera_elem.h" bodystart="122" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1aff44e07a6dc1479af081689f325c3153" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::render</definition>
+        <argsstring>()</argsstring>
+        <name>render</name>
+        <qualifiedname>CCameraElem::render</qualifiedname>
+        <reimplementedby refid="classFpsCameraElem_1a671b4e0a900cf72d5d636a93dd33f1d3">render</reimplementedby>
+        <reimplementedby refid="classTpsCameraElem_1ac1b7862595f342627e12dd1bdaa849cf">render</reimplementedby>
+        <reimplementedby refid="classCarCameraElem_1a37e41364fba5c6f98829d60c9b559da0">render</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="134" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>CCameraElem::clear</qualifiedname>
+        <reimplementedby refid="classFpsCameraElem_1a763dabc61c999eeb5187be465023b5a4">clear</reimplementedby>
+        <reimplementedby refid="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f">clear</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="139" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::setAboveSurf</definition>
+        <argsstring>()</argsstring>
+        <name>setAboveSurf</name>
+        <qualifiedname>CCameraElem::setAboveSurf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="141" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::moveUp</definition>
+        <argsstring>(real deltaY, bool multiplySencetive)</argsstring>
+        <name>moveUp</name>
+        <qualifiedname>CCameraElem::moveUp</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>deltaY</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="142" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 CCameraElem::getSurfPos</definition>
+        <argsstring>(const Point3 &amp;pos)</argsstring>
+        <name>getSurfPos</name>
+        <qualifiedname>CCameraElem::getSurfPos</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="144" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool CCameraElem::canPutCapsule</definition>
+        <argsstring>(const Point3 &amp;pt)</argsstring>
+        <name>canPutCapsule</name>
+        <qualifiedname>CCameraElem::canPutCapsule</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="145" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::actInternal</definition>
+        <argsstring>()</argsstring>
+        <name>actInternal</name>
+        <qualifiedname>CCameraElem::actInternal</qualifiedname>
+        <reimplementedby refid="classFreeCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0">actInternal</reimplementedby>
+        <reimplementedby refid="classFpsCameraElem_1a55147651c18e6361f82287e8f08935c7">actInternal</reimplementedby>
+        <reimplementedby refid="classTpsCameraElem_1a555bd3567b646ed01cc0d1d305e860b7">actInternal</reimplementedby>
+        <reimplementedby refid="classCarCameraElem_1a4708c22e0eec15c19c9966cdc5a505c0">actInternal</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="146" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1aefe0aea02460329030fa943569b1465e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::stop</definition>
+        <argsstring>()</argsstring>
+        <name>stop</name>
+        <qualifiedname>CCameraElem::stop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="147" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void CCameraElem::setCamera</definition>
+        <argsstring>(int type_)</argsstring>
+        <name>setCamera</name>
+        <qualifiedname>CCameraElem::setCamera</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="143" column="15" bodyfile="ec_camera_elem.h" bodystart="143" bodyend="143"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Camera config.</header>
+      <memberdef kind="function" id="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+        <definition>CameraConfig * CCameraElem::getConfig</definition>
+        <argsstring>()</argsstring>
+        <name>getConfig</name>
+        <qualifiedname>CCameraElem::getConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get camera config. <simplesect kind="return"><para>pointer to camera config </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="66" column="16" bodyfile="ec_camera_elem.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::load</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>load</name>
+        <qualifiedname>CCameraElem::load</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load config data from blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="69" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::save</definition>
+        <argsstring>(DataBlock &amp;blk)</argsstring>
+        <name>save</name>
+        <qualifiedname>CCameraElem::save</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save config data to blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="72" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Keyboard / mouse events.</header>
+      <memberdef kind="function" id="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::handleKeyboardInput</definition>
+        <argsstring>(unsigned viewport_id)</argsstring>
+        <name>handleKeyboardInput</name>
+        <qualifiedname>CCameraElem::handleKeyboardInput</qualifiedname>
+        <reimplementedby refid="classFpsCameraElem_1ad2431c4fba7014c44b2495a2077d201a">handleKeyboardInput</reimplementedby>
+        <reimplementedby refid="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760">handleKeyboardInput</reimplementedby>
+        <reimplementedby refid="classMaxCameraElem_1a77476b3e73e4ba479a39723735569fb6">handleKeyboardInput</reimplementedby>
+        <param>
+          <type>unsigned</type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+<para>Handle keyboard input using polling. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="80" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::handleMouseMove</definition>
+        <argsstring>(int x, int y)</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>CCameraElem::handleMouseMove</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse move. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- x,y mouse coordinates in viewport </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="83" column="8" bodyfile="ec_camera_elem.h" bodystart="83" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CCameraElem::handleMouseWheel</definition>
+        <argsstring>(int delta)</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>CCameraElem::handleMouseWheel</qualifiedname>
+        <reimplementedby refid="classTpsCameraElem_1a0734be832c4f0c259e60ee2c52c4031b">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classCarCameraElem_1a5449e03416f59bc9bc24c1408142d3dd">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classMaxCameraElem_1aba6383a7f9c889447972ae86a448b699">handleMouseWheel</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse wheel rotation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if it&apos;s &gt; 0 then the wheel was rotated forward (away from user), if &lt; 0 then it was rotated backward </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="90" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54f" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>CCameraElem</qualifiedname>
+        <enumvalue id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" prot="public">
+          <name>FREE_CAMERA</name>
+          <briefdescription>
+<para>&apos;Free&apos; camera </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" prot="public">
+          <name>MAX_CAMERA</name>
+          <briefdescription>
+<para>&apos;Max-like&apos; camera </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" prot="public">
+          <name>FPS_CAMERA</name>
+          <briefdescription>
+<para>&apos;FPS&apos; camera </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" prot="public">
+          <name>TPS_CAMERA</name>
+          <briefdescription>
+<para>&apos;TPS&apos; camera </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" prot="public">
+          <name>CAR_CAMERA</name>
+          <briefdescription>
+<para>&apos;CAR&apos; camera </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="14" column="3" bodyfile="ec_camera_elem.h" bodystart="15" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CCameraElem::CCameraElem</definition>
+        <argsstring>(int cam_type)</argsstring>
+        <name>CCameraElem</name>
+        <qualifiedname>CCameraElem::CCameraElem</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>cam_type</declname>
+        </param>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="23" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual CCameraElem::~CCameraElem</definition>
+        <argsstring>()</argsstring>
+        <name>~CCameraElem</name>
+        <qualifiedname>CCameraElem::~CCameraElem</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="26" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::setMultiply</definition>
+        <argsstring>(bool multiply_)</argsstring>
+        <name>setMultiply</name>
+        <qualifiedname>CCameraElem::setMultiply</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>multiply_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera acceleration flag (to use acceleration). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">multiply_</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false: set / clear </bold> camera acceleration flag </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="50" column="8" bodyfile="ec_camera_elem.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>real</type>
+        <definition>real CCameraElem::getMultiplier</definition>
+        <argsstring>()</argsstring>
+        <name>getMultiplier</name>
+        <qualifiedname>CCameraElem::getMultiplier</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get acceleration multiplier. <simplesect kind="return"><para>camera&apos;s acceleration multiplier </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="53" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CCameraElem::setAboveSurface</definition>
+        <argsstring>(bool above_surface)</argsstring>
+        <name>setAboveSurface</name>
+        <qualifiedname>CCameraElem::setAboveSurface</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>above_surface</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set &apos;above surface fly&apos; flag. Set / clear flag indicating &apos;fps&apos; camera mode. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">above_surface</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> set &apos;above surface fly&apos; flag (&apos;fps&apos; camera mode) <linebreak/>
+ - <bold>false:</bold> clear flag </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="59" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void CCameraElem::setViewportWindow</definition>
+        <argsstring>(IGenViewportWnd *vpw_)</argsstring>
+        <name>setViewportWindow</name>
+        <qualifiedname>CCameraElem::setViewportWindow</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>vpw_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s viewport window. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">vpw_</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="30" column="15" bodyfile="ec_camera_elem.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int CCameraElem::getCamera</definition>
+        <argsstring>()</argsstring>
+        <name>getCamera</name>
+        <qualifiedname>CCameraElem::getCamera</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current camera type. <simplesect kind="return"><para>camera type (see class&apos;s enum) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="33" column="14" bodyfile="ec_camera_elem.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void CCameraElem::switchCamera</definition>
+        <argsstring>(bool ctrl_pressed, bool shift_pressed)</argsstring>
+        <name>switchCamera</name>
+        <qualifiedname>CCameraElem::switchCamera</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>ctrl_pressed</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>shift_pressed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Switch camera between &apos;max-like&apos;, &apos;free&apos; and &apos;fps&apos; modes with [Space], [Ctrl+Space] shortcuts. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">ctrl_pressed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if <bold>[Ctrl]</bold> key pressed, <bold>false</bold> in other case </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="38" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void CCameraElem::showConfigDlg</definition>
+        <argsstring>(void *parent, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc, CameraConfig *tps_cc)</argsstring>
+        <name>showConfigDlg</name>
+        <qualifiedname>CCameraElem::showConfigDlg</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>max_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>free_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>fps_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>tps_cc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show cameras configuration dialog window. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">parent</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to parent window </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">max_cc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to &apos;max-like&apos; camera config </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">free_cc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to &apos;free&apos; camera config </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">fps_cc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to &apos;fps&apos; camera config </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="45" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>The class for managing cameras. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+      </node>
+      <node id="6">
+        <label>CarCameraElem</label>
+        <link refid="classCarCameraElem"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>FpsCameraElem</label>
+        <link refid="classFpsCameraElem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>FreeCameraElem</label>
+        <link refid="classFreeCameraElem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>MaxCameraElem</label>
+        <link refid="classMaxCameraElem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>TpsCameraElem</label>
+        <link refid="classTpsCameraElem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>vpw</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+      <node id="3">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_elem.h" line="11" column="1" bodyfile="ec_camera_elem.h" bodystart="12" bodyend="170"/>
+    <listofallmembers>
+      <member refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>aboveSurface</name></member>
+      <member refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>act</name></member>
+      <member refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" prot="protected" virt="virtual"><scope>CCameraElem</scope><name>actInternal</name></member>
+      <member refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>bow</name></member>
+      <member refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" prot="protected" virt="virtual"><scope>CCameraElem</scope><name>canPutCapsule</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>CAR_CAMERA</name></member>
+      <member refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>CCameraElem</name></member>
+      <member refid="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054" prot="protected" virt="virtual"><scope>CCameraElem</scope><name>clear</name></member>
+      <member refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>config</name></member>
+      <member refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>currentType</name></member>
+      <member refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>forwardZCurrent</name></member>
+      <member refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>forwardZFuture</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>FPS_CAMERA</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>FREE_CAMERA</name></member>
+      <member refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>freeCamEnterPos</name></member>
+      <member refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>getCamera</name></member>
+      <member refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>getConfig</name></member>
+      <member refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>getMultiplier</name></member>
+      <member refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>getSurfPos</name></member>
+      <member refid="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39" prot="public" virt="virtual"><scope>CCameraElem</scope><name>handleKeyboardInput</name></member>
+      <member refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>handleMouseMove</name></member>
+      <member refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63" prot="public" virt="virtual"><scope>CCameraElem</scope><name>handleMouseWheel</name></member>
+      <member refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>initPosition</name></member>
+      <member refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>load</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>MAX_CAMERA</name></member>
+      <member refid="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4" prot="public" virt="virtual"><scope>CCameraElem</scope><name>moveForward</name></member>
+      <member refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>moveUp</name></member>
+      <member refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>multiply</name></member>
+      <member refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153" prot="public" virt="virtual"><scope>CCameraElem</scope><name>render</name></member>
+      <member refid="classCCameraElem_1a2785cf40d68476457beae35149a99b5c" prot="public" virt="virtual"><scope>CCameraElem</scope><name>rotate</name></member>
+      <member refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>rotateXCurrent</name></member>
+      <member refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>rotateXFuture</name></member>
+      <member refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>rotateYCurrent</name></member>
+      <member refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>rotateYFuture</name></member>
+      <member refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>save</name></member>
+      <member refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>setAboveSurf</name></member>
+      <member refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>setAboveSurface</name></member>
+      <member refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>setAboveSurfFuture</name></member>
+      <member refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>setCamera</name></member>
+      <member refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>setMultiply</name></member>
+      <member refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>setViewportWindow</name></member>
+      <member refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>showConfigDlg</name></member>
+      <member refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>stop</name></member>
+      <member refid="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622" prot="public" virt="virtual"><scope>CCameraElem</scope><name>strife</name></member>
+      <member refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>strifeXCurrent</name></member>
+      <member refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>strifeXFuture</name></member>
+      <member refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>strifeYCurrent</name></member>
+      <member refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>strifeYFuture</name></member>
+      <member refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>switchCamera</name></member>
+      <member refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>thisCamType</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" prot="public" virt="non-virtual"><scope>CCameraElem</scope><name>TPS_CAMERA</name></member>
+      <member refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>upYCurrent</name></member>
+      <member refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>upYFuture</name></member>
+      <member refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" prot="protected" virt="non-virtual"><scope>CCameraElem</scope><name>vpw</name></member>
+      <member refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" prot="public" virt="virtual"><scope>CCameraElem</scope><name>~CCameraElem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

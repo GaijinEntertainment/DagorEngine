@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceGizmoSettings" kind="namespace" language="C++">
+    <compoundname>GizmoSettings</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceGizmoSettings_1aedad30f3bcca626cf181c57020a535cc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GizmoSettings::lineThickness</definition>
+        <argsstring></argsstring>
+        <name>lineThickness</name>
+        <qualifiedname>GizmoSettings::lineThickness</qualifiedname>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="15" column="12" bodyfile="ec_gizmoSettings.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceGizmoSettings_1a94a22f7226f686310bb504a42fd4c8b0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float GizmoSettings::viewportGizmoScaleFactor</definition>
+        <argsstring></argsstring>
+        <name>viewportGizmoScaleFactor</name>
+        <qualifiedname>GizmoSettings::viewportGizmoScaleFactor</qualifiedname>
+        <initializer>= 1.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="16" column="14" bodyfile="ec_gizmoSettings.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceGizmoSettings_1aeb2552975985b878cb35436472302888" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GizmoSettings::overrideColor[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>overrideColor</name>
+        <qualifiedname>GizmoSettings::overrideColor</qualifiedname>
+        <initializer>= {false, false, false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="17" column="13" bodyfile="ec_gizmoSettings.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceGizmoSettings_1a7ec3ef004d34a506479f20e4e451f211" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR GizmoSettings::axisColor[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>axisColor</name>
+        <qualifiedname>GizmoSettings::axisColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="18" column="17" declfile="ec_gizmoSettings.h" declline="18" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceGizmoSettings_1a34ae042c7905dd00d12276fc9d631729" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettings::load</definition>
+        <argsstring>(DataBlock &amp;block)</argsstring>
+        <name>load</name>
+        <qualifiedname>GizmoSettings::load</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="10" column="6" declfile="ec_gizmoSettings.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceGizmoSettings_1a61fec107f13b8d4569a89292d0761bb8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettings::save</definition>
+        <argsstring>(DataBlock &amp;block)</argsstring>
+        <name>save</name>
+        <qualifiedname>GizmoSettings::save</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="11" column="6" declfile="ec_gizmoSettings.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceGizmoSettings_1ac1427fc11cb2eb626226346f4875461a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettings::updateAxisColors</definition>
+        <argsstring>()</argsstring>
+        <name>updateAxisColors</name>
+        <qualifiedname>GizmoSettings::updateAxisColors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="12" column="6" declfile="ec_gizmoSettings.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceGizmoSettings_1ac0a1762271c61c028fadc2b2aa416cc1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettings::retrieveAxisColors</definition>
+        <argsstring>(E3DCOLOR &amp;colorX, E3DCOLOR &amp;colorY, E3DCOLOR &amp;colorZ)</argsstring>
+        <name>retrieveAxisColors</name>
+        <qualifiedname>GizmoSettings::retrieveAxisColors</qualifiedname>
+        <param>
+          <type>E3DCOLOR &amp;</type>
+          <declname>colorX</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR &amp;</type>
+          <declname>colorY</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR &amp;</type>
+          <declname>colorZ</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmoSettings.h" line="13" column="6" declfile="ec_gizmoSettings.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_gizmoSettings.h" line="7" column="1"/>
+  </compounddef>
+</doxygen>

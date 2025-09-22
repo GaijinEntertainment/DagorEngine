@@ -1,0 +1,264 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTextureIDPair" kind="class" language="C++" prot="public">
+    <compoundname>TextureIDPair</compoundname>
+    <derivedcompoundref refid="classTextureIDHolder" prot="public" virt="non-virtual">TextureIDHolder</derivedcompoundref>
+    <derivedcompoundref refid="classTextureIDHolderWithVar" prot="public" virt="non-virtual">TextureIDHolderWithVar</derivedcompoundref>
+    <includes refid="dag__textureIDHolder_8h" local="no">dag_textureIDHolder.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" prot="protected" static="no" mutable="no">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture* TextureIDPair::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>TextureIDPair::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="14" column="15" bodyfile="dag_textureIDHolder.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" prot="protected" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID TextureIDPair::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>TextureIDPair::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="15" column="13" bodyfile="dag_textureIDHolder.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDPair::TextureIDPair</definition>
+        <argsstring>(BaseTexture *t=NULL, TEXTUREID id=BAD_TEXTUREID)</argsstring>
+        <name>TextureIDPair</name>
+        <qualifiedname>TextureIDPair::TextureIDPair</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>t</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+          <defval>BAD_TEXTUREID</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="18" column="3" bodyfile="dag_textureIDHolder.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID TextureIDPair::getId</definition>
+        <argsstring>() const</argsstring>
+        <name>getId</name>
+        <qualifiedname>TextureIDPair::getId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="20" column="13" bodyfile="dag_textureIDHolder.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture * TextureIDPair::getTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getTex</name>
+        <qualifiedname>TextureIDPair::getTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="21" column="15" bodyfile="dag_textureIDHolder.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture * TextureIDPair::getTex2D</definition>
+        <argsstring>() const</argsstring>
+        <name>getTex2D</name>
+        <qualifiedname>TextureIDPair::getTex2D</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="22" column="11" bodyfile="dag_textureIDHolder.h" bodystart="22" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>ArrayTexture *</type>
+        <definition>ArrayTexture * TextureIDPair::getArrayTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getArrayTex</name>
+        <qualifiedname>TextureIDPair::getArrayTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="27" column="16" bodyfile="dag_textureIDHolder.h" bodystart="27" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>CubeTexture *</type>
+        <definition>CubeTexture * TextureIDPair::getCubeTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getCubeTex</name>
+        <qualifiedname>TextureIDPair::getCubeTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="32" column="15" bodyfile="dag_textureIDHolder.h" bodystart="32" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>VolTexture *</type>
+        <definition>VolTexture * TextureIDPair::getVolTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getVolTex</name>
+        <qualifiedname>TextureIDPair::getVolTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="37" column="14" bodyfile="dag_textureIDHolder.h" bodystart="37" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIDPair::is_voltex</definition>
+        <argsstring>() const</argsstring>
+        <name>is_voltex</name>
+        <qualifiedname>TextureIDPair::is_voltex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="42" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIDPair::is_arrtex</definition>
+        <argsstring>() const</argsstring>
+        <name>is_arrtex</name>
+        <qualifiedname>TextureIDPair::is_arrtex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="43" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIDPair::is_cubetex</definition>
+        <argsstring>() const</argsstring>
+        <name>is_cubetex</name>
+        <qualifiedname>TextureIDPair::is_cubetex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="44" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIDPair::is_tex2d</definition>
+        <argsstring>() const</argsstring>
+        <name>is_tex2d</name>
+        <qualifiedname>TextureIDPair::is_tex2d</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="45" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDPair::releaseAndEvictTexId</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAndEvictTexId</name>
+        <qualifiedname>TextureIDPair::releaseAndEvictTexId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="47" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="4">
+        <label>ResizableTextureIDHolder</label>
+        <link refid="classResizableTextureIDHolder"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureIDHolder</label>
+        <link refid="classTextureIDHolder"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>TextureIDHolderWithVar</label>
+        <link refid="classTextureIDHolderWithVar"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TextureIDPair</label>
+        <link refid="classTextureIDPair"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_textureIDHolder.h" line="11" column="1" bodyfile="dag_textureIDHolder.h" bodystart="12" bodyend="48"/>
+    <listofallmembers>
+      <member refid="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getArrayTex</name></member>
+      <member refid="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getCubeTex</name></member>
+      <member refid="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getId</name></member>
+      <member refid="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getTex</name></member>
+      <member refid="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getTex2D</name></member>
+      <member refid="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>getVolTex</name></member>
+      <member refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>is_arrtex</name></member>
+      <member refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>is_cubetex</name></member>
+      <member refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>is_tex2d</name></member>
+      <member refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>is_voltex</name></member>
+      <member refid="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>releaseAndEvictTexId</name></member>
+      <member refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" prot="protected" virt="non-virtual"><scope>TextureIDPair</scope><name>tex</name></member>
+      <member refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" prot="protected" virt="non-virtual"><scope>TextureIDPair</scope><name>texId</name></member>
+      <member refid="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" prot="public" virt="non-virtual"><scope>TextureIDPair</scope><name>TextureIDPair</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1TargetContext_1_1SourceFileScope" kind="class" language="C++" prot="public">
+    <compoundname>shc::TargetContext::SourceFileScope</compoundname>
+    <includes refid="shTargetContext_8h" local="no">shTargetContext.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1_1SourceFileScope_1a1e390d00b8063280a8be9d95c4c89250" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>TargetContext&amp; shc::TargetContext::SourceFileScope::master</definition>
+        <argsstring></argsstring>
+        <name>master</name>
+        <qualifiedname>shc::TargetContext::SourceFileScope::master</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="111" column="19" bodyfile="shTargetContext.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1TargetContext_1_1SourceFileScope_1a5b17b7475a82e722ca5c4e64f9596c68" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::TargetContext::SourceFileScope::SourceFileScope</definition>
+        <argsstring>(TargetContext &amp;master)</argsstring>
+        <name>SourceFileScope</name>
+        <qualifiedname>shc::TargetContext::SourceFileScope::SourceFileScope</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+          <declname>master</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="114" column="14" bodyfile="shTargetContext.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1_1SourceFileScope_1a5e3d8c2a926264ba83dffbe62d7f3acc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::TargetContext::SourceFileScope::~SourceFileScope</definition>
+        <argsstring>()</argsstring>
+        <name>~SourceFileScope</name>
+        <qualifiedname>shc::TargetContext::SourceFileScope::~SourceFileScope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="115" column="5" bodyfile="shTargetContext.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shTargetContext.h" line="109" column="3" bodyfile="shTargetContext.h" bodystart="110" bodyend="118"/>
+    <listofallmembers>
+      <member refid="classshc_1_1TargetContext_1_1SourceFileScope_1a1e390d00b8063280a8be9d95c4c89250" prot="private" virt="non-virtual"><scope>shc::TargetContext::SourceFileScope</scope><name>master</name></member>
+      <member refid="classshc_1_1TargetContext_1_1SourceFileScope_1a5b17b7475a82e722ca5c4e64f9596c68" prot="public" virt="non-virtual"><scope>shc::TargetContext::SourceFileScope</scope><name>SourceFileScope</name></member>
+      <member refid="classshc_1_1TargetContext_1_1SourceFileScope_1a5e3d8c2a926264ba83dffbe62d7f3acc" prot="public" virt="non-virtual"><scope>shc::TargetContext::SourceFileScope</scope><name>~SourceFileScope</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

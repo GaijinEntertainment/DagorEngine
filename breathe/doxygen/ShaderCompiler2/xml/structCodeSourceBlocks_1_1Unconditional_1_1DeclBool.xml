@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::Unconditional::DeclBool</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool_1a3584b7453ba270285491fba5f9fb974b" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* CodeSourceBlocks::Unconditional::DeclBool::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>CodeSourceBlocks::Unconditional::DeclBool::name</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="58" column="18" bodyfile="codeBlocks.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool_1a6d6e4bafb0305cc6d4eb81c89eb67f98" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::bool_expr *</type>
+        <definition>ShaderTerminal::bool_expr* CodeSourceBlocks::Unconditional::DeclBool::expr</definition>
+        <argsstring></argsstring>
+        <name>expr</name>
+        <qualifiedname>CodeSourceBlocks::Unconditional::DeclBool::expr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="59" column="33" bodyfile="codeBlocks.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="codeBlocks.h" line="56" column="5" bodyfile="codeBlocks.h" bodystart="57" bodyend="60"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool_1a6d6e4bafb0305cc6d4eb81c89eb67f98" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Unconditional::DeclBool</scope><name>expr</name></member>
+      <member refid="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool_1a3584b7453ba270285491fba5f9fb974b" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Unconditional::DeclBool</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

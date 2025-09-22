@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__renderPass_8h" kind="file" language="C++">
+    <compoundname>dag_renderPass.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__renderTarget_8h" local="no">drv/3d/dag_renderTarget.h</includes>
+    <includes refid="dag__resource_8h" local="no">drv/3d/dag_resource.h</includes>
+    <incdepgraph>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_renderPass.h</label>
+        <link refid="dag__renderPass_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_renderTarget.h</label>
+        <link refid="dag__renderTarget_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h"/>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shaderModelVersion_8h"/>
+      </node>
+      <node id="5">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="4">
+        <label>cstdint</label>
+      </node>
+      <node id="10">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="15">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="16">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="18">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="17">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structRenderPassBind" prot="public">RenderPassBind</innerclass>
+    <innerclass refid="structRenderPassTargetDesc" prot="public">RenderPassTargetDesc</innerclass>
+    <innerclass refid="structRenderPassTarget" prot="public">RenderPassTarget</innerclass>
+    <innerclass refid="structRenderPassDesc" prot="public">RenderPassDesc</innerclass>
+    <innerclass refid="structRenderPassArea" prot="public">RenderPassArea</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__renderTarget_8h" kindref="compound">drv/3d/dag_renderTarget.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resource_8h" kindref="compound">drv/3d/dag_resource.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="structRenderPassBind" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structRenderPassBind_1a76b73abd7c81e03b0767c02a4eba4849" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structRenderPassBind_1a76b73abd7c81e03b0767c02a4eba4849" kindref="member">target</ref>;</highlight></codeline>
+<codeline lineno="25" refid="structRenderPassBind_1a491792959dae830d192d1231048825f9" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structRenderPassBind_1a491792959dae830d192d1231048825f9" kindref="member">subpass</ref>;</highlight></codeline>
+<codeline lineno="27" refid="structRenderPassBind_1a5a429d7438f860887a5b52ea9aac9788" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structRenderPassBind_1a5a429d7438f860887a5b52ea9aac9788" kindref="member">slot</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="structRenderPassBind_1a21117c567ac252a82203413c56e49ab2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref><sp/><ref refid="structRenderPassBind_1a21117c567ac252a82203413c56e49ab2" kindref="member">action</ref>;</highlight></codeline>
+<codeline lineno="32" refid="structRenderPassBind_1a9acc0955c7828e84d9bb1aece0a182c4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__consts_8h_1a17c1f6381a5d9ff056a0db3703f961d8" kindref="member">ResourceBarrier</ref><sp/><ref refid="structRenderPassBind_1a9acc0955c7828e84d9bb1aece0a182c4" kindref="member">dependencyBarrier</ref>;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="structRenderPassBind_1a96c9f33bd80e444ac94faaced9794a41" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassBind_1a96c9f33bd80e444ac94faaced9794a41" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref><sp/>&amp;first,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref><sp/>&amp;second)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structRenderPassTargetDesc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42" refid="structRenderPassTargetDesc_1a05896be5b9ad0c26353929d1893fd650" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structRenderPassTargetDesc_1a05896be5b9ad0c26353929d1893fd650" kindref="member">templateResource</ref>;</highlight></codeline>
+<codeline lineno="44" refid="structRenderPassTargetDesc_1adb0b976b127b7debab3385de095a85de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc_1adb0b976b127b7debab3385de095a85de" kindref="member">texcf</ref>;</highlight></codeline>
+<codeline lineno="46" refid="structRenderPassTargetDesc_1aa3e300d8c7ae9f0a96ca5570d63d422c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc_1aa3e300d8c7ae9f0a96ca5570d63d422c" kindref="member">aliased</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="structRenderPassTargetDesc_1a074f09800ba2a12fb366516f8e7ba58b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc_1a074f09800ba2a12fb366516f8e7ba58b" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref><sp/>&amp;first,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref><sp/>&amp;second)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structRenderPassTarget" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassTarget" kindref="compound">RenderPassTarget</ref></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55" refid="structRenderPassTarget_1a578000519993e9a70968d322eef26f63" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRenderTarget" kindref="compound">RenderTarget</ref><sp/><ref refid="structRenderPassTarget_1a578000519993e9a70968d322eef26f63" kindref="member">resource</ref>;</highlight></codeline>
+<codeline lineno="57" refid="structRenderPassTarget_1ab90b06c8e28e16fa35cea8c2a800fa51" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref><sp/><ref refid="structRenderPassTarget_1ab90b06c8e28e16fa35cea8c2a800fa51" kindref="member">clearValue</ref>;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="structRenderPassDesc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassDesc" kindref="compound">RenderPassDesc</ref></highlight></codeline>
+<codeline lineno="62"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64" refid="structRenderPassDesc_1a10c65882d7504de102fa6a26e1c6e2d9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structRenderPassDesc_1a10c65882d7504de102fa6a26e1c6e2d9" kindref="member">debugName</ref>;</highlight></codeline>
+<codeline lineno="66" refid="structRenderPassDesc_1a55264431c437eefc29143cdfa8b15e45" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassDesc_1a55264431c437eefc29143cdfa8b15e45" kindref="member">targetCount</ref>;</highlight></codeline>
+<codeline lineno="68" refid="structRenderPassDesc_1ad1bbfe0d049f985f8b738964fccdb758" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassDesc_1ad1bbfe0d049f985f8b738964fccdb758" kindref="member">bindCount</ref>;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="structRenderPassDesc_1ae1ea021ad80fc94f89aa6228956624fe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref><sp/>*<ref refid="structRenderPassDesc_1ae1ea021ad80fc94f89aa6228956624fe" kindref="member">targetsDesc</ref>;</highlight></codeline>
+<codeline lineno="73" refid="structRenderPassDesc_1a83587cfef2f495314d3161324e4bde50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref><sp/>*<ref refid="structRenderPassDesc_1a83587cfef2f495314d3161324e4bde50" kindref="member">binds</ref>;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="structRenderPassDesc_1a7a6a51bace4c444b02ae4ddf90519141" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassDesc_1a7a6a51bace4c444b02ae4ddf90519141" kindref="member">subpassBindingOffset</ref>;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="structRenderPassArea" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassArea" kindref="compound">RenderPassArea</ref></highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84" refid="structRenderPassArea_1a4bfe3e341ef71c24448815f6591ed5f9" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassArea_1a4bfe3e341ef71c24448815f6591ed5f9" kindref="member">left</ref>;</highlight></codeline>
+<codeline lineno="85" refid="structRenderPassArea_1a65f6b5e565b6eccd112b0d118271dfea" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassArea_1a65f6b5e565b6eccd112b0d118271dfea" kindref="member">top</ref>;</highlight></codeline>
+<codeline lineno="86" refid="structRenderPassArea_1a001ba81710b05b74778bd55b3f59b212" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassArea_1a001ba81710b05b74778bd55b3f59b212" kindref="member">width</ref>;</highlight></codeline>
+<codeline lineno="87" refid="structRenderPassArea_1a8d59e3209bdde6d3bf8526d2b00fc375" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassArea_1a8d59e3209bdde6d3bf8526d2b00fc375" kindref="member">height</ref>;</highlight></codeline>
+<codeline lineno="88" refid="structRenderPassArea_1a38cbb7866385a05c6f506c15cadd5c82" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structRenderPassArea_1a38cbb7866385a05c6f506c15cadd5c82" kindref="member">minZ</ref>;</highlight></codeline>
+<codeline lineno="89" refid="structRenderPassArea_1abff776eaafb82f749b2277e593f214ba" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structRenderPassArea_1abff776eaafb82f749b2277e593f214ba" kindref="member">maxZ</ref>;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="95"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RenderPass;</highlight></codeline>
+<codeline lineno="110" refid="group__RenderPassD3D_1ga142a2bfb122e71fdec5f67e5906a4c01" refkind="member"><highlight class="normal">RenderPass<sp/>*<ref refid="group__RenderPassD3D_1ga142a2bfb122e71fdec5f67e5906a4c01" kindref="member">create_render_pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassDesc" kindref="compound">RenderPassDesc</ref><sp/>&amp;rp_desc);</highlight></codeline>
+<codeline lineno="115" refid="group__RenderPassD3D_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" kindref="member">delete_render_pass</ref>(RenderPass<sp/>*rp);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="group__RenderPassD3D_1gaa4a6f280d5f8c0652a81bde072acd524" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1gaa4a6f280d5f8c0652a81bde072acd524" kindref="member">begin_render_pass</ref>(RenderPass<sp/>*rp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassArea" kindref="compound">RenderPassArea</ref><sp/>area,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTarget" kindref="compound">RenderPassTarget</ref><sp/>*targets);</highlight></codeline>
+<codeline lineno="136" refid="group__RenderPassD3D_1ga377ea5974efb7d1c02250abc4b64e400" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga377ea5974efb7d1c02250abc4b64e400" kindref="member">next_subpass</ref>();</highlight></codeline>
+<codeline lineno="143" refid="group__RenderPassD3D_1ga053cea528c68defea3886ff83e537f83" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga053cea528c68defea3886ff83e537f83" kindref="member">end_render_pass</ref>();</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>();</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154" refid="group__RenderPassD3D_1ga80a581f2c8f7194358104dcabeb2eaae" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>RenderPass<sp/>*<ref refid="group__RenderPassD3D_1ga142a2bfb122e71fdec5f67e5906a4c01" kindref="member">create_render_pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassDesc" kindref="compound">RenderPassDesc</ref><sp/>&amp;rp_desc)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ad64ec087573a4dfc57e867841b8eab85" kindref="member">create_render_pass</ref>(rp_desc);<sp/>}</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" kindref="member">delete_render_pass</ref>(RenderPass<sp/>*rp)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a408215fc567e0fe76ee4103033250f65" kindref="member">delete_render_pass</ref>(rp);<sp/>}</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1gaa4a6f280d5f8c0652a81bde072acd524" kindref="member">begin_render_pass</ref>(RenderPass<sp/>*rp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassArea" kindref="compound">RenderPassArea</ref><sp/>area,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassTarget" kindref="compound">RenderPassTarget</ref><sp/>*targets)</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1cc6a828f8b28dba68b234ea67e7cf1f" kindref="member">begin_render_pass</ref>(rp,<sp/>area,<sp/>targets);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga377ea5974efb7d1c02250abc4b64e400" kindref="member">next_subpass</ref>()<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ad9a5ed59948e6747b1727a3336135914" kindref="member">next_subpass</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga053cea528c68defea3886ff83e537f83" kindref="member">end_render_pass</ref>()<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1af8346ad590814c93d8da015d75d930bc" kindref="member">end_render_pass</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__RenderPassD3D_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>()</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a0c4690474d37f6b11c45ff795538d8ec" kindref="member">driverCode</ref>.<ref refid="classDriverCode_1acf90ede402c72f3c9e8c18d2260856e9" kindref="member">is</ref>(<ref refid="namespaced3d_1a0c4ec8811b6cb2415f0d970d1ad3b09f" kindref="member">d3d::vulkan</ref>))</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a17fcb30847cfa95f9bd9a696cbb7103f" kindref="member">allow_render_pass_target_load</ref>();</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_renderPass.h"/>
+  </compounddef>
+</doxygen>

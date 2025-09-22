@@ -1,0 +1,321 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1StencilState" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::StencilState</compoundname>
+    <includes refid="dag__overrideStates_8h" local="no">dag_overrideStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::func</definition>
+        <argsstring></argsstring>
+        <name>func</name>
+        <qualifiedname>shaders::StencilState::func</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Comparison function <computeroutput>CMPF_*</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="18" column="11" bodyfile="dag_overrideStates.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::fail</definition>
+        <argsstring></argsstring>
+        <name>fail</name>
+        <qualifiedname>shaders::StencilState::fail</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for failed stencil test. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="19" column="11" bodyfile="dag_overrideStates.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::zFail</definition>
+        <argsstring></argsstring>
+        <name>zFail</name>
+        <qualifiedname>shaders::StencilState::zFail</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil test and failed depth test. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="20" column="11" bodyfile="dag_overrideStates.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>shaders::StencilState::pass</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil and depth tests. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="21" column="11" bodyfile="dag_overrideStates.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::readMask</definition>
+        <argsstring></argsstring>
+        <name>readMask</name>
+        <qualifiedname>shaders::StencilState::readMask</qualifiedname>
+        <initializer>= 255</initializer>
+        <briefdescription>
+<para>Identify a portion of the depth-stencil buffer for reading stencil data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="22" column="11" bodyfile="dag_overrideStates.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::StencilState::writeMask</definition>
+        <argsstring></argsstring>
+        <name>writeMask</name>
+        <qualifiedname>shaders::StencilState::writeMask</qualifiedname>
+        <initializer>= 255</initializer>
+        <briefdescription>
+<para>Identify a portion of the depth-stencil buffer for writing stencil data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="23" column="11" bodyfile="dag_overrideStates.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshaders_1_1StencilState_1a5625f8744e7cc42e286c0090b287e6a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::StencilState::StencilState</definition>
+        <argsstring>()</argsstring>
+        <name>StencilState</name>
+        <qualifiedname>shaders::StencilState::StencilState</qualifiedname>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="27" column="3" bodyfile="dag_overrideStates.h" bodystart="27" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1StencilState_1aabb718fe7951771e349c95602872862f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::StencilState::StencilState</definition>
+        <argsstring>(uint8_t stencil_func, uint8_t stencil_fail, uint8_t z_fail, uint8_t stencil_z_pass, uint8_t write_mask, uint8_t read_mask)</argsstring>
+        <name>StencilState</name>
+        <qualifiedname>shaders::StencilState::StencilState</qualifiedname>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_func</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_fail</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>z_fail</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_z_pass</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>write_mask</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>read_mask</declname>
+        </param>
+        <briefdescription>
+<para>Constructor with all parameters. It just calls <computeroutput><ref refid="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" kindref="member">set()</ref></computeroutput> method. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para><computeroutput>stencil_func</computeroutput>, <computeroutput>stencil_fail</computeroutput>, <computeroutput>z_fail</computeroutput>, <computeroutput>stencil_z_pass</computeroutput> must be non-zero.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>stencil_func</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Comparison function <computeroutput>CMPF_*</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stencil_fail</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for failed stencil test. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>z_fail</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil test and failed depth test. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stencil_z_pass</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil and depth tests. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>write_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Identify a portion of the depth-stencil buffer for writing stencil data. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>read_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Identify a portion of the depth-stencil buffer for reading stencil data. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="45" column="3" bodyfile="dag_overrideStates.h" bodystart="45" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::StencilState::set</definition>
+        <argsstring>(uint8_t stencil_func, uint8_t stencil_fail, uint8_t z_fail, uint8_t stencil_z_pass, uint8_t write_mask, uint8_t read_mask)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::StencilState::set</qualifiedname>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_func</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_fail</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>z_fail</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>stencil_z_pass</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>write_mask</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>read_mask</declname>
+        </param>
+        <briefdescription>
+<para>Set all parameters. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para><computeroutput>stencil_func</computeroutput>, <computeroutput>stencil_fail</computeroutput>, <computeroutput>z_fail</computeroutput>, <computeroutput>stencil_z_pass</computeroutput> must be non-zero.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>stencil_func</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Comparison function <computeroutput>CMPF_*</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stencil_fail</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for failed stencil test. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>z_fail</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil test and failed depth test. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stencil_z_pass</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stencil operation <computeroutput>STNCLOP_*</computeroutput> for passed stencil and depth tests. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>write_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Identify a portion of the depth-stencil buffer for writing stencil data. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>read_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Identify a portion of the depth-stencil buffer for reading stencil data. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="63" column="8" bodyfile="dag_overrideStates.h" bodystart="63" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A structure that describes current stencil state. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_overrideStates.h" line="16" column="1" bodyfile="dag_overrideStates.h" bodystart="17" bodyend="73"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>fail</name></member>
+      <member refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>func</name></member>
+      <member refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>pass</name></member>
+      <member refid="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>readMask</name></member>
+      <member refid="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>set</name></member>
+      <member refid="structshaders_1_1StencilState_1a5625f8744e7cc42e286c0090b287e6a7" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>StencilState</name></member>
+      <member refid="structshaders_1_1StencilState_1aabb718fe7951771e349c95602872862f" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>StencilState</name></member>
+      <member refid="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>writeMask</name></member>
+      <member refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" prot="public" virt="non-virtual"><scope>shaders::StencilState</scope><name>zFail</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

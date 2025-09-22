@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ShaderBoolEvalCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderParser::ShaderBoolEvalCB</compoundname>
+    <derivedcompoundref refid="classShaderParser_1_1GatherVarShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::GatherVarShaderEvalCB</derivedcompoundref>
+    <derivedcompoundref refid="classsemantic_1_1VariantBoolExprEvalCB" prot="public" virt="non-virtual">semantic::VariantBoolExprEvalCB</derivedcompoundref>
+    <includes refid="shsem_8h" local="no">shsem.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a9adf5ca170f128f4b53c4dce191b6e1b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>virtual ShVarBool ShaderParser::ShaderBoolEvalCB::eval_expr</definition>
+        <argsstring>(bool_expr &amp;)=0</argsstring>
+        <name>eval_expr</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::eval_expr</qualifiedname>
+        <reimplementedby refid="classsemantic_1_1VariantBoolExprEvalCB_1ae0c062f5b1f34d1d8fd6f9a7a2fca859">eval_expr</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1aa4a451b226975e4146bd01448f46db4e">eval_expr</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a4e59927338e70286a8b5f69628cff544">eval_expr</reimplementedby>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="61" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a07dc087d3c096d83623b89cc7b02acc7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>virtual ShVarBool ShaderParser::ShaderBoolEvalCB::eval_bool_value</definition>
+        <argsstring>(bool_value &amp;)=0</argsstring>
+        <name>eval_bool_value</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::eval_bool_value</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1aaa792cef7dc3cdacea004a2931634e01">eval_bool_value</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a01261f9c19a099c786067a26b47d3677">eval_bool_value</reimplementedby>
+        <reimplementedby refid="classsemantic_1_1VariantBoolExprEvalCB_1a9821f354db0ee1de0dc805a201837128">eval_bool_value</reimplementedby>
+        <param>
+          <type>bool_value &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="62" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a086dc6d32830628d0635b45531188911" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderParser::ShaderBoolEvalCB::eval_interval_value</definition>
+        <argsstring>(const char *ival_name)=0</argsstring>
+        <name>eval_interval_value</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::eval_interval_value</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1abbf81a7ee85b47222708004e2fe5d658">eval_interval_value</reimplementedby>
+        <reimplementedby refid="classsemantic_1_1VariantBoolExprEvalCB_1acbd6f09e2484d9927d19f51dc0220747">eval_interval_value</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>ival_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="63" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1afbc6dd66cfcc4845688ba3261dca40b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderBoolEvalCB::report_bool_eval_error</definition>
+        <argsstring>(const char *error)</argsstring>
+        <name>report_bool_eval_error</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::report_bool_eval_error</qualifiedname>
+        <reimplementedby refid="classsemantic_1_1VariantBoolExprEvalCB_1a8ea1c1a892a5b6911982b058dbc93d28">report_bool_eval_error</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>error</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="64" column="16" bodyfile="shsem.h" bodystart="64" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a69a7fb78162d42fed759dcfa1877d54c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderBoolEvalCB::decl_bool_alias</definition>
+        <argsstring>(const char *name, bool_expr &amp;expr)</argsstring>
+        <name>decl_bool_alias</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::decl_bool_alias</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a3b8376325930f135b0627b375c28e7c8">decl_bool_alias</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a67aa46a40ce6ba672d3fe200965be29a">decl_bool_alias</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="66" column="16" bodyfile="shsem.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a2a47dcc0c4945cd7ddd6568fa71e9151" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int ShaderParser::ShaderBoolEvalCB::add_message</definition>
+        <argsstring>(const char *message, bool file_name)</argsstring>
+        <name>add_message</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::add_message</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>message</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>file_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="67" column="15" bodyfile="shsem.h" bodystart="67" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderBoolEvalCB_1a5ce5cefefa2c7e01910a9e62542baed7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int ShaderParser::ShaderBoolEvalCB::is_debug_mode_enabled</definition>
+        <argsstring>()</argsstring>
+        <name>is_debug_mode_enabled</name>
+        <qualifiedname>ShaderParser::ShaderBoolEvalCB::is_debug_mode_enabled</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1afab0695b7761813942c9eb642211617c">is_debug_mode_enabled</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="68" column="15" bodyfile="shsem.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="4">
+        <label>ShaderParser::AssembleShaderEvalCB</label>
+        <link refid="classShaderParser_1_1AssembleShaderEvalCB"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::GatherVarShaderEvalCB</label>
+        <link refid="classShaderParser_1_1GatherVarShaderEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="3">
+        <label>semantic::VariantBoolExprEvalCB</label>
+        <link refid="classsemantic_1_1VariantBoolExprEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="shsem.h" line="58" column="1" bodyfile="shsem.h" bodystart="59" bodyend="69"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a2a47dcc0c4945cd7ddd6568fa71e9151" prot="public" virt="virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>add_message</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a69a7fb78162d42fed759dcfa1877d54c" prot="public" virt="virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>decl_bool_alias</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a07dc087d3c096d83623b89cc7b02acc7" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>eval_bool_value</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a9adf5ca170f128f4b53c4dce191b6e1b" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>eval_expr</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a086dc6d32830628d0635b45531188911" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>eval_interval_value</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a5ce5cefefa2c7e01910a9e62542baed7" prot="public" virt="virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>is_debug_mode_enabled</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1afbc6dd66cfcc4845688ba3261dca40b7" prot="public" virt="virtual"><scope>ShaderParser::ShaderBoolEvalCB</scope><name>report_bool_eval_error</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

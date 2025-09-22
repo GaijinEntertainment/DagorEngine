@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIObjectsList" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IObjectsList</compoundname>
+    <derivedcompoundref refid="classObjectEditor" prot="public" virt="non-virtual">ObjectEditor</derivedcompoundref>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIObjectsList_1a21571434a359d8055320e9f5d17700a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IObjectsList::getObjNames</definition>
+        <argsstring>(Tab&lt; String &gt; &amp;names, Tab&lt; String &gt; &amp;sel_names, const Tab&lt; int &gt; &amp;types)=0</argsstring>
+        <name>getObjNames</name>
+        <qualifiedname>IObjectsList::getObjNames</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1aeea49638bb9e5e9545b6552d18a8c08e">getObjNames</reimplementedby>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>names</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>sel_names</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; int &gt; &amp;</type>
+          <declname>types</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get objects names. The function passes object names to dialog window. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- list of objects names </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">sel_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- list of selected objects names </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">types</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- list of object types to be represented. Defined as a list of indexes. To get full list of types use <ref refid="classIObjectsList_1a5c30a6adaa4b9121e27f5b9b438d10b0" kindref="member">getTypeNames()</ref>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="108" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectsList_1a5c30a6adaa4b9121e27f5b9b438d10b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IObjectsList::getTypeNames</definition>
+        <argsstring>(Tab&lt; String &gt; &amp;names)=0</argsstring>
+        <name>getTypeNames</name>
+        <qualifiedname>IObjectsList::getTypeNames</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1ac60f0e8313a36e54f856e62ca37c5bd1">getTypeNames</reimplementedby>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get objects types. The function passes object types to dialog window. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- list of objects types </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="113" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectsList_1a0775f9b9b9349c4f217682478631ced6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IObjectsList::onSelectedNames</definition>
+        <argsstring>(const Tab&lt; String &gt; &amp;names)=0</argsstring>
+        <name>onSelectedNames</name>
+        <qualifiedname>IObjectsList::onSelectedNames</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1aa95f1d94406f056fb57aa40287f6b828">onSelectedNames</reimplementedby>
+        <param>
+          <type>const Tab&lt; String &gt; &amp;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about selecting / deselecting objects in list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- names list of selected objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="117" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class for dialog window &apos;Select objects by name&apos;.<linebreak/>
+(Called by key &apos;H&apos;) </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IObjectsList</label>
+        <link refid="classIObjectsList"/>
+      </node>
+      <node id="2">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_interface_ex.h" line="99" column="1" bodyfile="ec_interface_ex.h" bodystart="100" bodyend="118"/>
+    <listofallmembers>
+      <member refid="classIObjectsList_1a21571434a359d8055320e9f5d17700a6" prot="public" virt="pure-virtual"><scope>IObjectsList</scope><name>getObjNames</name></member>
+      <member refid="classIObjectsList_1a5c30a6adaa4b9121e27f5b9b438d10b0" prot="public" virt="pure-virtual"><scope>IObjectsList</scope><name>getTypeNames</name></member>
+      <member refid="classIObjectsList_1a0775f9b9b9349c4f217682478631ced6" prot="public" virt="pure-virtual"><scope>IObjectsList</scope><name>onSelectedNames</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

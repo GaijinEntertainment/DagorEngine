@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namemap_8h" kind="file" language="C++">
+    <compoundname>namemap.h</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="yes">str.h</includes>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="namemap_8cpp" local="yes">namemap.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>namemap.h</label>
+        <link refid="namemap_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>str.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="3">
+        <label>namemap.cpp</label>
+        <link refid="namemap_8cpp"/>
+      </node>
+      <node id="1">
+        <label>namemap.h</label>
+        <link refid="namemap_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classBaseNameMap" prot="public">BaseNameMap</innerclass>
+    <innerclass refid="classNameMap" prot="public">NameMap</innerclass>
+    <innerclass refid="classNameMapCI" prot="public">NameMapCI</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="classNameMap" kindref="compound">NameMap</ref> class derived from DObject that maps string to integers and back. </para>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;str.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>#include<sp/>&quot;dobject.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classBaseNameMap" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/></highlight><highlight class="comment">//<sp/>:<sp/>public<sp/>DObject</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DAG_DECLARE_NEW(tmpmem)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1a9f4799aa8bbfb1c2a50c7b3ab581e7fd" kindref="member">BaseNameMap</ref>();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1a27f04775f7b188f0eba8472fc608471a" kindref="member">~BaseNameMap</ref>();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classBaseNameMap_1a09fb9cc27dc905135f38e49f5b898637" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a09fb9cc27dc905135f38e49f5b898637" kindref="member">nameCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classBaseNameMap_1ad27291165fe02dcd33077696c0df2a51" kindref="member">getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a1d3bd0a327df8efbf135ae5ac552f5a1" kindref="member">save</ref>(FILE<sp/>*)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a017e5959e9c9e8c7624e34f7fdba9447" kindref="member">load</ref>(FILE<sp/>*);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="49" refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;String&gt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">copyFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/>&amp;nm);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1a9f4799aa8bbfb1c2a50c7b3ab581e7fd" kindref="member">BaseNameMap</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/>&amp;nm)<sp/>{<sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">copyFrom</ref>(nm);<sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/>&amp;nm)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">copyFrom</ref>(nm);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="classNameMap" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classNameMap" kindref="compound">NameMap</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref></highlight></codeline>
+<codeline lineno="65"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DAG_DECLARE_NEW(tmpmem)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classNameMap_1a8560d4570112d839b90be032f2af34e7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNameMap_1a8560d4570112d839b90be032f2af34e7" kindref="member">NameMap</ref>()<sp/>:<sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" kindref="member">getNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" kindref="member">addNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="classNameMap_1a928c58af61cfb3b5630a828f34c63202" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classNameMap_1a928c58af61cfb3b5630a828f34c63202" kindref="member">copyFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classNameMap" kindref="compound">NameMap</ref><sp/>&amp;nm)<sp/>{<sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">BaseNameMap::copyFrom</ref>(nm);<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="classNameMapCI" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classNameMapCI" kindref="compound">NameMapCI</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref></highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DAG_DECLARE_NEW(tmpmem)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90" refid="classNameMapCI_1ab792158df777c9001a16f60f5bd51aa7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNameMapCI_1ab792158df777c9001a16f60f5bd51aa7" kindref="member">NameMapCI</ref>()<sp/>:<sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI_1aaf0e95d9545da2c3fb625f91e41ef5f7" kindref="member">getNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI_1a8e025492600f75ea9b2179088090edd4" kindref="member">addNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="classNameMapCI_1aa50f8112fc9eb0adc7bd890a5c704deb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI_1aa50f8112fc9eb0adc7bd890a5c704deb" kindref="member">copyFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI" kindref="compound">NameMapCI</ref><sp/>&amp;nm)<sp/>{<sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">BaseNameMap::copyFrom</ref>(nm);<sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="comment">//<sp/>#include<sp/>&quot;undef_.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="namemap.h"/>
+  </compounddef>
+</doxygen>

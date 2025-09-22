@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDrv3dMakeTextureParams" kind="struct" language="C++" prot="public">
+    <compoundname>Drv3dMakeTextureParams</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1ae050d234eea067a4bf029ac4b065e8e8" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* Drv3dMakeTextureParams::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>Drv3dMakeTextureParams::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="569" column="8" bodyfile="dag_commands.h" bodystart="569" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1a1587e865625f4a6a1202c7989b835975" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* Drv3dMakeTextureParams::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>Drv3dMakeTextureParams::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="570" column="14" bodyfile="dag_commands.h" bodystart="570" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1a5a3ed1fbb5905d71e088d1a8b486fbec" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::flg</definition>
+        <argsstring></argsstring>
+        <name>flg</name>
+        <qualifiedname>Drv3dMakeTextureParams::flg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="571" column="7" bodyfile="dag_commands.h" bodystart="571" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1a64f18861fdef92368e94e2a5acf4f4be" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>Drv3dMakeTextureParams::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="572" column="7" bodyfile="dag_commands.h" bodystart="572" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1ad60a40de68f0a3a9146dc7bf89da4c83" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>Drv3dMakeTextureParams::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="572" column="9" bodyfile="dag_commands.h" bodystart="572" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1afd8eb6c2bf50741d4684da291f6f99c6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::layers</definition>
+        <argsstring></argsstring>
+        <name>layers</name>
+        <qualifiedname>Drv3dMakeTextureParams::layers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="572" column="11" bodyfile="dag_commands.h" bodystart="572" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1a21567e4c58edc9b60a8576c9d37b02eb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Drv3dMakeTextureParams::mips</definition>
+        <argsstring></argsstring>
+        <name>mips</name>
+        <qualifiedname>Drv3dMakeTextureParams::mips</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="572" column="18" bodyfile="dag_commands.h" bodystart="572" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dMakeTextureParams_1ac5f145c5b311236ec4dba95bdae73593" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1a17c1f6381a5d9ff056a0db3703f961d8" kindref="member">ResourceBarrier</ref></type>
+        <definition>ResourceBarrier Drv3dMakeTextureParams::currentState</definition>
+        <argsstring></argsstring>
+        <name>currentState</name>
+        <qualifiedname>Drv3dMakeTextureParams::currentState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="573" column="19" bodyfile="dag_commands.h" bodystart="573" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_commands.h" line="567" column="1" bodyfile="dag_commands.h" bodystart="568" bodyend="574"/>
+    <listofallmembers>
+      <member refid="structDrv3dMakeTextureParams_1ac5f145c5b311236ec4dba95bdae73593" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>currentState</name></member>
+      <member refid="structDrv3dMakeTextureParams_1a5a3ed1fbb5905d71e088d1a8b486fbec" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>flg</name></member>
+      <member refid="structDrv3dMakeTextureParams_1ad60a40de68f0a3a9146dc7bf89da4c83" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>h</name></member>
+      <member refid="structDrv3dMakeTextureParams_1afd8eb6c2bf50741d4684da291f6f99c6" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>layers</name></member>
+      <member refid="structDrv3dMakeTextureParams_1a21567e4c58edc9b60a8576c9d37b02eb" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>mips</name></member>
+      <member refid="structDrv3dMakeTextureParams_1a1587e865625f4a6a1202c7989b835975" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>name</name></member>
+      <member refid="structDrv3dMakeTextureParams_1ae050d234eea067a4bf029ac4b065e8e8" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>tex</name></member>
+      <member refid="structDrv3dMakeTextureParams_1a64f18861fdef92368e94e2a5acf4f4be" prot="public" virt="non-virtual"><scope>Drv3dMakeTextureParams</scope><name>w</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

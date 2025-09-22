@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagBigTFace" kind="struct" language="C++" prot="public">
+    <compoundname>DagBigTFace</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagBigTFace_1a848201911e05420a960aa0e5aa509593" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int DagBigTFace::t[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>t</name>
+        <qualifiedname>DagBigTFace::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="194" column="16" bodyfile="dagfmt.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagBigTFace_1abbc16b0490c14e84ae7236a02588e142" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagBigTFace::DagBigTFace</definition>
+        <argsstring>()</argsstring>
+        <name>DagBigTFace</name>
+        <qualifiedname>DagBigTFace::DagBigTFace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="195" column="3" bodyfile="dagfmt.h" bodystart="195" bodyend="195"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="192" column="1" bodyfile="dagfmt.h" bodystart="193" bodyend="196"/>
+    <listofallmembers>
+      <member refid="structDagBigTFace_1abbc16b0490c14e84ae7236a02588e142" prot="public" virt="non-virtual"><scope>DagBigTFace</scope><name>DagBigTFace</name></member>
+      <member refid="structDagBigTFace_1a848201911e05420a960aa0e5aa509593" prot="public" virt="non-virtual"><scope>DagBigTFace</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

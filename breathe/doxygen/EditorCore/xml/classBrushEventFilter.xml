@@ -1,0 +1,1010 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBrushEventFilter" kind="class" language="C++" prot="public">
+    <compoundname>BrushEventFilter</compoundname>
+    <basecompoundref refid="classIGenEventHandler" prot="public" virt="non-virtual">IGenEventHandler</basecompoundref>
+    <includes refid="ec__brushfilter_8h" local="no">ec_brushfilter.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Viewport redraw/change events handlers.</header>
+      <memberdef kind="variable" id="classBrushEventFilter_1a863fb276aaf018a4a55cc25cdd5b35f9" prot="private" static="no" mutable="no">
+        <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+        <definition>Brush* BrushEventFilter::curBrush</definition>
+        <argsstring></argsstring>
+        <name>curBrush</name>
+        <qualifiedname>BrushEventFilter::curBrush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="88" column="9" bodyfile="ec_brushfilter.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrushEventFilter_1ae0f69681509cbf2e15516245c8a80079" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::active</definition>
+        <argsstring></argsstring>
+        <name>active</name>
+        <qualifiedname>BrushEventFilter::active</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="90" column="8" bodyfile="ec_brushfilter.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a67a245c7c1da12b141f7b1cdc25d79a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::handleViewportPaint</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewportPaint</name>
+        <qualifiedname>BrushEventFilter::handleViewportPaint</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a7f3ce10fef24468691cfb20b568f8f9a">handleViewportPaint</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport CTL window redraw <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport&apos;s device context </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="83" column="8" bodyfile="ec_brushfilter.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1acb7d1472c67ab1f1b8209f5b3c04b009" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::handleViewChange</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewChange</name>
+        <qualifiedname>BrushEventFilter::handleViewChange</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1af0e97cbbdf5fdeb07f09707ad80e8334">handleViewChange</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport view change notification <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="84" column="8" bodyfile="ec_brushfilter.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Mouse events handlers.</header>
+      <memberdef kind="function" id="classBrushEventFilter_1a5f3829fbeb298682327f31c4c8fed17b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>BrushEventFilter::handleMouseMove</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a46164eba137560a326038e89a9240ffe">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse move. The function calls <ref refid="classBrush_1ad65f9e45f9c856f592da835cf3b37cc8" kindref="member">Brush::mouseMove()</ref>.</para>
+<para>Handle mouse move. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="50" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a866a69f1561c3a8fb6c5d7c2192d1279" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>BrushEventFilter::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a76d3042ca31425d226f0f72362e2dd56">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse left button press. The function calls <ref refid="classBrush_1aaea71fa8020a06582ebec207f075ffd7" kindref="member">Brush::mouseLBPress()</ref>.</para>
+<para>Handle mouse left button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="55" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a11cc9976d27245e67d27f2a6d497a4cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>BrushEventFilter::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a0d282a84127069635a1fae4b454a8d3b">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse left button release. The function calls <ref refid="classBrush_1a8e3a36a99eecb6b298e8af3456ad6374" kindref="member">Brush::mouseLBRelease()</ref>.</para>
+<para>Handle mouse left button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="60" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a9582e177037c55763a4ddc5cdf949995" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>BrushEventFilter::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a5efed76d47bfdd603d2c031553b8d64a">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse right button press. The function calls <ref refid="classBrush_1afe914a265cb2c359af97d28727b11c28" kindref="member">Brush::mouseRBPress()</ref>.</para>
+<para>Handle mouse right button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="65" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a0ae9874443d9dad4b23c61621dc36d90" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseRBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBRelease</name>
+        <qualifiedname>BrushEventFilter::handleMouseRBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809">handleMouseRBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse right button release. The function calls <ref refid="classBrush_1a48d48182a29194dc3344402b04bdf306" kindref="member">Brush::mouseRBRelease()</ref>.</para>
+<para>Handle mouse right button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="70" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1ae1a0eed537c6df7e9ed055955eb421d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseCBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBPress</name>
+        <qualifiedname>BrushEventFilter::handleMouseCBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56">handleMouseCBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="72" column="8" bodyfile="ec_brushfilter.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a049b7309366eec8d92b93595dd37d1f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseCBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBRelease</name>
+        <qualifiedname>BrushEventFilter::handleMouseCBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a">handleMouseCBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="73" column="8" bodyfile="ec_brushfilter.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1ae7caa0cde7f7ad728cdcc1fab473e348" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseWheel</definition>
+        <argsstring>(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>BrushEventFilter::handleMouseWheel</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c">handleMouseWheel</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>wheel_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse scroll wheel <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wheel_d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- scroll wheel steps </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="75" column="8" bodyfile="ec_brushfilter.h" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a0d3e93b2e4097257b1a96a9583802016" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::handleMouseDoubleClick</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseDoubleClick</name>
+        <qualifiedname>BrushEventFilter::handleMouseDoubleClick</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15">handleMouseDoubleClick</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse double-click <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="76" column="8" bodyfile="ec_brushfilter.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBrushEventFilter_1ae4ba73258e9d7a7c042b083feaa86c94" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BrushEventFilter::BrushEventFilter</definition>
+        <argsstring>()</argsstring>
+        <name>BrushEventFilter</name>
+        <qualifiedname>BrushEventFilter::BrushEventFilter</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="21" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1ae1e7797113909b7f4e5f80591b74445d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool BrushEventFilter::isActive</definition>
+        <argsstring>() const</argsstring>
+        <name>isActive</name>
+        <qualifiedname>BrushEventFilter::isActive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether <ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref> is active. <simplesect kind="return"><para><bold>true</bold> if <ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref> is active, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="25" column="15" bodyfile="ec_brushfilter.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1ae599f65dff5400f41b52120852418424" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::setBrush</definition>
+        <argsstring>(Brush *brush)</argsstring>
+        <name>setBrush</name>
+        <qualifiedname>BrushEventFilter::setBrush</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set current brush. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to <ref refid="classBrush" kindref="compound">Brush</ref> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="29" column="15" bodyfile="ec_brushfilter.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a199795d223a111050cd6d302317239ac" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+        <definition>Brush * BrushEventFilter::getBrush</definition>
+        <argsstring>() const</argsstring>
+        <name>getBrush</name>
+        <qualifiedname>BrushEventFilter::getBrush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current brush. <simplesect kind="return"><para>brush - pointer to <ref refid="classBrush" kindref="compound">Brush</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="33" column="16" bodyfile="ec_brushfilter.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a405e4804729ac13b424725f58f6377d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::activate</definition>
+        <argsstring>()</argsstring>
+        <name>activate</name>
+        <qualifiedname>BrushEventFilter::activate</qualifiedname>
+        <briefdescription>
+<para>Activate <ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="36" column="15" bodyfile="ec_brushfilter.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1a46a0eeae0ff09bf59b874f8346a6019b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::deactivate</definition>
+        <argsstring>()</argsstring>
+        <name>deactivate</name>
+        <qualifiedname>BrushEventFilter::deactivate</qualifiedname>
+        <briefdescription>
+<para>Deactivate <ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="39" column="15" bodyfile="ec_brushfilter.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrushEventFilter_1ac7e91008ad06a02ee79f090d57d56f16" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BrushEventFilter::renderBrush</definition>
+        <argsstring>()</argsstring>
+        <name>renderBrush</name>
+        <qualifiedname>BrushEventFilter::renderBrush</qualifiedname>
+        <briefdescription>
+<para>Render current brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brushfilter.h" line="42" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to receive messages from editor core engine and send them to current brush (if it is set). Message sending begins after call to <ref refid="classIEditorCoreEngine_1a3634ee82d2b3eab011cc681dda79dc82" kindref="member">IEditorCoreEngine::beginBrushPaint()</ref> (at that time <ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref> is activated) and ends after call to <ref refid="classIEditorCoreEngine_1abff2d30e2c6ca69e779b88452b32924d" kindref="member">IEditorCoreEngine::endBrushPaint()</ref>. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>BrushEventFilter</label>
+        <link refid="classBrushEventFilter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>BrushEventFilter</label>
+        <link refid="classBrushEventFilter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_brushfilter.h" line="17" column="1" bodyfile="ec_brushfilter.h" bodystart="18" bodyend="91"/>
+    <listofallmembers>
+      <member refid="classBrushEventFilter_1a405e4804729ac13b424725f58f6377d8" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>activate</name></member>
+      <member refid="classBrushEventFilter_1ae0f69681509cbf2e15516245c8a80079" prot="private" virt="non-virtual"><scope>BrushEventFilter</scope><name>active</name></member>
+      <member refid="classBrushEventFilter_1ae4ba73258e9d7a7c042b083feaa86c94" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>BrushEventFilter</name></member>
+      <member refid="classBrushEventFilter_1a863fb276aaf018a4a55cc25cdd5b35f9" prot="private" virt="non-virtual"><scope>BrushEventFilter</scope><name>curBrush</name></member>
+      <member refid="classBrushEventFilter_1a46a0eeae0ff09bf59b874f8346a6019b" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>deactivate</name></member>
+      <member refid="classBrushEventFilter_1a199795d223a111050cd6d302317239ac" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>getBrush</name></member>
+      <member refid="classBrushEventFilter_1ae1a0eed537c6df7e9ed055955eb421d6" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseCBPress</name></member>
+      <member refid="classBrushEventFilter_1a049b7309366eec8d92b93595dd37d1f3" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseCBRelease</name></member>
+      <member refid="classBrushEventFilter_1a0d3e93b2e4097257b1a96a9583802016" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseDoubleClick</name></member>
+      <member refid="classBrushEventFilter_1a866a69f1561c3a8fb6c5d7c2192d1279" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseLBPress</name></member>
+      <member refid="classBrushEventFilter_1a11cc9976d27245e67d27f2a6d497a4cf" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classBrushEventFilter_1a5f3829fbeb298682327f31c4c8fed17b" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseMove</name></member>
+      <member refid="classBrushEventFilter_1a9582e177037c55763a4ddc5cdf949995" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseRBPress</name></member>
+      <member refid="classBrushEventFilter_1a0ae9874443d9dad4b23c61621dc36d90" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseRBRelease</name></member>
+      <member refid="classBrushEventFilter_1ae7caa0cde7f7ad728cdcc1fab473e348" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleMouseWheel</name></member>
+      <member refid="classBrushEventFilter_1acb7d1472c67ab1f1b8209f5b3c04b009" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleViewChange</name></member>
+      <member refid="classBrushEventFilter_1a67a245c7c1da12b141f7b1cdc25d79a5" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>handleViewportPaint</name></member>
+      <member refid="classBrushEventFilter_1ae1e7797113909b7f4e5f80591b74445d" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>isActive</name></member>
+      <member refid="classBrushEventFilter_1ac7e91008ad06a02ee79f090d57d56f16" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>renderBrush</name></member>
+      <member refid="classBrushEventFilter_1ae599f65dff5400f41b52120852418424" prot="public" virt="non-virtual"><scope>BrushEventFilter</scope><name>setBrush</name></member>
+      <member refid="classIGenEventHandler_1adb70e764e4b90c0937dd7dc47261606b" prot="public" virt="virtual"><scope>BrushEventFilter</scope><name>~IGenEventHandler</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

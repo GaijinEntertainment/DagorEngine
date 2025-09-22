@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structHlslRegAllocator_1_1ReserveFailure" kind="struct" language="C++" prot="public">
+    <compoundname>HlslRegAllocator::ReserveFailure</compoundname>
+    <includes refid="hlslRegisters_8h" local="no">hlslRegisters.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool HlslRegAllocator::ReserveFailure::outOfRange</definition>
+        <argsstring></argsstring>
+        <name>outOfRange</name>
+        <qualifiedname>HlslRegAllocator::ReserveFailure::outOfRange</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="182" column="10" bodyfile="hlslRegisters.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t HlslRegAllocator::ReserveFailure::conflictReg</definition>
+        <argsstring></argsstring>
+        <name>conflictReg</name>
+        <qualifiedname>HlslRegAllocator::ReserveFailure::conflictReg</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="183" column="13" bodyfile="hlslRegisters.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1ReserveFailure_1aa4b3c39ccfa407f77f95ba7cb78d8ea5" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+        <definition>HlslSlotSemantic HlslRegAllocator::ReserveFailure::conflictSemantic</definition>
+        <argsstring></argsstring>
+        <name>conflictSemantic</name>
+        <qualifiedname>HlslRegAllocator::ReserveFailure::conflictSemantic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="184" column="22" bodyfile="hlslRegisters.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hlslRegisters.h" line="180" column="3" bodyfile="hlslRegisters.h" bodystart="181" bodyend="185"/>
+    <listofallmembers>
+      <member refid="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" prot="public" virt="non-virtual"><scope>HlslRegAllocator::ReserveFailure</scope><name>conflictReg</name></member>
+      <member refid="structHlslRegAllocator_1_1ReserveFailure_1aa4b3c39ccfa407f77f95ba7cb78d8ea5" prot="public" virt="non-virtual"><scope>HlslRegAllocator::ReserveFailure</scope><name>conflictSemantic</name></member>
+      <member refid="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" prot="public" virt="non-virtual"><scope>HlslRegAllocator::ReserveFailure</scope><name>outOfRange</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

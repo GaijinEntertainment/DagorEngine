@@ -1,0 +1,724 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1GatherVarShaderEvalCB" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::GatherVarShaderEvalCB</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::ShaderEvalCB</basecompoundref>
+    <basecompoundref refid="classShaderParser_1_1ShaderBoolEvalCB" prot="public" virt="non-virtual">ShaderParser::ShaderBoolEvalCB</basecompoundref>
+    <includes refid="gatherVar_8h" local="no">gatherVar.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a56f2cbaa486e20a6b74265cf63bb3b6c" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+        <definition>shc::ShaderContext&amp; ShaderParser::GatherVarShaderEvalCB::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="70" column="22" bodyfile="gatherVar.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1ad73ead0aed90ed6c7138ea2fbb5ea1db" prot="private" static="no" mutable="no">
+        <type><ref refid="structshc_1_1TypeTables" kindref="compound">shc::TypeTables</ref> &amp;</type>
+        <definition>shc::TypeTables&amp; ShaderParser::GatherVarShaderEvalCB::types</definition>
+        <argsstring></argsstring>
+        <name>types</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::types</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="73" column="19" bodyfile="gatherVar.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a34a9f5d9b2d30b6dfdaaf09c580e5c82" prot="private" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; ShaderParser::GatherVarShaderEvalCB::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="74" column="10" bodyfile="gatherVar.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a147826c5bdee08c245be9120205b3ce0" prot="private" static="no" mutable="no">
+        <type>Tab&lt; bool &gt;</type>
+        <definition>Tab&lt;bool&gt; ShaderParser::GatherVarShaderEvalCB::dynStack</definition>
+        <argsstring></argsstring>
+        <name>dynStack</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::dynStack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="77" column="7" bodyfile="gatherVar.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a5219b695e43635de0e87d8107de06983" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::GatherVarShaderEvalCB::dynCount</definition>
+        <argsstring></argsstring>
+        <name>dynCount</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::dynCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="78" column="7" bodyfile="gatherVar.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a28789205681bf5e82b24c62507ab506b" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::GatherVarShaderEvalCB::hasDynFlag</definition>
+        <argsstring></argsstring>
+        <name>hasDynFlag</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::hasDynFlag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="79" column="8" bodyfile="gatherVar.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1a095f519ae756aeccd7b41103d06a71a7" prot="private" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderParser::GatherVarShaderEvalCB::staticVars</definition>
+        <argsstring></argsstring>
+        <name>staticVars</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::staticVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="81" column="17" bodyfile="gatherVar.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1GatherVarShaderEvalCB_1ae4cf5dacb72258c0467064317ab2a51a" prot="private" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderParser::GatherVarShaderEvalCB::dynamicVars</definition>
+        <argsstring></argsstring>
+        <name>dynamicVars</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::dynamicVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="81" column="28" bodyfile="gatherVar.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b468cf0d685e58a5441f55a97dad4" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GatherVarShaderEvalCB::GatherVarShaderEvalCB</definition>
+        <argsstring>(shc::ShaderContext &amp;ctx)</argsstring>
+        <name>GatherVarShaderEvalCB</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::GatherVarShaderEvalCB</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="36" column="12" bodyfile="gatherVar.cpp" bodystart="47" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1af91fc4e0d22e1566e511b3d594b15b9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_interval_decl</definition>
+        <argsstring>(interval &amp;interv) override</argsstring>
+        <name>eval_interval_decl</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_interval_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ad1e613fd064621334abb0c35002af923">eval_interval_decl</reimplements>
+        <param>
+          <type>interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="38" column="8" bodyfile="gatherVar.cpp" bodystart="107" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1afe810aefad98a1151d59ffb1fd09dc2b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_static</definition>
+        <argsstring>(static_var_decl &amp;s) override</argsstring>
+        <name>eval_static</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_static</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a773524a09efd3b118970955178a69efd">eval_static</reimplements>
+        <param>
+          <type>static_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="40" column="8" bodyfile="gatherVar.cpp" bodystart="93" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a15bc1479f78a3e24c164b6859e8486e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_bool_decl</definition>
+        <argsstring>(bool_decl &amp;) override</argsstring>
+        <name>eval_bool_decl</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_bool_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a0b1484996b87155daf73af501febbd9d">eval_bool_decl</reimplements>
+        <param>
+          <type>bool_decl &amp;</type>
+          <defname>decl</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="41" column="8" bodyfile="gatherVar.cpp" bodystart="72" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a67aa46a40ce6ba672d3fe200965be29a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::decl_bool_alias</definition>
+        <argsstring>(const char *name, bool_expr &amp;expr) override</argsstring>
+        <name>decl_bool_alias</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::decl_bool_alias</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a69a7fb78162d42fed759dcfa1877d54c">decl_bool_alias</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="42" column="8" bodyfile="gatherVar.cpp" bodystart="80" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ad62259329d3556617ec48ad8371e04ca" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_channel_decl</definition>
+        <argsstring>(channel_decl &amp;s, int str_id=0) override</argsstring>
+        <name>eval_channel_decl</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_channel_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4342c33792df4746ba4575adeebad9e7">eval_channel_decl</reimplements>
+        <param>
+          <type>channel_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>str_id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="44" column="8" bodyfile="gatherVar.cpp" bodystart="51" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b663671a80f67bcbd04c4c10bec21" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_state</definition>
+        <argsstring>(state_stat &amp;) override</argsstring>
+        <name>eval_state</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a484b9919d67d330ad15f99a673aeb3f3">eval_state</reimplements>
+        <param>
+          <type>state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="45" column="8" bodyfile="gatherVar.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a8e39492b7887bcae23f131f433e8d980" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_zbias_state</definition>
+        <argsstring>(zbias_state_stat &amp;) override</argsstring>
+        <name>eval_zbias_state</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_zbias_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9bed93ba21bf89440d7b037f4ac2800d">eval_zbias_state</reimplements>
+        <param>
+          <type>zbias_state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="46" column="8" bodyfile="gatherVar.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a3634670586826fc1fcd4051395467f56" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_external_block</definition>
+        <argsstring>(external_state_block &amp;) override</argsstring>
+        <name>eval_external_block</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_external_block</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1af335c328a2c5792ea32c2429be3d308a">eval_external_block</reimplements>
+        <param>
+          <type>external_state_block &amp;</type>
+          <defname>state_block</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="47" column="8" bodyfile="gatherVar.cpp" bodystart="248" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a7b6a60d97ec16dee92d2797e51eb8b37" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_assume_stat</definition>
+        <argsstring>(assume_stat &amp;s) override</argsstring>
+        <name>eval_assume_stat</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_assume_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4a1e738e214667e11fc939008f4f3c95">eval_assume_stat</reimplements>
+        <param>
+          <type>assume_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="48" column="8" bodyfile="gatherVar.cpp" bodystart="59" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ac6f560c8041dc8f7cdc2bc64fdc8e3e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_assume_if_not_assumed_stat</definition>
+        <argsstring>(assume_if_not_assumed_stat &amp;s) override</argsstring>
+        <name>eval_assume_if_not_assumed_stat</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_assume_if_not_assumed_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a5117e36e50dbf966e0e8d09d291523ff">eval_assume_if_not_assumed_stat</reimplements>
+        <param>
+          <type>assume_if_not_assumed_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="49" column="8" bodyfile="gatherVar.cpp" bodystart="65" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ac567248385bc109b4d3dd4992584497b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_render_stage</definition>
+        <argsstring>(render_stage_stat &amp;) override</argsstring>
+        <name>eval_render_stage</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_render_stage</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aadbbbbeee8e38a94cfbc2a59f0108b89">eval_render_stage</reimplements>
+        <param>
+          <type>render_stage_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="50" column="8" bodyfile="gatherVar.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a7503dafe082f3d1e8f292edd3e7ff9ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_command</definition>
+        <argsstring>(shader_directive &amp;) override</argsstring>
+        <name>eval_command</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_command</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ab93a6a4886b18225c46688a355703854">eval_command</reimplements>
+        <param>
+          <type>shader_directive &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="51" column="8" bodyfile="gatherVar.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a66ea2b9fa90e6242720bf13b21e2a9b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_supports</definition>
+        <argsstring>(supports_stat &amp;) override</argsstring>
+        <name>eval_supports</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_supports</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a6da845097d790e43f21f1d743f0b4ea7">eval_supports</reimplements>
+        <param>
+          <type>supports_stat &amp;</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="52" column="8" bodyfile="gatherVar.cpp" bodystart="390" bodyend="414"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a7a864082b90886569dda8ee9629bece5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_shader_locdecl</definition>
+        <argsstring>(local_var_decl &amp;s) override</argsstring>
+        <name>eval_shader_locdecl</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_shader_locdecl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4c4bdf71ee607e8951eaee08654fc954">eval_shader_locdecl</reimplements>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="54" column="8" bodyfile="gatherVar.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a5f5d77772b7370a419e0856fa71bd882" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int GatherVarShaderEvalCB::eval_if</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_if</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_if</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a515e729e35d13de79ffbea9eacbd9d70">eval_if</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="56" column="7" bodyfile="gatherVar.cpp" bodystart="365" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1aeb7575d66f3cac5b49d6b0dbb4bb5915" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_else</definition>
+        <argsstring>(bool_expr &amp;) override</argsstring>
+        <name>eval_else</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_else</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a989962b2c720c97dcfc93e7c5d60caea">eval_else</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <defname>e</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="58" column="8" bodyfile="gatherVar.cpp" bodystart="385" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a371829acd19abc128df0ff44bd874a1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_endif</definition>
+        <argsstring>(bool_expr &amp;) override</argsstring>
+        <name>eval_endif</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_endif</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aad4f2cba55111bfe7c17380c714f3383">eval_endif</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <defname>e</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="59" column="8" bodyfile="gatherVar.cpp" bodystart="518" bodyend="530"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a4e59927338e70286a8b5f69628cff544" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool GatherVarShaderEvalCB::eval_expr</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_expr</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_expr</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a9adf5ca170f128f4b53c4dce191b6e1b">eval_expr</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="61" column="13" bodyfile="gatherVar.cpp" bodystart="276" bodyend="293"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1aaa792cef7dc3cdacea004a2931634e01" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool GatherVarShaderEvalCB::eval_bool_value</definition>
+        <argsstring>(bool_value &amp;e) override</argsstring>
+        <name>eval_bool_value</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_bool_value</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a07dc087d3c096d83623b89cc7b02acc7">eval_bool_value</reimplements>
+        <param>
+          <type>bool_value &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="62" column="13" bodyfile="gatherVar.cpp" bodystart="294" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1abbf81a7ee85b47222708004e2fe5d658" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int GatherVarShaderEvalCB::eval_interval_value</definition>
+        <argsstring>(const char *ival_name) override</argsstring>
+        <name>eval_interval_value</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_interval_value</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a086dc6d32830628d0635b45531188911">eval_interval_value</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>ival_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="63" column="7" bodyfile="gatherVar.cpp" bodystart="359" bodyend="363"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1aa2fb0c1c4408e61f7b6a75234d65ad0a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::GatherVarShaderEvalCB::eval_hlsl_compile</definition>
+        <argsstring>(hlsl_compile_class &amp;hlsl_compile) override</argsstring>
+        <name>eval_hlsl_compile</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_hlsl_compile</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9ea4626b3b1eab41bd7a8fadfad3c349">eval_hlsl_compile</reimplements>
+        <param>
+          <type>hlsl_compile_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="65" column="8" bodyfile="gatherVar.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1ae2a7de899ef068a5dd712e4292b2f99b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval_hlsl_decl</definition>
+        <argsstring>(hlsl_local_decl_class &amp;hlsl_compile) override</argsstring>
+        <name>eval_hlsl_decl</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval_hlsl_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aeca67333ebe04120b20e000ee0bf826a">eval_hlsl_decl</reimplements>
+        <param>
+          <type>hlsl_local_decl_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="66" column="8" bodyfile="gatherVar.cpp" bodystart="492" bodyend="516"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a60f312350d66132eb84c2c05c933bc93" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GatherVarShaderEvalCB::eval</definition>
+        <argsstring>(immediate_const_block &amp;) override</argsstring>
+        <name>eval</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::eval</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a2a70eff4ba8af3b3efc57fb6eb0ac15c">eval</reimplements>
+        <param>
+          <type>immediate_const_block &amp;</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="67" column="8" bodyfile="gatherVar.cpp" bodystart="416" bodyend="489"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a6b146da286c08d2a3aafcd673b89fac0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool GatherVarShaderEvalCB::addInterval</definition>
+        <argsstring>(const char *intervalName, Terminal *terminal, bool_value *e)</argsstring>
+        <name>addInterval</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::addInterval</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>intervalName</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>terminal</declname>
+        </param>
+        <param>
+          <type>bool_value *</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="83" column="13" bodyfile="gatherVar.cpp" bodystart="124" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1GatherVarShaderEvalCB_1a6ad5586e5c59ea3aa3e1864b1438155e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool GatherVarShaderEvalCB::addTextureInterval</definition>
+        <argsstring>(const char *textureName, Terminal *terminal, bool_value &amp;e)</argsstring>
+        <name>addTextureInterval</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::addTextureInterval</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>textureName</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>terminal</declname>
+        </param>
+        <param>
+          <type>bool_value &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="85" column="13" bodyfile="gatherVar.cpp" bodystart="197" bodyend="246"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::GatherVarShaderEvalCB</label>
+        <link refid="classShaderParser_1_1GatherVarShaderEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::GatherVarShaderEvalCB</label>
+        <link refid="classShaderParser_1_1GatherVarShaderEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="gatherVar.h" line="33" column="1" bodyfile="gatherVar.h" bodystart="34" bodyend="86"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a2a47dcc0c4945cd7ddd6568fa71e9151" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>add_message</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a6b146da286c08d2a3aafcd673b89fac0" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>addInterval</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a6ad5586e5c59ea3aa3e1864b1438155e" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>addTextureInterval</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a56f2cbaa486e20a6b74265cf63bb3b6c" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>ctx</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a67aa46a40ce6ba672d3fe200965be29a" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>decl_bool_alias</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ae4cf5dacb72258c0467064317ab2a51a" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>dynamicVars</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a5219b695e43635de0e87d8107de06983" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>dynCount</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a147826c5bdee08c245be9120205b3ce0" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>dynStack</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a60f312350d66132eb84c2c05c933bc93" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac6f560c8041dc8f7cdc2bc64fdc8e3e7" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_assume_if_not_assumed_stat</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7b6a60d97ec16dee92d2797e51eb8b37" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_assume_stat</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a15bc1479f78a3e24c164b6859e8486e8" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_bool_decl</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1aaa792cef7dc3cdacea004a2931634e01" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_bool_value</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad62259329d3556617ec48ad8371e04ca" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_channel_decl</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7503dafe082f3d1e8f292edd3e7ff9ae" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_command</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1aeb7575d66f3cac5b49d6b0dbb4bb5915" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_else</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a371829acd19abc128df0ff44bd874a1a" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_endif</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4feaa347af2510e01f37ebc31027211a" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_error_stat</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a4e59927338e70286a8b5f69628cff544" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_expr</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a3634670586826fc1fcd4051395467f56" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_external_block</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1aa2fb0c1c4408e61f7b6a75234d65ad0a" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_hlsl_compile</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ae2a7de899ef068a5dd712e4292b2f99b" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_hlsl_decl</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a5f5d77772b7370a419e0856fa71bd882" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_if</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1af91fc4e0d22e1566e511b3d594b15b9b" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_interval_decl</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1abbf81a7ee85b47222708004e2fe5d658" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_interval_value</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac567248385bc109b4d3dd4992584497b" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_render_stage</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7a864082b90886569dda8ee9629bece5" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_shader_locdecl</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b663671a80f67bcbd04c4c10bec21" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_state</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1afe810aefad98a1151d59ffb1fd09dc2b" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_static</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a66ea2b9fa90e6242720bf13b21e2a9b6" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_supports</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a8e39492b7887bcae23f131f433e8d980" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>eval_zbias_state</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b468cf0d685e58a5441f55a97dad4" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>GatherVarShaderEvalCB</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a581f2cf7ed7c9fc774cac32e197b8b35" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>getDefines</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a28789205681bf5e82b24c62507ab506b" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>hasDynFlag</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>IF_BOTH</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>IF_FALSE</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>IF_TRUE</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a5ce5cefefa2c7e01910a9e62542baed7" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>is_debug_mode_enabled</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a34a9f5d9b2d30b6dfdaaf09c580e5c82" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>parser</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1afbc6dd66cfcc4845688ba3261dca40b7" prot="public" virt="virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>report_bool_eval_error</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1a095f519ae756aeccd7b41103d06a71a7" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>staticVars</name></member>
+      <member refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad73ead0aed90ed6c7138ea2fbb5ea1db" prot="private" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB</scope><name>types</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSuperLight" kind="class" language="C++" prot="public">
+    <compoundname>SuperLight</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ObjLightDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSuperLight_1a6910b8e5893e4dfe0fae4f83d13928f5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SuperLight::SuperLight</definition>
+        <argsstring>()</argsstring>
+        <name>SuperLight</name>
+        <qualifiedname>SuperLight::SuperLight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3831" column="3" bodyfile="util.cpp" bodystart="3831" bodyend="3836"/>
+      </memberdef>
+      <memberdef kind="function" id="classSuperLight_1a304f74f3b950a1672be6da8f292c36c7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SuperLight::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>SuperLight::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3837" column="8" bodyfile="util.cpp" bodystart="3837" bodyend="3837"/>
+      </memberdef>
+      <memberdef kind="function" id="classSuperLight_1a5cd37b722d5116cafefd791044ec369b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL SuperLight::Illuminate</definition>
+        <argsstring>(ShadeContext &amp;sc, Point3 &amp;normal, Color &amp;color, Point3 &amp;dir, float &amp;dot_nl, float &amp;diffuseCoef) override</argsstring>
+        <name>Illuminate</name>
+        <qualifiedname>SuperLight::Illuminate</qualifiedname>
+        <param>
+          <type>ShadeContext &amp;</type>
+          <declname>sc</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>normal</declname>
+        </param>
+        <param>
+          <type>Color &amp;</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>dot_nl</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>diffuseCoef</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3838" column="8" bodyfile="util.cpp" bodystart="3838" bodyend="3845"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ObjLightDesc</label>
+      </node>
+      <node id="1">
+        <label>SuperLight</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ObjLightDesc</label>
+      </node>
+      <node id="1">
+        <label>SuperLight</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="3828" column="8" bodyfile="util.cpp" bodystart="3829" bodyend="3846"/>
+    <listofallmembers>
+      <member refid="classSuperLight_1a304f74f3b950a1672be6da8f292c36c7" prot="public" virt="non-virtual"><scope>SuperLight</scope><name>DeleteThis</name></member>
+      <member refid="classSuperLight_1a5cd37b722d5116cafefd791044ec369b" prot="public" virt="non-virtual"><scope>SuperLight</scope><name>Illuminate</name></member>
+      <member refid="classSuperLight_1a6910b8e5893e4dfe0fae4f83d13928f5" prot="public" virt="non-virtual"><scope>SuperLight</scope><name>SuperLight</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

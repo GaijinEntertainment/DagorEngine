@@ -1,0 +1,915 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__decl_8h" kind="file" language="C++">
+    <compoundname>dag_decl.h</compoundname>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">util/dag_preprocessor.h</includes>
+    <includes local="no">math/dag_TMatrix.h</includes>
+    <includes local="no">math/dag_TMatrix4.h</includes>
+    <includes local="no">math/dag_lsbVisitor.h</includes>
+    <includedby refid="dag__buffers_8h" local="no">dag_buffers.h</includedby>
+    <includedby refid="dag__driver_8h" local="no">dag_driver.h</includedby>
+    <includedby refid="dag__renderTarget_8h" local="no">dag_renderTarget.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="5">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+      </node>
+      <node id="6">
+        <label>dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+      </node>
+      <node id="8">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="7">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+      </node>
+      <node id="11">
+        <label>dag_renderPass.h</label>
+        <link refid="dag__renderPass_8h"/>
+      </node>
+      <node id="10">
+        <label>dag_renderTarget.h</label>
+        <link refid="dag__renderTarget_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structScissorRect" prot="public">ScissorRect</innerclass>
+    <innerclass refid="structViewport" prot="public">Viewport</innerclass>
+    <innerclass refid="structStreamOutputBufferSetup" prot="public">StreamOutputBufferSetup</innerclass>
+    <innerclass refid="structDriver3dPerspective" prot="public">Driver3dPerspective</innerclass>
+    <innerclass refid="structDriver3dRenderTarget" prot="public">Driver3dRenderTarget</innerclass>
+    <innerclass refid="structDriver3dRenderTarget_1_1RTState" prot="public">Driver3dRenderTarget::RTState</innerclass>
+    <innerclass refid="structScopeRenderTarget" prot="public">ScopeRenderTarget</innerclass>
+    <innerclass refid="structScopeViewport" prot="public">ScopeViewport</innerclass>
+    <innerclass refid="structViewProjMatrixContainer" prot="public">ViewProjMatrixContainer</innerclass>
+    <innerclass refid="structScopeViewProjMatrix" prot="public">ScopeViewProjMatrix</innerclass>
+    <innerclass refid="structDrawIndirectArgs" prot="public">DrawIndirectArgs</innerclass>
+    <innerclass refid="structDrawIndexedIndirectArgs" prot="public">DrawIndexedIndirectArgs</innerclass>
+    <innerclass refid="structShaderWarmUpInfo" prot="public">ShaderWarmUpInfo</innerclass>
+    <innerclass refid="structXessParams" prot="public">XessParams</innerclass>
+    <innerclass refid="structXessFgParams" prot="public">XessFgParams</innerclass>
+    <innerclass refid="structFsr2Params" prot="public">Fsr2Params</innerclass>
+    <innerclass refid="structMtlFxUpscaleParams" prot="public">MtlFxUpscaleParams</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__decl_8h_1a44ac4a13116004a2da6a133ed93ba73e" prot="public" static="no">
+        <name>SCOPE_VIEW_PROJ_MATRIX</name>
+        <initializer><ref refid="structScopeViewProjMatrix" kindref="compound">ScopeViewProjMatrix</ref> DAG_CONCAT(scopevpm, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="28" column="9" bodyfile="dag_decl.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a1f174ceb89e8d35fa303bacda33a7d88" prot="public" static="no">
+        <name>SCOPE_VIEWPORT</name>
+        <initializer><ref refid="structScopeViewport" kindref="compound">ScopeViewport</ref> DAG_CONCAT(scopevp, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="29" column="9" bodyfile="dag_decl.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1abde3cf95abf54d983cd09ed09edb29ee" prot="public" static="no">
+        <name>SCOPE_RENDER_TARGET</name>
+        <initializer>  <ref refid="dag__decl_8h_1a1f174ceb89e8d35fa303bacda33a7d88" kindref="member">SCOPE_VIEWPORT</ref>;           \
+  <ref refid="structScopeRenderTarget" kindref="compound">ScopeRenderTarget</ref> DAG_CONCAT(scopert, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="30" column="9" bodyfile="dag_decl.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a3cd622776694ae2e1ced3044aa56a7de" prot="public" static="no">
+        <name>DRAW_INDIRECT_NUM_ARGS</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="239" column="9" bodyfile="dag_decl.h" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a162055abfade3a74c8c9c73e0e4af9bd" prot="public" static="no">
+        <name>DRAW_INDEXED_INDIRECT_NUM_ARGS</name>
+        <initializer>5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="240" column="9" bodyfile="dag_decl.h" bodystart="240" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a859590555600d7db64651b9da7da810b" prot="public" static="no">
+        <name>DISPATCH_INDIRECT_NUM_ARGS</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="241" column="9" bodyfile="dag_decl.h" bodystart="241" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a1342531e34ae265dfd0d3792b644ee13" prot="public" static="no">
+        <name>INDIRECT_BUFFER_ELEMENT_SIZE</name>
+        <initializer>sizeof(uint32_t)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="242" column="9" bodyfile="dag_decl.h" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a8ade0b1d1198fa56bcd5267243059c48" prot="public" static="no">
+        <name>DRAW_INDIRECT_BUFFER_SIZE</name>
+        <initializer>(<ref refid="dag__decl_8h_1a3cd622776694ae2e1ced3044aa56a7de" kindref="member">DRAW_INDIRECT_NUM_ARGS</ref> * <ref refid="dag__decl_8h_1a1342531e34ae265dfd0d3792b644ee13" kindref="member">INDIRECT_BUFFER_ELEMENT_SIZE</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="243" column="9" bodyfile="dag_decl.h" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a7eca353a7e12eda604a5175f04e3b225" prot="public" static="no">
+        <name>DRAW_INDEXED_INDIRECT_BUFFER_SIZE</name>
+        <initializer>(<ref refid="dag__decl_8h_1a162055abfade3a74c8c9c73e0e4af9bd" kindref="member">DRAW_INDEXED_INDIRECT_NUM_ARGS</ref> * <ref refid="dag__decl_8h_1a1342531e34ae265dfd0d3792b644ee13" kindref="member">INDIRECT_BUFFER_ELEMENT_SIZE</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="244" column="9" bodyfile="dag_decl.h" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1ac72a5749329453b0ede895d7ff1c627b" prot="public" static="no">
+        <name>DISPATCH_INDIRECT_BUFFER_SIZE</name>
+        <initializer>(<ref refid="dag__decl_8h_1a859590555600d7db64651b9da7da810b" kindref="member">DISPATCH_INDIRECT_NUM_ARGS</ref> * <ref refid="dag__decl_8h_1a1342531e34ae265dfd0d3792b644ee13" kindref="member">INDIRECT_BUFFER_ELEMENT_SIZE</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="245" column="9" bodyfile="dag_decl.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1aca7a35eff9268c444d59cdaf0f581fe2" prot="public" static="no">
+        <name>INPUT_VERTEX_STREAM_COUNT</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="247" column="9" bodyfile="dag_decl.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a28f5bfb8abbbf12f01bdf9d91bf85eb7" prot="public" static="no">
+        <name>STATE_GUARD_IMPL</name>
+        <param><defname>ClassName</defname></param>
+        <param><defname>obj_name</defname></param>
+        <param><defname>func_call</defname></param>
+        <param><defname>val</defname></param>
+        <param><defname>default_value</defname></param>
+        <initializer>  struct ClassName                                                                                                        \
+  {                                                                                                                       \
+    typedef decltype(val) val_type;                                                                                       \
+    typedef decltype(func_call) func_type;                                                                                \
+    const val_type def_value;                                                                                             \
+    const func_type &amp;func;                                                                                                \
+    ClassName(const val_type VALUE, const val_type def_value_, const func_type &amp;func) : def_value(def_value_), func(func) \
+    {                                                                                                                     \
+      func(VALUE);                                                                                                        \
+    }                                                                                                                     \
+    ~ClassName() { func(def_value); }                                                                                     \
+  } obj_name(val, default_value, func_call);</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="355" column="9" bodyfile="dag_decl.h" bodystart="355" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a0d69b2e484511fa8e27351874d52f6be" prot="public" static="no">
+        <name>STATE_GUARD</name>
+        <param><defname>func_call</defname></param>
+        <param><defname>val</defname></param>
+        <param><defname>default_value</defname></param>
+        <initializer>  auto DAG_CONCAT(lambda, __LINE__) = [&amp;](const decltype(val) VALUE) { func_call; }; \
+  <ref refid="dag__decl_8h_1a28f5bfb8abbbf12f01bdf9d91bf85eb7" kindref="member">STATE_GUARD_IMPL</ref>(DAG_CONCAT(StateGuard, __LINE__), DAG_CONCAT(guard, __LINE__), DAG_CONCAT(lambda, __LINE__), val, default_value)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="369" column="9" bodyfile="dag_decl.h" bodystart="369" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a05bd7d8ff71d315ee7147bbcbe15724d" prot="public" static="no">
+        <name>STATE_GUARD_NULLPTR</name>
+        <param><defname>func_call</defname></param>
+        <param><defname>val</defname></param>
+        <initializer><ref refid="dag__decl_8h_1a0d69b2e484511fa8e27351874d52f6be" kindref="member">STATE_GUARD</ref>(func_call, val, nullptr)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="373" column="9" bodyfile="dag_decl.h" bodystart="373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__decl_8h_1a59de9b8e27a87cfe416cb43a3fdcde6d" prot="public" static="no">
+        <name>STATE_GUARD_0</name>
+        <param><defname>func_call</defname></param>
+        <param><defname>val</defname></param>
+        <initializer><ref refid="dag__decl_8h_1a0d69b2e484511fa8e27351874d52f6be" kindref="member">STATE_GUARD</ref>(func_call, val, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="374" column="9" bodyfile="dag_decl.h" bodystart="374" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__decl_8h_1a574b224fcdd05e17334327771e343405" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>MtlfxColorMode</name>
+        <enumvalue id="dag__decl_8h_1a574b224fcdd05e17334327771e343405ab1fb09a96b4c0e97727c9778dc68caf6" prot="public">
+          <name>PERCEPTUAL</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__decl_8h_1a574b224fcdd05e17334327771e343405aaac544aacc3615aada24897a215f5046" prot="public">
+          <name>LINEAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__decl_8h_1a574b224fcdd05e17334327771e343405a6cad826248cd3f4e93da71e7b49928e3" prot="public">
+          <name>HDR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="342" column="1" bodyfile="dag_decl.h" bodystart="343" bodyend="347"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__decl_8h_1a8149e2d20fa141ab8208a577a2a56b4a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_get_render_target</definition>
+        <argsstring>(Driver3dRenderTarget &amp;rt)</argsstring>
+        <name>d3d_get_render_target</name>
+        <param>
+          <type><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="19" column="13" declfile="dag_decl.h" declline="19" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a32a03954043bb0cde172626867d17b7d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_set_render_target</definition>
+        <argsstring>(Driver3dRenderTarget &amp;rt)</argsstring>
+        <name>d3d_set_render_target</name>
+        <param>
+          <type><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="20" column="13" declfile="dag_decl.h" declline="20" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1ac5a292f640d66002a793707fb908c69d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_get_view_proj</definition>
+        <argsstring>(ViewProjMatrixContainer &amp;vp)</argsstring>
+        <name>d3d_get_view_proj</name>
+        <param>
+          <type><ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref> &amp;</type>
+          <declname>vp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="22" column="13" declfile="dag_decl.h" declline="22" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a9e206c74ff30096460ab78e9e598faa1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_set_view_proj</definition>
+        <argsstring>(const ViewProjMatrixContainer &amp;vp)</argsstring>
+        <name>d3d_set_view_proj</name>
+        <param>
+          <type>const <ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref> &amp;</type>
+          <declname>vp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="23" column="13" declfile="dag_decl.h" declline="23" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a361ba6e550c47c594136955cd71ebe85" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_get_view</definition>
+        <argsstring>(int &amp;viewX, int &amp;viewY, int &amp;viewW, int &amp;viewH, float &amp;viewN, float &amp;viewF)</argsstring>
+        <name>d3d_get_view</name>
+        <param>
+          <type>int &amp;</type>
+          <declname>viewX</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>viewY</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>viewW</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>viewH</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>viewN</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>viewF</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="25" column="13" declfile="dag_decl.h" declline="25" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a8ec249984e33fe7253c5040ba83d42b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_set_view</definition>
+        <argsstring>(int viewX, int viewY, int viewW, int viewH, float viewN, float viewF)</argsstring>
+        <name>d3d_set_view</name>
+        <param>
+          <type>int</type>
+          <declname>viewX</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>viewY</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>viewW</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>viewH</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>viewN</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>viewF</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="26" column="13" declfile="dag_decl.h" declline="26" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a3725152687016823638f75a491b578ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref></type>
+        <definition>GpuVendor d3d_get_vendor</definition>
+        <argsstring>(uint32_t vendor_id, const char *description=nullptr)</argsstring>
+        <name>d3d_get_vendor</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>vendor_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>description</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="289" column="11" declfile="dag_decl.h" declline="289" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__decl_8h_1a322e674a8e871897686ec0b6fc4667ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * d3d_get_vendor_name</definition>
+        <argsstring>(GpuVendor vendor)</argsstring>
+        <name>d3d_get_vendor_name</name>
+        <param>
+          <type><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref></type>
+          <declname>vendor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="290" column="12" declfile="dag_decl.h" declline="290" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_preprocessor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix4.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_lsbVisitor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="dag__decl_8h_1a8149e2d20fa141ab8208a577a2a56b4a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a8149e2d20fa141ab8208a577a2a56b4a" kindref="member">d3d_get_render_target</ref>(<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="20" refid="dag__decl_8h_1a32a03954043bb0cde172626867d17b7d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a32a03954043bb0cde172626867d17b7d" kindref="member">d3d_set_render_target</ref>(<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="dag__decl_8h_1ac5a292f640d66002a793707fb908c69d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1ac5a292f640d66002a793707fb908c69d" kindref="member">d3d_get_view_proj</ref>(<ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref><sp/>&amp;vp);</highlight></codeline>
+<codeline lineno="23" refid="dag__decl_8h_1a9e206c74ff30096460ab78e9e598faa1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a9e206c74ff30096460ab78e9e598faa1" kindref="member">d3d_set_view_proj</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref><sp/>&amp;vp);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="dag__decl_8h_1a361ba6e550c47c594136955cd71ebe85" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a361ba6e550c47c594136955cd71ebe85" kindref="member">d3d_get_view</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;viewX,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;viewY,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;viewW,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;viewH,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;viewN,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;viewF);</highlight></codeline>
+<codeline lineno="26" refid="dag__decl_8h_1a8ec249984e33fe7253c5040ba83d42b8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a8ec249984e33fe7253c5040ba83d42b8" kindref="member">d3d_set_view</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewX,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewY,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewW,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewH,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>viewN,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>viewF);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="dag__decl_8h_1a44ac4a13116004a2da6a133ed93ba73e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCOPE_VIEW_PROJ_MATRIX<sp/>ScopeViewProjMatrix<sp/>DAG_CONCAT(scopevpm,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="dag__decl_8h_1a1f174ceb89e8d35fa303bacda33a7d88" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCOPE_VIEWPORT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ScopeViewport<sp/>DAG_CONCAT(scopevp,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="dag__decl_8h_1abde3cf95abf54d983cd09ed09edb29ee" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCOPE_RENDER_TARGET<sp/>\</highlight></codeline>
+<codeline lineno="31"><highlight class="preprocessor"><sp/><sp/>SCOPE_VIEWPORT;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="32"><highlight class="preprocessor"><sp/><sp/>ScopeRenderTarget<sp/>DAG_CONCAT(scopert,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>Data<sp/>structures<sp/>-------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="structScissorRect" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structScissorRect" kindref="compound">ScissorRect</ref></highlight></codeline>
+<codeline lineno="36"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="37" refid="structScissorRect_1a0661f3c187af01759b974591b964baf4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScissorRect_1a38db7c44e036cd42e9c3b78dc00c1788" kindref="member">x</ref>,<sp/><ref refid="structScissorRect_1a95c201a5488845c44efcd6a891400321" kindref="member">y</ref>,<sp/><ref refid="structScissorRect_1aacf989169d266599415092950de58313" kindref="member">w</ref>,<sp/><ref refid="structScissorRect_1a0661f3c187af01759b974591b964baf4" kindref="member">h</ref>;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="structViewport" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structViewport" kindref="compound">Viewport</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="structScissorRect" kindref="compound">ScissorRect</ref></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42" refid="structViewport_1ab752773be6441c7378c42e2333b402de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structViewport_1a722ece9a43b3ee257b1eabb3f2736e69" kindref="member">minz</ref>,<sp/><ref refid="structViewport_1ab752773be6441c7378c42e2333b402de" kindref="member">maxz</ref>;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structViewport_1a27a11564c61f4e40fbd3184cbdcc5b0f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structViewport_1a27a11564c61f4e40fbd3184cbdcc5b0f" kindref="member">MAX_VIEWPORT_COUNT</ref><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Stream<sp/>output<sp/>buffer<sp/>setup<sp/>structure.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="structStreamOutputBufferSetup" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structStreamOutputBufferSetup" kindref="compound">StreamOutputBufferSetup</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51" refid="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" kindref="member">buffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53" refid="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" kindref="member">byteOffset</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55" refid="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" kindref="member">counterBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57" refid="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" kindref="member">byteOffsetCounter</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="structStreamOutputBufferSetup_1a4a09733f5be42e9fc0c2e4cdfcc38a5e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structStreamOutputBufferSetup_1a4a09733f5be42e9fc0c2e4cdfcc38a5e" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structStreamOutputBufferSetup" kindref="compound">StreamOutputBufferSetup</ref><sp/>&amp;rhs)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="60"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" kindref="member">buffer</ref><sp/>==<sp/>rhs.<ref refid="structStreamOutputBufferSetup_1a99db8a41ede17ab9d7248ac4c252bfd1" kindref="member">buffer</ref><sp/>&amp;&amp;<sp/><ref refid="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" kindref="member">byteOffset</ref><sp/>==<sp/>rhs.<ref refid="structStreamOutputBufferSetup_1a9c55372f3c7a61636f5fff774f5cf243" kindref="member">byteOffset</ref><sp/>&amp;&amp;<sp/><ref refid="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" kindref="member">counterBuffer</ref><sp/>==<sp/>rhs.<ref refid="structStreamOutputBufferSetup_1a7382b2b98e14f12f8ecab072735fc168" kindref="member">counterBuffer</ref><sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" kindref="member">byteOffsetCounter</ref><sp/>==<sp/>rhs.<ref refid="structStreamOutputBufferSetup_1a4410b6133a5a9cfb08c3585546e7dec4" kindref="member">byteOffsetCounter</ref>;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="structDriver3dPerspective" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dPerspective" kindref="compound">Driver3dPerspective</ref></highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68" refid="structDriver3dPerspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dPerspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" kindref="member">Driver3dPerspective</ref>()<sp/>:<sp/><ref refid="structDriver3dPerspective_1acf13eff5c76b3187a9e133a010db91a0" kindref="member">wk</ref>(0.f),<sp/><ref refid="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" kindref="member">hk</ref>(0.f),<sp/><ref refid="structDriver3dPerspective_1abeb71c4928bac5169e5b9b2e1e84bc33" kindref="member">zn</ref>(0.f),<sp/><ref refid="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" kindref="member">zf</ref>(0.f),<sp/><ref refid="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" kindref="member">ox</ref>(0.f),<sp/><ref refid="structDriver3dPerspective_1a01029e267f71658e2707b1ad3a518204" kindref="member">oy</ref>(0.f)<sp/>{}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="structDriver3dPerspective_1a74786f1b34cc6126e08653f2ee3d3ccd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dPerspective_1a74786f1b34cc6126e08653f2ee3d3ccd" kindref="member">Driver3dPerspective</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>wk_,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>hk_,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zn_,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zf_,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>ox_<sp/>=<sp/>0.f,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>oy_<sp/>=<sp/>0.f)<sp/>:</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dPerspective_1acf13eff5c76b3187a9e133a010db91a0" kindref="member">wk</ref>(wk_),<sp/><ref refid="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" kindref="member">hk</ref>(hk_),<sp/><ref refid="structDriver3dPerspective_1abeb71c4928bac5169e5b9b2e1e84bc33" kindref="member">zn</ref>(zn_),<sp/><ref refid="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" kindref="member">zf</ref>(zf_),<sp/><ref refid="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" kindref="member">ox</ref>(ox_),<sp/><ref refid="structDriver3dPerspective_1a01029e267f71658e2707b1ad3a518204" kindref="member">oy</ref>(oy_)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDriver3dPerspective_1acf13eff5c76b3187a9e133a010db91a0" kindref="member">wk</ref>,<sp/><ref refid="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" kindref="member">hk</ref>;</highlight></codeline>
+<codeline lineno="75" refid="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDriver3dPerspective_1abeb71c4928bac5169e5b9b2e1e84bc33" kindref="member">zn</ref>,<sp/><ref refid="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" kindref="member">zf</ref>;</highlight></codeline>
+<codeline lineno="76" refid="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" kindref="member">ox</ref>,<sp/><ref refid="structDriver3dPerspective_1a01029e267f71658e2707b1ad3a518204" kindref="member">oy</ref>;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="structDriver3dRenderTarget" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81" refid="structDriver3dRenderTarget_1_1RTState" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83" refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="84" refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" kindref="member">level</ref>;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87" refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" kindref="member">face</ref>;</highlight></codeline>
+<codeline lineno="88" refid="structDriver3dRenderTarget_1_1RTState_1aa7464c9eef25aa4ead35d73073d14947" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1aa7464c9eef25aa4ead35d73073d14947" kindref="member">layer</ref>;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="90" refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lev,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>f_l)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" kindref="member">tex</ref><sp/>=<sp/>t;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" kindref="member">level</ref><sp/>=<sp/>lev;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" kindref="member">face</ref><sp/>=<sp/>f_l;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="structDriver3dRenderTarget_1_1RTState_1a311cfbe0461e339899b7062245a8acd5" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1a311cfbe0461e339899b7062245a8acd5" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(l.<ref refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" kindref="member">tex</ref><sp/>==<sp/>r.<ref refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" kindref="member">tex</ref>)<sp/>&amp;&amp;<sp/>(l.<ref refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" kindref="member">level</ref><sp/>==<sp/>r.<ref refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" kindref="member">level</ref>)<sp/>&amp;&amp;<sp/>(l.<ref refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" kindref="member">face</ref><sp/>==<sp/>r.<ref refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" kindref="member">face</ref>);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101" refid="structDriver3dRenderTarget_1_1RTState_1acbbb2852d97c7fd3c3f39b6f8bcda2db" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState_1acbbb2852d97c7fd3c3f39b6f8bcda2db" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;r)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(l<sp/>==<sp/>r);<sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="103" refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref><sp/>=<sp/>8;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INSIDE_DRIVER</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/><ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[<ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref>],<sp/><ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>0,</highlight></codeline>
+<codeline lineno="111" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5d9efb0638c45346081a922a078525f4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5d9efb0638c45346081a922a078525f4" kindref="member">COLOR1</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="112" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa61d53ee536e42b960cffb4c72da3a79b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa61d53ee536e42b960cffb4c72da3a79b" kindref="member">COLOR2</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5d9efb0638c45346081a922a078525f4" kindref="member">COLOR1</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="113" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa8ae2cde97181d3f311ceb672217005fd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa8ae2cde97181d3f311ceb672217005fd" kindref="member">COLOR3</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa61d53ee536e42b960cffb4c72da3a79b" kindref="member">COLOR2</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="114" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa27d26b25e81b517abcff8ce6b531be02" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa27d26b25e81b517abcff8ce6b531be02" kindref="member">COLOR4</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa8ae2cde97181d3f311ceb672217005fd" kindref="member">COLOR3</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="115" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa1d2c0a4996db610e19dd30c90ebd0893" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa1d2c0a4996db610e19dd30c90ebd0893" kindref="member">COLOR5</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa27d26b25e81b517abcff8ce6b531be02" kindref="member">COLOR4</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="116" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa6eef19b63ddba0af269aad01ef410262" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa6eef19b63ddba0af269aad01ef410262" kindref="member">COLOR6</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa1d2c0a4996db610e19dd30c90ebd0893" kindref="member">COLOR5</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="117" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa91ddf2e27d489fee454ac0b5fd92cdbf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa91ddf2e27d489fee454ac0b5fd92cdbf" kindref="member">COLOR7</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa6eef19b63ddba0af269aad01ef410262" kindref="member">COLOR6</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="118" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2436fbc625348e72f58f9f220139bdb6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2436fbc625348e72f58f9f220139bdb6" kindref="member">COLOR_MASK</ref><sp/>=<sp/>(1<sp/>&lt;&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref>)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="119" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref>,</highlight></codeline>
+<codeline lineno="120" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="121" refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843faca3d5091645df77274f291e3ec367477" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843faca3d5091645df77274f291e3ec367477" kindref="member">TOTAL_MASK</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2436fbc625348e72f58f9f220139bdb6" kindref="member">COLOR_MASK</ref><sp/>|<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref>,</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="123" refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="124" refid="structDriver3dRenderTarget_1aa06efd75d4c6048d52ac7c2776b1673c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1aa06efd75d4c6048d52ac7c2776b1673c" kindref="member">reset</ref>()<sp/>{<sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="125" refid="structDriver3dRenderTarget_1a767ec4bc26c244a294b11425c52474b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a767ec4bc26c244a294b11425c52474b9" kindref="member">setColor</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lev,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>f_l)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(index<sp/>&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref>);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[index].<ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>(t,<sp/>lev,<sp/>f_l);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>|=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref><sp/>&lt;&lt;<sp/>index;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131" refid="structDriver3dRenderTarget_1a5b187cc11002d31c51857ee936b573d1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a5b187cc11002d31c51857ee936b573d1" kindref="member">setBackbufColor</ref>()</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>=<sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/>~COLOR_MASK);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a767ec4bc26c244a294b11425c52474b9" kindref="member">setColor</ref>(0,<sp/>NULL,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="136" refid="structDriver3dRenderTarget_1ae8da305b9426adc17e5a4f55dc1a8e29" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1ae8da305b9426adc17e5a4f55dc1a8e29" kindref="member">removeColor</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(index<sp/>&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">MAX_SIMRT</ref>);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;=<sp/>~(<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref><sp/>&lt;&lt;<sp/>index);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[index].<ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>(NULL,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142" refid="structDriver3dRenderTarget_1a4a5bdd0b358537c2e1587174ca98255f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a4a5bdd0b358537c2e1587174ca98255f" kindref="member">setDepth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ro<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/>G_FAST_ASSERT(t<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>.<ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>(t,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>|<sp/>(-int32_t(ro)<sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>)<sp/>|<sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/>(~<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>));</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="148" refid="structDriver3dRenderTarget_1a5034618443d24534f93e2e8a10d19d0f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a5034618443d24534f93e2e8a10d19d0f" kindref="member">setDepth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ro<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>G_FAST_ASSERT(t<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>.<ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>((<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*)t,<sp/>0,<sp/>layer);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>|<sp/>(-int32_t(ro)<sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>)<sp/>|<sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/>(~<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>));</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154" refid="structDriver3dRenderTarget_1a748b3e58a5c8a6e2534b50a6ff54832b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a748b3e58a5c8a6e2534b50a6ff54832b" kindref="member">removeDepth</ref>()</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;=<sp/>~DEPTH;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>.<ref refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" kindref="member">set</ref>(NULL,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="161" refid="structDriver3dRenderTarget_1a773be2610fa119f430378d9444191d5b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;<ref refid="structDriver3dRenderTarget_1a773be2610fa119f430378d9444191d5b" kindref="member">getColor</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[index];<sp/>}</highlight></codeline>
+<codeline lineno="162" refid="structDriver3dRenderTarget_1adf85154cd22f61a3c1c34e27d505f417" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref><sp/>&amp;<ref refid="structDriver3dRenderTarget_1adf85154cd22f61a3c1c34e27d505f417" kindref="member">getDepth</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="163" refid="structDriver3dRenderTarget_1a806648ab490827427abda5724b4f8bb0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a806648ab490827427abda5724b4f8bb0" kindref="member">isBackBufferColor</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref>)<sp/>&amp;&amp;<sp/>!<ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[0].<ref refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" kindref="member">tex</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="164" refid="structDriver3dRenderTarget_1ad3e8c54edb84bf9d3abe760f26b373f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1ad3e8c54edb84bf9d3abe760f26b373f8" kindref="member">isColorUsed</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/>(<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa5e0b630029d4440b7bad16995f1de3ab" kindref="member">COLOR0</ref><sp/>&lt;&lt;<sp/>index);<sp/>}</highlight></codeline>
+<codeline lineno="165" refid="structDriver3dRenderTarget_1addfad34abc94b4e39abdda845f83eb82" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1addfad34abc94b4e39abdda845f83eb82" kindref="member">isDepthUsed</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="166" refid="structDriver3dRenderTarget_1a259241f00e7c5f70cc0f8088ae05f536" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a259241f00e7c5f70cc0f8088ae05f536" kindref="member">isColorUsed</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2436fbc625348e72f58f9f220139bdb6" kindref="member">COLOR_MASK</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="167" refid="structDriver3dRenderTarget_1a91857d306d968be841827e9ccc58ce04" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a91857d306d968be841827e9ccc58ce04" kindref="member">setDepthReadOnly</ref>()<sp/>{<sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>|=<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="168" refid="structDriver3dRenderTarget_1ad42b0672d72bf78f96717b3d1f59f914" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1ad42b0672d72bf78f96717b3d1f59f914" kindref="member">setDepthRW</ref>()<sp/>{<sp/><ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;=<sp/>~DEPTH_READONLY;<sp/>}</highlight></codeline>
+<codeline lineno="169" refid="structDriver3dRenderTarget_1af0f90469abfd9f3363607b883db8a45d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1af0f90469abfd9f3363607b883db8a45d" kindref="member">isDepthReadOnly</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/>(<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>|<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>))<sp/>==<sp/>(<ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">DEPTH</ref><sp/>|<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa59b88c670f6efb404a8d4ca1a8f31697" kindref="member">DEPTH_READONLY</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="170" refid="structDriver3dRenderTarget_1a3ce6e5272c8a262ac0c20eff12e8e5d1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dRenderTarget_1a3ce6e5272c8a262ac0c20eff12e8e5d1" kindref="member">Driver3dRenderTarget</ref>()<sp/>{}<sp/></highlight><highlight class="comment">//-V730</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172" refid="structDriver3dRenderTarget_1aa861e01c23bd36546d7896019389bde0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1aa861e01c23bd36546d7896019389bde0" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l.<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>!=<sp/>r.<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref>)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((l.<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2587eead9dcd5b2cb1c3254bc1929c4c" kindref="member">Driver3dRenderTarget::DEPTH</ref>)<sp/>&amp;&amp;<sp/>l.<ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref><sp/>!=<sp/>r.<ref refid="structDriver3dRenderTarget_1a8670ddc4945dada53bd41410675932e0" kindref="member">depth</ref>)</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>i<sp/>:<sp/>LsbVisitor{l.<ref refid="structDriver3dRenderTarget_1a22be9dc2fd894bc5e2725a97c9298ac1" kindref="member">used</ref><sp/>&amp;<sp/><ref refid="structDriver3dRenderTarget_1a1f2437db49b01eec5686549ed8a3843fa2436fbc625348e72f58f9f220139bdb6" kindref="member">Driver3dRenderTarget::COLOR_MASK</ref>})</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l.<ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[i]<sp/>!=<sp/>r.<ref refid="structDriver3dRenderTarget_1af1e3fbea28673cb5c4b04020a94fac21" kindref="member">color</ref>[i])</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187" refid="structDriver3dRenderTarget_1a889b1601843aa402b01aba95503035a2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget_1a889b1601843aa402b01aba95503035a2" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;r)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(l<sp/>==<sp/>r);<sp/>}</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190" refid="structScopeRenderTarget" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structScopeRenderTarget" kindref="compound">ScopeRenderTarget</ref></highlight></codeline>
+<codeline lineno="191"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="192" refid="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/><ref refid="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" kindref="member">prevRT</ref>;</highlight></codeline>
+<codeline lineno="193" refid="structScopeRenderTarget_1ac560396466836118be9f54954745991b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeRenderTarget_1ac560396466836118be9f54954745991b" kindref="member">ScopeRenderTarget</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1a8149e2d20fa141ab8208a577a2a56b4a" kindref="member">d3d_get_render_target</ref>(<ref refid="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" kindref="member">prevRT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="194" refid="structScopeRenderTarget_1abeb3f763856cd8f83a92c4e441f2e63c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeRenderTarget_1abeb3f763856cd8f83a92c4e441f2e63c" kindref="member">~ScopeRenderTarget</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1a32a03954043bb0cde172626867d17b7d" kindref="member">d3d_set_render_target</ref>(<ref refid="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" kindref="member">prevRT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="195"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197" refid="structScopeViewport" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structScopeViewport" kindref="compound">ScopeViewport</ref></highlight></codeline>
+<codeline lineno="198"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="199" refid="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScopeViewport_1aaeabf73398c1d68604590b287c179dd1" kindref="member">viewX</ref>,<sp/><ref refid="structScopeViewport_1a0bdf8548d782d94eebfba669118d7c3f" kindref="member">viewY</ref>,<sp/><ref refid="structScopeViewport_1a1ab0962443ac6c2ccc5824d8aa52f13c" kindref="member">viewW</ref>,<sp/><ref refid="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" kindref="member">viewH</ref>;</highlight></codeline>
+<codeline lineno="200" refid="structScopeViewport_1a2058f5dc44aa69df133281243141b800" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structScopeViewport_1a1b5cbb4a936917e1cd48f99673c4d67f" kindref="member">viewN</ref>,<sp/><ref refid="structScopeViewport_1a2058f5dc44aa69df133281243141b800" kindref="member">viewF</ref>;</highlight></codeline>
+<codeline lineno="201" refid="structScopeViewport_1ac3fb6820c0329f8f94d5cd4c6b5ef8d7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeViewport_1ac3fb6820c0329f8f94d5cd4c6b5ef8d7" kindref="member">ScopeViewport</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1a361ba6e550c47c594136955cd71ebe85" kindref="member">d3d_get_view</ref>(<ref refid="structScopeViewport_1aaeabf73398c1d68604590b287c179dd1" kindref="member">viewX</ref>,<sp/><ref refid="structScopeViewport_1a0bdf8548d782d94eebfba669118d7c3f" kindref="member">viewY</ref>,<sp/><ref refid="structScopeViewport_1a1ab0962443ac6c2ccc5824d8aa52f13c" kindref="member">viewW</ref>,<sp/><ref refid="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" kindref="member">viewH</ref>,<sp/><ref refid="structScopeViewport_1a1b5cbb4a936917e1cd48f99673c4d67f" kindref="member">viewN</ref>,<sp/><ref refid="structScopeViewport_1a2058f5dc44aa69df133281243141b800" kindref="member">viewF</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="202" refid="structScopeViewport_1adf3dadcee334ed588af5c6f1aca86e3d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeViewport_1adf3dadcee334ed588af5c6f1aca86e3d" kindref="member">~ScopeViewport</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1a8ec249984e33fe7253c5040ba83d42b8" kindref="member">d3d_set_view</ref>(<ref refid="structScopeViewport_1aaeabf73398c1d68604590b287c179dd1" kindref="member">viewX</ref>,<sp/><ref refid="structScopeViewport_1a0bdf8548d782d94eebfba669118d7c3f" kindref="member">viewY</ref>,<sp/><ref refid="structScopeViewport_1a1ab0962443ac6c2ccc5824d8aa52f13c" kindref="member">viewW</ref>,<sp/><ref refid="structScopeViewport_1a3ec263cec109e1fe25e0dc72e3526919" kindref="member">viewH</ref>,<sp/><ref refid="structScopeViewport_1a1b5cbb4a936917e1cd48f99673c4d67f" kindref="member">viewN</ref>,<sp/><ref refid="structScopeViewport_1a2058f5dc44aa69df133281243141b800" kindref="member">viewF</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="structViewProjMatrixContainer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref></highlight></codeline>
+<codeline lineno="206"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="207" refid="structViewProjMatrixContainer_1a8a04491d400e01ea6c813d021cb97b01" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;<ref refid="structViewProjMatrixContainer_1a8a04491d400e01ea6c813d021cb97b01" kindref="member">getViewTm</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structViewProjMatrixContainer_1a9250941812279f3ab0353dffcb759dfa" kindref="member">savedView</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="208" refid="structViewProjMatrixContainer_1af8f6d5cd7eb81a58abae66318413af89" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix4<sp/>&amp;<ref refid="structViewProjMatrixContainer_1af8f6d5cd7eb81a58abae66318413af89" kindref="member">getProjTm</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structViewProjMatrixContainer_1aa17f3b02bbe31d620efe1d245b3077aa" kindref="member">savedProj</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210" refid="structViewProjMatrixContainer_1a9250941812279f3ab0353dffcb759dfa" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix<sp/><ref refid="structViewProjMatrixContainer_1a9250941812279f3ab0353dffcb759dfa" kindref="member">savedView</ref><sp/>=<sp/>TMatrix::IDENT;</highlight></codeline>
+<codeline lineno="211" refid="structViewProjMatrixContainer_1aa17f3b02bbe31d620efe1d245b3077aa" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix4<sp/><ref refid="structViewProjMatrixContainer_1aa17f3b02bbe31d620efe1d245b3077aa" kindref="member">savedProj</ref><sp/>=<sp/>TMatrix4::IDENT;</highlight></codeline>
+<codeline lineno="212" refid="structViewProjMatrixContainer_1a173f61b8e10c15aa6d16262f4ffd92d8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDriver3dPerspective" kindref="compound">Driver3dPerspective</ref><sp/><ref refid="structViewProjMatrixContainer_1a173f61b8e10c15aa6d16262f4ffd92d8" kindref="member">p</ref>;</highlight></codeline>
+<codeline lineno="213" refid="structViewProjMatrixContainer_1a74538f629fde4e2e765ea17450c48f75" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structViewProjMatrixContainer_1a74538f629fde4e2e765ea17450c48f75" kindref="member">p_ok</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216" refid="structScopeViewProjMatrix" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structScopeViewProjMatrix" kindref="compound">ScopeViewProjMatrix</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="structViewProjMatrixContainer" kindref="compound">ViewProjMatrixContainer</ref></highlight></codeline>
+<codeline lineno="217"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="218" refid="structScopeViewProjMatrix_1ac8ad93932cd609f4eae88fcb73dd55b0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeViewProjMatrix_1ac8ad93932cd609f4eae88fcb73dd55b0" kindref="member">ScopeViewProjMatrix</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1ac5a292f640d66002a793707fb908c69d" kindref="member">d3d_get_view_proj</ref>(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="219" refid="structScopeViewProjMatrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScopeViewProjMatrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" kindref="member">~ScopeViewProjMatrix</ref>()<sp/>{<sp/><ref refid="dag__decl_8h_1a9e206c74ff30096460ab78e9e598faa1" kindref="member">d3d_set_view_proj</ref>(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight></codeline>
+<codeline lineno="222" refid="structDrawIndirectArgs" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDrawIndirectArgs" kindref="compound">DrawIndirectArgs</ref></highlight></codeline>
+<codeline lineno="223"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="224" refid="structDrawIndirectArgs_1a9250886021fe8650437b1a5db9ef0ff3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndirectArgs_1a9250886021fe8650437b1a5db9ef0ff3" kindref="member">vertexCountPerInstance</ref>;</highlight></codeline>
+<codeline lineno="225" refid="structDrawIndirectArgs_1a6c4c9e45a922628403027a173ec122ed" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndirectArgs_1a6c4c9e45a922628403027a173ec122ed" kindref="member">instanceCount</ref>;</highlight></codeline>
+<codeline lineno="226" refid="structDrawIndirectArgs_1ab448956bcdcf2943cff87b97f20d8919" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndirectArgs_1ab448956bcdcf2943cff87b97f20d8919" kindref="member">startVertexLocation</ref>;</highlight></codeline>
+<codeline lineno="227" refid="structDrawIndirectArgs_1a0177383281a588305895af6dbe626893" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndirectArgs_1a0177383281a588305895af6dbe626893" kindref="member">startInstanceLocation</ref>;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230" refid="structDrawIndexedIndirectArgs" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDrawIndexedIndirectArgs" kindref="compound">DrawIndexedIndirectArgs</ref></highlight></codeline>
+<codeline lineno="231"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="232" refid="structDrawIndexedIndirectArgs_1a8b01207a56094c54e00127ddcdeccaa0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndexedIndirectArgs_1a8b01207a56094c54e00127ddcdeccaa0" kindref="member">indexCountPerInstance</ref>;</highlight></codeline>
+<codeline lineno="233" refid="structDrawIndexedIndirectArgs_1a285913c5095296757713bb1ddade71e0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndexedIndirectArgs_1a285913c5095296757713bb1ddade71e0" kindref="member">instanceCount</ref>;</highlight></codeline>
+<codeline lineno="234" refid="structDrawIndexedIndirectArgs_1a81eb5b19603c0cc425fcd31d2275fc11" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndexedIndirectArgs_1a81eb5b19603c0cc425fcd31d2275fc11" kindref="member">startIndexLocation</ref>;</highlight></codeline>
+<codeline lineno="235" refid="structDrawIndexedIndirectArgs_1a3a69831c51c2a9d5da9bda70e77c1171" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structDrawIndexedIndirectArgs_1a3a69831c51c2a9d5da9bda70e77c1171" kindref="member">baseVertexLocation</ref>;</highlight></codeline>
+<codeline lineno="236" refid="structDrawIndexedIndirectArgs_1a9d4d56220fe132708c94c3e0d954ac95" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structDrawIndexedIndirectArgs_1a9d4d56220fe132708c94c3e0d954ac95" kindref="member">startInstanceLocation</ref>;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239" refid="dag__decl_8h_1a3cd622776694ae2e1ced3044aa56a7de" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DRAW_INDIRECT_NUM_ARGS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240" refid="dag__decl_8h_1a162055abfade3a74c8c9c73e0e4af9bd" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DRAW_INDEXED_INDIRECT_NUM_ARGS<sp/><sp/><sp/><sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241" refid="dag__decl_8h_1a859590555600d7db64651b9da7da810b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DISPATCH_INDIRECT_NUM_ARGS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242" refid="dag__decl_8h_1a1342531e34ae265dfd0d3792b644ee13" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INDIRECT_BUFFER_ELEMENT_SIZE<sp/><sp/><sp/><sp/><sp/><sp/>sizeof(uint32_t)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="243" refid="dag__decl_8h_1a8ade0b1d1198fa56bcd5267243059c48" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DRAW_INDIRECT_BUFFER_SIZE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(DRAW_INDIRECT_NUM_ARGS<sp/>*<sp/>INDIRECT_BUFFER_ELEMENT_SIZE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="244" refid="dag__decl_8h_1a7eca353a7e12eda604a5175f04e3b225" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DRAW_INDEXED_INDIRECT_BUFFER_SIZE<sp/>(DRAW_INDEXED_INDIRECT_NUM_ARGS<sp/>*<sp/>INDIRECT_BUFFER_ELEMENT_SIZE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="245" refid="dag__decl_8h_1ac72a5749329453b0ede895d7ff1c627b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DISPATCH_INDIRECT_BUFFER_SIZE<sp/><sp/><sp/><sp/><sp/>(DISPATCH_INDIRECT_NUM_ARGS<sp/>*<sp/>INDIRECT_BUFFER_ELEMENT_SIZE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight></codeline>
+<codeline lineno="247" refid="dag__decl_8h_1aca7a35eff9268c444d59cdaf0f581fe2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INPUT_VERTEX_STREAM_COUNT<sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249" refid="structShaderWarmUpInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderWarmUpInfo" kindref="compound">ShaderWarmUpInfo</ref></highlight></codeline>
+<codeline lineno="250"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="251" refid="structShaderWarmUpInfo_1a4ecc56247c0a2491a19e4e5a82e4c460" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structShaderWarmUpInfo_1a4ecc56247c0a2491a19e4e5a82e4c460" kindref="member">shaderProgram</ref>;</highlight></codeline>
+<codeline lineno="252" refid="structShaderWarmUpInfo_1a33e4a942c200db10e280c828941eadb0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a33e4a942c200db10e280c828941eadb0" kindref="member">colorFormats</ref>[<ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">Driver3dRenderTarget::MAX_SIMRT</ref>];</highlight></codeline>
+<codeline lineno="253" refid="structShaderWarmUpInfo_1a5a38e068a2eb7003762681727bf343ca" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a5a38e068a2eb7003762681727bf343ca" kindref="member">depthStencilFormat</ref>;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>bit<sp/>31<sp/>indicates<sp/>depth<sp/>stencil<sp/>use<sp/>(1)<sp/>or<sp/>not<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="structShaderWarmUpInfo_1ac23d1282e6164c7bc38c6ff62316276b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1ac23d1282e6164c7bc38c6ff62316276b" kindref="member">validColorTargetAndDepthStencilMask</ref>;</highlight></codeline>
+<codeline lineno="256" refid="structShaderWarmUpInfo_1a8c5473202edcaf630d38d14e9214e111" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a8c5473202edcaf630d38d14e9214e111" kindref="member">colorWriteMask</ref>;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258" refid="structShaderWarmUpInfo_1a22ef386c3bb2c696ae7be8d6af58a90b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a22ef386c3bb2c696ae7be8d6af58a90b" kindref="member">vertexInputStreamStrides</ref>[<ref refid="dag__decl_8h_1aca7a35eff9268c444d59cdaf0f581fe2" kindref="member">INPUT_VERTEX_STREAM_COUNT</ref>];</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Mask<sp/>of<sp/>1u<sp/>&lt;&lt;<sp/>&lt;TOPOLOGY&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Backend<sp/>may<sp/>be<sp/>able<sp/>to<sp/>combine<sp/>loads<sp/>with<sp/>different<sp/>topology<sp/>when<sp/>more<sp/>than<sp/>one<sp/>bit<sp/>is<sp/>set</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="262" refid="structShaderWarmUpInfo_1a0737eb764455f63a5f7d64a6f8b42a66" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a0737eb764455f63a5f7d64a6f8b42a66" kindref="member">primitiveTopologyMask</ref>;</highlight></codeline>
+<codeline lineno="263" refid="structShaderWarmUpInfo_1add5e47caa4bd742bd6533cd3ce3c8a8e" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1add5e47caa4bd742bd6533cd3ce3c8a8e" kindref="member">cullMode</ref>;</highlight></codeline>
+<codeline lineno="264" refid="structShaderWarmUpInfo_1a7b1f2411886514c086c1d1cf222c6e2c" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a7b1f2411886514c086c1d1cf222c6e2c" kindref="member">depthTestFunction</ref>;</highlight></codeline>
+<codeline lineno="265" refid="structShaderWarmUpInfo_1a6be7e00ac564ce931d36b23c13a5314d" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a6be7e00ac564ce931d36b23c13a5314d" kindref="member">stencilTestFunction</ref>;</highlight></codeline>
+<codeline lineno="266" refid="structShaderWarmUpInfo_1a15d8023b7fe4f2162c7d5417dff1d303" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a15d8023b7fe4f2162c7d5417dff1d303" kindref="member">stencilOnStencilFail</ref>;</highlight></codeline>
+<codeline lineno="267" refid="structShaderWarmUpInfo_1a2da4e5a58fe93b68a57f1ce133ba98de" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a2da4e5a58fe93b68a57f1ce133ba98de" kindref="member">stencilOnDepthFail</ref>;</highlight></codeline>
+<codeline lineno="268" refid="structShaderWarmUpInfo_1ad791befd7aa4c01021774b2a1efee79c" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1ad791befd7aa4c01021774b2a1efee79c" kindref="member">stencilOnAllPass</ref>;</highlight></codeline>
+<codeline lineno="269" refid="structShaderWarmUpInfo_1a4b14e5dd4fa14efcea6e95f8a1802b09" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a4b14e5dd4fa14efcea6e95f8a1802b09" kindref="member">blendOpRGB</ref>;</highlight></codeline>
+<codeline lineno="270" refid="structShaderWarmUpInfo_1a98f41c1a970ec7b5015aeeeefc118907" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a98f41c1a970ec7b5015aeeeefc118907" kindref="member">blendOpAlpha</ref>;</highlight></codeline>
+<codeline lineno="271" refid="structShaderWarmUpInfo_1a187bb15f703afad37afc1ca6a5b166fd" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a187bb15f703afad37afc1ca6a5b166fd" kindref="member">blendSrcFactorRGB</ref>;</highlight></codeline>
+<codeline lineno="272" refid="structShaderWarmUpInfo_1a0b556032a06007d6d6f63ec3a015cf15" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1a0b556032a06007d6d6f63ec3a015cf15" kindref="member">blendSrcFactorAlpha</ref>;</highlight></codeline>
+<codeline lineno="273" refid="structShaderWarmUpInfo_1ad28b08fc8798a3b992d6f26c0c87d5fa" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1ad28b08fc8798a3b992d6f26c0c87d5fa" kindref="member">blendDstFactorRGB</ref>;</highlight></codeline>
+<codeline lineno="274" refid="structShaderWarmUpInfo_1aabb38ed90f6727bc0d487e553efa0b10" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structShaderWarmUpInfo_1aabb38ed90f6727bc0d487e553efa0b10" kindref="member">blendDstFactorAlpha</ref>;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276" refid="structShaderWarmUpInfo_1a11ebb4edbf04d5525e20d81d65deabf3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a11ebb4edbf04d5525e20d81d65deabf3" kindref="member">polyLineEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="277" refid="structShaderWarmUpInfo_1a0faab35352616b22697960640fbbfda2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a0faab35352616b22697960640fbbfda2" kindref="member">flipCullEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="278" refid="structShaderWarmUpInfo_1a88a62c14a6d18d65f1f5af21071302b7" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a88a62c14a6d18d65f1f5af21071302b7" kindref="member">depthTestEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="279" refid="structShaderWarmUpInfo_1ac994586b1b1509a422c21318cbac78d0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1ac994586b1b1509a422c21318cbac78d0" kindref="member">depthWriteEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="280" refid="structShaderWarmUpInfo_1a1a90f5e3acff276f2624db736dc4c795" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a1a90f5e3acff276f2624db736dc4c795" kindref="member">depthBoundsEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="281" refid="structShaderWarmUpInfo_1a23f0921a7c24607d58bbf78178e9ced9" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a23f0921a7c24607d58bbf78178e9ced9" kindref="member">depthClipEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="282" refid="structShaderWarmUpInfo_1a518bbd848bc318bf9eef8cb029c22fb0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a518bbd848bc318bf9eef8cb029c22fb0" kindref="member">stencilTestEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="283" refid="structShaderWarmUpInfo_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" kindref="member">blendEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="284" refid="structShaderWarmUpInfo_1adb02c9e0245763b3238b438e1c549454" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderWarmUpInfo_1adb02c9e0245763b3238b438e1c549454" kindref="member">separateBlendEnable</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="285"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="287"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/>:<sp/>uint8_t;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight></codeline>
+<codeline lineno="289" refid="dag__decl_8h_1a3725152687016823638f75a491b578ba" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/><ref refid="dag__decl_8h_1a3725152687016823638f75a491b578ba" kindref="member">d3d_get_vendor</ref>(uint32_t<sp/>vendor_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*description<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="290" refid="dag__decl_8h_1a322e674a8e871897686ec0b6fc4667ee" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="dag__decl_8h_1a322e674a8e871897686ec0b6fc4667ee" kindref="member">d3d_get_vendor_name</ref>(<ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/>vendor);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"></highlight></codeline>
+<codeline lineno="292" refid="structXessParams" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structXessParams" kindref="compound">XessParams</ref></highlight></codeline>
+<codeline lineno="293"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="294" refid="structXessParams_1a434b49db8d3822599491a9654681cb6f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessParams_1a434b49db8d3822599491a9654681cb6f" kindref="member">inColor</ref>;</highlight></codeline>
+<codeline lineno="295" refid="structXessParams_1a542c7bec9f111509d56c531dc573fc53" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessParams_1a542c7bec9f111509d56c531dc573fc53" kindref="member">inDepth</ref>;</highlight></codeline>
+<codeline lineno="296" refid="structXessParams_1ab7b9e2539139172a09d39043303cf422" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessParams_1ab7b9e2539139172a09d39043303cf422" kindref="member">inMotionVectors</ref>;</highlight></codeline>
+<codeline lineno="297" refid="structXessParams_1a2779575a74ba1a1e019146669794801f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1a2779575a74ba1a1e019146669794801f" kindref="member">inJitterOffsetX</ref>;</highlight></codeline>
+<codeline lineno="298" refid="structXessParams_1a0bce148466951ed94c04bac525de60b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1a0bce148466951ed94c04bac525de60b1" kindref="member">inJitterOffsetY</ref>;</highlight></codeline>
+<codeline lineno="299" refid="structXessParams_1a79df7a75347563d2e1db85cdf0f361bc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1a79df7a75347563d2e1db85cdf0f361bc" kindref="member">inInputWidth</ref>;</highlight></codeline>
+<codeline lineno="300" refid="structXessParams_1aa54de62f5afceb0571c9f4b1169c3fe4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1aa54de62f5afceb0571c9f4b1169c3fe4" kindref="member">inInputHeight</ref>;</highlight></codeline>
+<codeline lineno="301" refid="structXessParams_1ab833d07c037603a14330b7d99064a3a9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1ab833d07c037603a14330b7d99064a3a9" kindref="member">inColorDepthOffsetX</ref>;</highlight></codeline>
+<codeline lineno="302" refid="structXessParams_1a122c28d8ed8004deb7c0887197ead547" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structXessParams_1a122c28d8ed8004deb7c0887197ead547" kindref="member">inColorDepthOffsetY</ref>;</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"></highlight></codeline>
+<codeline lineno="304" refid="structXessParams_1a91d336ff60e4bc4f9ff0bfe9018e5b69" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessParams_1a91d336ff60e4bc4f9ff0bfe9018e5b69" kindref="member">outColor</ref>;</highlight></codeline>
+<codeline lineno="305"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="307" refid="structXessFgParams" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structXessFgParams" kindref="compound">XessFgParams</ref></highlight></codeline>
+<codeline lineno="308"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="309" refid="structXessFgParams_1ae5b4bc3aea69e95cfc60f98491b1d19a" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix<sp/><ref refid="structXessFgParams_1ae5b4bc3aea69e95cfc60f98491b1d19a" kindref="member">viewTm</ref>;</highlight></codeline>
+<codeline lineno="310" refid="structXessFgParams_1a530cb123fa9a73ea5b0ca09109efb88c" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix4<sp/><ref refid="structXessFgParams_1a530cb123fa9a73ea5b0ca09109efb88c" kindref="member">projTm</ref>;</highlight></codeline>
+<codeline lineno="311" refid="structXessFgParams_1a9ceb935b38947196efdd16ded8bbb622" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessFgParams_1a9ceb935b38947196efdd16ded8bbb622" kindref="member">inColorHudless</ref>;</highlight></codeline>
+<codeline lineno="312" refid="structXessFgParams_1aec0c81929af7efd3994922feed405f63" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessFgParams_1aec0c81929af7efd3994922feed405f63" kindref="member">inUi</ref>;</highlight></codeline>
+<codeline lineno="313" refid="structXessFgParams_1a1d50284b499c58e16b585a25dbf902dd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessFgParams_1a1d50284b499c58e16b585a25dbf902dd" kindref="member">inDepth</ref>;</highlight></codeline>
+<codeline lineno="314" refid="structXessFgParams_1a4b390461ef6df16652186e990bd48d2a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structXessFgParams_1a4b390461ef6df16652186e990bd48d2a" kindref="member">inMotionVectors</ref>;</highlight></codeline>
+<codeline lineno="315" refid="structXessFgParams_1a430518ff1b294fa23cbad3681327be32" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessFgParams_1a430518ff1b294fa23cbad3681327be32" kindref="member">inMotionVectorScaleX</ref>;</highlight></codeline>
+<codeline lineno="316" refid="structXessFgParams_1a51fba0afcb1a054e850b4c3ce48a9ab6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessFgParams_1a51fba0afcb1a054e850b4c3ce48a9ab6" kindref="member">inMotionVectorScaleY</ref>;</highlight></codeline>
+<codeline lineno="317" refid="structXessFgParams_1ab8bc24edd3402e1bf31086ca8facde4e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessFgParams_1ab8bc24edd3402e1bf31086ca8facde4e" kindref="member">inJitterOffsetX</ref>;</highlight></codeline>
+<codeline lineno="318" refid="structXessFgParams_1ac868953a1633ba784c5cc7f423a6a91d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structXessFgParams_1ac868953a1633ba784c5cc7f423a6a91d" kindref="member">inJitterOffsetY</ref>;</highlight></codeline>
+<codeline lineno="319" refid="structXessFgParams_1af023fb51652baa4bc82775093e95e104" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structXessFgParams_1af023fb51652baa4bc82775093e95e104" kindref="member">inFrameIndex</ref>;</highlight></codeline>
+<codeline lineno="320" refid="structXessFgParams_1a9b3feaa5cd29e374f64619d1d846c48d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structXessFgParams_1a9b3feaa5cd29e374f64619d1d846c48d" kindref="member">inReset</ref>;</highlight></codeline>
+<codeline lineno="321"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323" refid="structFsr2Params" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structFsr2Params" kindref="compound">Fsr2Params</ref></highlight></codeline>
+<codeline lineno="324"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="325" refid="structFsr2Params_1aa2442fa7f877a3574b8d4343cf0b2321" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structFsr2Params_1aa2442fa7f877a3574b8d4343cf0b2321" kindref="member">color</ref>;</highlight></codeline>
+<codeline lineno="326" refid="structFsr2Params_1abde74094c13820aee7d7426e46f89417" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structFsr2Params_1abde74094c13820aee7d7426e46f89417" kindref="member">depth</ref>;</highlight></codeline>
+<codeline lineno="327" refid="structFsr2Params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structFsr2Params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" kindref="member">motionVectors</ref>;</highlight></codeline>
+<codeline lineno="328" refid="structFsr2Params_1a856a62ea056dd84acf2286d57333d0dc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structFsr2Params_1a856a62ea056dd84acf2286d57333d0dc" kindref="member">output</ref>;</highlight></codeline>
+<codeline lineno="329" refid="structFsr2Params_1aacc972c82e6d052a7186f7a17baf7690" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1aacc972c82e6d052a7186f7a17baf7690" kindref="member">frameTimeDelta</ref>;</highlight></codeline>
+<codeline lineno="330" refid="structFsr2Params_1ac1d4735850cbe23d7f4cfe8781fdd982" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1ac1d4735850cbe23d7f4cfe8781fdd982" kindref="member">sharpness</ref>;</highlight></codeline>
+<codeline lineno="331" refid="structFsr2Params_1a7c224db67c735ee857da33bb0c686aca" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1a7c224db67c735ee857da33bb0c686aca" kindref="member">jitterOffsetX</ref>;</highlight></codeline>
+<codeline lineno="332" refid="structFsr2Params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" kindref="member">jitterOffsetY</ref>;</highlight></codeline>
+<codeline lineno="333" refid="structFsr2Params_1ad47087b0f16838060acf75fb8f5b3a15" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1ad47087b0f16838060acf75fb8f5b3a15" kindref="member">motionVectorScaleX</ref>;</highlight></codeline>
+<codeline lineno="334" refid="structFsr2Params_1a1a987452758e0d536288155ddabb7e69" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1a1a987452758e0d536288155ddabb7e69" kindref="member">motionVectorScaleY</ref>;</highlight></codeline>
+<codeline lineno="335" refid="structFsr2Params_1aa938ec3e39154db716c7600d0d025925" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1aa938ec3e39154db716c7600d0d025925" kindref="member">cameraNear</ref>;</highlight></codeline>
+<codeline lineno="336" refid="structFsr2Params_1a789236218e7a2fddd65c479ebb9b0e89" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1a789236218e7a2fddd65c479ebb9b0e89" kindref="member">cameraFar</ref>;</highlight></codeline>
+<codeline lineno="337" refid="structFsr2Params_1ae4511b687e7050e87b32f4b906f9bd78" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structFsr2Params_1ae4511b687e7050e87b32f4b906f9bd78" kindref="member">cameraFovAngleVertical</ref>;</highlight></codeline>
+<codeline lineno="338" refid="structFsr2Params_1a361e8d83e9aa6694e95440621ce933aa" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structFsr2Params_1a361e8d83e9aa6694e95440621ce933aa" kindref="member">renderSizeX</ref>;</highlight></codeline>
+<codeline lineno="339" refid="structFsr2Params_1aac32e2a428d72268533f71596ce4071d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structFsr2Params_1aac32e2a428d72268533f71596ce4071d" kindref="member">renderSizeY</ref>;</highlight></codeline>
+<codeline lineno="340"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"></highlight></codeline>
+<codeline lineno="342" refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405" kindref="member">MtlfxColorMode</ref></highlight></codeline>
+<codeline lineno="343"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405ab1fb09a96b4c0e97727c9778dc68caf6" kindref="member">PERCEPTUAL</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405aaac544aacc3615aada24897a215f5046" kindref="member">LINEAR</ref>,</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405a6cad826248cd3f4e93da71e7b49928e3" kindref="member">HDR</ref></highlight></codeline>
+<codeline lineno="347"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="348" refid="structMtlFxUpscaleParams" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structMtlFxUpscaleParams" kindref="compound">MtlFxUpscaleParams</ref></highlight></codeline>
+<codeline lineno="349"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="350" refid="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" kindref="member">color</ref>;</highlight></codeline>
+<codeline lineno="351" refid="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" kindref="member">output</ref>;</highlight></codeline>
+<codeline lineno="352" refid="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405" kindref="member">MtlfxColorMode</ref><sp/><ref refid="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" kindref="member">colorMode</ref>;</highlight></codeline>
+<codeline lineno="353"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"></highlight></codeline>
+<codeline lineno="355" refid="dag__decl_8h_1a28f5bfb8abbbf12f01bdf9d91bf85eb7" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STATE_GUARD_IMPL(ClassName,<sp/>obj_name,<sp/>func_call,<sp/>val,<sp/>default_value)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="356"><highlight class="preprocessor"><sp/><sp/>struct<sp/>ClassName<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="357"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="358"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>typedef<sp/>decltype(val)<sp/>val_type;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="359"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>typedef<sp/>decltype(func_call)<sp/>func_type;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="360"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>const<sp/>val_type<sp/>def_value;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="361"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>const<sp/>func_type<sp/>&amp;func;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="362"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>ClassName(const<sp/>val_type<sp/>VALUE,<sp/>const<sp/>val_type<sp/>def_value_,<sp/>const<sp/>func_type<sp/>&amp;func)<sp/>:<sp/>def_value(def_value_),<sp/>func(func)<sp/>\</highlight></codeline>
+<codeline lineno="363"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="364"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>func(VALUE);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="365"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="366"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>~ClassName()<sp/>{<sp/>func(def_value);<sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="367"><highlight class="preprocessor"><sp/><sp/>}<sp/>obj_name(val,<sp/>default_value,<sp/>func_call);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight></codeline>
+<codeline lineno="369" refid="dag__decl_8h_1a0d69b2e484511fa8e27351874d52f6be" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STATE_GUARD(func_call,<sp/>val,<sp/>default_value)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="370"><highlight class="preprocessor"><sp/><sp/>auto<sp/>DAG_CONCAT(lambda,<sp/>__LINE__)<sp/>=<sp/>[&amp;](const<sp/>decltype(val)<sp/>VALUE)<sp/>{<sp/>func_call;<sp/>};<sp/>\</highlight></codeline>
+<codeline lineno="371"><highlight class="preprocessor"><sp/><sp/>STATE_GUARD_IMPL(DAG_CONCAT(StateGuard,<sp/>__LINE__),<sp/>DAG_CONCAT(guard,<sp/>__LINE__),<sp/>DAG_CONCAT(lambda,<sp/>__LINE__),<sp/>val,<sp/>default_value)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="372"><highlight class="normal"></highlight></codeline>
+<codeline lineno="373" refid="dag__decl_8h_1a05bd7d8ff71d315ee7147bbcbe15724d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STATE_GUARD_NULLPTR(func_call,<sp/>val)<sp/>STATE_GUARD(func_call,<sp/>val,<sp/>nullptr)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="374" refid="dag__decl_8h_1a59de9b8e27a87cfe416cb43a3fdcde6d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STATE_GUARD_0(func_call,<sp/>val)<sp/><sp/><sp/><sp/><sp/><sp/><sp/>STATE_GUARD(func_call,<sp/>val,<sp/>0)</highlight></codeline>
+    </programlisting>
+    <location file="dag_decl.h"/>
+  </compounddef>
+</doxygen>

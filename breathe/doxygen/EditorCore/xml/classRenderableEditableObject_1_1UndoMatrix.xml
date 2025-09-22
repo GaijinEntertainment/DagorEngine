@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderableEditableObject_1_1UndoMatrix" kind="class" language="C++" prot="protected">
+    <compoundname>RenderableEditableObject::UndoMatrix</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UndoRedoObject</basecompoundref>
+    <includes refid="ec__rendEdObject_8h" local="no">ec_rendEdObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &gt;</type>
+        <definition>Ptr&lt;RenderableEditableObject&gt; RenderableEditableObject::UndoMatrix::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="394" column="9" bodyfile="ec_rendEdObject.h" bodystart="394" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 RenderableEditableObject::UndoMatrix::oldMatrix</definition>
+        <argsstring></argsstring>
+        <name>oldMatrix</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::oldMatrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="395" column="13" bodyfile="ec_rendEdObject.h" bodystart="395" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 RenderableEditableObject::UndoMatrix::redoMatrix</definition>
+        <argsstring></argsstring>
+        <name>redoMatrix</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::redoMatrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="395" column="23" bodyfile="ec_rendEdObject.h" bodystart="395" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1a9493a8ae3d65bdaaa18520f57a10c7ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::UndoMatrix::UndoMatrix</definition>
+        <argsstring>(RenderableEditableObject *o)</argsstring>
+        <name>UndoMatrix</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::UndoMatrix</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="398" column="5" bodyfile="ec_rendEdObject.h" bodystart="398" bodyend="398"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1abc2671f3a69954d5264514fd9347a089" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMatrix::restore</definition>
+        <argsstring>(bool save_redo) override</argsstring>
+        <name>restore</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::restore</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>save_redo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="400" column="10" bodyfile="ec_rendEdObject.h" bodystart="400" bodyend="405"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1afe52fb0560cf882226fc160156292a32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMatrix::redo</definition>
+        <argsstring>() override</argsstring>
+        <name>redo</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="407" column="10" bodyfile="ec_rendEdObject.h" bodystart="407" bodyend="407"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1ae4c6cb80ccdbe548093da04c076b74a0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t RenderableEditableObject::UndoMatrix::size</definition>
+        <argsstring>() override</argsstring>
+        <name>size</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="409" column="12" bodyfile="ec_rendEdObject.h" bodystart="409" bodyend="409"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1ae4f941c2b3ee7e57f2585c58e1c1658a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMatrix::accepted</definition>
+        <argsstring>() override</argsstring>
+        <name>accepted</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::accepted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="410" column="10" bodyfile="ec_rendEdObject.h" bodystart="410" bodyend="410"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMatrix_1a254b300d2b69fc598ca709855c60e725" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMatrix::get_description</definition>
+        <argsstring>(String &amp;s) override</argsstring>
+        <name>get_description</name>
+        <qualifiedname>RenderableEditableObject::UndoMatrix::get_description</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="411" column="10" bodyfile="ec_rendEdObject.h" bodystart="411" bodyend="411"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoMatrix</label>
+        <link refid="classRenderableEditableObject_1_1UndoMatrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoMatrix</label>
+        <link refid="classRenderableEditableObject_1_1UndoMatrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_rendEdObject.h" line="391" column="3" bodyfile="ec_rendEdObject.h" bodystart="392" bodyend="412"/>
+    <listofallmembers>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1ae4f941c2b3ee7e57f2585c58e1c1658a" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>accepted</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1a254b300d2b69fc598ca709855c60e725" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>get_description</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>obj</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>oldMatrix</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1afe52fb0560cf882226fc160156292a32" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>redo</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>redoMatrix</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1abc2671f3a69954d5264514fd9347a089" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>restore</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1ae4c6cb80ccdbe548093da04c076b74a0" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>size</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMatrix_1a9493a8ae3d65bdaaa18520f57a10c7ad" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMatrix</scope><name>UndoMatrix</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

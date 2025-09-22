@@ -1,0 +1,833 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.7" xml:lang="en-US">
+  <compound refid="classAtomicPrintfMutex" kind="class"><name>AtomicPrintfMutex</name>
+    <member refid="classAtomicPrintfMutex_1a6319e2f1bcb78199e056fad1073e1a56" kind="variable"><name>mutex</name></member>
+    <member refid="classAtomicPrintfMutex_1a109f7a7e1c234c9f4316e6ccefc0f987" kind="variable"><name>locked</name></member>
+    <member refid="classAtomicPrintfMutex_1a3fbeb2000c2c4e6888e3eda411a63e4e" kind="variable"><name>name</name></member>
+    <member refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kind="variable"><name>inst</name></member>
+    <member refid="classAtomicPrintfMutex_1a1a840879e1f194ce31a114e3a33e98b3" kind="function"><name>init</name></member>
+    <member refid="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" kind="function"><name>term</name></member>
+    <member refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kind="function"><name>lock</name></member>
+    <member refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kind="function"><name>unlock</name></member>
+  </compound>
+  <compound refid="classBinDumpReader" kind="class"><name>BinDumpReader</name>
+    <member refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kind="variable"><name>crd</name></member>
+    <member refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kind="variable"><name>READ_BE</name></member>
+    <member refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" kind="variable"><name>targetCode</name></member>
+    <member refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kind="variable"><name>blocks</name></member>
+    <member refid="classBinDumpReader_1a51d9e992da99048094af738c751ba066" kind="function"><name>BinDumpReader</name></member>
+    <member refid="classBinDumpReader_1a842bf38669ea487a190281854e65af13" kind="function"><name>getTarget</name></member>
+    <member refid="classBinDumpReader_1af0cb83e07985fabd1bdf1dd1883435cc" kind="function"><name>readBE</name></member>
+    <member refid="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" kind="function"><name>readFourCC</name></member>
+    <member refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" kind="function"><name>readInt32e</name></member>
+    <member refid="classBinDumpReader_1adf32cbc673fe980d7cf6d6da3248320a" kind="function"><name>read32ex</name></member>
+    <member refid="classBinDumpReader_1a73af97091cdd4d625ac44119a89283d3" kind="function"><name>readDwString</name></member>
+    <member refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" kind="function"><name>tell</name></member>
+    <member refid="classBinDumpReader_1a910f7709076480c6815b821271e2d676" kind="function"><name>seekto</name></member>
+    <member refid="classBinDumpReader_1a735aca4bdd010f8c4e44236f60b60552" kind="function"><name>seekrel</name></member>
+    <member refid="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" kind="function"><name>beginBlock</name></member>
+    <member refid="classBinDumpReader_1aa5f789e9cd089f819ecd9488b1555458" kind="function"><name>beginTaggedBlock</name></member>
+    <member refid="classBinDumpReader_1a46e0a380e9f672ddde713c3d8712bd3e" kind="function"><name>endBlock</name></member>
+    <member refid="classBinDumpReader_1a238b88d91d736b37bff4d4c459abf9ba" kind="function"><name>getBlockLength</name></member>
+    <member refid="classBinDumpReader_1a5c3ae0a97094a158d70a1194af235e83" kind="function"><name>getBlockRest</name></member>
+    <member refid="classBinDumpReader_1a97eb12193654af033e568b11914bfaf8" kind="function"><name>getBlockLevel</name></member>
+    <member refid="classBinDumpReader_1a2832270dbbdd399bc3597dee7610dd86" kind="function"><name>getRawReader</name></member>
+    <member refid="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" kind="function"><name>convert32</name></member>
+    <member refid="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" kind="function"><name>convert16</name></member>
+    <member refid="classBinDumpReader_1a11f989bbd1de0a19a048869617a8dc87" kind="function"><name>convert32</name></member>
+    <member refid="classBinDumpReader_1a4dca3c2a70018293a02fa390f7311473" kind="function"><name>convert16</name></member>
+    <member refid="classBinDumpReader_1a6cce2f7f0a7def1ae046265d051d0a22" kind="function"><name>convert32</name></member>
+    <member refid="classBinDumpReader_1aecc607ac15737222e97772166cfea458" kind="function"><name>convert16</name></member>
+    <member refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" kind="function"><name>le2be32</name></member>
+    <member refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" kind="function"><name>le2be16</name></member>
+    <member refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" kind="function"><name>le2be32_s</name></member>
+    <member refid="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" kind="function"><name>le2be16_s</name></member>
+  </compound>
+  <compound refid="classmkbindump_1_1BinDumpSaveCB" kind="class"><name>mkbindump::BinDumpSaveCB</name>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8d" kind="enum"><name></name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" kind="enumvalue"><name>PTR_SZ</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8da652f6f61a44a61e3f6688ce02c7e988c" kind="enumvalue"><name>TAB_SZ</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ac7962cf02ccafd59e06fe2f4950686e9" kind="variable"><name>WRITE_BE</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ab284f42b1fe8386724979a57c186246e" kind="variable"><name>cwr</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a09fdc76928dfcf732f156cd6c3232f87" kind="variable"><name>blocks</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a765126c91cf2273fda1c6eda4f003a04" kind="variable"><name>origin</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ac435ff63e59ea16f791b93dcbd59c8c4" kind="variable"><name>zero</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a685c6ccb14fa624996ddd97003c46dd6" kind="variable"><name>cvtBuf</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a73247e1fafe8f416c370d36d6d51de2c" kind="variable"><name>targetCode</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aec7f2174370b8c62837d3d117d700fcb" kind="variable"><name>profileName</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a3bd8c15eb46c5e1f697b7bd227296df9" kind="variable"><name>curOrigin</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1af8f328eb30858f3b9b60b2740e16a1a7" kind="variable"><name>fastBuildFlag</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a5a6c46c92bef1193e2e432d4b9f42c2d" kind="function"><name>BinDumpSaveCB</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a5176074a8d1c1f701d7d5257628fa17d" kind="function"><name>BinDumpSaveCB</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae6f02c43485d8618c6050bda91cdefbb" kind="function"><name>getTarget</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a48d18e519dbd48f1c7b511a093b79b71" kind="function"><name>setProfile</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae72699dc74e2332d2ab8f0773cb3a3c0" kind="function"><name>getProfile</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae84e0ba4c54f90034ef9fdc854438363" kind="function"><name>setFastBuildFlag</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a4a5dae0ed458f92632680473f4edfbc4" kind="function"><name>isFastBuild</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a92b498bd297b02bb47fcd96fcacee0a2" kind="function"><name>reset</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kind="function"><name>tell</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aa14b1cf051f9c5f388b9878ecd3cbf0a" kind="function"><name>seekto</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a2f61f3227d0af4b32dedbf5c5001dce1" kind="function"><name>seekToEnd</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a5711642208e6bd52aa7c7648c717e23b" kind="function"><name>getBlockLevel</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" kind="function"><name>beginBlock</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a438629220f33e523dcad27f12f6e5bde" kind="function"><name>beginTaggedBlock</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" kind="function"><name>endBlock</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" kind="function"><name>setOrigin</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" kind="function"><name>popOrigin</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ab0865c00c5c2d99446a6230d4a316a0c" kind="function"><name>writeRaw</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1abe5837ffd858d48492b2ad2e081b5b1e" kind="function"><name>write16ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a50c981b9b894c5caeeeffb3669246f34" kind="function"><name>write32ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1af373ce8ee134ebaaf66e4c8e5ee74259" kind="function"><name>writeZeroes</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a7b8eabc23ec2385af633256be1b8739d" kind="function"><name>align4</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae03f63a7d4ed25847e4e9d3022f609a7" kind="function"><name>align8</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae1007d89a438a7ee49c3d5280d9e1d57" kind="function"><name>align16</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a4e65dc4ab3ea3073afa4d72ff0dd0de1" kind="function"><name>align32</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ab2b6eca17ae26598376a8f2d0209495e" kind="function"><name>writeFourCC</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ac9e62612834e0e633df12111aba55944" kind="function"><name>writeFloat32e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ada2f70a98660df189da3eac608bfef1f" kind="function"><name>writeFloat64e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a2dc819fe75bd5d35a786fe3a0c5be05a" kind="function"><name>writeReal</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" kind="function"><name>writeInt32e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a712ab65c81612d1977e3629351bef224" kind="function"><name>writeE3dColorE</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a418c8c46e197417a321444c8327ce39c" kind="function"><name>writePtr64e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a908a78188e7b48ef2cebd41966b34bca" kind="function"><name>writePtr64eAt</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a69527de25a0b4048a97b09af9ac240df" kind="function"><name>writePtr32eAt</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a1f797d2706389525dc9e906bb4affda8" kind="function"><name>writeInt64e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aa803c8a5d6ab86b807fc1cb040876678" kind="function"><name>writeInt16e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a8d44fa98c51971356d4ef569a1541cae" kind="function"><name>writeInt8e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a2d697d8f40b537d8eed7a5cacd759d84" kind="function"><name>writeInt16eAt</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1acc7796fecfa830f31110b1fc50e48573" kind="function"><name>writeInt32eAt</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a57d2acbc63756201e200e589de4fb85f" kind="function"><name>writeDwString</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a122f72f1237bc5d5bc993ac2a582f066" kind="function"><name>writeTabDataRaw</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a14c6eb78e396c8f9e183af2dd5687fae" kind="function"><name>writeTabDataE</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a18990c96d623763fd08b5dad85f179d4" kind="function"><name>writeTabData16e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a9db940002414c389b7c6fa3c0e41c033" kind="function"><name>writeTabData32e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a855bc2238bb219358cb1e35845508a36" kind="function"><name>writeTabData16e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a3a5c27d906b27c147e870ea3979fe760" kind="function"><name>writeTabData32e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a1fea1f99f042b3fbea5f4f2fd15f72ad" kind="function"><name>writeTabData16ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a7c636069becdbb1ab8262188927bbee7" kind="function"><name>writeTabData32ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a727ff8de62ca7a0c729186142a3a6b9e" kind="function"><name>writeStorage</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a3fa2f60d2d528d341f6be2402eab36f8" kind="function"><name>writeStorageE</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a20e8fc4fd645062dd42f7197744ab98c" kind="function"><name>writeStorage16e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a9f04c17933fe4959a9d189023bf43f3e" kind="function"><name>writeStorage32e</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a8df656af4c9b3ea4eb01388317bc1576" kind="function"><name>writeStorage16ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a52e0f30bc519e326fa2a4b68490822eb" kind="function"><name>writeStorage32ex</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a271267954e51c1118530aa2b9818ddef" kind="function"><name>writeRef</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae1f7490b04bec01c5e7011ede9f014bb" kind="function"><name>writeRef</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a817b3c19076e7a5ee6d782af499a518d" kind="function"><name>copyRaw</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1af74545ae0e9e63be13fb4e4d68eb1533" kind="function"><name>copyRawFrom</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aaf6df891558158db85449800b4832c98" kind="function"><name>getRawWriter</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a1bebe19a8b4db3ec950cb38ec7707906" kind="function"><name>getMem</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a308a49f7dadb4eb8c98da76d4844940f" kind="function"><name>getSize</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1aadc5ffd2fdd5c9e88835665fa7e53855" kind="function"><name>copyDataTo</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a7f99131d795363d218c478f1a3629a3f" kind="function"><name>makeDataCopy</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1a861f2a26e75f191540d2db294aa81204" kind="function"><name>cvt_uint16_le2be</name></member>
+    <member refid="classmkbindump_1_1BinDumpSaveCB_1ae995d87f1e438f6044a2702d6bf3f793" kind="function"><name>cvt_uint32_le2be</name></member>
+  </compound>
+  <compound refid="classBlkFile" kind="class"><name>BlkFile</name>
+    <member refid="classBlkFile_1af98e865a1f76ad3ee3d1059d303eb04a" kind="variable"><name>data</name></member>
+    <member refid="classBlkFile_1ad75b8097b8604173422beb57a04aba79" kind="variable"><name>blk</name></member>
+    <member refid="classBlkFile_1a66b43233100b06cc4d54833d8e10ed6d" kind="variable"><name>cpstk</name></member>
+    <member refid="classBlkFile_1ac6dbd4abc7ea3fe45146d5c78474d51d" kind="variable"><name>curpos</name></member>
+    <member refid="classBlkFile_1a7805fe010c9a84f9724564045f5a378e" kind="variable"><name>blko</name></member>
+    <member refid="classBlkFile_1a65ac38d6e9b25f324d85df8a5480cf86" kind="variable"><name>blkl</name></member>
+    <member refid="classBlkFile_1abf6d6fdc88e06dd201e7a645e1b8ec3b" kind="variable"><name>fileid</name></member>
+    <member refid="classBlkFile_1a5ddca7a0a00e404f2b64c65df089e64a" kind="variable"><name>chkerr</name></member>
+    <member refid="classBlkFile_1ab83bb9116e7bffa628f3352a82721fa3" kind="function"><name>BlkFile</name></member>
+    <member refid="classBlkFile_1af0b10418298b41f8716d61dee2711b4c" kind="function"><name>getabscurpos</name></member>
+    <member refid="classBlkFile_1a120f7750a0edabb9c800174fbedb3822" kind="function"><name>loadfile</name></member>
+    <member refid="classBlkFile_1abc37af341c1890cac9f6a6254c4220a4" kind="function"><name>loadfile</name></member>
+    <member refid="classBlkFile_1a7eb34f1c5ee5ceac7c710c96879fcf0b" kind="function"><name>savefile</name></member>
+    <member refid="classBlkFile_1acd236bec33e27b2a611d9fbecb7212bf" kind="function"><name>savefile</name></member>
+    <member refid="classBlkFile_1a88caa93ed924b66398eab0b6f7cf76ab" kind="function"><name>clearfile</name></member>
+    <member refid="classBlkFile_1af5dd538e095e67ec42f7a8e6dcf44b4b" kind="function"><name>resetfile</name></member>
+    <member refid="classBlkFile_1ab40f301e8896e2b9f0c4c27cd213a904" kind="function"><name>getblk</name></member>
+    <member refid="classBlkFile_1adcdee366734eaff7918260e968e582e7" kind="function"><name>insertblk</name></member>
+    <member refid="classBlkFile_1a8b56cdfdce5ba7e3b57cecf86780c13e" kind="function"><name>appendblk</name></member>
+    <member refid="classBlkFile_1a11d86c4dc620d03e5d2f685e95bdb0b8" kind="function"><name>eraseblk</name></member>
+    <member refid="classBlkFile_1a1305e624f211d9a38a60c3c0e1b59fd5" kind="function"><name>goup</name></member>
+    <member refid="classBlkFile_1a880d96a7fa57fdc129ce26ee77c0dbb3" kind="function"><name>goupstart</name></member>
+    <member refid="classBlkFile_1adff01a4dc5de1c2c574f4cc3fa752a16" kind="function"><name>size</name></member>
+    <member refid="classBlkFile_1a93e68a380ab1744c6ca71031747adfb7" kind="function"><name>rest</name></member>
+    <member refid="classBlkFile_1aa480a6f3c7c91ee21914d47bdef323bd" kind="function"><name>tell</name></member>
+    <member refid="classBlkFile_1a2762ed0137ce68a3322a6488f876c1ee" kind="function"><name>seekset</name></member>
+    <member refid="classBlkFile_1a1badeb6c560b1373a918e51b36b2475e" kind="function"><name>seekcur</name></member>
+    <member refid="classBlkFile_1a9e36433405596290dc8ed68be7cabd01" kind="function"><name>seekend</name></member>
+    <member refid="classBlkFile_1a3ca21169bde38cad6d3acc301b32b183" kind="function"><name>skip</name></member>
+    <member refid="classBlkFile_1a5cb6d199971908e1b2b78bed8089e3ac" kind="function"><name>ptr</name></member>
+    <member refid="classBlkFile_1a94bd74a6c6a8990e2a1b149ca9141a3f" kind="function"><name>operator char *</name></member>
+    <member refid="classBlkFile_1a6a02a8af11ca867dc4f0d2a57648295b" kind="function"><name>operator[]</name></member>
+    <member refid="classBlkFile_1ae5556c203ebac4824046912b05e10936" kind="function"><name>insert</name></member>
+    <member refid="classBlkFile_1af992a8f2edc02a18e835ba6ed8f196ab" kind="function"><name>append</name></member>
+    <member refid="classBlkFile_1aa4294dad26c5970b9ac90480ada0721d" kind="function"><name>get</name></member>
+    <member refid="classBlkFile_1aff8a89c77ce47bd8124b195e890895bc" kind="function"><name>putint</name></member>
+    <member refid="classBlkFile_1a0c61796b4d1d788ac4fc80c60604aa97" kind="function"><name>putshort</name></member>
+    <member refid="classBlkFile_1af8844956dc89b98d4e7ba2c9ad371bf7" kind="function"><name>putchar</name></member>
+    <member refid="classBlkFile_1afa1935f588c67a2eb671b94f30ec5118" kind="function"><name>putreal</name></member>
+    <member refid="classBlkFile_1a090e6b084176a5396104e69050256ab3" kind="function"><name>putpoint2</name></member>
+    <member refid="classBlkFile_1a86b536b92652505bb1eddd79cd04940a" kind="function"><name>putpoint3</name></member>
+    <member refid="classBlkFile_1abb5ea4a4fbbfc11a6ea75b32d8f88be2" kind="function"><name>puttm</name></member>
+    <member refid="classBlkFile_1a96adf874808099182ebf953ee3e09354" kind="function"><name>putstrz</name></member>
+    <member refid="classBlkFile_1a541942114e547a968eb1543250405137" kind="function"><name>getint</name></member>
+    <member refid="classBlkFile_1a7fe499683ee9c9b03e8ceff38cf62b1b" kind="function"><name>getshort</name></member>
+    <member refid="classBlkFile_1a684f87fb4bc0815270e91525c54dbc0f" kind="function"><name>getchar</name></member>
+    <member refid="classBlkFile_1a99c529268fddde5a17f0b0f2602f8e49" kind="function"><name>getreal</name></member>
+    <member refid="classBlkFile_1aa02822a6c8c46b1bf9882a5d86025893" kind="function"><name>getpoint2</name></member>
+    <member refid="classBlkFile_1ac913e6f3630a5846f5dff4e5599e5b7d" kind="function"><name>getpoint3</name></member>
+    <member refid="classBlkFile_1ac23e2ba9be4144c3ff961bac9782b6f6" kind="function"><name>gettm</name></member>
+    <member refid="classBlkFile_1a65e90dfd112e510e4ffb29c185a26f97" kind="function"><name>getstrz</name></member>
+    <member refid="classBlkFile_1ac9ffcebe11a26ea51024a7d860848210" kind="function"><name>erase</name></member>
+    <member refid="classBlkFile_1a2204ef6cd8a160cc7f7fe3b35d8e5ffa" kind="function"><name>pushcurpos</name></member>
+    <member refid="classBlkFile_1aedc2dd4eab5305cbfcbf3d1cc8c49471" kind="function"><name>popcurpos</name></member>
+  </compound>
+  <compound refid="structBlkFileBlk" kind="struct"><name>BlkFileBlk</name>
+    <member refid="structBlkFileBlk_1a18ab398d171391807ef66984af7e7f82" kind="variable"><name>o</name></member>
+    <member refid="structBlkFileBlk_1a3374ef733e9725e93092bb870d699ee3" kind="variable"><name>l</name></member>
+  </compound>
+  <compound refid="structBlkFileCP" kind="struct"><name>BlkFileCP</name>
+    <member refid="structBlkFileCP_1a6a9709a453ebc509f983671874640c64" kind="variable"><name>lev</name></member>
+    <member refid="structBlkFileCP_1aea923006354094e2d773522078023065" kind="variable"><name>o</name></member>
+    <member refid="structBlkFileCP_1a6901d8dbf06f82fac5521ddde4c38a76" kind="variable"><name>cp</name></member>
+  </compound>
+  <compound refid="classBlkFileException" kind="class"><name>BlkFileException</name>
+    <member refid="classBlkFileException_1af5f5e9acd767be8097b9fe670ca2876f" kind="variable"><name>msg</name></member>
+    <member refid="classBlkFileException_1a47568c8da353a6fbee050933f5751fbf" kind="variable"><name>pos</name></member>
+    <member refid="classBlkFileException_1a9b4f523f43ef2e2065268eff676233d6" kind="function"><name>BlkFileException</name></member>
+  </compound>
+  <compound refid="structBinDumpReader_1_1Block" kind="struct"><name>BinDumpReader::Block</name>
+    <member refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" kind="variable"><name>ofs</name></member>
+    <member refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" kind="variable"><name>len</name></member>
+    <member refid="structBinDumpReader_1_1Block_1a5706c3b0cad7e4701ecbba66a3bb398f" kind="function"><name>end</name></member>
+    <member refid="structBinDumpReader_1_1Block_1a81f4b6287c6bc0d018ea9a9aaa834ddd" kind="function"><name>set</name></member>
+  </compound>
+  <compound refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec" kind="struct"><name>mkbindump::RoDataBlockBuilder::BlockRec</name>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1ab209087134c927ae000cc300e513cb77" kind="variable"><name>ptParam</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a48048ca504e19112bc4162b06534172e" kind="variable"><name>ptBlock</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a9049117d81aff32df1b74a22c4f20005" kind="variable"><name>name</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a64ebfdaa3013971f10dfa84625d354dd" kind="variable"><name>stBlock</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a017070c745270d0cd28ec5d65ba60c9f" kind="variable"><name>blockNum</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1afa4ad3909cd0decb3755eab499b9a49a" kind="variable"><name>stParam</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1af4a9645657c19a542cb6e33dc9a760cd" kind="variable"><name>paramNum</name></member>
+  </compound>
+  <compound refid="classConsoleLogWriter" kind="class"><name>ConsoleLogWriter</name>
+    <member refid="classConsoleLogWriter_1a888e883e8026212bbc737d8b8274f623" kind="variable"><name>err</name></member>
+    <member refid="classConsoleLogWriter_1a556e2aefabf63ac89a2a2989996a7ac7" kind="function"><name>ConsoleLogWriter</name></member>
+    <member refid="classConsoleLogWriter_1a399f8255f36fb39d16447b2062edbaf3" kind="function"><name>addMessageFmt</name></member>
+    <member refid="classConsoleLogWriter_1ac3143442f55f66001a44f6bfe1d4d8a0" kind="function"><name>hasErrors</name></member>
+    <member refid="classConsoleLogWriter_1a1442ba3491c98fd4ac257c50e2189d1e" kind="function"><name>startLog</name></member>
+    <member refid="classConsoleLogWriter_1acad2bb6ae11480725a59938f27b6abca" kind="function"><name>endLog</name></member>
+  </compound>
+  <compound refid="classConsoleProgressIndicator" kind="class"><name>ConsoleProgressIndicator</name>
+    <member refid="classConsoleProgressIndicator_1a317ddd0bdfe37d5040f20919a8ff2970" kind="variable"><name>total</name></member>
+    <member refid="classConsoleProgressIndicator_1a3f311f223d6b3b80335d620f00909cf9" kind="variable"><name>done</name></member>
+    <member refid="classConsoleProgressIndicator_1a7c2d01605e668cdaa1be872b05f0dcf1" kind="variable"><name>lastPct</name></member>
+    <member refid="classConsoleProgressIndicator_1a8617db7e6157b85eff9c7f147208bc76" kind="variable"><name>showPct</name></member>
+    <member refid="classConsoleProgressIndicator_1a6543cde5fe0853655be631e06f877d61" kind="function"><name>ConsoleProgressIndicator</name></member>
+    <member refid="classConsoleProgressIndicator_1a37f73ad21ef1efdf4107877898904a6b" kind="function"><name>~ConsoleProgressIndicator</name></member>
+    <member refid="classConsoleProgressIndicator_1ad8b09c79658defcbaba23d47974725dc" kind="function"><name>setActionDescFmt</name></member>
+    <member refid="classConsoleProgressIndicator_1a669b302dbeeb6bda60bee6e6b7cb969a" kind="function"><name>setTotal</name></member>
+    <member refid="classConsoleProgressIndicator_1a96645d5f2decf91dd428d4dc081cd857" kind="function"><name>setDone</name></member>
+    <member refid="classConsoleProgressIndicator_1ab035e72fd76f8a96e59dc6dfa88612f8" kind="function"><name>incDone</name></member>
+    <member refid="classConsoleProgressIndicator_1a0fbc64a69db9d50246da0c7559f24d60" kind="function"><name>redrawScreen</name></member>
+    <member refid="classConsoleProgressIndicator_1a8c4c27a129e0214e634d56093f66752d" kind="function"><name>destroy</name></member>
+    <member refid="classConsoleProgressIndicator_1a07d251004db5492e832b84bcacfe8a4a" kind="function"><name>startProgress</name></member>
+    <member refid="classConsoleProgressIndicator_1a08a014a5c6a815987afeb61629e30ecb" kind="function"><name>endProgress</name></member>
+    <member refid="classConsoleProgressIndicator_1a0bf2ab4bfe84f179af58d969f65dbdc6" kind="function"><name>outputPct</name></member>
+    <member refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kind="function"><name>updatePct</name></member>
+  </compound>
+  <compound refid="structConTextOutStream" kind="struct"><name>ConTextOutStream</name>
+    <member refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kind="variable"><name>log</name></member>
+    <member refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kind="variable"><name>ln</name></member>
+    <member refid="structConTextOutStream_1a5eb5e7bf6303d720032955b8ef11e9fd" kind="function"><name>ConTextOutStream</name></member>
+    <member refid="structConTextOutStream_1af48c403ba0bf00e3cea31f68650b10fd" kind="function"><name>~ConTextOutStream</name></member>
+    <member refid="structConTextOutStream_1ac8ac1731dd9d7883456b40801718e1fe" kind="function"><name>write</name></member>
+    <member refid="structConTextOutStream_1abad1e8d53e46573db9fc9236b1ab70c0" kind="function"><name>tell</name></member>
+    <member refid="structConTextOutStream_1a51a3c282d97639240be45cabb039af1b" kind="function"><name>seekto</name></member>
+    <member refid="structConTextOutStream_1a8a5e1e31ef84f6d8435b51b489f19761" kind="function"><name>seektoend</name></member>
+    <member refid="structConTextOutStream_1a49a59af6c67bd18cb0139b2052bb71c3" kind="function"><name>getTargetName</name></member>
+    <member refid="structConTextOutStream_1a01604e56e21b13f179352e11a3541f6c" kind="function"><name>beginBlock</name></member>
+    <member refid="structConTextOutStream_1a1fe0407104b672e13e02a9d563236a91" kind="function"><name>endBlock</name></member>
+    <member refid="structConTextOutStream_1a9d490d463e278ef1323dc60b7bbb7545" kind="function"><name>getBlockLevel</name></member>
+    <member refid="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" kind="function"><name>flush</name></member>
+  </compound>
+  <compound refid="classCtlReportLogWriter" kind="class"><name>CtlReportLogWriter</name>
+    <member refid="classCtlReportLogWriter_1aabf0ea00c3c73b2e8964978154a19815" kind="variable"><name>list</name></member>
+    <member refid="classCtlReportLogWriter_1aa46fead97787e143d920e3ef54a40386" kind="variable"><name>errors</name></member>
+    <member refid="classCtlReportLogWriter_1a6586f15b232d272255be46aa0e0094e8" kind="variable"><name>warnings</name></member>
+    <member refid="classCtlReportLogWriter_1a9160cbe44cc6eeba8b7a0b9d565e750b" kind="function"><name>CtlReportLogWriter</name></member>
+    <member refid="classCtlReportLogWriter_1a7d4e1fbcd1372200914d5dd54ac9f36c" kind="function"><name>addMessageFmt</name></member>
+    <member refid="classCtlReportLogWriter_1aa6f0bc7fe2883e40ae47e5b7b6346a77" kind="function"><name>hasErrors</name></member>
+    <member refid="classCtlReportLogWriter_1acc9c558dbc7fa1a296c2a8f4f312cd8b" kind="function"><name>startLog</name></member>
+    <member refid="classCtlReportLogWriter_1ac0b27d9d598c16b5df0e93e864577eed" kind="function"><name>endLog</name></member>
+    <member refid="classCtlReportLogWriter_1a82acda73c9e1b92a45588d5352f3f5a7" kind="function"><name>clearMessages</name></member>
+    <member refid="classCtlReportLogWriter_1ae7461c1d717ec743d8c3793b718748fd" kind="function"><name>hasWarnings</name></member>
+    <member refid="classCtlReportLogWriter_1a1c78d3895f57f23b2e6f14891f9b72e2" kind="function"><name>hasMessages</name></member>
+    <member refid="classCtlReportLogWriter_1ae9c4d7a668c939996979a0932005feac" kind="function"><name>showReport</name></member>
+  </compound>
+  <compound refid="structDagUUID" kind="struct"><name>DagUUID</name>
+    <member refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" kind="variable"><name>uuid</name></member>
+    <member refid="structDagUUID_1a8cf8847712128b149e908186a86fa386" kind="function"><name>clear</name></member>
+    <member refid="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc" kind="function"><name>equal</name></member>
+    <member refid="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d" kind="function"><name>generate</name></member>
+  </compound>
+  <compound refid="classDETextureName" kind="class"><name>DETextureName</name>
+    <member refid="classDETextureName_1ac150b059b12f3b8c77c8bf1171991b22" kind="function"><name>DETextureName</name></member>
+    <member refid="classDETextureName_1a4d2c96817249bd381b346595e454a717" kind="function"><name>DETextureName</name></member>
+    <member refid="classDETextureName_1abc6e506ead6b710c2863bd984d8ae1f8" kind="function"><name>DETextureName</name></member>
+    <member refid="classDETextureName_1ad8026f6619c2c2775e0b74ffb424aaca" kind="function"><name>DETextureName</name></member>
+    <member refid="classDETextureName_1ad6fc66e588733ba13e3ca8c51baec236" kind="function"><name>DETextureName</name></member>
+    <member refid="classDETextureName_1a83a46d0df18122926db958448fb08d25" kind="function"><name>operator=</name></member>
+    <member refid="classDETextureName_1a0f86249334066f47ef87db576da93761" kind="function"><name>operator=</name></member>
+    <member refid="classDETextureName_1a42b6e5da476f1dabe4d49ad73095f4e3" kind="function"><name>operator=</name></member>
+    <member refid="classDETextureName_1a4bdaeb7124f150896e95c3b83e640ca7" kind="function"><name>setExt</name></member>
+    <member refid="classDETextureName_1a62fa09f46fc2adb5a02ad3f58907370b" kind="function"><name>findExisting</name></member>
+    <member refid="classDETextureName_1abe0157525af1c966b4b3e524b8fffed9" kind="function"><name>makeRelativePath</name></member>
+    <member refid="classDETextureName_1a00f33be3fbd43522fd6347ab6d49cca4" kind="function"><name>setLogWriter</name></member>
+  </compound>
+  <compound refid="structGenericBuildCache_1_1FileDataHash" kind="struct"><name>GenericBuildCache::FileDataHash</name>
+    <member refid="structGenericBuildCache_1_1FileDataHash_1a984138a66c8c6b1c6ff8b156181df852" kind="variable"><name>hash</name></member>
+    <member refid="structGenericBuildCache_1_1FileDataHash_1ab8663d0c3e6d67b62238f0584872132e" kind="variable"><name>timeStamp</name></member>
+    <member refid="structGenericBuildCache_1_1FileDataHash_1abb4f7f719c18441ed50b4a45299b29ea" kind="variable"><name>changed</name></member>
+  </compound>
+  <compound refid="classFilePathName" kind="class"><name>FilePathName</name>
+    <member refid="classFilePathName_1a66226150c970454c9e402517b78e4612" kind="function"><name>FilePathName</name></member>
+    <member refid="classFilePathName_1a3229ebc71d0cafc3ed462b3817370f01" kind="function"><name>FilePathName</name></member>
+    <member refid="classFilePathName_1aafe00093cbd088029e5bfbb3e81f1c3a" kind="function"><name>FilePathName</name></member>
+    <member refid="classFilePathName_1a629b22bdffbc8a5cabb64207c73cff75" kind="function"><name>FilePathName</name></member>
+    <member refid="classFilePathName_1a2c0d40fb5b3d5e8e009258568d98b8dd" kind="function"><name>FilePathName</name></member>
+    <member refid="classFilePathName_1af3f3a1c913d3d34ae006bd1e49cd78c5" kind="function"><name>operator=</name></member>
+    <member refid="classFilePathName_1a45a404ce35c5c10ab99521a1e4c999ae" kind="function"><name>operator=</name></member>
+    <member refid="classFilePathName_1ac0db4aeda982a077b2a977807491e047" kind="function"><name>operator=</name></member>
+    <member refid="classFilePathName_1a9c89b2f3a4484b310b50ba0151877242" kind="function"><name>getPath</name></member>
+    <member refid="classFilePathName_1a9016d2559e5a87198138179082daf2e3" kind="function"><name>getName</name></member>
+    <member refid="classFilePathName_1a22fd0385781534e303bb3f528986965c" kind="function"><name>getExt</name></member>
+    <member refid="classFilePathName_1a9535ed01eec2c4e7a8e96722f3d59e92" kind="function"><name>setPath</name></member>
+    <member refid="classFilePathName_1a98b04d589f1a60a2b0291d1d26f2037a" kind="function"><name>setName</name></member>
+    <member refid="classFilePathName_1ac186d597c134d7188e154318ec76c45f" kind="function"><name>setExt</name></member>
+    <member refid="classFilePathName_1ad267286bc7a15c561e573e4a8a472f22" kind="function"><name>makeRelativePath</name></member>
+    <member refid="classFilePathName_1a75d4ad67f81e3e9081ad07eadb09e5d8" kind="function"><name>makeFullPath</name></member>
+    <member refid="classFilePathName_1a1f07b0f1232920a293d051b490c5a2ff" kind="function"><name>makeIdent</name></member>
+    <member refid="classFilePathName_1aec6a365faaea020e75914c86563dc9f2" kind="function"><name>operator==</name></member>
+    <member refid="classFilePathName_1a72b0b51814dfdca6df4d83a20630c9d0" kind="function"><name>operator!=</name></member>
+    <member refid="classFilePathName_1aba1aaced3833be360b3755a9ac9bb233" kind="function"><name>operator==</name></member>
+    <member refid="classFilePathName_1a0a8775f37e8875eaefa768cfc8174e0a" kind="function"><name>operator!=</name></member>
+    <member refid="classFilePathName_1a1ef95b344877a034ecd999742005897a" kind="function"><name>operator==</name></member>
+    <member refid="classFilePathName_1a9009ec32bdb5c35cb649a766ab052fcb" kind="function"><name>operator!=</name></member>
+  </compound>
+  <compound refid="classmkbindump_1_1GatherNameMap" kind="class"><name>mkbindump::GatherNameMap</name>
+    <member refid="classmkbindump_1_1GatherNameMap_1adfd8501a6aae3b27641562fc4830e084" kind="variable"><name>sNid</name></member>
+    <member refid="classmkbindump_1_1GatherNameMap_1a74bc94cbb680463f6c7af1e3c90b4209" kind="variable"><name>xmap</name></member>
+    <member refid="classmkbindump_1_1GatherNameMap_1ab2bc892e277b276c7673806a0b0099f4" kind="function"><name>GatherNameMap</name></member>
+    <member refid="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" kind="function"><name>prepareXmap</name></member>
+    <member refid="classmkbindump_1_1GatherNameMap_1a77d10bc9bebb03a1af0d999c7fdfa624" kind="function"><name>getOrdinalName</name></member>
+  </compound>
+  <compound refid="classGenericBuildCache" kind="class"><name>GenericBuildCache</name>
+    <member refid="classGenericBuildCache_1a0e9ada516319eed6330df46381d349f3" kind="typedef"><name>bitarray_t</name></member>
+    <member refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" kind="variable"><name>HASH_SZ</name></member>
+    <member refid="classGenericBuildCache_1a12e5e1b0b07bc9fe0791bc9d52ff4727" kind="variable"><name>fnames</name></member>
+    <member refid="classGenericBuildCache_1ab075d16a4b91ec672e4bd37b2b72938c" kind="variable"><name>rec</name></member>
+    <member refid="classGenericBuildCache_1a6f130e6f00398a1b9d4fa81e13847077" kind="variable"><name>target</name></member>
+    <member refid="classGenericBuildCache_1a409012dff15c317c20a9b1bd3ead4d34" kind="variable"><name>touchMark</name></member>
+    <member refid="classGenericBuildCache_1aad9316a924a0094381bff9df5a7c5581" kind="variable"><name>touchMarkSz</name></member>
+    <member refid="classGenericBuildCache_1ae8d6ba24503cdbfe13b42245083b7740" kind="variable"><name>timeChanged</name></member>
+    <member refid="classGenericBuildCache_1a7dfb205f5400f21e7cf383f550e59de4" kind="variable"><name>sdkRoot</name></member>
+    <member refid="classGenericBuildCache_1a2b4a2b9584a0d9165be125ea439c991a" kind="function"><name>GenericBuildCache</name></member>
+    <member refid="classGenericBuildCache_1a91d0af3507845781e71c2b886639d0e5" kind="function"><name>reset</name></member>
+    <member refid="classGenericBuildCache_1aa82aec2464bd70e893991ea09c7583d5" kind="function"><name>load</name></member>
+    <member refid="classGenericBuildCache_1a21f34dbfa2d15fb07f29aba98f058a27" kind="function"><name>save</name></member>
+    <member refid="classGenericBuildCache_1ac012aca85cd3f27fa47d438f5de68e8e" kind="function"><name>resetTouchMark</name></member>
+    <member refid="classGenericBuildCache_1a2f7cd04b0d91da5904ee5758a038902f" kind="function"><name>checkAllTouched</name></member>
+    <member refid="classGenericBuildCache_1a29e2df354bfa64d9a634570d1b2d82f5" kind="function"><name>removeUntouched</name></member>
+    <member refid="classGenericBuildCache_1a5be5be2dd3297b88e48b24b0080f0ed1" kind="function"><name>checkFileChanged</name></member>
+    <member refid="classGenericBuildCache_1a0970fa3785cee50b5d2ce9797ade4bd0" kind="function"><name>checkDataBlockChanged</name></member>
+    <member refid="classGenericBuildCache_1a7c906355e4fa334e1c4c9c7ba2a7bd0d" kind="function"><name>checkTargetFileChanged</name></member>
+    <member refid="classGenericBuildCache_1a4758844ba0c4b212004a13f657bdd189" kind="function"><name>updateFileHash</name></member>
+    <member refid="classGenericBuildCache_1ac9abe087e3d3ec94a40147e9aa589e54" kind="function"><name>getNameList</name></member>
+    <member refid="classGenericBuildCache_1a634c2aeddfd5e254bca78ea6844acf21" kind="function"><name>setTargetFileHash</name></member>
+    <member refid="classGenericBuildCache_1a06707ed37240d0abd9583c77797fe6c3" kind="function"><name>isTimeChanged</name></member>
+    <member refid="classGenericBuildCache_1a024adaff0a6292c65dc3f6a7bee79ecf" kind="function"><name>getFileHash</name></member>
+    <member refid="classGenericBuildCache_1a2bacaa2166c6684c005087a7f42a5289" kind="function"><name>getDataHash</name></member>
+    <member refid="classGenericBuildCache_1ab30e914036d2cd4126d6b68b2572d802" kind="function"><name>getFileTime</name></member>
+    <member refid="classGenericBuildCache_1ae8cdb760156adfad1028ad55992e0a66" kind="function"><name>setSdkRoot</name></member>
+    <member refid="classGenericBuildCache_1ac0ccb25b3739bf49b3c1b5af6a8db484" kind="function"><name>mkRelPath</name></member>
+    <member refid="classGenericBuildCache_1a0ac6e12676bfd54b0ef5be250f71747a" kind="function"><name>touch</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1IesParams" kind="struct"><name>IesReader::IesParams</name>
+    <member refid="structIesReader_1_1IesParams_1a06cc32f37b4a789b3473f39e2e9a6cb1" kind="variable"><name>blurRadius</name></member>
+    <member refid="structIesReader_1_1IesParams_1a9622050576fde090978af418366ff755" kind="variable"><name>phiMin</name></member>
+    <member refid="structIesReader_1_1IesParams_1a28ff91e74b4bc8e09a85e743900420cf" kind="variable"><name>phiMax</name></member>
+    <member refid="structIesReader_1_1IesParams_1ae0869864c9199caf43892774cde0aa3f" kind="variable"><name>thetaMin</name></member>
+    <member refid="structIesReader_1_1IesParams_1a7a69244a941f08088d2f6aefc00c59d1" kind="variable"><name>thetaMax</name></member>
+    <member refid="structIesReader_1_1IesParams_1aa87137c8165df627c597364cd4ad1270" kind="variable"><name>edgeFadeout</name></member>
+  </compound>
+  <compound refid="classIesReader" kind="class"><name>IesReader</name>
+    <member refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kind="typedef"><name>Real</name></member>
+    <member refid="classIesReader_1a3e90dc714086e9406644e0c32985a219" kind="typedef"><name>PixelType</name></member>
+    <member refid="classIesReader_1a7d812aa811196bcad98d60937444aff2" kind="variable"><name>octahedralBounds</name></member>
+    <member refid="classIesReader_1a0a46cc4f9edcad9fec5752e21342c737" kind="variable"><name>params</name></member>
+    <member refid="classIesReader_1a2ec0cd9ca5433b06fe493ac0863a3bab" kind="variable"><name>lamps</name></member>
+    <member refid="classIesReader_1a0a3c5464dd8ce5d5470ae18abca1dc60" kind="variable"><name>lumensPerLamp</name></member>
+    <member refid="classIesReader_1ae4c3361c94c396ea1757cfc40e5e6a98" kind="variable"><name>multiplier</name></member>
+    <member refid="classIesReader_1a9d24c6cc71f18789472f1be58ea3c056" kind="variable"><name>photometricType</name></member>
+    <member refid="classIesReader_1a4e5d6f3e06bc99a5326461c3b4c01554" kind="variable"><name>unitsType</name></member>
+    <member refid="classIesReader_1a44af4f828eaa54c43b74f129097e9ca3" kind="variable"><name>dirX</name></member>
+    <member refid="classIesReader_1a8b05f3f2e8b3d3e8d38b55f99ab6f460" kind="variable"><name>dirY</name></member>
+    <member refid="classIesReader_1a4bdd87e683a2804a6b501c83a3605176" kind="variable"><name>dirZ</name></member>
+    <member refid="classIesReader_1ac0a29add1ca4bf12f96c3681b11c56f2" kind="variable"><name>ballastFactor</name></member>
+    <member refid="classIesReader_1ae86e9f7fe31f9910aee5fe9d12c3baf0" kind="variable"><name>futureUse</name></member>
+    <member refid="classIesReader_1acb976811a6a3146a1ce96cfac2d695bc" kind="variable"><name>inputWatts</name></member>
+    <member refid="classIesReader_1a067c921dbe1d2f88859e6ae465dc96d2" kind="variable"><name>verticalAngles</name></member>
+    <member refid="classIesReader_1a5ee4193d92ae498055d887cdde5a8177" kind="variable"><name>horizontalAngles</name></member>
+    <member refid="classIesReader_1a3e2616b09d769312953abdd33cf9fc01" kind="variable"><name>candelaValues</name></member>
+    <member refid="classIesReader_1aa5c258d5eb220dc1a6ef630a252b9f0f" kind="variable"><name>bicubicCoefficients</name></member>
+    <member refid="classIesReader_1a2a262a6ff90b45d09bb68b94fd6ed654" kind="variable"><name>maxIntensity</name></member>
+    <member refid="classIesReader_1a62833ca9e1f0121b6cad308c1dc45da0" kind="variable"><name>maxTheta</name></member>
+    <member refid="classIesReader_1a9341fbb798de04d29bc801a2248a3203" kind="function"><name>IesReader</name></member>
+    <member refid="classIesReader_1a756d7162a75ce84eb3755da9af4c0a3c" kind="function"><name>read</name></member>
+    <member refid="classIesReader_1afdd1155e96c01b9900a3f2dd398d02a6" kind="function"><name>generateSpherical</name></member>
+    <member refid="classIesReader_1a6e10dec6683d5755f3c8f3196095a2e0" kind="function"><name>generateOctahedral</name></member>
+    <member refid="classIesReader_1a379809a283140cb9ae82d1e5cb559feb" kind="function"><name>isSphericalTransformValid</name></member>
+    <member refid="classIesReader_1a14d1264aac6c47ddaf563e59b300188b" kind="function"><name>isOctahedralTransformValid</name></member>
+    <member refid="classIesReader_1a60c90d5775745916e22eceaa3b2d3f5f" kind="function"><name>getSphericalRelativeWaste</name></member>
+    <member refid="classIesReader_1a6a11403458ae64c3658008250811d16a" kind="function"><name>getOctahedralRelativeWaste</name></member>
+    <member refid="classIesReader_1a1aeba0e7335e2207a373737c2a42c031" kind="function"><name>getSphericalOptimalTransform</name></member>
+    <member refid="classIesReader_1acc37987b025ea0eab0a2229b1c13c26e" kind="function"><name>getOctahedralOptimalTransform</name></member>
+    <member refid="classIesReader_1a690485e6c7c978ddeebc9d8c5cf1efe0" kind="function"><name>sample_raw</name></member>
+    <member refid="classIesReader_1a6bf35fb17d27bc76ea6736cf57308397" kind="function"><name>sample_filtered</name></member>
+    <member refid="classIesReader_1af86a1002fc148224a8cf3385b16901eb" kind="function"><name>offsetHorizontalIndex</name></member>
+    <member refid="classIesReader_1a526e8947c4b0353a55f02b191a567ad3" kind="function"><name>nextHorizontalIndex</name></member>
+    <member refid="classIesReader_1a403fbfcddf2b17106b8790947bfeff29" kind="function"><name>previousHorizontalIndex</name></member>
+  </compound>
+  <compound refid="classIGenericProgressIndicator" kind="class"><name>IGenericProgressIndicator</name>
+    <member refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" kind="function"><name>setActionDescFmt</name></member>
+    <member refid="classIGenericProgressIndicator_1a86c83496a4c6a3e672a824fd4837a3ac" kind="function"><name>setTotal</name></member>
+    <member refid="classIGenericProgressIndicator_1af61273cbbb0a3f8b0372ab13d8fa4b4b" kind="function"><name>setDone</name></member>
+    <member refid="classIGenericProgressIndicator_1ae56a24dec52fcbdbc4dc9c0d02b56e9a" kind="function"><name>incDone</name></member>
+    <member refid="classIGenericProgressIndicator_1a2695bdad13406028345abe14136e68c4" kind="function"><name>redrawScreen</name></member>
+    <member refid="classIGenericProgressIndicator_1a7728d96da0e4b55a5a8928cd87029ca4" kind="function"><name>destroy</name></member>
+    <member refid="classIGenericProgressIndicator_1a7961d9618fbc30ba9c5a8dbf53769472" kind="function"><name>startProgress</name></member>
+    <member refid="classIGenericProgressIndicator_1a5dc6416228fdf7cb0bc96f52962e0b84" kind="function"><name>endProgress</name></member>
+    <member refid="classIGenericProgressIndicator_1a1ed452a29863168e758f85e889a2e042" kind="function"><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+  </compound>
+  <compound refid="classILogWriter" kind="class"><name>ILogWriter</name>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" kind="enum"><name>MessageType</name></member>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" kind="enumvalue"><name>NOTE</name></member>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" kind="enumvalue"><name>WARNING</name></member>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kind="enumvalue"><name>ERROR</name></member>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" kind="enumvalue"><name>FATAL</name></member>
+    <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" kind="enumvalue"><name>REMARK</name></member>
+    <member refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799" kind="function"><name>addMessageFmt</name></member>
+    <member refid="classILogWriter_1a7741a6fa40073605a2e147c3d6343463" kind="function"><name>hasErrors</name></member>
+    <member refid="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9" kind="function"><name>startLog</name></member>
+    <member refid="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062" kind="function"><name>endLog</name></member>
+    <member refid="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" kind="function"><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1ImageData" kind="struct"><name>IesReader::ImageData</name>
+    <member refid="structIesReader_1_1ImageData_1a36f8b6fe38da7cb3c21e22af8de877d1" kind="variable"><name>width</name></member>
+    <member refid="structIesReader_1_1ImageData_1a7049399dc0870aff9032ae06a6d7902e" kind="variable"><name>height</name></member>
+    <member refid="structIesReader_1_1ImageData_1a226320cc8693b30f4cab910a61cfbcc9" kind="variable"><name>data</name></member>
+    <member refid="structIesReader_1_1ImageData_1a276f9b9751d510f8b55df02eaf5d9a2e" kind="variable"><name>transform</name></member>
+  </compound>
+  <compound refid="classIProgressCB" kind="class"><name>IProgressCB</name>
+    <member refid="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4" kind="function"><name>onCancel</name></member>
+  </compound>
+  <compound refid="classIUndoRedoWndClient" kind="class"><name>IUndoRedoWndClient</name>
+    <member refid="classIUndoRedoWndClient_1a94acc7c893cf3792941c96ded5887772" kind="function"><name>updateUndoRedoMenu</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1OctahedralBounds" kind="struct"><name>IesReader::OctahedralBounds</name>
+    <member refid="structIesReader_1_1OctahedralBounds_1ad376414d4d54baf8f12924b8739f3c95" kind="variable"><name>rectilinear</name></member>
+    <member refid="structIesReader_1_1OctahedralBounds_1aaa7bd484b4f224f47de4c943d69d7954" kind="variable"><name>norm1</name></member>
+  </compound>
+  <compound refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" kind="struct"><name>mkbindump::RoDataBlockBuilder::ParamRec</name>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a1c3ccf0aa4b487f1c2d327bd4245aaba" kind="variable"><name>name</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a63e50cc71009f9beaa18605b7f04e04b" kind="variable"><name>val</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1abf8d377e34386ab8e06d68e9dff8dd95" kind="variable"><name>rval</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1afe06e271e85e58184113777f155cf1ca" kind="variable"><name>sval</name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1aa6c176db4e7eaefaa63711b1751d480a" kind="variable"><name></name></member>
+    <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1ab013915d567bdd421a4949cff28780ee" kind="variable"><name>type</name></member>
+  </compound>
+  <compound refid="structmkbindump_1_1PatchTabRef" kind="struct"><name>mkbindump::PatchTabRef</name>
+    <member refid="structmkbindump_1_1PatchTabRef_1a548dbc3febc6fcafd4918d3c45dcd68a" kind="variable"><name>base</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1ac4f7469b552a3c4ae4fb10df7b74bfba" kind="variable"><name>count</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a77a86d63429adc576322e5e924c39a99" kind="variable"><name>pos</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1ace38699612f364cf2ee8100b15c23356" kind="variable"><name>resvDataPos</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1ac22d683d5c8eb13c70d094a07dee4b17" kind="function"><name>reset</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a2d95191ef0e65a2c6cc3505ca6cf02ec" kind="function"><name>reserveTab</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a1ee0ff5b0a98d4b50ec6a9a73ee1d090" kind="function"><name>startData</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a8dae08e88833d1d09ef8598f7be23888" kind="function"><name>writeData</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a3cee02f33b4c9acc67cd82bb07721238" kind="function"><name>writeData</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1ab350f577111d8265f21cf3c75ba38d74" kind="function"><name>startDataAt</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a8a1b7adba4b242acfe370289f7c7bbc7" kind="function"><name>reserveData</name></member>
+    <member refid="structmkbindump_1_1PatchTabRef_1a7691a4ce0d4b3ab5ea0c3fe8fd41da25" kind="function"><name>finishTab</name></member>
+  </compound>
+  <compound refid="classQuietProgressIndicator" kind="class"><name>QuietProgressIndicator</name>
+    <member refid="classQuietProgressIndicator_1a67859d32e7cbdb84691eac5ef27c6001" kind="function"><name>setActionDescFmt</name></member>
+    <member refid="classQuietProgressIndicator_1a92ec0117568f718daa3640af3090c095" kind="function"><name>setTotal</name></member>
+    <member refid="classQuietProgressIndicator_1a7758f5c615be4a8524a8a73604764dd6" kind="function"><name>setDone</name></member>
+    <member refid="classQuietProgressIndicator_1a79f080ca7216b8bb06cacbaa2c3b112b" kind="function"><name>incDone</name></member>
+    <member refid="classQuietProgressIndicator_1a7c63dd859d3e3c5a4ba36fc120089bde" kind="function"><name>redrawScreen</name></member>
+    <member refid="classQuietProgressIndicator_1a6b13529b83c11fd3a5e9450166c15bf4" kind="function"><name>destroy</name></member>
+    <member refid="classQuietProgressIndicator_1a53c0da3450c198640c4bca0cf7ba8efb" kind="function"><name>startProgress</name></member>
+    <member refid="classQuietProgressIndicator_1a1c72ab1ee0c0074ef3421e9716f6f23c" kind="function"><name>endProgress</name></member>
+  </compound>
+  <compound refid="structmkbindump_1_1Ref" kind="struct"><name>mkbindump::Ref</name>
+    <member refid="structmkbindump_1_1Ref_1aa057cb1482b2262d7124e78fb72cfc62" kind="variable"><name>start</name></member>
+    <member refid="structmkbindump_1_1Ref_1a75dfbcb549f37df9445eccde2a3a9503" kind="variable"><name>count</name></member>
+    <member refid="structmkbindump_1_1Ref_1ad62674b25a97223b7bf2f4801d324102" kind="function"><name>end</name></member>
+    <member refid="structmkbindump_1_1Ref_1a3eaac2e66485726e3f3b093530f4e5dd" kind="function"><name>zero</name></member>
+    <member refid="structmkbindump_1_1Ref_1a4593a60fe396c34d194002a6fde3f115" kind="function"><name>set</name></member>
+  </compound>
+  <compound refid="classReportLogWriter" kind="class"><name>ReportLogWriter</name>
+    <member refid="classReportLogWriter_1af0bc33a7ef8f35427fae1b75bf0494ab" kind="variable"><name>list</name></member>
+    <member refid="classReportLogWriter_1a541b077d56a9f66226f0aa5af697ffad" kind="variable"><name>errors</name></member>
+    <member refid="classReportLogWriter_1a32d7f3dd9e0352f41dfb94ea4cd0982b" kind="variable"><name>warnings</name></member>
+    <member refid="classReportLogWriter_1aa6057ed11a63f994681a73e73d8297c3" kind="function"><name>ReportLogWriter</name></member>
+    <member refid="classReportLogWriter_1adf8b347787969034700f7fa630c903c1" kind="function"><name>addMessageFmt</name></member>
+    <member refid="classReportLogWriter_1ad29eb134710cb550d5508b65517f92bf" kind="function"><name>hasErrors</name></member>
+    <member refid="classReportLogWriter_1aad5449a8344a901d8189383234c3efe3" kind="function"><name>startLog</name></member>
+    <member refid="classReportLogWriter_1a93d1188aa2b0386ac060c53cead3a0b0" kind="function"><name>endLog</name></member>
+    <member refid="classReportLogWriter_1a1e07bef92c5f9720f3daa84210c53a9c" kind="function"><name>clearMessages</name></member>
+    <member refid="classReportLogWriter_1a81d43b8e1733a31c7c8f3bd7b57d0277" kind="function"><name>hasWarnings</name></member>
+    <member refid="classReportLogWriter_1a9cdf8213e15d04c87f628805ab7642d1" kind="function"><name>hasMessages</name></member>
+    <member refid="classReportLogWriter_1a183449224584316dfdae25f5ac33b172" kind="function"><name>showReport</name></member>
+  </compound>
+  <compound refid="classmkbindump_1_1RoDataBlockBuilder" kind="class"><name>mkbindump::RoDataBlockBuilder</name>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1ab1961b0373686aea9a4d5756642e9ca9" kind="variable"><name>varNames</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a7ef7e3939de6d8d0f6fa3a9f1ecb98bf" kind="variable"><name>valStr</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a6f0ed679019db54f3fa2e8e1a48d4445" kind="variable"><name>nameMap</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a7ee82e9e84628260df75162d72419d26" kind="variable"><name>realStor</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a717f7ca48c4532b3370874ba7fe16994" kind="variable"><name>intStor</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a116b86ae2a5483084462ccf0f551f680" kind="variable"><name>params</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1ad4432980d771b4c45c6264bca9cb8e36" kind="variable"><name>blocks</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a615734d1e1c3c5615135f429d0dff392" kind="variable"><name>nameMapOfs</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a4fcc9e29d35077fe225aabe43c860c24" kind="variable"><name>nameMapRefPos</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a5afe16f4b04ca1cfed1336a312899a75" kind="function"><name>RoDataBlockBuilder</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1aff89a46a4f28492d5897cf785b332523" kind="function"><name>prepare</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1adda911e1864ae96bff4a3c57e969e20c" kind="function"><name>writeHdr</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1aeced23bbb4d58172793a2ba4e705d933" kind="function"><name>writeData</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a65867ff60a1de7ce1b900856558959ca" kind="function"><name>enumDataBlock</name></member>
+    <member refid="classmkbindump_1_1RoDataBlockBuilder_1a491f76aeb09078ad480f68338206e47b" kind="function"><name>enumWriteBlocks</name></member>
+  </compound>
+  <compound refid="classmkbindump_1_1RoNameMapBuilder" kind="class"><name>mkbindump::RoNameMapBuilder</name>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" kind="variable"><name>strNames</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kind="variable"><name>map</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1ad2ab4406edcaa7525e66ae8cf2e7073e" kind="variable"><name>ptStr</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" kind="variable"><name>ptIdx</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" kind="variable"><name>noIdxRemap</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1ab5c4eb65fdd235d6e1cf0d01159673a6" kind="function"><name>RoNameMapBuilder</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" kind="function"><name>prepare</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1a751604445429fb6b4cdfd0cb89459ea8" kind="function"><name>prepare</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" kind="function"><name>writeHdr</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" kind="function"><name>writeMap</name></member>
+    <member refid="classmkbindump_1_1RoNameMapBuilder_1ae13f06dface6150571ee3aaf5e741a95" kind="function"><name>getFinalNameId</name></member>
+  </compound>
+  <compound refid="structmkbindump_1_1SharedStorage" kind="struct"><name>mkbindump::SharedStorage</name>
+    <member refid="structmkbindump_1_1SharedStorage_1af73e7327c185e48a967f7c815a46caab" kind="variable"><name>data</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a92ebb47089c4cdbb563f8ef822d59f25" kind="variable"><name>pos</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a252d0576b698748cb3638e9de7068013" kind="variable"><name>base</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a865fee3660600ba89ffd2755c594a268" kind="variable"><name>vecHolder</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a00aaa373518f8e45b3f0ef4850493067" kind="function"><name>SharedStorage</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a22f6c25f69bd3eb5185ea58d234b0615" kind="function"><name>getRef</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1ad32f2f89ef08f15c50d8ce17ce05a32c" kind="function"><name>getRef</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a0d2e8c2f95988e607d2112c3a54152f3" kind="function"><name>getRef</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a6fd4c674f049f1662a94a30b8aaf75a3" kind="function"><name>getRef</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1acbe65785c1409a37ecffce2b8d87d0ee" kind="function"><name>indexToOffset</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a0288ee836b067b85fc05dbbe956d8d75" kind="function"><name>refIndexToOffset</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1ae1b1ad457361c12fc224d071f5897eac" kind="function"><name>clear</name></member>
+    <member refid="structmkbindump_1_1SharedStorage_1a8f7ad0e4c93b1376fe40bab21548a6d9" kind="function"><name>getVecHolder</name></member>
+  </compound>
+  <compound refid="classSimpleProgressCB" kind="class"><name>SimpleProgressCB</name>
+    <member refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" kind="variable"><name>mustStop</name></member>
+    <member refid="classSimpleProgressCB_1aee9729d0390e7b274e9a5388cc87bfbb" kind="function"><name>SimpleProgressCB</name></member>
+    <member refid="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24" kind="function"><name>onCancel</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1SphericalCoordinates" kind="struct"><name>IesReader::SphericalCoordinates</name>
+    <member refid="structIesReader_1_1SphericalCoordinates_1accb565dd010dd75bb8993383fe24cc8e" kind="variable"><name>theta</name></member>
+    <member refid="structIesReader_1_1SphericalCoordinates_1a462ce65e8ab4974f3435b3d2917a992b" kind="variable"><name>phi</name></member>
+  </compound>
+  <compound refid="classmkbindump_1_1StrCollector" kind="class"><name>mkbindump::StrCollector</name>
+    <member refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kind="variable"><name>str</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kind="variable"><name>ofs</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a144356203a23297ea2f91e1df491c60f" kind="function"><name>StrCollector</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a4515e6f265ca6245722a65f3223265dd" kind="function"><name>reset</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" kind="function"><name>addString</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a58e0c79477d82d4c05e4fdab135252f8" kind="function"><name>strCount</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" kind="function"><name>writeStrings</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a12ce141a58c15d2a62586d0a85d03dc9" kind="function"><name>writeStringsEx</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a1e91d7a0f3bb69390a0ea1a87c5c39be" kind="function"><name>getOffset</name></member>
+    <member refid="classmkbindump_1_1StrCollector_1a12e4a6eab22c652d205de9d518eed8aa" kind="function"><name>getMap</name></member>
+  </compound>
+  <compound refid="classTempFilesHolder" kind="class"><name>TempFilesHolder</name>
+    <member refid="classTempFilesHolder_1ae6f44bb53f559d4597f1006b9b4957f7" kind="variable"><name>fnames</name></member>
+    <member refid="classTempFilesHolder_1aa13eb2e259ad0c7a1cfa0bc96c898b6d" kind="function"><name>TempFilesHolder</name></member>
+    <member refid="classTempFilesHolder_1a177873c9b9aca9f3c2f15bba9f011854" kind="function"><name>TempFilesHolder</name></member>
+    <member refid="classTempFilesHolder_1a8c75449262d134895f53678bee2bda66" kind="function"><name>~TempFilesHolder</name></member>
+    <member refid="classTempFilesHolder_1a107daea033c4101ae4e31ab28fac66f0" kind="function"><name>push_back</name></member>
+    <member refid="classTempFilesHolder_1a710c98a78216f986ffe54a46e03b0643" kind="function"><name>push_back</name></member>
+    <member refid="classTempFilesHolder_1a76508a6c017e159b0e69c0b58bac9602" kind="function"><name>removeFromList</name></member>
+    <member refid="classTempFilesHolder_1a84a2ead695bd2af8a0ec180e56e2e701" kind="function"><name>clearFilesList</name></member>
+    <member refid="classTempFilesHolder_1a92e29e68546d6b963b156c7ca9009a05" kind="function"><name>eraseFiles</name></member>
+    <member refid="classTempFilesHolder_1a561251ba3f6adc6d7854603c35140a46" kind="function"><name>find</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1Texcoords" kind="struct"><name>IesReader::Texcoords</name>
+    <member refid="structIesReader_1_1Texcoords_1a04b3d66c25362c02e36bb3b4b4d40dd4" kind="variable"><name>x</name></member>
+    <member refid="structIesReader_1_1Texcoords_1ac13c312c81712a29620b8556bba12610" kind="variable"><name>y</name></member>
+  </compound>
+  <compound refid="structIesReader_1_1TransformParams" kind="struct"><name>IesReader::TransformParams</name>
+    <member refid="structIesReader_1_1TransformParams_1a646a940b45c732b47af8f46032f5f7ae" kind="variable"><name>zoom</name></member>
+    <member refid="structIesReader_1_1TransformParams_1a5527553c0235c970738acbd88352d0f5" kind="variable"><name>rotated</name></member>
+  </compound>
+  <compound refid="structTwoStepRelPath" kind="struct"><name>TwoStepRelPath</name>
+    <member refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" kind="typedef"><name>storage_t</name></member>
+    <member refid="structTwoStepRelPath_1ac9bc36157412913cdb4746b933d54d54" kind="variable"><name>sdkRoot</name></member>
+    <member refid="structTwoStepRelPath_1aa04da768a991035129bc465eee3153de" kind="variable"><name>sdkRootLen</name></member>
+    <member refid="structTwoStepRelPath_1a163f32acf5f808baedc48dd574f2b75d" kind="variable"><name>sdkRootLen1</name></member>
+    <member refid="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" kind="function"><name>setSdkRoot</name></member>
+    <member refid="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" kind="function"><name>mkRelPath</name></member>
+  </compound>
+  <compound refid="classUndoRedoObject" kind="class"><name>UndoRedoObject</name>
+    <member refid="classUndoRedoObject_1a34fadaf06fb3203577c747c180f11156" kind="function"><name>~UndoRedoObject</name></member>
+    <member refid="classUndoRedoObject_1a667614c78f53dafad239f4e9b6b7e45e" kind="function"><name>restore</name></member>
+    <member refid="classUndoRedoObject_1a6cfa575de5ea88a980f90750897a7c3b" kind="function"><name>redo</name></member>
+    <member refid="classUndoRedoObject_1ae5d898fe38e036d5a3c1b156ea02e030" kind="function"><name>size</name></member>
+    <member refid="classUndoRedoObject_1ab83ce4f60d81e6e556046e6c4b5c8949" kind="function"><name>accepted</name></member>
+    <member refid="classUndoRedoObject_1ad2fdd3f63413f2656c58fe56429dfa5e" kind="function"><name>get_description</name></member>
+  </compound>
+  <compound refid="classUndoSystem" kind="class"><name>UndoSystem</name>
+    <member refid="classUndoSystem_1aa355d47aab1ca4d186cfc13b87896521" kind="function"><name>UndoSystem</name></member>
+    <member refid="classUndoSystem_1a6c7d630216788cc30a9d1955a7f7471d" kind="function"><name>UndoSystem</name></member>
+    <member refid="classUndoSystem_1a583dd0b74ecd8d0b0a7386d07149cd51" kind="function"><name>~UndoSystem</name></member>
+    <member refid="classUndoSystem_1ae533c2b1157df00b816181b1d6ade6fc" kind="function"><name>begin</name></member>
+    <member refid="classUndoSystem_1a7e44451e1825dd88e406b8b29fc5e842" kind="function"><name>put</name></member>
+    <member refid="classUndoSystem_1a0762402b582f4da4648e86934935ace6" kind="function"><name>accept</name></member>
+    <member refid="classUndoSystem_1a2baa7566f968bfd0437d56e9f8e78a0b" kind="function"><name>cancel</name></member>
+    <member refid="classUndoSystem_1afccb57eee38dff1b8c0bf395e7376fdc" kind="function"><name>is_holding</name></member>
+    <member refid="classUndoSystem_1a2db8cab3cbe55272fd6fb518dd4f6ef3" kind="function"><name>can_undo</name></member>
+    <member refid="classUndoSystem_1abb2ef9e143e8c3151c7aa5ce73132ee7" kind="function"><name>can_redo</name></member>
+    <member refid="classUndoSystem_1ae15eff0f385489b3404328e183f58ca0" kind="function"><name>undo</name></member>
+    <member refid="classUndoSystem_1ac2606c3ed1a86c1c680ed6d971e7b955" kind="function"><name>redo</name></member>
+    <member refid="classUndoSystem_1a1b80225299a4e2f005370dbec1e5aed1" kind="function"><name>undo_level</name></member>
+    <member refid="classUndoSystem_1a96ded1fee2e2c3a7ee76bfdd14d0b106" kind="function"><name>get_undo_name</name></member>
+    <member refid="classUndoSystem_1a63fee00f550a68cfaeb975512a59b774" kind="function"><name>redo_level</name></member>
+    <member refid="classUndoSystem_1a5f0b12b9bdbd7a30fb815b524733896b" kind="function"><name>get_redo_name</name></member>
+    <member refid="classUndoSystem_1ad72f6d4a1b781bae099c549d602e7565" kind="function"><name>set_max_size</name></member>
+    <member refid="classUndoSystem_1a753df80b31af7c63cd073e8611b25d17" kind="function"><name>get_max_size</name></member>
+    <member refid="classUndoSystem_1a6c7889b3ac0567cafd074d551fb24960" kind="function"><name>clear</name></member>
+    <member refid="classUndoSystem_1a55d2e00de550ee89a9b63833a86cd661" kind="function"><name>isDirty</name></member>
+    <member refid="classUndoSystem_1ae551219952c254b976fe1c7b4e383bad" kind="function"><name>setDirty</name></member>
+  </compound>
+  <compound refid="namespaceblk__util" kind="namespace"><name>blk_util</name>
+    <member refid="namespaceblk__util_1aa2d0312c3bece395639840c224f8862e" kind="function"><name>copyBlkParam</name></member>
+    <member refid="namespaceblk__util_1a5f46d0e3759ebee44f2807cb2a01852f" kind="function"><name>cmpBlkParam</name></member>
+    <member refid="namespaceblk__util_1a1faff8876f0dda11beb7c6322b07d82c" kind="function"><name>paramStrValue</name></member>
+    <member refid="namespaceblk__util_1a2d6efda6834f6b9788398ad700f29ff1" kind="function"><name>blockStrValue</name></member>
+    <member refid="namespaceblk__util_1a51df6ef62742eee97ddf35032ba48476" kind="function"><name>blkTextData</name></member>
+  </compound>
+  <compound refid="namespacedakernel" kind="namespace"><name>dakernel</name>
+    <member refid="namespacedakernel_1a7d540b655a8b53db90407ec57171b3b5" kind="function"><name>reset_named_pointers</name></member>
+    <member refid="namespacedakernel_1a24095506e57d1373c192568217dba8e0" kind="function"><name>set_named_pointer</name></member>
+    <member refid="namespacedakernel_1a77b4966983524685ec64cc00d6729ae3" kind="function"><name>get_named_pointer</name></member>
+  </compound>
+  <compound refid="namespacehdpi" kind="namespace"><name>hdpi</name>
+    <member refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kind="enum"><name>Px</name></member>
+    <member refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94fa529e9e0beb5f85d1f132917c1a09860c" kind="enumvalue"><name>ZERO</name></member>
+    <member refid="namespacehdpi_1a22453d5df5fe6e20f15684c1d1d4947a" kind="function"><name>_pxScaled</name></member>
+    <member refid="namespacehdpi_1a1dd6697feaea25074cc36dabb0120d7c" kind="function"><name>_pxActual</name></member>
+    <member refid="namespacehdpi_1a9a357b814e1249897cd6b80a35782ed6" kind="function"><name>_px</name></member>
+    <member refid="namespacehdpi_1af25c41438b62d2b1e2a309647eee43e7" kind="function"><name>_pxS</name></member>
+    <member refid="namespacehdpi_1ac7765651ca584bb4c778aee805a861fd" kind="function"><name>operator+</name></member>
+    <member refid="namespacehdpi_1a2d0b8180297c76d6a1f6caf4111617c0" kind="function"><name>operator-</name></member>
+    <member refid="namespacehdpi_1a27a16111fe2ee1ea11223cbc899db5ea" kind="function"><name>operator*</name></member>
+    <member refid="namespacehdpi_1a7a6df70e27b43cd145a328c14540f360" kind="function"><name>operator/</name></member>
+    <member refid="namespacehdpi_1a81f8127801f495cc8da2f35f0bcfa856" kind="function"><name>operator+=</name></member>
+    <member refid="namespacehdpi_1a53f06129e86815cb780297a31b572e62" kind="function"><name>operator-=</name></member>
+  </compound>
+  <compound refid="namespaceloadmask" kind="namespace"><name>loadmask</name>
+    <member refid="namespaceloadmask_1a342689e2b2f4c4ed81e9d2e4563ad4a2" kind="function"><name>loadMaskFromTga</name></member>
+    <member refid="namespaceloadmask_1aefdecbe1fae24b2f8d36efd7e96a15cc" kind="function"><name>loadMaskFromRaw32</name></member>
+    <member refid="namespaceloadmask_1a2978489198d99e82840739744c049f00" kind="function"><name>loadMaskFromRaw16</name></member>
+    <member refid="namespaceloadmask_1a48f7dec31dd98b50377df35ea4e41bfa" kind="function"><name>loadMaskFromFile</name></member>
+  </compound>
+  <compound refid="namespacemkbindump" kind="namespace"><name>mkbindump</name>
+    <member refid="namespacemkbindump_1ace92c3a42c1daec166bbc8a627ee57f0" kind="function"><name>build_ro_hier_bitmap</name></member>
+    <member refid="namespacemkbindump_1acaa5d9cd351b62983829bd17fcf4c345" kind="function"><name>save_tree_bitmap</name></member>
+    <member refid="namespacemkbindump_1a4e183ac82da7c5b8e44ed2ff072b05a4" kind="function"><name>write_ro_namemap</name></member>
+    <member refid="namespacemkbindump_1a5994b6a6434a7b699f7cf95f2be86453" kind="function"><name>write_ro_datablock</name></member>
+    <member refid="namespacemkbindump_1ae453e0b0370be1ee3ccfa6fc8ab4a54c" kind="function"><name>le2be32</name></member>
+    <member refid="namespacemkbindump_1af44d3b3b418864993ff0faea3f01dc22" kind="function"><name>le2be16</name></member>
+    <member refid="namespacemkbindump_1ad59fe8dac19713bc586e3fe609631814" kind="function"><name>le2be32_s</name></member>
+    <member refid="namespacemkbindump_1a4d211100da508896aa806b7c83063865" kind="function"><name>le2be16_s</name></member>
+    <member refid="namespacemkbindump_1abe9862cd29e897ea9fc1d77c56911882" kind="function"><name>le2be32_cond</name></member>
+    <member refid="namespacemkbindump_1a958b5a83ce5cbfe23088e6c7d02cbe4b" kind="function"><name>le2be16_cond</name></member>
+    <member refid="namespacemkbindump_1a813ebaa5fd01d980bfdd8862f79c653a" kind="function"><name>le2be32_s_cond</name></member>
+    <member refid="namespacemkbindump_1ac8b403122bc5fcff705c905a40c114cf" kind="function"><name>le2be16_s_cond</name></member>
+    <member refid="namespacemkbindump_1ab0bfea6a98d8c5278ae87a4ef3ff4632" kind="function"><name>get_target_str</name></member>
+  </compound>
+  <compound refid="namespaceposition__reconstruction__from__depth" kind="namespace"><name>position_reconstruction_from_depth</name>
+    <member refid="namespaceposition__reconstruction__from__depth_1a4e8211a28920d050b9e54e893d570fb1" kind="function"><name>linearize_z</name></member>
+    <member refid="namespaceposition__reconstruction__from__depth_1a07babd52af27e74ef6915245c2c25693" kind="function"><name>linearize_z</name></member>
+    <member refid="namespaceposition__reconstruction__from__depth_1a7aee9f84d8a31fdb83ec857602eefc74" kind="function"><name>reconstruct_ws_position_from_raw_depth</name></member>
+    <member refid="namespaceposition__reconstruction__from__depth_1ad7a07b88af59a3ac2caa65b95585e018" kind="function"><name>reconstruct_ws_position_from_linear_depth</name></member>
+    <member refid="namespaceposition__reconstruction__from__depth_1a142ee12b5b4a650696ac6e49e6d6255e" kind="function"><name>get_position_from_depth</name></member>
+  </compound>
+  <compound refid="atomicPrintf_8h" kind="file"><name>atomicPrintf.h</name>
+    <member refid="atomicPrintf_8h_1ae054e8e16df3b4d146ee72524d4bff3f" kind="define"><name>ATOMIC_PRINTF</name></member>
+    <member refid="atomicPrintf_8h_1a3dc84696469563fc776754a4aed7f30e" kind="define"><name>ATOMIC_FPRINTF</name></member>
+    <member refid="atomicPrintf_8h_1a00fe4f5e90a995baa206af8f0e21bde5" kind="define"><name>ATOMIC_PRINTF_IMM</name></member>
+    <member refid="atomicPrintf_8h_1a6ef93948f0b26be5fdb9d3d76ded5fcb" kind="define"><name>ATOMIC_FPRINTF_IMM</name></member>
+  </compound>
+  <compound refid="binDumpHierBitmap_8h" kind="file"><name>binDumpHierBitmap.h</name>
+  </compound>
+  <compound refid="binDumpReader_8h" kind="file"><name>binDumpReader.h</name>
+  </compound>
+  <compound refid="binDumpTreeBitmap_8h" kind="file"><name>binDumpTreeBitmap.h</name>
+  </compound>
+  <compound refid="binDumpUtil_8h" kind="file"><name>binDumpUtil.h</name>
+  </compound>
+  <compound refid="blkUtil_8h" kind="file"><name>blkUtil.h</name>
+  </compound>
+  <compound refid="blockFileUtil_8h" kind="file"><name>blockFileUtil.h</name>
+  </compound>
+  <compound refid="colorUtil_8h" kind="file"><name>colorUtil.h</name>
+    <member refid="colorUtil_8h_1aca7253665470cd6d03e9536523eda73f" kind="function"><name>normalize_color4</name></member>
+  </compound>
+  <compound refid="conLogWriter_8h" kind="file"><name>conLogWriter.h</name>
+  </compound>
+  <compound refid="conTextOutStream_8h" kind="file"><name>conTextOutStream.h</name>
+  </compound>
+  <compound refid="ctlReportLogWriter_8h" kind="file"><name>ctlReportLogWriter.h</name>
+  </compound>
+  <compound refid="dagUuid_8h" kind="file"><name>dagUuid.h</name>
+  </compound>
+  <compound refid="daKernel_8h" kind="file"><name>daKernel.h</name>
+  </compound>
+  <compound refid="de__TextureName_8h" kind="file"><name>de_TextureName.h</name>
+  </compound>
+  <compound refid="fileMask_8h" kind="file"><name>fileMask.h</name>
+  </compound>
+  <compound refid="filePathname_8h" kind="file"><name>filePathname.h</name>
+  </compound>
+  <compound refid="fileUtils_8h" kind="file"><name>fileUtils.h</name>
+    <member refid="fileUtils_8h_1acc6612c748276751c696f1ff7269b280" kind="function"><name>dag_get_file_time</name></member>
+    <member refid="fileUtils_8h_1a287011985f240d3e335db4c689a6b638" kind="function"><name>dag_set_file_time</name></member>
+    <member refid="fileUtils_8h_1a97d9ab8554de9fc803ccf102c6dd7eb9" kind="function"><name>dag_get_file_size</name></member>
+    <member refid="fileUtils_8h_1ad797c7692f34282344cea015d7f7c433" kind="function"><name>dag_copy_file</name></member>
+    <member refid="fileUtils_8h_1a22119067c58628699456005b70e3edea" kind="function"><name>dag_copy_folder_content</name></member>
+    <member refid="fileUtils_8h_1ac8273b37eacc782409b56cc9174d1d12" kind="function"><name>dag_path_compare</name></member>
+    <member refid="fileUtils_8h_1a3e4a112fb96c79af4fa3506198d35a79" kind="function"><name>dag_file_compare</name></member>
+    <member refid="fileUtils_8h_1a5c6cfb2bff6155d3d6c9f04ed37cb7ee" kind="function"><name>dag_read_file_to_mem</name></member>
+    <member refid="fileUtils_8h_1aa8fcc0e2a6843bcc1f3829aac87f06eb" kind="function"><name>dag_read_file_to_mem_str</name></member>
+    <member refid="fileUtils_8h_1a4381a9992d7f157a59089d0f94d2c183" kind="function"><name>dag_get_appmodule_dir</name></member>
+  </compound>
+  <compound refid="genericCache_8h" kind="file"><name>genericCache.h</name>
+  </compound>
+  <compound refid="hash_8h" kind="file"><name>hash.h</name>
+    <member refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5" kind="enum"><name></name></member>
+    <member refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a1dac28b930a8243e5482be767fc82b94" kind="enumvalue"><name>HASH_SAVECB_CRC32</name></member>
+    <member refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a6be89b483103880640a0833e8235537b" kind="enumvalue"><name>HASH_SAVECB_MD5</name></member>
+    <member refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a0388d688056c8ef2f8a8ae173b0c032d" kind="enumvalue"><name>HASH_SAVECB_SHA1</name></member>
+    <member refid="hash_8h_1a0192630fe22167c7e86fbe9b6c9eced6" kind="function"><name>get_hash</name></member>
+    <member refid="hash_8h_1a9bb2174ff6e548d94ed144e21b3e9296" kind="function"><name>get_crc32</name></member>
+    <member refid="hash_8h_1aef4f2f6b8390ff920fe290592b2dedc8" kind="function"><name>get_file_crc32</name></member>
+    <member refid="hash_8h_1ae0f281debf642a2ec916c46701994cc3" kind="function"><name>create_hash_computer_cb</name></member>
+    <member refid="hash_8h_1af1be164613465bb6557ef969dbec7fa6" kind="function"><name>get_computed_hash</name></member>
+    <member refid="hash_8h_1a33a723f40a3e7f6b02e173869cc3993e" kind="function"><name>destory_hash_computer_cb</name></member>
+  </compound>
+  <compound refid="hdpiUtil_8h" kind="file"><name>hdpiUtil.h</name>
+  </compound>
+  <compound refid="iesReader_8h" kind="file"><name>iesReader.h</name>
+  </compound>
+  <compound refid="iLogWriter_8h" kind="file"><name>iLogWriter.h</name>
+    <member refid="iLogWriter_8h_1ad5c6e896348b92a48387418a812c2187" kind="define"><name>DSA_OVERLOADS_PARAM_DECL</name></member>
+    <member refid="iLogWriter_8h_1a5efd92b66f81e72a2c053181a96518a9" kind="define"><name>DSA_OVERLOADS_PARAM_PASS</name></member>
+  </compound>
+  <compound refid="makeBindump_8h" kind="file"><name>makeBindump.h</name>
+  </compound>
+  <compound refid="meshUtil_8h" kind="file"><name>meshUtil.h</name>
+    <member refid="meshUtil_8h_1a7438545cca84e64fde792e3a27501028" kind="function"><name>validate_mesh</name></member>
+    <member refid="meshUtil_8h_1a4d7350a8922d36cecacd7e8a34a5db48" kind="function"><name>split_real_two_sided</name></member>
+  </compound>
+  <compound refid="positionReconstructionFromDepth_8h" kind="file"><name>positionReconstructionFromDepth.h</name>
+  </compound>
+  <compound refid="prepareBillboardMesh_8h" kind="file"><name>prepareBillboardMesh.h</name>
+    <member refid="prepareBillboardMesh_8h_1ad923c8ccbb1184916eb975635c406a29" kind="variable"><name>ignore_mapping_in_prepare_billboard_mesh</name></member>
+    <member refid="prepareBillboardMesh_8h_1a2c2cdf113284955b368c1c7962e32000" kind="variable"><name>generate_extra_in_prepare_billboard_mesh</name></member>
+    <member refid="prepareBillboardMesh_8h_1aea7e248254e4c9809448f21e93ae57a0" kind="function"><name>prepare_billboard_mesh</name></member>
+  </compound>
+  <compound refid="progressInd_8h" kind="file"><name>progressInd.h</name>
+    <member refid="progressInd_8h_1ad5c6e896348b92a48387418a812c2187" kind="define"><name>DSA_OVERLOADS_PARAM_DECL</name></member>
+    <member refid="progressInd_8h_1a5efd92b66f81e72a2c053181a96518a9" kind="define"><name>DSA_OVERLOADS_PARAM_PASS</name></member>
+    <member refid="progressInd_8h_1a8ab0c4aa3f53c351397a66adf2439f0b" kind="function"><name>create_con_progressbar</name></member>
+  </compound>
+  <compound refid="reportLogWriter_8h" kind="file"><name>reportLogWriter.h</name>
+  </compound>
+  <compound refid="setupTexStreaming_8h" kind="file"><name>setupTexStreaming.h</name>
+    <member refid="setupTexStreaming_8h_1afba6bbe7751f605e6211ad7dd693009f" kind="function"><name>load_tex_streaming_settings</name></member>
+  </compound>
+  <compound refid="signSha256_8h" kind="file"><name>signSha256.h</name>
+    <member refid="signSha256_8h_1ab0c3dbc48d84cbe6bfe3d6659c55b1da" kind="function"><name>add_digital_signature</name></member>
+    <member refid="signSha256_8h_1ad9015ee3bdbd8267eb806223b1048a4b" kind="function"><name>verify_digital_signature_mem</name></member>
+    <member refid="signSha256_8h_1afd7e6f57e6dad48124492f6abce2e052" kind="function"><name>verify_digital_signature</name></member>
+  </compound>
+  <compound refid="strUtil_8h" kind="file"><name>strUtil.h</name>
+    <member refid="strUtil_8h_1accfadf6f6de95ca248f1ed61e4cb1349" kind="function"><name>is_empty_string</name></member>
+    <member refid="strUtil_8h_1ac081444173a2c2fb3d8ac758ae20b6b4" kind="function"><name>is_full_path</name></member>
+    <member refid="strUtil_8h_1a883b0d41cc4bdccb241721c55e50277a" kind="function"><name>split_path</name></member>
+    <member refid="strUtil_8h_1ad813a735f62d3e5a1504e7e5187f7ef2" kind="function"><name>make_path_absolute</name></member>
+    <member refid="strUtil_8h_1ab61d36ffbbd543d07de9d5577dc90c0f" kind="function"><name>make_path_relative</name></member>
+    <member refid="strUtil_8h_1a0d198376a0e7f8d142988740e2c8a933" kind="function"><name>make_full_path</name></member>
+    <member refid="strUtil_8h_1a935597ae0de8cd68fa12ecc09f11ed36" kind="function"><name>find_in_base</name></member>
+    <member refid="strUtil_8h_1afb664154a266ee41ad4f06274f254993" kind="function"><name>find_in_base_smart</name></member>
+    <member refid="strUtil_8h_1a58b2aa15410be87a92bdbf695cf88147" kind="function"><name>location_from_path</name></member>
+    <member refid="strUtil_8h_1a7577ae2ebfc9e38386d784d3f2cfdce6" kind="function"><name>get_file_ext</name></member>
+    <member refid="strUtil_8h_1ae59a078d0fcf392bf667ccdc78b07b3b" kind="function"><name>get_file_name</name></member>
+    <member refid="strUtil_8h_1a68f76683565d8d19624790965a600c57" kind="function"><name>get_file_name_wo_ext</name></member>
+    <member refid="strUtil_8h_1a12a4d5b8eff371b2ece42f406d2e435d" kind="function"><name>append_slash</name></member>
+    <member refid="strUtil_8h_1a0ad9f57eb4f874197c820cc9ab1d2ceb" kind="function"><name>add_dot_slash</name></member>
+    <member refid="strUtil_8h_1ac1e642df8730294891b8fd072bcf3c87" kind="function"><name>make_good_path</name></member>
+    <member refid="strUtil_8h_1ad01bacfb23d07b5e1bd1def6ccc7a017" kind="function"><name>unify_path_from_win32_dlg</name></member>
+    <member refid="strUtil_8h_1a522edcb9b0df2849a76925bd26bf5b88" kind="function"><name>make_ms_slashes</name></member>
+    <member refid="strUtil_8h_1acb03cb77d2ed1a2e45ceb33c610c0066" kind="function"><name>make_slashes</name></member>
+    <member refid="strUtil_8h_1a7fe441db79805bcf3b80f3ff9a45b6af" kind="function"><name>remove_end_zeros</name></member>
+    <member refid="strUtil_8h_1adf8af22498cf7723e983c18771eedcfe" kind="function"><name>bytes_to_kb</name></member>
+    <member refid="strUtil_8h_1a9488508941a9d53a66705037de8b5556" kind="function"><name>bytes_to_mb</name></member>
+    <member refid="strUtil_8h_1a12bec0fd42bcbbd6803aaf5bc3279304" kind="function"><name>trail_strcmp</name></member>
+    <member refid="strUtil_8h_1acb263748125e685f0fdfd8af20dbae6f" kind="function"><name>trail_stricmp</name></member>
+    <member refid="strUtil_8h_1ab0255a2f2c1c3e6d8d98a8af9ea62c0a" kind="function"><name>remove_trailing_string</name></member>
+    <member refid="strUtil_8h_1a8498a398a9f836b5c63066d2a74a31eb" kind="function"><name>trim</name></member>
+    <member refid="strUtil_8h_1ab36bf624081e703d6906375657d89a40" kind="function"><name>trim</name></member>
+    <member refid="strUtil_8h_1aca6b49908c7b7ac2300ea58ed6c7b496" kind="function"><name>make_next_numbered_name</name></member>
+    <member refid="strUtil_8h_1aae68b6943ba26c6213917c47ad840225" kind="function"><name>make_ident_like_name</name></member>
+    <member refid="strUtil_8h_1ae4c6e7cda6a24459b451adc63dea0296" kind="function"><name>ensure_trailing_string</name></member>
+    <member refid="strUtil_8h_1a2c188d3bdced11c41541be734512bed1" kind="function"><name>cvt_pathname_to_valid_filename</name></member>
+    <member refid="strUtil_8h_1a6181159ade1e49a324236e6657347696" kind="function"><name>string_to_words</name></member>
+    <member refid="strUtil_8h_1ab45271f27cd8f9a575a49b92398faa95" kind="function"><name>str_has_wildcard_character</name></member>
+    <member refid="strUtil_8h_1a6aba28cd3b1ce24b09a7343c2d628023" kind="function"><name>str_matches_wildcard_pattern</name></member>
+  </compound>
+  <compound refid="svgWrite_8h" kind="file"><name>svgWrite.h</name>
+    <member refid="svgWrite_8h_1a955e02e248f8072897f682e4e0f3a123" kind="define"><name>__GAIJIN_SVG_DEBUG_H__</name></member>
+    <member refid="svgWrite_8h_1a4c49170fc87c26ca39bad8810c9f23a2" kind="function"><name>svg_open</name></member>
+    <member refid="svgWrite_8h_1a57053c47ef60c9fd1367996e39ad0f43" kind="function"><name>svg_begin_group</name></member>
+    <member refid="svgWrite_8h_1a7506bf753dff56e79ad835f3aed11cee" kind="function"><name>svg_end_group</name></member>
+    <member refid="svgWrite_8h_1a68551d9847725b2de8b44b08adcf3280" kind="function"><name>svg_draw_face</name></member>
+    <member refid="svgWrite_8h_1a5723cddfe511ae2dfdca37cfce03981e" kind="function"><name>svg_draw_line</name></member>
+    <member refid="svgWrite_8h_1a8947a2cd5ecdc20a3c909e810761ac9a" kind="function"><name>svg_draw_circle</name></member>
+    <member refid="svgWrite_8h_1ae83b9dffbeed8f911aaedcd50756cec6" kind="function"><name>svg_draw_number</name></member>
+    <member refid="svgWrite_8h_1a46d27f3041ea07a51eefd1f3673985b2" kind="function"><name>svg_start_poly</name></member>
+    <member refid="svgWrite_8h_1a59f9125861ee1aa272992c5d87ed5d27" kind="function"><name>svg_add_poly_point</name></member>
+    <member refid="svgWrite_8h_1a33ebcfd2b74a5990ca046e765b514ca5" kind="function"><name>svg_end_poly</name></member>
+    <member refid="svgWrite_8h_1a0a8f500b9226e57d2c1865a8b3783c68" kind="function"><name>svg_close</name></member>
+  </compound>
+  <compound refid="targetClass_8h" kind="file"><name>targetClass.h</name>
+    <member refid="targetClass_8h_1a07d0dc339289f79ac8c6c3d5778007b2" kind="function"><name>dagor_target_code_valid</name></member>
+    <member refid="targetClass_8h_1a104dd2489da4658cffd8a561779a820b" kind="function"><name>dagor_target_code_be</name></member>
+    <member refid="targetClass_8h_1ac7e15e64bbfd6ff979b9b68db98b4a9d" kind="function"><name>dagor_target_code_store_packed</name></member>
+    <member refid="targetClass_8h_1af4964ff6b5e298f121e0d66ca2d2fecf" kind="function"><name>dagor_target_code_supports_tex_diff</name></member>
+  </compound>
+  <compound refid="tempFilesHolder_8h" kind="file"><name>tempFilesHolder.h</name>
+  </compound>
+  <compound refid="twoStepRelPath_8h" kind="file"><name>twoStepRelPath.h</name>
+  </compound>
+  <compound refid="undo_8h" kind="file"><name>undo.h</name>
+    <member refid="undo_8h_1a804c131be95016a648787b9cc3361c3c" kind="function"><name>create_undo_system</name></member>
+  </compound>
+</doxygenindex>

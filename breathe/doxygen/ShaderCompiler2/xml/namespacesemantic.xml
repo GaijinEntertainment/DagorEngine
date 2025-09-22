@@ -1,0 +1,555 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacesemantic" kind="namespace" language="C++">
+    <compoundname>semantic</compoundname>
+    <innerclass refid="structsemantic_1_1BoolVarLookupRes" prot="public">semantic::BoolVarLookupRes</innerclass>
+    <innerclass refid="structsemantic_1_1HlslCompileClass" prot="public">semantic::HlslCompileClass</innerclass>
+    <innerclass refid="structsemantic_1_1HlslCompileDirective" prot="public">semantic::HlslCompileDirective</innerclass>
+    <innerclass refid="structsemantic_1_1HlslNullCompileDirective" prot="public">semantic::HlslNullCompileDirective</innerclass>
+    <innerclass refid="structsemantic_1_1HlslSetDefaultTargetDirective" prot="public">semantic::HlslSetDefaultTargetDirective</innerclass>
+    <innerclass refid="structsemantic_1_1LocalVarDefInfo" prot="public">semantic::LocalVarDefInfo</innerclass>
+    <innerclass refid="structsemantic_1_1NamedConstDefInfo" prot="public">semantic::NamedConstDefInfo</innerclass>
+    <innerclass refid="structsemantic_1_1NamedConstInitializerElement" prot="public">semantic::NamedConstInitializerElement</innerclass>
+    <innerclass refid="classsemantic_1_1VariantBoolExprEvalCB" prot="public">semantic::VariantBoolExprEvalCB</innerclass>
+    <innerclass refid="structsemantic_1_1VarLookupRes" prot="public">semantic::VarLookupRes</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>VariableType</name>
+        <qualifiedname>semantic::VariableType</qualifiedname>
+        <enumvalue id="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" prot="public">
+          <name>Unknown</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182aaa735fdf551941f91f9410dc628769db" prot="public">
+          <name>TYPE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182ab7ae76be005abffc653e7627dc3ac1ee" prot="public">
+          <name>staticSampler</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="50" column="1" bodyfile="variantSemantic.h" bodystart="51" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacesemantic_1a3f41f0541f7be2032f5c877c84ec11a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::compare_hw_token</definition>
+        <argsstring>(int tok, const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>compare_hw_token</name>
+        <qualifiedname>semantic::compare_hw_token</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>tok</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.cpp" line="18" column="6" bodyfile="hwSemantic.cpp" bodystart="18" bodyend="127" declfile="hwSemantic.h" declline="15" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ae66423d03cf9d3050613a27a1686fa6b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool semantic::hlsl_profile_is_valid</definition>
+        <argsstring>(const char *profile, size_t len)</argsstring>
+        <name>hlsl_profile_is_valid</name>
+        <qualifiedname>semantic::hlsl_profile_is_valid</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.cpp" line="129" column="13" bodyfile="hwSemantic.cpp" bodystart="129" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ac0a87d8d130643580eaf930d7536c42f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1HlslCompileClass" kindref="compound">HlslCompileClass</ref></type>
+        <definition>HlslCompileClass semantic::parse_hlsl_compilation_info</definition>
+        <argsstring>(ShaderTerminal::hlsl_compile_class &amp;hlsl_compile, Parser &amp;parser, const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>parse_hlsl_compilation_info</name>
+        <qualifiedname>semantic::parse_hlsl_compilation_info</qualifiedname>
+        <param>
+          <type>ShaderTerminal::hlsl_compile_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.cpp" line="162" column="18" bodyfile="hwSemantic.cpp" bodystart="162" bodyend="295" declfile="hwSemantic.h" declline="51" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a6b39c1fad1298c77aa50c91779bd0413" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::validate_hardcoded_regs_in_hlsl_block</definition>
+        <argsstring>(const ShaderTerminal::SHTOK_hlsl_text *hlsl)</argsstring>
+        <name>validate_hardcoded_regs_in_hlsl_block</name>
+        <qualifiedname>semantic::validate_hardcoded_regs_in_hlsl_block</qualifiedname>
+        <param>
+          <type>const ShaderTerminal::SHTOK_hlsl_text *</type>
+          <declname>hlsl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.cpp" line="297" column="6" bodyfile="hwSemantic.cpp" bodystart="297" bodyend="328" declfile="hwSemantic.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a5b451a7f2f872ed9fefaef59b174d9c4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::compare_hw_token</definition>
+        <argsstring>(ShaderTerminal::bool_value &amp;hw_bool, const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>compare_hw_token</name>
+        <qualifiedname>semantic::compare_hw_token</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_value &amp;</type>
+          <declname>hw_bool</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="17" column="13" bodyfile="hwSemantic.h" bodystart="17" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a12cb5a616e51a0afbd183d9a122b0dc1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void semantic::initialize_debug_mode</definition>
+        <argsstring>(shc::ShaderContext &amp;ctx)</argsstring>
+        <name>initialize_debug_mode</name>
+        <qualifiedname>semantic::initialize_debug_mode</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.cpp" line="8" column="6" bodyfile="shaderSemantic.cpp" bodystart="8" bodyend="31" declfile="shaderSemantic.h" declline="59" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a6010479c8e0bd3d4760a5022e4b3fa96" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::parse_hlsl_source_to_blocks</definition>
+        <argsstring>(const PerHlslStage&lt; CodeSourceBlocks * &gt; &amp;dst, ShaderParser::ShaderBoolEvalCB &amp;boolCb, shc::ShaderContext &amp;ctx)</argsstring>
+        <name>parse_hlsl_source_to_blocks</name>
+        <qualifiedname>semantic::parse_hlsl_source_to_blocks</qualifiedname>
+        <param>
+          <type>const <ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; <ref refid="classCodeSourceBlocks" kindref="compound">CodeSourceBlocks</ref> * &gt; &amp;</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>boolCb</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.cpp" line="33" column="6" bodyfile="shaderSemantic.cpp" bodystart="33" bodyend="72" declfile="shaderSemantic.h" declline="61" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ae53a14963271647d198fdd5ecce705a4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1BoolVarLookupRes" kindref="compound">BoolVarLookupRes</ref></type>
+        <definition>BoolVarLookupRes semantic::get_bool_maybe</definition>
+        <argsstring>(ShaderTerminal::SHTOK_ident &amp;ident, const auto &amp;locvar_ctx, const shc::TargetContext &amp;tgt_ctx)</argsstring>
+        <name>get_bool_maybe</name>
+        <qualifiedname>semantic::get_bool_maybe</qualifiedname>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident &amp;</type>
+          <declname>ident</declname>
+        </param>
+        <param>
+          <type>const auto &amp;</type>
+          <declname>locvar_ctx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>tgt_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="24" column="25" bodyfile="shaderSemantic.h" bodystart="24" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ab76cb307b268e760be1f5a4e21cd2e60" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1BoolVarLookupRes" kindref="compound">BoolVarLookupRes</ref></type>
+        <definition>BoolVarLookupRes semantic::get_bool_expr</definition>
+        <argsstring>(ShaderTerminal::SHTOK_ident &amp;ident, Parser &amp;parser, const auto &amp;locvar_ctx, const shc::TargetContext &amp;tgt_ctx)</argsstring>
+        <name>get_bool_expr</name>
+        <qualifiedname>semantic::get_bool_expr</qualifiedname>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident &amp;</type>
+          <declname>ident</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const auto &amp;</type>
+          <declname>locvar_ctx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>tgt_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="36" column="25" bodyfile="shaderSemantic.h" bodystart="36" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1af8947c2c8c73e8adddfbc28ca1beccf9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::compare_shader</definition>
+        <argsstring>(ShaderTerminal::bool_value &amp;e, const shc::ShaderContext &amp;ctx)</argsstring>
+        <name>compare_shader</name>
+        <qualifiedname>semantic::compare_shader</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_value &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="45" column="13" bodyfile="shaderSemantic.h" bodystart="45" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a69d749806268f5b3b7cafa16cab36787" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1VarLookupRes" kindref="compound">VarLookupRes</ref></type>
+        <definition>VarLookupRes semantic::lookup_state_var</definition>
+        <argsstring>(const char *name, shc::VariantContext &amp;ctx, bool allow_not_found, const Terminal *t)</argsstring>
+        <name>lookup_state_var</name>
+        <qualifiedname>semantic::lookup_state_var</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_not_found</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.cpp" line="13" column="14" bodyfile="variantSemantic.cpp" bodystart="13" bodyend="41" declfile="variantSemantic.h" declline="16" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a86f59efe30e2fc10075f9f9ee14fbd09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; ShaderStage &gt;</type>
+        <definition>eastl::optional&lt; ShaderStage &gt; semantic::parse_state_block_stage</definition>
+        <argsstring>(const char *stage_str)</argsstring>
+        <name>parse_state_block_stage</name>
+        <qualifiedname>semantic::parse_state_block_stage</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>stage_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.cpp" line="288" column="17" bodyfile="variantSemantic.cpp" bodystart="288" bodyend="302" declfile="variantSemantic.h" declline="37" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1af0b1e07e31a716f1a8699d9ca402b2a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">NamedConstDefInfo</ref> &gt;</type>
+        <definition>eastl::optional&lt; NamedConstDefInfo &gt; semantic::parse_named_const_definition</definition>
+        <argsstring>(const state_block_stat &amp;state_block, ShaderStage stage, VariableType vt, shc::VariantContext &amp;ctx, IMemAlloc *tmp_memory)</argsstring>
+        <name>parse_named_const_definition</name>
+        <qualifiedname>semantic::parse_named_const_definition</qualifiedname>
+        <param>
+          <type>const state_block_stat &amp;</type>
+          <declname>state_block</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>tmp_memory</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.cpp" line="304" column="17" bodyfile="variantSemantic.cpp" bodystart="304" bodyend="857" declfile="variantSemantic.h" declline="298" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1aa7d8cdb06eb014e4ae6ba3205f29b555" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structsemantic_1_1LocalVarDefInfo" kindref="compound">LocalVarDefInfo</ref> &gt;</type>
+        <definition>eastl::optional&lt; LocalVarDefInfo &gt; semantic::parse_local_var_decl</definition>
+        <argsstring>(local_var_decl &amp;decl, shc::VariantContext &amp;ctx, bool ignore_color_dimension_mismatch, bool allow_override)</argsstring>
+        <name>parse_local_var_decl</name>
+        <qualifiedname>semantic::parse_local_var_decl</qualifiedname>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>decl</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ignore_color_dimension_mismatch</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_override</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.cpp" line="859" column="17" bodyfile="variantSemantic.cpp" bodystart="859" bodyend="960" declfile="variantSemantic.h" declline="307" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a9ebdef6c961777963d1b55371f50cf77" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1VarLookupRes" kindref="compound">VarLookupRes</ref></type>
+        <definition>VarLookupRes semantic::lookup_state_var</definition>
+        <argsstring>(const Terminal &amp;name_term, shc::VariantContext &amp;ctx, bool allow_not_found=false)</argsstring>
+        <name>lookup_state_var</name>
+        <qualifiedname>semantic::lookup_state_var</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>name_term</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_not_found</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="18" column="21" bodyfile="variantSemantic.h" bodystart="18" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a68675013876f05d68c74690f9130e646" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool semantic::vt_is_numeric</definition>
+        <argsstring>(VariableType vt)</argsstring>
+        <name>vt_is_numeric</name>
+        <qualifiedname>semantic::vt_is_numeric</qualifiedname>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="59" column="23" bodyfile="variantSemantic.h" bodystart="59" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ae504ec94402a1d67ea492cf9b123e02b" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool semantic::vt_is_integer</definition>
+        <argsstring>(VariableType vt)</argsstring>
+        <name>vt_is_integer</name>
+        <qualifiedname>semantic::vt_is_integer</qualifiedname>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="80" column="23" bodyfile="variantSemantic.h" bodystart="80" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a7bb2b3bb134f7142cbbb1f9424b61da8" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool semantic::vt_is_sampled_texture</definition>
+        <argsstring>(VariableType vt)</argsstring>
+        <name>vt_is_sampled_texture</name>
+        <qualifiedname>semantic::vt_is_sampled_texture</qualifiedname>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="101" column="23" bodyfile="variantSemantic.h" bodystart="101" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a477f00043c849605a540cfbc6ae679fa" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool semantic::vt_is_static_texture</definition>
+        <argsstring>(VariableType vt)</argsstring>
+        <name>vt_is_static_texture</name>
+        <qualifiedname>semantic::vt_is_static_texture</qualifiedname>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="116" column="23" bodyfile="variantSemantic.h" bodystart="116" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1ad904cd91752c2bbdd55d5819dbbf7c55" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int semantic::vt_float_size</definition>
+        <argsstring>(VariableType vt)</argsstring>
+        <name>vt_float_size</name>
+        <qualifiedname>semantic::vt_float_size</qualifiedname>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="122" column="22" bodyfile="variantSemantic.h" bodystart="122" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1a26809badc21277913c28bf87a518169e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+        <definition>VariableType semantic::name_space_to_type</definition>
+        <argsstring>(const char *name_space)</argsstring>
+        <name>name_space_to_type</name>
+        <qualifiedname>semantic::name_space_to_type</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name_space</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="144" column="21" bodyfile="variantSemantic.h" bodystart="144" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemantic_1af126f5a1c2217c70427cbebf8a43a267" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+        <definition>VariableType semantic::parse_named_const_type</definition>
+        <argsstring>(const state_block_stat &amp;state_block)</argsstring>
+        <name>parse_named_const_type</name>
+        <qualifiedname>semantic::parse_named_const_type</qualifiedname>
+        <param>
+          <type>const state_block_stat &amp;</type>
+          <declname>state_block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="284" column="21" bodyfile="variantSemantic.h" bodystart="284" bodyend="296"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="23" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,211 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacesemicooked" kind="namespace" language="C++">
+    <compoundname>semicooked</compoundname>
+    <innerclass refid="structsemicooked_1_1ShaderClassRecEx" prot="public">semicooked::ShaderClassRecEx</innerclass>
+    <innerclass refid="structsemicooked_1_1ShaderCodes" prot="public">semicooked::ShaderCodes</innerclass>
+    <innerclass refid="structsemicooked_1_1Variables" prot="public">semicooked::Variables</innerclass>
+    <innerclass refid="structsemicooked_1_1Variants" prot="public">semicooked::Variants</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespacesemicooked_1a6ceb5832036336385a0d5d58321301b7" prot="public" static="yes" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semicooked::hardcodedBlkName[SHADER_BLOCK_HIER_LEVELS]</definition>
+        <argsstring>[SHADER_BLOCK_HIER_LEVELS]</argsstring>
+        <name>hardcodedBlkName</name>
+        <qualifiedname>semicooked::hardcodedBlkName</qualifiedname>
+        <initializer>= {&quot;!frame&quot;, &quot;!obj&quot;, &quot;!scene&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="53" column="19" bodyfile="makeShBinDump.cpp" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacesemicooked_1a0a3f0994aacdfb1dac3395942227f4ad" prot="public" static="yes" mutable="no">
+        <type>const <ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+        <definition>const ShaderBlockLevel semicooked::hardcodedBlkLayer[SHADER_BLOCK_HIER_LEVELS]</definition>
+        <argsstring>[SHADER_BLOCK_HIER_LEVELS]</argsstring>
+        <name>hardcodedBlkLayer</name>
+        <qualifiedname>semicooked::hardcodedBlkLayer</qualifiedname>
+        <initializer>= {
+  <ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6cac57e921596445b99ab85558984966184" kindref="member">ShaderBlockLevel::FRAME</ref>, <ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca8eee8e217391199668cbac89472ace53" kindref="member">ShaderBlockLevel::OBJECT</ref>, <ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caf151a543099185593a5a87339c552698" kindref="member">ShaderBlockLevel::SCENE</ref>}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="54" column="31" bodyfile="makeShBinDump.cpp" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacesemicooked_1ac9111086f3e71824a4d88a659fa8a543" prot="public" static="yes" mutable="no">
+        <type><ref refid="structShaderStateBlock_1_1BuildTimeData" kindref="compound">ShaderStateBlock::BuildTimeData</ref></type>
+        <definition>ShaderStateBlock::BuildTimeData semicooked::hardcodedBlk[SHADER_BLOCK_HIER_LEVELS]</definition>
+        <argsstring>[SHADER_BLOCK_HIER_LEVELS]</argsstring>
+        <name>hardcodedBlk</name>
+        <qualifiedname>semicooked::hardcodedBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="56" column="40" bodyfile="makeShBinDump.cpp" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacesemicooked_1ac17a472aa0cb61b257d2e37474a5152e" prot="public" static="yes" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned semicooked::fullBlkLayerMask</definition>
+        <argsstring></argsstring>
+        <name>fullBlkLayerMask</name>
+        <qualifiedname>semicooked::fullBlkLayerMask</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="57" column="17" bodyfile="makeShBinDump.cpp" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacesemicooked_1ae610fd077ff1d3399322dd91c6f743e9" prot="public" static="yes" mutable="no">
+        <type>SharedStorage&lt; blk_word_t &gt;</type>
+        <definition>SharedStorage&lt;blk_word_t&gt; semicooked::globalSuppBlkSign</definition>
+        <argsstring></argsstring>
+        <name>globalSuppBlkSign</name>
+        <qualifiedname>semicooked::globalSuppBlkSign</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="712" column="22" bodyfile="makeShBinDump.cpp" bodystart="712" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacesemicooked_1a681750bc21eeb360ba0b11da955fe78b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void semicooked::addSuppCodes</definition>
+        <argsstring>(Tab&lt; const ShaderStateBlock * &gt; &amp;ssbHier, Tab&lt; blk_word_t &gt; &amp;codes)</argsstring>
+        <name>addSuppCodes</name>
+        <qualifiedname>semicooked::addSuppCodes</qualifiedname>
+        <param>
+          <type>Tab&lt; const <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt; &amp;</type>
+          <declname>ssbHier</declname>
+        </param>
+        <param>
+          <type>Tab&lt; blk_word_t &gt; &amp;</type>
+          <declname>codes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="59" column="13" bodyfile="makeShBinDump.cpp" bodystart="59" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemicooked_1a6ef9696011f74bd8edbd96bc445d2b5e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void semicooked::processShaderBlocks</definition>
+        <argsstring>(dag::Span&lt; ShaderStateBlock * &gt; blocks, SharedStorage&lt; blk_word_t &gt; &amp;blkPartSign)</argsstring>
+        <name>processShaderBlocks</name>
+        <qualifiedname>semicooked::processShaderBlocks</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+          <declname>blocks</declname>
+        </param>
+        <param>
+          <type>SharedStorage&lt; blk_word_t &gt; &amp;</type>
+          <declname>blkPartSign</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="78" column="13" bodyfile="makeShBinDump.cpp" bodystart="78" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemicooked_1a512be2e649522fe663e5bf44fe19eb45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semicooked::areIntervalsEqual</definition>
+        <argsstring>(const shader_layout::Interval&lt;&gt; &amp;a, const shader_layout::Interval&lt;&gt; &amp;b)</argsstring>
+        <name>areIntervalsEqual</name>
+        <qualifiedname>semicooked::areIntervalsEqual</qualifiedname>
+        <param>
+          <type>const shader_layout::Interval&lt;&gt; &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const shader_layout::Interval&lt;&gt; &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="164" column="6" bodyfile="makeShBinDump.cpp" bodystart="164" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemicooked_1a310101ca5102122ab3f5bffc42f9086e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int semicooked::cmpPacked2uint16Map</definition>
+        <argsstring>(const uint32_t *a, const uint32_t *b)</argsstring>
+        <name>cmpPacked2uint16Map</name>
+        <qualifiedname>semicooked::cmpPacked2uint16Map</qualifiedname>
+        <param>
+          <type>const uint32_t *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const uint32_t *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="710" column="12" bodyfile="makeShBinDump.cpp" bodystart="710" bodyend="710"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemicooked_1aeb6dadc2e04aa3fb6dca39d22bff3412" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void semicooked::addRemappedStrData</definition>
+        <argsstring>(GatherNameMap &amp;varMap, Variables &amp;vars, Variants &amp;vt, bindump::VecHolder&lt; bindump::StrHolder&lt;&gt; &gt; &amp;var_names)</argsstring>
+        <name>addRemappedStrData</name>
+        <qualifiedname>semicooked::addRemappedStrData</qualifiedname>
+        <param>
+          <type>GatherNameMap &amp;</type>
+          <declname>varMap</declname>
+        </param>
+        <param>
+          <type><ref refid="structsemicooked_1_1Variables" kindref="compound">Variables</ref> &amp;</type>
+          <declname>vars</declname>
+        </param>
+        <param>
+          <type><ref refid="structsemicooked_1_1Variants" kindref="compound">Variants</ref> &amp;</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>bindump::VecHolder&lt; bindump::StrHolder&lt;&gt; &gt; &amp;</type>
+          <declname>var_names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="888" column="6" bodyfile="makeShBinDump.cpp" bodystart="888" bodyend="927"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="makeShBinDump.cpp" line="50" column="1"/>
+  </compounddef>
+</doxygen>

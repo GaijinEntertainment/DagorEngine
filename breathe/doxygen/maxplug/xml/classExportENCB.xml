@@ -1,0 +1,1302 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classExportENCB" kind="class" language="C++" prot="public">
+    <compoundname>ExportENCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+    <innerclass refid="structExportENCB_1_1AnimDataHeader" prot="public">ExportENCB::AnimDataHeader</innerclass>
+    <innerclass refid="structExportENCB_1_1AnimKeyLabel" prot="public">ExportENCB::AnimKeyLabel</innerclass>
+    <innerclass refid="structExportENCB_1_1AnimKeyQuat" prot="public">ExportENCB::AnimKeyQuat</innerclass>
+    <innerclass refid="structExportENCB_1_1ChannelParams" prot="public">ExportENCB::ChannelParams</innerclass>
+    <innerclass refid="structExportENCB_1_1DataTypeHeader" prot="public">ExportENCB::DataTypeHeader</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ExportENCB</qualifiedname>
+        <enumvalue id="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391aa9f5ed9c906b1b726bb02418c5b5f800" prot="public">
+          <name>DATATYPE_POINT3</name>
+          <initializer>= 0x577084E5u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391a9b81157e2e3a8eda86dc44e35fa1e5d7" prot="public">
+          <name>DATATYPE_QUAT</name>
+          <initializer>= 0x39056464u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391a7ca948f7feaddc0e154d85651568c817" prot="public">
+          <name>DATATYPE_REAL</name>
+          <initializer>= 0xEE0BD66Au</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3296" column="3" bodyfile="expUtil.cpp" bodystart="3297" bodyend="3301"/>
+      </memberdef>
+      <memberdef kind="enum" id="classExportENCB_1ab98d903c76ffc62042bae791f692506b" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ExportENCB</qualifiedname>
+        <enumvalue id="classExportENCB_1ab98d903c76ffc62042bae791f692506babb547fe8d4c798e649778cd01fe8069d" prot="public">
+          <name>CHTYPE_POSITION</name>
+          <initializer>= 0xE66CF0CCu</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1ab98d903c76ffc62042bae791f692506baba7c816286e05a78ea6493f66931112b" prot="public">
+          <name>CHTYPE_SCALE</name>
+          <initializer>= 0x48D43D77u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1ab98d903c76ffc62042bae791f692506bad4734a4dd4bc2a61c361bcfc0ce2193f" prot="public">
+          <name>CHTYPE_ORIGIN_LIN_VEL</name>
+          <initializer>= 0x31DE5F48u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1ab98d903c76ffc62042bae791f692506ba65580c66f732cdc89f87f21e3c7a25ec" prot="public">
+          <name>CHTYPE_ORIGIN_ANG_VEL</name>
+          <initializer>= 0x09FD7093u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExportENCB_1ab98d903c76ffc62042bae791f692506ba315588d8508bf38c15145af7466534c4" prot="public">
+          <name>CHTYPE_ROTATION</name>
+          <initializer>= 0x8D490AE4u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3303" column="3" bodyfile="expUtil.cpp" bodystart="3304" bodyend="3310"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classExportENCB_1a40283f30686d7b2f9399360a8c7ee33a" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue ExportENCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>ExportENCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1168" column="13" bodyfile="expUtil.cpp" bodystart="1168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a5ca954fd089f989d7efb4e064a038309" prot="public" static="no" mutable="no">
+        <type>Tab&lt; INode * &gt;</type>
+        <definition>Tab&lt;INode *&gt; ExportENCB::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>ExportENCB::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1169" column="7" bodyfile="expUtil.cpp" bodystart="1169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a212a05425275e17313a58810e69ec95c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; bool &gt;</type>
+        <definition>Tab&lt;bool&gt; ExportENCB::nodeExp</definition>
+        <argsstring></argsstring>
+        <name>nodeExp</name>
+        <qualifiedname>ExportENCB::nodeExp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1170" column="7" bodyfile="expUtil.cpp" bodystart="1170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1ade52d93e7d1099a6d2046bde7e5698f2" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structExpMat" kindref="compound">ExpMat</ref> &gt;</type>
+        <definition>Tab&lt;ExpMat&gt; ExportENCB::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>ExportENCB::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1171" column="7" bodyfile="expUtil.cpp" bodystart="1171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1addef173d7948447d3866ebd84d86ea10" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; std::SET_TYPE&lt; Mtl * &gt; &gt;</type>
+        <definition>std::vector&lt;std::SET_TYPE&lt;Mtl *&gt; &gt; ExportENCB::mtls</definition>
+        <argsstring></argsstring>
+        <name>mtls</name>
+        <qualifiedname>ExportENCB::mtls</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1172" column="15" bodyfile="expUtil.cpp" bodystart="1172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a9798223a7ea40950b4f2f05d1e7e23fd" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ExportENCB::matIDtoMatIdx</definition>
+        <argsstring></argsstring>
+        <name>matIDtoMatIdx</name>
+        <qualifiedname>ExportENCB::matIDtoMatIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1173" column="7" bodyfile="expUtil.cpp" bodystart="1173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a3c5f522e5c2650d1932840a9e4f057d0" prot="public" static="no" mutable="no">
+        <type>Tab&lt; TCHAR * &gt;</type>
+        <definition>Tab&lt;TCHAR *&gt; ExportENCB::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>ExportENCB::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1174" column="7" bodyfile="expUtil.cpp" bodystart="1174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a8bcbb5fb0fcf139c3b0fb37ff8a0942d" prot="public" static="no" mutable="no">
+        <type>Tab&lt; TCHAR * &gt;</type>
+        <definition>Tab&lt;TCHAR *&gt; ExportENCB::klabel</definition>
+        <argsstring></argsstring>
+        <name>klabel</name>
+        <qualifiedname>ExportENCB::klabel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1175" column="7" bodyfile="expUtil.cpp" bodystart="1175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a3e595643bf5f6eb98fd0ff3105328c87" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structExpNoteTrack" kindref="compound">ExpNoteTrack</ref> * &gt;</type>
+        <definition>Tab&lt;ExpNoteTrack *&gt; ExportENCB::ntrack</definition>
+        <argsstring></argsstring>
+        <name>ntrack</name>
+        <qualifiedname>ExportENCB::ntrack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1176" column="7" bodyfile="expUtil.cpp" bodystart="1176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1ae11b6df0abdc0946ce4f4e5805794591" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExportENCB::max_pkeys</definition>
+        <argsstring></argsstring>
+        <name>max_pkeys</name>
+        <qualifiedname>ExportENCB::max_pkeys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1177" column="7" bodyfile="expUtil.cpp" bodystart="1177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1ad3db7127424d6cf1389a10da416ef3a7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExportENCB::max_rkeys</definition>
+        <argsstring></argsstring>
+        <name>max_rkeys</name>
+        <qualifiedname>ExportENCB::max_rkeys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1177" column="17" bodyfile="expUtil.cpp" bodystart="1177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a74a42c2cf36b768eac48cf42308cc61c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExportENCB::max_skeys</definition>
+        <argsstring></argsstring>
+        <name>max_skeys</name>
+        <qualifiedname>ExportENCB::max_skeys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1177" column="27" bodyfile="expUtil.cpp" bodystart="1177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a9b89aa734b4bc0b483d362533a7fcf94" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* ExportENCB::max_pkeys_n</definition>
+        <argsstring></argsstring>
+        <name>max_pkeys_n</name>
+        <qualifiedname>ExportENCB::max_pkeys_n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1178" column="9" bodyfile="expUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a282ee8289b7875304df23fe8e7003293" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode * ExportENCB::max_rkeys_n</definition>
+        <argsstring></argsstring>
+        <name>max_rkeys_n</name>
+        <qualifiedname>ExportENCB::max_rkeys_n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1178" column="21" bodyfile="expUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a7421f55dc83e6d06ddf9a815c926520f" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode * ExportENCB::max_skeys_n</definition>
+        <argsstring></argsstring>
+        <name>max_skeys_n</name>
+        <qualifiedname>ExportENCB::max_skeys_n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1178" column="33" bodyfile="expUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a34eeca1eb50b92257fe7ddff0bab055a" prot="public" static="no" mutable="no">
+        <type>INodeTab</type>
+        <definition>INodeTab ExportENCB::nonort_nodes</definition>
+        <argsstring></argsstring>
+        <name>nonort_nodes</name>
+        <qualifiedname>ExportENCB::nonort_nodes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1179" column="12" bodyfile="expUtil.cpp" bodystart="1179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a11424e241091bee00004601c9a2d26de" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* ExportENCB::nodeOrigin</definition>
+        <argsstring></argsstring>
+        <name>nodeOrigin</name>
+        <qualifiedname>ExportENCB::nodeOrigin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1180" column="9" bodyfile="expUtil.cpp" bodystart="1180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a77aa44ec1356ee83d4127c059808f5b1" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* ExportENCB::useIdentityTransformForNode</definition>
+        <argsstring></argsstring>
+        <name>useIdentityTransformForNode</name>
+        <qualifiedname>ExportENCB::useIdentityTransformForNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1181" column="9" bodyfile="expUtil.cpp" bodystart="1181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a727f2b5fac19fa93ccea3c2ff888877c" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char ExportENCB::nonort</definition>
+        <argsstring></argsstring>
+        <name>nonort</name>
+        <qualifiedname>ExportENCB::nonort</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1182" column="8" bodyfile="expUtil.cpp" bodystart="1182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a8b78ce658a6310287b03e50695ad7c3b" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char ExportENCB::nofaces</definition>
+        <argsstring></argsstring>
+        <name>nofaces</name>
+        <qualifiedname>ExportENCB::nofaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1182" column="15" bodyfile="expUtil.cpp" bodystart="1182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a205f7c37a8d7a345a547c1c90e41f934" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasDegenerateTriangles</definition>
+        <argsstring></argsstring>
+        <name>hasDegenerateTriangles</name>
+        <qualifiedname>ExportENCB::hasDegenerateTriangles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1183" column="8" bodyfile="expUtil.cpp" bodystart="1183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a3e3d3180776915ef242696002bfb9517" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasNoSmoothing</definition>
+        <argsstring></argsstring>
+        <name>hasNoSmoothing</name>
+        <qualifiedname>ExportENCB::hasNoSmoothing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1184" column="8" bodyfile="expUtil.cpp" bodystart="1184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a50db4d5bda845ec5acef359790621f97" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasBigMeshes</definition>
+        <argsstring></argsstring>
+        <name>hasBigMeshes</name>
+        <qualifiedname>ExportENCB::hasBigMeshes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1185" column="8" bodyfile="expUtil.cpp" bodystart="1185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1aa9d58fd2ad394c6815d296cad63a4abd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasNonDagorMaterials</definition>
+        <argsstring></argsstring>
+        <name>hasNonDagorMaterials</name>
+        <qualifiedname>ExportENCB::hasNonDagorMaterials</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1186" column="8" bodyfile="expUtil.cpp" bodystart="1186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1ad0a531b60722deba581396d9ac32423d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasSubSubMaterials</definition>
+        <argsstring></argsstring>
+        <name>hasSubSubMaterials</name>
+        <qualifiedname>ExportENCB::hasSubSubMaterials</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1187" column="8" bodyfile="expUtil.cpp" bodystart="1187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1ae53cc35aa929caffa9d3f1c7a3b56a77" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::hasAbsolutePaths</definition>
+        <argsstring></argsstring>
+        <name>hasAbsolutePaths</name>
+        <qualifiedname>ExportENCB::hasAbsolutePaths</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1188" column="8" bodyfile="expUtil.cpp" bodystart="1188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a3526f19f614fccbe54f92f2de51a252b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExportENCB::a2dExported</definition>
+        <argsstring></argsstring>
+        <name>a2dExported</name>
+        <qualifiedname>ExportENCB::a2dExported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1189" column="8" bodyfile="expUtil.cpp" bodystart="1189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a7cdc5956572388a8cb06fcf69ec88350" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* ExportENCB::default_material</definition>
+        <argsstring></argsstring>
+        <name>default_material</name>
+        <qualifiedname>ExportENCB::default_material</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1190" column="9" bodyfile="expUtil.cpp" bodystart="1190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a9727c1f96b7ebece156b0af5969392c1" prot="public" static="no" mutable="no">
+        <type><ref refid="classCfgShader" kindref="compound">CfgShader</ref> *</type>
+        <definition>CfgShader* ExportENCB::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <qualifiedname>ExportENCB::cfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1191" column="13" bodyfile="expUtil.cpp" bodystart="1191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1afd715fe5459b709f9268a62a877f4fc1" prot="public" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING ExportENCB::value[DAGTEXNUM]</definition>
+        <argsstring>[DAGTEXNUM]</argsstring>
+        <name>value</name>
+        <qualifiedname>ExportENCB::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1192" column="16" bodyfile="expUtil.cpp" bodystart="1192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a44b62acaa7b6dcc67dd8e42c3a46d0c7" prot="public" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING ExportENCB::tex_slot[DAGTEXNUM]</definition>
+        <argsstring>[DAGTEXNUM]</argsstring>
+        <name>tex_slot</name>
+        <qualifiedname>ExportENCB::tex_slot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1193" column="16" bodyfile="expUtil.cpp" bodystart="1193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExportENCB_1a4184c7f6c0771d12c1d9e93fc33eb0d9" prot="public" static="no" mutable="no">
+        <type>std::MAP_TYPE&lt; std::wstring, <ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> &gt;</type>
+        <definition>std::MAP_TYPE&lt;std::wstring, StringVector&gt; ExportENCB::shaderParamsMap</definition>
+        <argsstring></argsstring>
+        <name>shaderParamsMap</name>
+        <qualifiedname>ExportENCB::shaderParamsMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1194" column="17" bodyfile="expUtil.cpp" bodystart="1194" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classExportENCB_1a04becf129ec3299bb962e7e55053f70d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExportENCB::ExportENCB</definition>
+        <argsstring>(TimeValue t, bool a2d)</argsstring>
+        <name>ExportENCB</name>
+        <qualifiedname>ExportENCB::ExportENCB</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>a2d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1196" column="3" bodyfile="expUtil.cpp" bodystart="1196" bodyend="1229"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a96b35528b35164433114a7a585d9b053" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExportENCB::~ExportENCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~ExportENCB</name>
+        <qualifiedname>ExportENCB::~ExportENCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1231" column="3" bodyfile="expUtil.cpp" bodystart="1231" bodyend="1253"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a0fb4f90f9405b54ccee1d1598ccd6379" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::add_klabel</definition>
+        <argsstring>(const TCHAR *n)</argsstring>
+        <name>add_klabel</name>
+        <qualifiedname>ExportENCB::add_klabel</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1255" column="7" bodyfile="expUtil.cpp" bodystart="1255" bodyend="1273"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a1e0c215b2aa0c1bcdcc7486b457de137" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::get_notetrack</definition>
+        <argsstring>(INode *n, Tab&lt; TimeValue &gt; &amp;gk)</argsstring>
+        <name>get_notetrack</name>
+        <qualifiedname>ExportENCB::get_notetrack</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>Tab&lt; TimeValue &gt; &amp;</type>
+          <declname>gk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1275" column="7" bodyfile="expUtil.cpp" bodystart="1275" bodyend="1333"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a9e90122e9198f525dac799be3af23e19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::add_tex</definition>
+        <argsstring>(const TCHAR *fn)</argsstring>
+        <name>add_tex</name>
+        <qualifiedname>ExportENCB::add_tex</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1335" column="7" bodyfile="expUtil.cpp" bodystart="1335" bodyend="1351"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a7dd8e805ea22c6e78900cc7e64efa4ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExportENCB::doesScriptMatch</definition>
+        <argsstring>(const TCHAR *a, const TCHAR *b)</argsstring>
+        <name>doesScriptMatch</name>
+        <qualifiedname>ExportENCB::doesScriptMatch</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1353" column="8" bodyfile="expUtil.cpp" bodystart="1353" bodyend="1389"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1aa93cd7ec686482d3bd51a3638c03722d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExportENCB::add_mtl</definition>
+        <argsstring>(INode *node, Mtl *mtl, int subm=0, DWORD wirecolor=0xFFFFFF)</argsstring>
+        <name>add_mtl</name>
+        <qualifiedname>ExportENCB::add_mtl</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Mtl *</type>
+          <declname>mtl</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>subm</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>wirecolor</declname>
+          <defval>0xFFFFFF</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1391" column="8" bodyfile="expUtil.cpp" bodystart="1391" bodyend="1576"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a99c926346ff8b0c687ad2778619bbee3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TCHAR *</type>
+        <definition>TCHAR * ExportENCB::validateMatName</definition>
+        <argsstring>(TCHAR *mat_name)</argsstring>
+        <name>validateMatName</name>
+        <qualifiedname>ExportENCB::validateMatName</qualifiedname>
+        <param>
+          <type>TCHAR *</type>
+          <declname>mat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1578" column="9" bodyfile="expUtil.cpp" bodystart="1578" bodyend="1603"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a727d0043d1b0ca8432e492868ef29631" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ExportENCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>ExportENCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1605" column="7" bodyfile="expUtil.cpp" bodystart="1605" bodyend="1732"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a82ac93ea652a754c6934ee20abd1b43c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::getnodeid</definition>
+        <argsstring>(INode *n)</argsstring>
+        <name>getnodeid</name>
+        <qualifiedname>ExportENCB::getnodeid</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1734" column="7" bodyfile="expUtil.cpp" bodystart="1734" bodyend="1742"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a9cddf091be94f216d49975026e7d9933" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::getmatid</definition>
+        <argsstring>(Mtl *m, DWORD wc=0xFFFFFF)</argsstring>
+        <name>getmatid</name>
+        <qualifiedname>ExportENCB::getmatid</qualifiedname>
+        <param>
+          <type>Mtl *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>wc</declname>
+          <defval>0xFFFFFF</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1743" column="7" bodyfile="expUtil.cpp" bodystart="1743" bodyend="1756"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a3e8defe188c1cbb6828cf548486f657f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::getusedmatid</definition>
+        <argsstring>(Mtl *m, DWORD wc=0xFFFFFF)</argsstring>
+        <name>getusedmatid</name>
+        <qualifiedname>ExportENCB::getusedmatid</qualifiedname>
+        <param>
+          <type>Mtl *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>wc</declname>
+          <defval>0xFFFFFF</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1758" column="7" bodyfile="expUtil.cpp" bodystart="1758" bodyend="1771"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1ad4afceccbf53faab95cbb8a60b360465" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExportENCB::checkDegenerateTriangle</definition>
+        <argsstring>(INode *node, Matrix3 &amp;applied_transform, unsigned int index1, unsigned int index2, unsigned int index3, Point3 &amp;vertex1, Point3 &amp;vertex2, Point3 &amp;vertex3)</argsstring>
+        <name>checkDegenerateTriangle</name>
+        <qualifiedname>ExportENCB::checkDegenerateTriangle</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>applied_transform</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index1</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index2</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index3</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>vertex1</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>vertex2</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>vertex3</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1815" column="8" bodyfile="expUtil.cpp" bodystart="5096" bodyend="5174"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1ab1549f0686ca5197b59443ed1679ac22" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ExportENCB::makeCheckedRelPath</definition>
+        <argsstring>(INode *node, Mtl *mtl, const TCHAR *absolute_path)</argsstring>
+        <name>makeCheckedRelPath</name>
+        <qualifiedname>ExportENCB::makeCheckedRelPath</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Mtl *</type>
+          <declname>mtl</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>absolute_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1818" column="15" bodyfile="expUtil.cpp" bodystart="5182" bodyend="5196"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a99a68d83e7d40d62c6b9a2e29a2a52d5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExportENCB::useMOpt</definition>
+        <argsstring>() const</argsstring>
+        <name>useMOpt</name>
+        <qualifiedname>ExportENCB::useMOpt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1820" column="8" bodyfile="expUtil.cpp" bodystart="1820" bodyend="1820"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a220be4c30ceb5db734455ba3935379a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::save_node</definition>
+        <argsstring>(ExpNode *enod, FILE *h)</argsstring>
+        <name>save_node</name>
+        <qualifiedname>ExportENCB::save_node</qualifiedname>
+        <param>
+          <type><ref refid="structExpNode" kindref="compound">ExpNode</ref> *</type>
+          <declname>enod</declname>
+        </param>
+        <param>
+          <type>FILE *</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1822" column="7" bodyfile="expUtil.cpp" bodystart="1822" bodyend="2940"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a34b244b1bb7a38b5f8f66cf62c1a01ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::save</definition>
+        <argsstring>(FILE *h, Interface *ip, TCHAR **textures, int max_textures)</argsstring>
+        <name>save</name>
+        <qualifiedname>ExportENCB::save</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>TCHAR **</type>
+          <declname>textures</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_textures</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="2944" column="7" bodyfile="expUtil.cpp" bodystart="2944" bodyend="3262"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1ab1556565e652cd96d2715dfbbfadb201" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::save_anim2</definition>
+        <argsstring>(FILE *fp, Interface *ip)</argsstring>
+        <name>save_anim2</name>
+        <qualifiedname>ExportENCB::save_anim2</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3419" column="7" bodyfile="expUtil.cpp" bodystart="3419" bodyend="3694"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classExportENCB_1a1396b14a97c6c6d0bf9a1f9968eaae57" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ExportENCB::make_postrack</definition>
+        <argsstring>(AnimKeyPoint3 *k, PosKey *s, int num)</argsstring>
+        <name>make_postrack</name>
+        <qualifiedname>ExportENCB::make_postrack</qualifiedname>
+        <param>
+          <type><ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref> *</type>
+          <declname>k</declname>
+        </param>
+        <param>
+          <type><ref refid="structPosKey" kindref="compound">PosKey</ref> *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3328" column="15" bodyfile="expUtil.cpp" bodystart="3328" bodyend="3338"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1acfe89a86f152a11e886b603cdf7ed01f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ExportENCB::make_rottrack</definition>
+        <argsstring>(AnimKeyQuat *k, RotKey *s, int num)</argsstring>
+        <name>make_rottrack</name>
+        <qualifiedname>ExportENCB::make_rottrack</qualifiedname>
+        <param>
+          <type><ref refid="structExportENCB_1_1AnimKeyQuat" kindref="compound">AnimKeyQuat</ref> *</type>
+          <declname>k</declname>
+        </param>
+        <param>
+          <type><ref refid="structRotKey" kindref="compound">RotKey</ref> *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3339" column="15" bodyfile="expUtil.cpp" bodystart="3339" bodyend="3417"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classExportENCB_1abf7365d758ecb0ba2960f503ff483743" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExportENCB::getNoteTrackKeys</definition>
+        <argsstring>(Tab&lt; INode * &gt; &amp;exportNodes, Tab&lt; AnimKeyLabel &gt; &amp;noteTrackKeys)</argsstring>
+        <name>getNoteTrackKeys</name>
+        <qualifiedname>ExportENCB::getNoteTrackKeys</qualifiedname>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>exportNodes</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structExportENCB_1_1AnimKeyLabel" kindref="compound">AnimKeyLabel</ref> &gt; &amp;</type>
+          <declname>noteTrackKeys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3701" column="8" bodyfile="expUtil.cpp" bodystart="3725" bodyend="3748"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a308be31fb4ae7c51a32f05a8c2bc7a3a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExportENCB::getNamePool</definition>
+        <argsstring>(Tab&lt; INode * &gt; &amp;exportNodes, Tab&lt; AnimKeyLabel &gt; &amp;noteTrackKeys, char *&amp;namesPool, int *&amp;nameIdx, unsigned &amp;namePoolSize, Tab&lt; char * &gt; &amp;additionalNames, Tab&lt; int &gt; &amp;additionalIds)</argsstring>
+        <name>getNamePool</name>
+        <qualifiedname>ExportENCB::getNamePool</qualifiedname>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>exportNodes</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structExportENCB_1_1AnimKeyLabel" kindref="compound">AnimKeyLabel</ref> &gt; &amp;</type>
+          <declname>noteTrackKeys</declname>
+        </param>
+        <param>
+          <type>char *&amp;</type>
+          <declname>namesPool</declname>
+        </param>
+        <param>
+          <type>int *&amp;</type>
+          <declname>nameIdx</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>namePoolSize</declname>
+        </param>
+        <param>
+          <type>Tab&lt; char * &gt; &amp;</type>
+          <declname>additionalNames</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>additionalIds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3703" column="8" bodyfile="expUtil.cpp" bodystart="3750" bodyend="3816"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1acc3d9bb11ad03828d90e6bfc5c56fba2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExportENCB::getAnimations</definition>
+        <argsstring>(Tab&lt; INode * &gt; &amp;node, Tab&lt; bool &gt; &amp;nodeExp, Tab&lt; INode * &gt; &amp;exportNodes, Tab&lt; AnimChanPoint3 * &gt; &amp;pos, Tab&lt; AnimChanQuat * &gt; &amp;rot, Tab&lt; AnimChanPoint3 * &gt; &amp;scl)</argsstring>
+        <name>getAnimations</name>
+        <qualifiedname>ExportENCB::getAnimations</qualifiedname>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Tab&lt; bool &gt; &amp;</type>
+          <declname>nodeExp</declname>
+        </param>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>exportNodes</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanPoint3" kindref="compound">AnimChanPoint3</ref> * &gt; &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanQuat" kindref="compound">AnimChanQuat</ref> * &gt; &amp;</type>
+          <declname>rot</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanPoint3" kindref="compound">AnimChanPoint3</ref> * &gt; &amp;</type>
+          <declname>scl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3706" column="8" bodyfile="expUtil.cpp" bodystart="3818" bodyend="3880"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a071d74a248cec918723308959c6a528b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExportENCB::getOriginVelocities</definition>
+        <argsstring>(Tab&lt; AnimKeyPoint3 &gt; &amp;originLinVel, Tab&lt; AnimKeyPoint3 &gt; &amp;originAngVel, Tab&lt; int &gt; &amp;originLinVelT, Tab&lt; int &gt; &amp;originAngVelT)</argsstring>
+        <name>getOriginVelocities</name>
+        <qualifiedname>ExportENCB::getOriginVelocities</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref> &gt; &amp;</type>
+          <declname>originLinVel</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref> &gt; &amp;</type>
+          <declname>originAngVel</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>originLinVelT</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>originAngVelT</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3709" column="8" bodyfile="expUtil.cpp" bodystart="3882" bodyend="3905"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1aa05422a552c1874566e9d9b94c6cba1b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExportENCB::writeChannel</definition>
+        <argsstring>(const ChannelParams &amp;params, FILE *fp)</argsstring>
+        <name>writeChannel</name>
+        <qualifiedname>ExportENCB::writeChannel</qualifiedname>
+        <param>
+          <type>const <ref refid="structExportENCB_1_1ChannelParams" kindref="compound">ChannelParams</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3712" column="8" bodyfile="expUtil.cpp" bodystart="3907" bodyend="3918"/>
+      </memberdef>
+      <memberdef kind="function" id="classExportENCB_1a5ad381a4b536a9581e15bbf5e5cfd577" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExportENCB::getKeyNumInChannel</definition>
+        <argsstring>(const ChannelParams &amp;params)</argsstring>
+        <name>getKeyNumInChannel</name>
+        <qualifiedname>ExportENCB::getKeyNumInChannel</qualifiedname>
+        <param>
+          <type>const <ref refid="structExportENCB_1_1ChannelParams" kindref="compound">ChannelParams</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3714" column="7" bodyfile="expUtil.cpp" bodystart="3717" bodyend="3723"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>ExportENCB</label>
+        <link refid="classExportENCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="3">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>ExportENCB</label>
+        <link refid="classExportENCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cfg</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="1165" column="1" bodyfile="expUtil.cpp" bodystart="1166" bodyend="3715"/>
+    <listofallmembers>
+      <member refid="classExportENCB_1a3526f19f614fccbe54f92f2de51a252b" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>a2dExported</name></member>
+      <member refid="classExportENCB_1a0fb4f90f9405b54ccee1d1598ccd6379" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>add_klabel</name></member>
+      <member refid="classExportENCB_1aa93cd7ec686482d3bd51a3638c03722d" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>add_mtl</name></member>
+      <member refid="classExportENCB_1a9e90122e9198f525dac799be3af23e19" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>add_tex</name></member>
+      <member refid="classExportENCB_1a9727c1f96b7ebece156b0af5969392c1" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>cfg</name></member>
+      <member refid="classExportENCB_1ad4afceccbf53faab95cbb8a60b360465" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>checkDegenerateTriangle</name></member>
+      <member refid="classExportENCB_1ab98d903c76ffc62042bae791f692506ba65580c66f732cdc89f87f21e3c7a25ec" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>CHTYPE_ORIGIN_ANG_VEL</name></member>
+      <member refid="classExportENCB_1ab98d903c76ffc62042bae791f692506bad4734a4dd4bc2a61c361bcfc0ce2193f" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>CHTYPE_ORIGIN_LIN_VEL</name></member>
+      <member refid="classExportENCB_1ab98d903c76ffc62042bae791f692506babb547fe8d4c798e649778cd01fe8069d" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>CHTYPE_POSITION</name></member>
+      <member refid="classExportENCB_1ab98d903c76ffc62042bae791f692506ba315588d8508bf38c15145af7466534c4" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>CHTYPE_ROTATION</name></member>
+      <member refid="classExportENCB_1ab98d903c76ffc62042bae791f692506baba7c816286e05a78ea6493f66931112b" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>CHTYPE_SCALE</name></member>
+      <member refid="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391aa9f5ed9c906b1b726bb02418c5b5f800" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>DATATYPE_POINT3</name></member>
+      <member refid="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391a9b81157e2e3a8eda86dc44e35fa1e5d7" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>DATATYPE_QUAT</name></member>
+      <member refid="classExportENCB_1a3190f1f55a1e0b6956f161ade3e9e391a7ca948f7feaddc0e154d85651568c817" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>DATATYPE_REAL</name></member>
+      <member refid="classExportENCB_1a7cdc5956572388a8cb06fcf69ec88350" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>default_material</name></member>
+      <member refid="classExportENCB_1a7dd8e805ea22c6e78900cc7e64efa4ba" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>doesScriptMatch</name></member>
+      <member refid="classExportENCB_1a04becf129ec3299bb962e7e55053f70d" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>ExportENCB</name></member>
+      <member refid="classExportENCB_1a1e0c215b2aa0c1bcdcc7486b457de137" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>get_notetrack</name></member>
+      <member refid="classExportENCB_1acc3d9bb11ad03828d90e6bfc5c56fba2" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>getAnimations</name></member>
+      <member refid="classExportENCB_1a5ad381a4b536a9581e15bbf5e5cfd577" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>getKeyNumInChannel</name></member>
+      <member refid="classExportENCB_1a9cddf091be94f216d49975026e7d9933" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>getmatid</name></member>
+      <member refid="classExportENCB_1a308be31fb4ae7c51a32f05a8c2bc7a3a" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>getNamePool</name></member>
+      <member refid="classExportENCB_1a82ac93ea652a754c6934ee20abd1b43c" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>getnodeid</name></member>
+      <member refid="classExportENCB_1abf7365d758ecb0ba2960f503ff483743" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>getNoteTrackKeys</name></member>
+      <member refid="classExportENCB_1a071d74a248cec918723308959c6a528b" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>getOriginVelocities</name></member>
+      <member refid="classExportENCB_1a3e8defe188c1cbb6828cf548486f657f" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>getusedmatid</name></member>
+      <member refid="classExportENCB_1ae53cc35aa929caffa9d3f1c7a3b56a77" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasAbsolutePaths</name></member>
+      <member refid="classExportENCB_1a50db4d5bda845ec5acef359790621f97" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasBigMeshes</name></member>
+      <member refid="classExportENCB_1a205f7c37a8d7a345a547c1c90e41f934" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasDegenerateTriangles</name></member>
+      <member refid="classExportENCB_1aa9d58fd2ad394c6815d296cad63a4abd" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasNonDagorMaterials</name></member>
+      <member refid="classExportENCB_1a3e3d3180776915ef242696002bfb9517" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasNoSmoothing</name></member>
+      <member refid="classExportENCB_1ad0a531b60722deba581396d9ac32423d" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>hasSubSubMaterials</name></member>
+      <member refid="classExportENCB_1a8bcbb5fb0fcf139c3b0fb37ff8a0942d" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>klabel</name></member>
+      <member refid="classExportENCB_1a1396b14a97c6c6d0bf9a1f9968eaae57" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>make_postrack</name></member>
+      <member refid="classExportENCB_1acfe89a86f152a11e886b603cdf7ed01f" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>make_rottrack</name></member>
+      <member refid="classExportENCB_1ab1549f0686ca5197b59443ed1679ac22" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>makeCheckedRelPath</name></member>
+      <member refid="classExportENCB_1ade52d93e7d1099a6d2046bde7e5698f2" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>mat</name></member>
+      <member refid="classExportENCB_1a9798223a7ea40950b4f2f05d1e7e23fd" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>matIDtoMatIdx</name></member>
+      <member refid="classExportENCB_1ae11b6df0abdc0946ce4f4e5805794591" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_pkeys</name></member>
+      <member refid="classExportENCB_1a9b89aa734b4bc0b483d362533a7fcf94" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_pkeys_n</name></member>
+      <member refid="classExportENCB_1ad3db7127424d6cf1389a10da416ef3a7" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_rkeys</name></member>
+      <member refid="classExportENCB_1a282ee8289b7875304df23fe8e7003293" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_rkeys_n</name></member>
+      <member refid="classExportENCB_1a74a42c2cf36b768eac48cf42308cc61c" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_skeys</name></member>
+      <member refid="classExportENCB_1a7421f55dc83e6d06ddf9a815c926520f" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>max_skeys_n</name></member>
+      <member refid="classExportENCB_1addef173d7948447d3866ebd84d86ea10" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>mtls</name></member>
+      <member refid="classExportENCB_1a5ca954fd089f989d7efb4e064a038309" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>node</name></member>
+      <member refid="classExportENCB_1a212a05425275e17313a58810e69ec95c" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>nodeExp</name></member>
+      <member refid="classExportENCB_1a11424e241091bee00004601c9a2d26de" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>nodeOrigin</name></member>
+      <member refid="classExportENCB_1a8b78ce658a6310287b03e50695ad7c3b" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>nofaces</name></member>
+      <member refid="classExportENCB_1a727f2b5fac19fa93ccea3c2ff888877c" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>nonort</name></member>
+      <member refid="classExportENCB_1a34eeca1eb50b92257fe7ddff0bab055a" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>nonort_nodes</name></member>
+      <member refid="classExportENCB_1a3e595643bf5f6eb98fd0ff3105328c87" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>ntrack</name></member>
+      <member refid="classExportENCB_1a727d0043d1b0ca8432e492868ef29631" prot="public" virt="virtual"><scope>ExportENCB</scope><name>proc</name></member>
+      <member refid="classExportENCB_1a34b244b1bb7a38b5f8f66cf62c1a01ce" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>save</name></member>
+      <member refid="classExportENCB_1ab1556565e652cd96d2715dfbbfadb201" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>save_anim2</name></member>
+      <member refid="classExportENCB_1a220be4c30ceb5db734455ba3935379a7" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>save_node</name></member>
+      <member refid="classExportENCB_1a4184c7f6c0771d12c1d9e93fc33eb0d9" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>shaderParamsMap</name></member>
+      <member refid="classExportENCB_1a3c5f522e5c2650d1932840a9e4f057d0" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>tex</name></member>
+      <member refid="classExportENCB_1a44b62acaa7b6dcc67dd8e42c3a46d0c7" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>tex_slot</name></member>
+      <member refid="classExportENCB_1a40283f30686d7b2f9399360a8c7ee33a" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>time</name></member>
+      <member refid="classExportENCB_1a77aa44ec1356ee83d4127c059808f5b1" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>useIdentityTransformForNode</name></member>
+      <member refid="classExportENCB_1a99a68d83e7d40d62c6b9a2e29a2a52d5" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>useMOpt</name></member>
+      <member refid="classExportENCB_1a99c926346ff8b0c687ad2778619bbee3" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>validateMatName</name></member>
+      <member refid="classExportENCB_1afd715fe5459b709f9268a62a877f4fc1" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>value</name></member>
+      <member refid="classExportENCB_1aa05422a552c1874566e9d9b94c6cba1b" prot="private" virt="non-virtual"><scope>ExportENCB</scope><name>writeChannel</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>ExportENCB</scope><name>~ENodeCB</name></member>
+      <member refid="classExportENCB_1a96b35528b35164433114a7a585d9b053" prot="public" virt="non-virtual"><scope>ExportENCB</scope><name>~ExportENCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

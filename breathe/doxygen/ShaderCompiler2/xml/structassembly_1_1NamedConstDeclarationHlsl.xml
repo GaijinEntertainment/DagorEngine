@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structassembly_1_1NamedConstDeclarationHlsl" kind="struct" language="C++" prot="public">
+    <compoundname>assembly::NamedConstDeclarationHlsl</compoundname>
+    <includes refid="variantAssembly_8h" local="no">variantAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structassembly_1_1NamedConstDeclarationHlsl_1a154ac996760735289d3d84b599f62cff" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String assembly::NamedConstDeclarationHlsl::definition</definition>
+        <argsstring></argsstring>
+        <name>definition</name>
+        <qualifiedname>assembly::NamedConstDeclarationHlsl::definition</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="29" column="10" bodyfile="variantAssembly.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structassembly_1_1NamedConstDeclarationHlsl_1ae83faf885420920bab920464bfe40d61" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String assembly::NamedConstDeclarationHlsl::postfix</definition>
+        <argsstring></argsstring>
+        <name>postfix</name>
+        <qualifiedname>assembly::NamedConstDeclarationHlsl::postfix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="30" column="10" bodyfile="variantAssembly.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantAssembly.h" line="27" column="1" bodyfile="variantAssembly.h" bodystart="28" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structassembly_1_1NamedConstDeclarationHlsl_1a154ac996760735289d3d84b599f62cff" prot="public" virt="non-virtual"><scope>assembly::NamedConstDeclarationHlsl</scope><name>definition</name></member>
+      <member refid="structassembly_1_1NamedConstDeclarationHlsl_1ae83faf885420920bab920464bfe40d61" prot="public" virt="non-virtual"><scope>assembly::NamedConstDeclarationHlsl</scope><name>postfix</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

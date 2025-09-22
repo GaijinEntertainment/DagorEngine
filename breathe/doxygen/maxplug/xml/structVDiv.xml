@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structVDiv" kind="struct" language="C++" prot="public">
+    <compoundname>VDiv</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float VDiv::u</definition>
+        <argsstring></argsstring>
+        <name>u</name>
+        <qualifiedname>VDiv::u</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="166" column="9" bodyfile="font.cpp" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structVDiv_1a64c007e4526d9f63b9c78737770e28b9" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float VDiv::v</definition>
+        <argsstring></argsstring>
+        <name>v</name>
+        <qualifiedname>VDiv::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="166" column="11" bodyfile="font.cpp" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structVDiv_1a057b09d2c19edea0cd80aeed887757c1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int VDiv::d</definition>
+        <argsstring></argsstring>
+        <name>d</name>
+        <qualifiedname>VDiv::d</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="167" column="7" bodyfile="font.cpp" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="font.cpp" line="164" column="1" bodyfile="font.cpp" bodystart="165" bodyend="168"/>
+    <listofallmembers>
+      <member refid="structVDiv_1a057b09d2c19edea0cd80aeed887757c1" prot="public" virt="non-virtual"><scope>VDiv</scope><name>d</name></member>
+      <member refid="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" prot="public" virt="non-virtual"><scope>VDiv</scope><name>u</name></member>
+      <member refid="structVDiv_1a64c007e4526d9f63b9c78737770e28b9" prot="public" virt="non-virtual"><scope>VDiv</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

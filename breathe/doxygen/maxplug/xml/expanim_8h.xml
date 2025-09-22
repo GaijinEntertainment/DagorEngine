@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="expanim_8h" kind="file" language="C++">
+    <compoundname>expanim.h</compoundname>
+    <includedby refid="expAnim_8cpp" local="yes">expAnim.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="expanim2_8cpp" local="yes">expanim2.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>expAnim.cpp</label>
+        <link refid="expAnim_8cpp"/>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="1">
+        <label>expanim.h</label>
+        <link refid="expanim_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>expanim2.cpp</label>
+        <link refid="expanim2_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classExpTMAnimCB" prot="public">ExpTMAnimCB</innerclass>
+    <innerclass refid="structPosKey" prot="public">PosKey</innerclass>
+    <innerclass refid="structRotKey" prot="public">RotKey</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="expanim_8h_1a425d4decaeb5d411a16ead3affeac434" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_tm_anim</definition>
+        <argsstring>(Tab&lt; PosKey &gt; &amp;pos, Tab&lt; RotKey &gt; &amp;rot, Tab&lt; PosKey &gt; &amp;scl, Tab&lt; TimeValue &gt; &amp;gkeys, Interval limit, Animatable *ctrl, ExpTMAnimCB &amp;cb, TimeValue mindt, float pos_thr, float rot_thr, float scl_thr, float ort_thr, char usekeys, char usegkeys, char dontchkkeys)</argsstring>
+        <name>get_tm_anim</name>
+        <param>
+          <type>Tab&lt; <ref refid="structPosKey" kindref="compound">PosKey</ref> &gt; &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structRotKey" kindref="compound">RotKey</ref> &gt; &amp;</type>
+          <declname>rot</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structPosKey" kindref="compound">PosKey</ref> &gt; &amp;</type>
+          <declname>scl</declname>
+        </param>
+        <param>
+          <type>Tab&lt; TimeValue &gt; &amp;</type>
+          <declname>gkeys</declname>
+        </param>
+        <param>
+          <type>Interval</type>
+          <declname>limit</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>ctrl</declname>
+        </param>
+        <param>
+          <type><ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>mindt</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>pos_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rot_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>scl_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ort_thr</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>usekeys</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>usegkeys</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>dontchkkeys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="26" column="6" bodyfile="expAnim.cpp" bodystart="296" bodyend="601" declfile="expanim.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="classExpTMAnimCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="7" refid="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" kindref="member">interp_tm</ref>(TimeValue,<sp/>Matrix3<sp/>&amp;)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="8" refid="classExpTMAnimCB_1af5f3138f4c485c75b29c1b0026c70b0b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classExpTMAnimCB_1af5f3138f4c485c75b29c1b0026c70b0b" kindref="member">non_orthog_tm</ref>(TimeValue)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="9" refid="classExpTMAnimCB_1a7d8141f5773d9d46f76cbb0231e55089" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classExpTMAnimCB_1a7d8141f5773d9d46f76cbb0231e55089" kindref="member">get_name</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="structPosKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structPosKey" kindref="compound">PosKey</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="structPosKey_1aaf9b66ae39fd7ee284594a277ee9eec9" refkind="member"><highlight class="normal"><sp/><sp/>TimeValue<sp/><ref refid="structPosKey_1aaf9b66ae39fd7ee284594a277ee9eec9" kindref="member">t</ref>;</highlight></codeline>
+<codeline lineno="15" refid="structPosKey_1a3c4a9d46d6c7a652140bbabecd081f50" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="structPosKey_1a3503f0dc950198c6ec9e937e205da997" kindref="member">p</ref>,<sp/><ref refid="structPosKey_1a3c4a9d46d6c7a652140bbabecd081f50" kindref="member">i</ref>,<sp/><ref refid="structPosKey_1ae2b4416bf124557b30989079008484ee" kindref="member">o</ref>;</highlight></codeline>
+<codeline lineno="16" refid="structPosKey_1afe32b8ac7aec0ad6af12a4d7b41fbc0b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structPosKey_1afe32b8ac7aec0ad6af12a4d7b41fbc0b" kindref="member">f</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="structRotKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRotKey" kindref="compound">RotKey</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21" refid="structRotKey_1a01935b0e6de647c19e43a66e2b544175" refkind="member"><highlight class="normal"><sp/><sp/>TimeValue<sp/><ref refid="structRotKey_1a01935b0e6de647c19e43a66e2b544175" kindref="member">t</ref>;</highlight></codeline>
+<codeline lineno="22" refid="structRotKey_1ad9e68829872fbc8469876aa666ae1525" refkind="member"><highlight class="normal"><sp/><sp/>Quat<sp/><ref refid="structRotKey_1aabcae9a33d299bc06864e4b0370f1b89" kindref="member">p</ref>,<sp/><ref refid="structRotKey_1ad9e68829872fbc8469876aa666ae1525" kindref="member">i</ref>,<sp/><ref refid="structRotKey_1a2d9e76ec0a9a2031cbc604bda81e22be" kindref="member">o</ref>;</highlight></codeline>
+<codeline lineno="23" refid="structRotKey_1a063b3f003b449fd36af29dd302e6c480" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRotKey_1a063b3f003b449fd36af29dd302e6c480" kindref="member">f</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="expanim_8h_1a425d4decaeb5d411a16ead3affeac434" kindref="member">get_tm_anim</ref>(Tab&lt;PosKey&gt;<sp/>&amp;pos,<sp/>Tab&lt;RotKey&gt;<sp/>&amp;rot,<sp/>Tab&lt;PosKey&gt;<sp/>&amp;scl,<sp/>Tab&lt;TimeValue&gt;<sp/>&amp;gkeys,<sp/>Interval<sp/>limit,<sp/>Animatable<sp/>*ctrl,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref><sp/>&amp;cb,<sp/>TimeValue<sp/>mindt,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>pos_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>rot_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>scl_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>ort_thr,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>usekeys,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>usegkeys,</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>dontchkkeys);</highlight></codeline>
+    </programlisting>
+    <location file="expanim.h"/>
+  </compounddef>
+</doxygen>

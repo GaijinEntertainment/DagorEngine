@@ -1,0 +1,244 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFontUtil" kind="class" language="C++" prot="public">
+    <compoundname>FontUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* FontUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>FontUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="21" column="9" bodyfile="font.cpp" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontUtil_1a60125a188457772a89d0e5db775ea167" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* FontUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>FontUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="22" column="13" bodyfile="font.cpp" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND FontUtil::hPanel</definition>
+        <argsstring></argsstring>
+        <name>hPanel</name>
+        <qualifiedname>FontUtil::hPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="23" column="8" bodyfile="font.cpp" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR FontUtil::fd_fname</definition>
+        <argsstring></argsstring>
+        <name>fd_fname</name>
+        <qualifiedname>FontUtil::fd_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="24" column="8" bodyfile="font.cpp" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFontUtil_1a65a6dc6f43ab43787ae947262007aa76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FontUtil::FontUtil</definition>
+        <argsstring>()</argsstring>
+        <name>FontUtil</name>
+        <qualifiedname>FontUtil::FontUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="26" column="3" bodyfile="font.cpp" bodystart="129" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1af16365c32637878354996f7701c8b96b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>FontUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="27" column="8" bodyfile="font.cpp" bodystart="136" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1af97f4b8d90aedd26cffc2fa4221c5d92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>FontUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="28" column="8" bodyfile="font.cpp" bodystart="143" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1a8a7091f7d278c4eac823da2295a3ca25" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>FontUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="29" column="8" bodyfile="font.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1a07a24e55a8ba2c8f861299d4d1fdfcfb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::Init</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>Init</name>
+        <qualifiedname>FontUtil::Init</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="31" column="8" bodyfile="font.cpp" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1a7587390a834dc576dc1745f2a2547c52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::Destroy</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>Destroy</name>
+        <qualifiedname>FontUtil::Destroy</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="32" column="8" bodyfile="font.cpp" bodystart="154" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1ac445d2fa12829fc3980b25e130f01e63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int FontUtil::input_fd_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_fd_fname</name>
+        <qualifiedname>FontUtil::input_fd_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="33" column="7" bodyfile="font.cpp" bodystart="156" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtil_1ae799572c5841a9fad14e341b649c1eb0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontUtil::exportData</definition>
+        <argsstring>()</argsstring>
+        <name>exportData</name>
+        <qualifiedname>FontUtil::exportData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="34" column="8" bodyfile="font.cpp" bodystart="370" bodyend="385"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>FontUtil</label>
+        <link refid="classFontUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>FontUtil</label>
+        <link refid="classFontUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="font.cpp" line="18" column="1" bodyfile="font.cpp" bodystart="19" bodyend="35"/>
+    <listofallmembers>
+      <member refid="classFontUtil_1af16365c32637878354996f7701c8b96b" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classFontUtil_1a8a7091f7d278c4eac823da2295a3ca25" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>DeleteThis</name></member>
+      <member refid="classFontUtil_1a7587390a834dc576dc1745f2a2547c52" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>Destroy</name></member>
+      <member refid="classFontUtil_1af97f4b8d90aedd26cffc2fa4221c5d92" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>EndEditParams</name></member>
+      <member refid="classFontUtil_1ae799572c5841a9fad14e341b649c1eb0" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>exportData</name></member>
+      <member refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>fd_fname</name></member>
+      <member refid="classFontUtil_1a65a6dc6f43ab43787ae947262007aa76" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>FontUtil</name></member>
+      <member refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>hPanel</name></member>
+      <member refid="classFontUtil_1a07a24e55a8ba2c8f861299d4d1fdfcfb" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>Init</name></member>
+      <member refid="classFontUtil_1ac445d2fa12829fc3980b25e130f01e63" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>input_fd_fname</name></member>
+      <member refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>ip</name></member>
+      <member refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" prot="public" virt="non-virtual"><scope>FontUtil</scope><name>iu</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

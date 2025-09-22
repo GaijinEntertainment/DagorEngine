@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPosKey" kind="struct" language="C++" prot="public">
+    <compoundname>PosKey</compoundname>
+    <includes refid="expanim_8h" local="no">expanim.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPosKey_1aaf9b66ae39fd7ee284594a277ee9eec9" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue PosKey::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>PosKey::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="14" column="13" bodyfile="expanim.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPosKey_1a3503f0dc950198c6ec9e937e205da997" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 PosKey::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>PosKey::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="15" column="10" bodyfile="expanim.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPosKey_1a3c4a9d46d6c7a652140bbabecd081f50" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 PosKey::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>PosKey::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="15" column="12" bodyfile="expanim.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPosKey_1ae2b4416bf124557b30989079008484ee" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 PosKey::o</definition>
+        <argsstring></argsstring>
+        <name>o</name>
+        <qualifiedname>PosKey::o</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="15" column="14" bodyfile="expanim.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPosKey_1afe32b8ac7aec0ad6af12a4d7b41fbc0b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PosKey::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <qualifiedname>PosKey::f</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="16" column="7" bodyfile="expanim.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expanim.h" line="12" column="1" bodyfile="expanim.h" bodystart="13" bodyend="17"/>
+    <listofallmembers>
+      <member refid="structPosKey_1afe32b8ac7aec0ad6af12a4d7b41fbc0b" prot="public" virt="non-virtual"><scope>PosKey</scope><name>f</name></member>
+      <member refid="structPosKey_1a3c4a9d46d6c7a652140bbabecd081f50" prot="public" virt="non-virtual"><scope>PosKey</scope><name>i</name></member>
+      <member refid="structPosKey_1ae2b4416bf124557b30989079008484ee" prot="public" virt="non-virtual"><scope>PosKey</scope><name>o</name></member>
+      <member refid="structPosKey_1a3503f0dc950198c6ec9e937e205da997" prot="public" virt="non-virtual"><scope>PosKey</scope><name>p</name></member>
+      <member refid="structPosKey_1aaf9b66ae39fd7ee284594a277ee9eec9" prot="public" virt="non-virtual"><scope>PosKey</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

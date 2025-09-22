@@ -1,0 +1,611 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceDescription" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDescription</compoundname>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structResourceDescription_1ab0bd9db5a7647488becf257da246345c" prot="public" static="no">
+        <type>size_t</type>
+        <definition>using ResourceDescription::HashT =  size_t</definition>
+        <argsstring></argsstring>
+        <name>HashT</name>
+        <qualifiedname>ResourceDescription::HashT</qualifiedname>
+        <briefdescription>
+<para>The type of the hash value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="181" column="3" bodyfile="dag_heap.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceDescription_1a19813d38bb21830c6a2e5115add8ca52" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98" kindref="member">D3DResourceType</ref></type>
+        <definition>D3DResourceType ResourceDescription::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ResourceDescription::type</qualifiedname>
+        <briefdescription>
+<para>The type of the resource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="111" column="19" bodyfile="dag_heap.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a0a64b467ca88a31a8b8c4cee7eae9e66" prot="public" static="no" mutable="no">
+        <type><ref refid="structBasicResourceDescription" kindref="compound">BasicResourceDescription</ref></type>
+        <definition>BasicResourceDescription ResourceDescription::asBasicRes</definition>
+        <argsstring></argsstring>
+        <name>asBasicRes</name>
+        <qualifiedname>ResourceDescription::asBasicRes</qualifiedname>
+        <briefdescription>
+<para>The basic resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="114" column="30" bodyfile="dag_heap.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1ab5da39999823280f1ac92e33601b756d" prot="public" static="no" mutable="no">
+        <type><ref refid="structBufferResourceDescription" kindref="compound">BufferResourceDescription</ref></type>
+        <definition>BufferResourceDescription ResourceDescription::asBufferRes</definition>
+        <argsstring></argsstring>
+        <name>asBufferRes</name>
+        <qualifiedname>ResourceDescription::asBufferRes</qualifiedname>
+        <briefdescription>
+<para>The buffer resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="115" column="31" bodyfile="dag_heap.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1aee7bb2447921999d747f31bfac8ce556" prot="public" static="no" mutable="no">
+        <type><ref refid="structBasicTextureResourceDescription" kindref="compound">BasicTextureResourceDescription</ref></type>
+        <definition>BasicTextureResourceDescription ResourceDescription::asBasicTexRes</definition>
+        <argsstring></argsstring>
+        <name>asBasicTexRes</name>
+        <qualifiedname>ResourceDescription::asBasicTexRes</qualifiedname>
+        <briefdescription>
+<para>The basic texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="116" column="37" bodyfile="dag_heap.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a17b585a0cfc7dd5f4406e203fa6c9419" prot="public" static="no" mutable="no">
+        <type><ref refid="structTextureResourceDescription" kindref="compound">TextureResourceDescription</ref></type>
+        <definition>TextureResourceDescription ResourceDescription::asTexRes</definition>
+        <argsstring></argsstring>
+        <name>asTexRes</name>
+        <qualifiedname>ResourceDescription::asTexRes</qualifiedname>
+        <briefdescription>
+<para>The 2D texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="117" column="32" bodyfile="dag_heap.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a99aa546f306654f399609a5028667e55" prot="public" static="no" mutable="no">
+        <type><ref refid="structVolTextureResourceDescription" kindref="compound">VolTextureResourceDescription</ref></type>
+        <definition>VolTextureResourceDescription ResourceDescription::asVolTexRes</definition>
+        <argsstring></argsstring>
+        <name>asVolTexRes</name>
+        <qualifiedname>ResourceDescription::asVolTexRes</qualifiedname>
+        <briefdescription>
+<para>The volume texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="118" column="35" bodyfile="dag_heap.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a43a084814e7a3a71691ae2448c8d03f0" prot="public" static="no" mutable="no">
+        <type><ref refid="structArrayTextureResourceDescription" kindref="compound">ArrayTextureResourceDescription</ref></type>
+        <definition>ArrayTextureResourceDescription ResourceDescription::asArrayTexRes</definition>
+        <argsstring></argsstring>
+        <name>asArrayTexRes</name>
+        <qualifiedname>ResourceDescription::asArrayTexRes</qualifiedname>
+        <briefdescription>
+<para>The array texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="119" column="37" bodyfile="dag_heap.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a2e7ffe18d52fc4001c266a2eef9c2083" prot="public" static="no" mutable="no">
+        <type><ref refid="structCubeTextureResourceDescription" kindref="compound">CubeTextureResourceDescription</ref></type>
+        <definition>CubeTextureResourceDescription ResourceDescription::asCubeTexRes</definition>
+        <argsstring></argsstring>
+        <name>asCubeTexRes</name>
+        <qualifiedname>ResourceDescription::asCubeTexRes</qualifiedname>
+        <briefdescription>
+<para>The cube texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="120" column="36" bodyfile="dag_heap.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1a89a7fde21d59eb27197578e1e2fa1c12" prot="public" static="no" mutable="no">
+        <type><ref refid="structArrayCubeTextureResourceDescription" kindref="compound">ArrayCubeTextureResourceDescription</ref></type>
+        <definition>ArrayCubeTextureResourceDescription ResourceDescription::asArrayCubeTexRes</definition>
+        <argsstring></argsstring>
+        <name>asArrayCubeTexRes</name>
+        <qualifiedname>ResourceDescription::asArrayCubeTexRes</qualifiedname>
+        <briefdescription>
+<para>The array cube texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="121" column="41" bodyfile="dag_heap.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDescription_1afb4e56d08425f6dce3a15b8ba85bff37" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref></type>
+        <definition>union ResourceDescription ResourceDescription</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceDescription</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="122" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structResourceDescription_1a8439dcc8f79f109f2228d61a6aa4b1fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>()=default</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="124" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a5a4d6f01a755359ab56198196ec34a59" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ResourceDescription &amp;)=default</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="125" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a7d56ad1d19124a64d0d9e1517d0bed13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref> &amp;</type>
+        <definition>ResourceDescription &amp; ResourceDescription::operator=</definition>
+        <argsstring>(const ResourceDescription &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ResourceDescription::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="126" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a1a36da8a75b95e09429e765dbb6b1414" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const BufferResourceDescription &amp;buf)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structBufferResourceDescription" kindref="compound">BufferResourceDescription</ref> &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for buffer resources. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="128" column="3" bodyfile="dag_heap.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1ac71dcb55a03fad8a78b40cad86fa1d47" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const TextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structTextureResourceDescription" kindref="compound">TextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for 2D textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="131" column="3" bodyfile="dag_heap.h" bodystart="131" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1acc966203f96ad9fe1555762f3881ab57" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const VolTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structVolTextureResourceDescription" kindref="compound">VolTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for volume textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="134" column="3" bodyfile="dag_heap.h" bodystart="134" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1ae5f5d6660f98179fc115c9e9549258cd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ArrayTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structArrayTextureResourceDescription" kindref="compound">ArrayTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for array textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="137" column="3" bodyfile="dag_heap.h" bodystart="137" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1ad6b6e032d585cb8e9c95f403a0677837" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const CubeTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structCubeTextureResourceDescription" kindref="compound">CubeTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for cube textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="140" column="3" bodyfile="dag_heap.h" bodystart="140" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a5643c02fb0539406def61fa4a8872f72" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ArrayCubeTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <qualifiedname>ResourceDescription::ResourceDescription</qualifiedname>
+        <param>
+          <type>const <ref refid="structArrayCubeTextureResourceDescription" kindref="compound">ArrayCubeTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for array cube textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="143" column="3" bodyfile="dag_heap.h" bodystart="143" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1ae91e518e673816f6e9ff51329a216c5f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ResourceDescription::operator==</definition>
+        <argsstring>(const ResourceDescription &amp;r) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ResourceDescription::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+<para>Equality operator for resource descriptions. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The operator compares all necessary fields of the resource descriptions for equality.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description to compare with. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True if the resource descriptions are equal, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="154" column="8" bodyfile="dag_heap.h" bodystart="154" bodyend="179"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1ad809a6e59153ca10566286abeb8a36ac" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structResourceDescription_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hash</definition>
+        <argsstring>() const</argsstring>
+        <name>hash</name>
+        <qualifiedname>ResourceDescription::hash</qualifiedname>
+        <briefdescription>
+<para>Computes the hash value of the resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The hash value of the resource description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="188" column="9" bodyfile="dag_heap.h" bodystart="188" bodyend="218"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a667d2292f599db863627f570e5ea491d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>String</type>
+        <definition>String ResourceDescription::toDebugString</definition>
+        <argsstring>() const</argsstring>
+        <name>toDebugString</name>
+        <qualifiedname>ResourceDescription::toDebugString</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="220" column="10" bodyfile="dag_heap.h" bodystart="220" bodyend="268"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="structResourceDescription_1aa065b65126e6934c2d056cbad06d5ca4" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structResourceDescription_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hashPack</definition>
+        <argsstring>() const</argsstring>
+        <name>hashPack</name>
+        <qualifiedname>ResourceDescription::hashPack</qualifiedname>
+        <briefdescription>
+<para>Hashes an empty tuple of values. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>HashT the hash value of the tuple. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="276" column="16" bodyfile="dag_heap.h" bodystart="276" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="structResourceDescription_1a892d1f78ac32849e5f1b11ac874fe494" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Ts</declname>
+            <defname>Ts</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structResourceDescription_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hashPack</definition>
+        <argsstring>(const T &amp;first, const Ts &amp;...other) const</argsstring>
+        <name>hashPack</name>
+        <qualifiedname>ResourceDescription::hashPack</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>first</declname>
+        </param>
+        <param>
+          <type>const Ts &amp;...</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Hashes a tuple of values. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>type of the first value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>Ts</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>types of the other values. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>first</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the first value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the other values. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>HashT the hash value of the tuple. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="287" column="16" bodyfile="dag_heap.h" bodystart="287" bodyend="292"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A common type for a resource description that can be used to describe any type of GPU resource. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="10">
+        <label>ArrayCubeTextureResourceDescription</label>
+        <link refid="structArrayCubeTextureResourceDescription"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>ArrayTextureResourceDescription</label>
+        <link refid="structArrayTextureResourceDescription"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>BasicResourceDescription</label>
+        <link refid="structBasicResourceDescription"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="structBasicTextureResourceDescription"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>BufferResourceDescription</label>
+        <link refid="structBufferResourceDescription"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="structCubeTextureResourceDescription"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ResourceClearValue</label>
+        <link refid="unionResourceClearValue"/>
+      </node>
+      <node id="1">
+        <label>ResourceDescription</label>
+        <link refid="structResourceDescription"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>asBasicRes</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>asBufferRes</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>asBasicTexRes</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>asTexRes</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>asVolTexRes</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>asArrayTexRes</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>asCubeTexRes</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>asArrayCubeTexRes</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>TextureResourceDescription</label>
+        <link refid="structTextureResourceDescription"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>VolTextureResourceDescription</label>
+        <link refid="structVolTextureResourceDescription"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_heap.h" line="109" column="1" bodyfile="dag_heap.h" bodystart="110" bodyend="293"/>
+    <listofallmembers>
+      <member refid="structResourceDescription_1a89a7fde21d59eb27197578e1e2fa1c12" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asArrayCubeTexRes</name></member>
+      <member refid="structResourceDescription_1a43a084814e7a3a71691ae2448c8d03f0" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asArrayTexRes</name></member>
+      <member refid="structResourceDescription_1a0a64b467ca88a31a8b8c4cee7eae9e66" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBasicRes</name></member>
+      <member refid="structResourceDescription_1aee7bb2447921999d747f31bfac8ce556" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBasicTexRes</name></member>
+      <member refid="structResourceDescription_1ab5da39999823280f1ac92e33601b756d" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBufferRes</name></member>
+      <member refid="structResourceDescription_1a2e7ffe18d52fc4001c266a2eef9c2083" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asCubeTexRes</name></member>
+      <member refid="structResourceDescription_1a17b585a0cfc7dd5f4406e203fa6c9419" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asTexRes</name></member>
+      <member refid="structResourceDescription_1a99aa546f306654f399609a5028667e55" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asVolTexRes</name></member>
+      <member refid="structResourceDescription_1ad809a6e59153ca10566286abeb8a36ac" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>hash</name></member>
+      <member refid="structResourceDescription_1aa065b65126e6934c2d056cbad06d5ca4" prot="private" virt="non-virtual"><scope>ResourceDescription</scope><name>hashPack</name></member>
+      <member refid="structResourceDescription_1a892d1f78ac32849e5f1b11ac874fe494" prot="private" virt="non-virtual"><scope>ResourceDescription</scope><name>hashPack</name></member>
+      <member refid="structResourceDescription_1ab0bd9db5a7647488becf257da246345c" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>HashT</name></member>
+      <member refid="structResourceDescription_1a7d56ad1d19124a64d0d9e1517d0bed13" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>operator=</name></member>
+      <member refid="structResourceDescription_1ae91e518e673816f6e9ff51329a216c5f" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>operator==</name></member>
+      <member refid="structResourceDescription_1a8439dcc8f79f109f2228d61a6aa4b1fe" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1a5a4d6f01a755359ab56198196ec34a59" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1a1a36da8a75b95e09429e765dbb6b1414" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1ac71dcb55a03fad8a78b40cad86fa1d47" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1acc966203f96ad9fe1555762f3881ab57" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1ae5f5d6660f98179fc115c9e9549258cd" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1ad6b6e032d585cb8e9c95f403a0677837" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1a5643c02fb0539406def61fa4a8872f72" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="structResourceDescription_1a667d2292f599db863627f570e5ea491d" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>toDebugString</name></member>
+      <member refid="structResourceDescription_1a19813d38bb21830c6a2e5115add8ca52" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

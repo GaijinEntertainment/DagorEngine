@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__renderTarget_8h" kind="file" language="C++">
+    <compoundname>dag_renderTarget.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <includes refid="dag__resource_8h" local="no">drv/3d/dag_resource.h</includes>
+    <includes refid="dag__decl_8h" local="no">drv/3d/dag_decl.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <includedby refid="dag__renderPass_8h" local="no">dag_renderPass.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_renderTarget.h</label>
+        <link refid="dag__renderTarget_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h"/>
+      </node>
+      <node id="3">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="8">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="9">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="11">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="10">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_renderPass.h</label>
+        <link refid="dag__renderPass_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_renderTarget.h</label>
+        <link refid="dag__renderTarget_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structRenderTarget" prot="public">RenderTarget</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>DepthAccess</name>
+        <enumvalue id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5c6dc3d436504b7a65191cafe28212ee" prot="public">
+          <name>RW</name>
+          <briefdescription>
+<para>For regular depth attachment. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5dd42e2c3b83a9658333215beadfef34" prot="public">
+          <name>SampledRO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>For read-only depth attachment which can also be sampled as a texture in the same shader. IF YOU DON&apos;T NEED TO SAMPLE THE DEPTH, USE z_write=false WITH <ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5c6dc3d436504b7a65191cafe28212ee" kindref="member">DepthAccess::RW</ref> INSTEAD. Using this state will cause HiZ decompression on some hardware and split of renderpass with flush of tile data into memory in a TBR. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Specifies the access mode for a depth attachment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderTarget.h" line="20" column="1" bodyfile="dag_renderTarget.h" bodystart="21" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__renderTarget_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" prot="public" static="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref></type>
+        <definition>typedef BaseTexture Texture</definition>
+        <argsstring></argsstring>
+        <name>Texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderTarget.h" line="14" column="21" bodyfile="dag_renderTarget.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resource_8h" kindref="compound">drv/3d/dag_resource.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__decl_8h" kindref="compound">drv/3d/dag_decl.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="14" refid="dag__renderTarget_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/><ref refid="dag__renderTarget_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5c6dc3d436504b7a65191cafe28212ee" kindref="member">RW</ref>,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5dd42e2c3b83a9658333215beadfef34" kindref="member">SampledRO</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="structRenderTarget" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderTarget" kindref="compound">RenderTarget</ref></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40" refid="structRenderTarget_1a4a161583287ebfadccf0d054d6ee0b0d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structRenderTarget_1a4a161583287ebfadccf0d054d6ee0b0d" kindref="member">tex</ref>;<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="41" refid="structRenderTarget_1af5a772cc1ad472fc0dc44d737c6bd197" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderTarget_1af5a772cc1ad472fc0dc44d737c6bd197" kindref="member">mip_level</ref>;<sp/></highlight></codeline>
+<codeline lineno="42" refid="structRenderTarget_1abbc128112606626b4a390dd23398eee3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRenderTarget_1abbc128112606626b4a390dd23398eee3" kindref="member">layer</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53" refid="namespaced3d_1ae441b2eb0ba406fcc15dbc1dde3dee50" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ae441b2eb0ba406fcc15dbc1dde3dee50" kindref="member">copy_from_current_render_target</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*to_tex);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="namespaced3d_1abbe9addf6818cb5f3764e8f575d8b3bb" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1abbe9addf6818cb5f3764e8f575d8b3bb" kindref="member">clear_rt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderTarget" kindref="compound">RenderTarget</ref><sp/>&amp;rt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref><sp/>&amp;clear_val<sp/>=<sp/>{});</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>();</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" kindref="member">set_depth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>access);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="namespaced3d_1ac6cff2b2f2409dc2b3f62736aee6bb64" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" kindref="member">set_depth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>access);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="namespaced3d_1ad9a81f30be394f004099ba1950b7334e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rt_index,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fc,<sp/>uint8_t<sp/>level);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115" refid="namespaced3d_1a1e62ac21a8d9982ae14e04de9d92f22d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rt_index,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*,<sp/>uint8_t<sp/>level);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="namespaced3d_1a0c9762a8b10d55794a731a8229addcea" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/>uint8_t<sp/>level)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>()<sp/>&amp;&amp;<sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(0,<sp/>t,<sp/>level);<sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="namespaced3d_1afd6679cb8c61d1b5b767b0e79dc45797" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fc,<sp/>uint8_t<sp/>level)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>()<sp/>&amp;&amp;<sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(0,<sp/>t,<sp/>fc,<sp/>level);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154" refid="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(<ref refid="structRenderTarget" kindref="compound">RenderTarget</ref><sp/>depth,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>depth_access,<sp/>dag::ConstSpan&lt;RenderTarget&gt;<sp/>colors)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;<sp/>i<sp/>&lt;<sp/>colors.size()<sp/>&amp;&amp;<sp/>i<sp/>&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">Driver3dRenderTarget::MAX_SIMRT</ref>;<sp/>++i)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(i,<sp/>colors[i].tex,<sp/>colors[i].mip_level);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;<sp/>i<sp/>&lt;<sp/><ref refid="structDriver3dRenderTarget_1a5ca0e24925f168840d71757b93973af0" kindref="member">Driver3dRenderTarget::MAX_SIMRT</ref>;<sp/>++i)</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(i,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>0);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" kindref="member">set_depth</ref>(depth.<ref refid="structRenderTarget_1a4a161583287ebfadccf0d054d6ee0b0d" kindref="member">tex</ref>,<sp/>depth_access);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="namespaced3d_1a70a77806b62eb41cc4cb685a9218cd76" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(<ref refid="structRenderTarget" kindref="compound">RenderTarget</ref><sp/>depth,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>depth_access,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::initializer_list&lt;RenderTarget&gt;<sp/>colors)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(depth,<sp/>depth_access,<sp/>dag::ConstSpan&lt;RenderTarget&gt;(colors.begin(),<sp/>colors.end()<sp/>-<sp/>colors.begin()));</highlight></codeline>
+<codeline lineno="176"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185" refid="namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd" kindref="member">get_render_target</ref>(<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;out_rt);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="193" refid="namespaced3d_1a19389294b01679a03fb8351718bd9d9d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204" refid="namespaced3d_1a32ba0b93e0029c75fad830eb591e4453" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a32ba0b93e0029c75fad830eb591e4453" kindref="member">get_target_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="namespaced3d_1a195d3165dc9677bc46b7f4909514eeae" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a195d3165dc9677bc46b7f4909514eeae" kindref="member">get_render_target_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*rt_tex,<sp/>uint8_t<sp/>level<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="229" refid="namespaced3d_1a85503ffed990ac67ee35f3094bf376da" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a85503ffed990ac67ee35f3094bf376da" kindref="member">clearview</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>what,<sp/>E3DCOLOR<sp/>c,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>z,<sp/>uint32_t<sp/>stencil);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239" refid="namespaced3d_1a74fa30565879cd55fbc1f66adce6c31a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a74fa30565879cd55fbc1f66adce6c31a" kindref="member">get_screen_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248" refid="namespaced3d_1a60e38591be0a88b88e5ae9542dfbcb2a" refkind="member"><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">Texture</ref><sp/>*<ref refid="namespaced3d_1a60e38591be0a88b88e5ae9542dfbcb2a" kindref="member">get_backbuffer_tex</ref>();</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258" refid="namespaced3d_1a875f3568c214b7d46098dc19a0b08fd3" refkind="member"><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">Texture</ref><sp/>*<ref refid="namespaced3d_1a875f3568c214b7d46098dc19a0b08fd3" kindref="member">get_secondary_backbuffer_tex</ref>();</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="265"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ae441b2eb0ba406fcc15dbc1dde3dee50" kindref="member">copy_from_current_render_target</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*to_tex)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a48817caedbe3fb171e1b4286a12e8e47" kindref="member">copy_from_current_render_target</ref>(to_tex);<sp/>}</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1abbe9addf6818cb5f3764e8f575d8b3bb" kindref="member">clear_rt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderTarget" kindref="compound">RenderTarget</ref><sp/>&amp;rt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref><sp/>&amp;clear_val)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ab13083e4c79d7e300cec69ed4bc44837" kindref="member">clear_rt</ref>(rt,<sp/>clear_val);<sp/>}</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1bf7077d84dba3f2a322c90a643062ad" kindref="member">set_render_target</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" kindref="member">set_depth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>access)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8450e84b0c091329ddfe0323fdbad689" kindref="member">set_depth</ref>(tex,<sp/>access);<sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426" kindref="member">set_depth</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/><ref refid="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d" kindref="member">DepthAccess</ref><sp/>access)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8450e84b0c091329ddfe0323fdbad689" kindref="member">set_depth</ref>(tex,<sp/>layer,<sp/>access);<sp/>}</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rt_index,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fc,<sp/>uint8_t<sp/>level)</highlight></codeline>
+<codeline lineno="272"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1bf7077d84dba3f2a322c90a643062ad" kindref="member">set_render_target</ref>(rt_index,<sp/>t,<sp/>fc,<sp/>level);</highlight></codeline>
+<codeline lineno="274"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rt_index,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/>uint8_t<sp/>level)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1bf7077d84dba3f2a322c90a643062ad" kindref="member">set_render_target</ref>(rt_index,<sp/>t,<sp/>level);<sp/>}</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd" kindref="member">get_render_target</ref>(<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;out_rt)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ac2f39e2a0f38290cd42e52022cb4bbf6" kindref="member">get_render_target</ref>(out_rt);<sp/>}</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a1b449228601334a2df5185520ed4c6da" kindref="member">set_render_target</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref><sp/>&amp;rt)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1bf7077d84dba3f2a322c90a643062ad" kindref="member">set_render_target</ref>(rt);<sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a32ba0b93e0029c75fad830eb591e4453" kindref="member">get_target_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aa8c96a25deda2456b6504bd2565c0560" kindref="member">get_target_size</ref>(w,<sp/>h);<sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a195d3165dc9677bc46b7f4909514eeae" kindref="member">get_render_target_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*rt_tex,<sp/>uint8_t<sp/>level)</highlight></codeline>
+<codeline lineno="280"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a47a11cc774f7ef40a0162747cab1be66" kindref="member">get_render_target_size</ref>(w,<sp/>h,<sp/>rt_tex,<sp/>level);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a85503ffed990ac67ee35f3094bf376da" kindref="member">clearview</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>what,<sp/>E3DCOLOR<sp/>c,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>z,<sp/>uint32_t<sp/>stencil)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8e56770512f6f8a5ade72f9a4062714d" kindref="member">clearview</ref>(what,<sp/>c,<sp/>z,<sp/>stencil);<sp/>}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a74fa30565879cd55fbc1f66adce6c31a" kindref="member">get_screen_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abdbfff4bbeba9af0a1837f8e040606fb" kindref="member">get_screen_size</ref>(w,<sp/>h);<sp/>}</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">Texture</ref><sp/>*<ref refid="namespaced3d_1a60e38591be0a88b88e5ae9542dfbcb2a" kindref="member">get_backbuffer_tex</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aa2f7409a4aa8879763b881ed5bf01c81" kindref="member">get_backbuffer_tex</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">Texture</ref><sp/>*<ref refid="namespaced3d_1a875f3568c214b7d46098dc19a0b08fd3" kindref="member">get_secondary_backbuffer_tex</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1acd01964b81cefd4f8382cc5cce7a7dac" kindref="member">get_secondary_backbuffer_tex</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="287"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_renderTarget.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,565 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shaderBytecodeCache_8cpp" kind="file" language="C++">
+    <compoundname>shaderBytecodeCache.cpp</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="yes">shaderBytecodeCache.h</includes>
+    <includes refid="globalConfig_8h" local="yes">globalConfig.h</includes>
+    <includes refid="shSemCode_8h" local="yes">shSemCode.h</includes>
+    <incdepgraph>
+      <node id="55">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="17">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="58">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="1">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="20">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="48">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="12">
+        <label>cstdint</label>
+      </node>
+      <node id="5">
+        <label>cstring</label>
+      </node>
+      <node id="37">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="36">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="41">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="42">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="52">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="21">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="4">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="57">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="13">
+        <label>memory</label>
+      </node>
+      <node id="44">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="22">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="54">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="45">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="50">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="43">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="49">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="35">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="34">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="24">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="23">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="18">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="shaderBytecodeCache_8cpp_1a11e6e0ba8a4c194fd4c5842ec4557f32" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int HLSL_CACHE_STAMPS[HLSL_COUNT]</definition>
+        <argsstring>[HLSL_COUNT]</argsstring>
+        <name>HLSL_CACHE_STAMPS</name>
+        <initializer>= {
+  _MAKE4C(&apos;DX9p&apos;), 
+  _MAKE4C(&apos;DX9v&apos;), 
+  _MAKE4C(&apos;D11c&apos;), 
+  _MAKE4C(&apos;D11d&apos;), 
+  _MAKE4C(&apos;D11h&apos;), 
+  _MAKE4C(&apos;D11g&apos;), 
+  _MAKE4C(&apos;D11v&apos;), 
+  _MAKE4C(&apos;D11g&apos;), 
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.cpp" line="8" column="22" bodyfile="shaderBytecodeCache.cpp" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shaderBytecodeCache_8cpp_1a53df41b64958672c8ba7bfecc65bf0fa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void apply_shader_from_cache</definition>
+        <argsstring>(SemanticShaderPass &amp;pass, HlslCompilationStage stage, ShaderCacheLevelIds c, const ShaderBytecodeCache &amp;cache)</argsstring>
+        <name>apply_shader_from_cache</name>
+        <param>
+          <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>pass</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref> &amp;</type>
+          <declname>cache</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.cpp" line="101" column="6" bodyfile="shaderBytecodeCache.cpp" bodystart="101" bodyend="116"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderBytecodeCache_8h" kindref="compound">shaderBytecodeCache.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globalConfig_8h" kindref="compound">globalConfig.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shSemCode_8h" kindref="compound">shSemCode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>this<sp/>probably<sp/>is<sp/>used<sp/>in<sp/>other<sp/>places,<sp/>may<sp/>be<sp/>better<sp/>to<sp/>pull<sp/>out</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>HLSL_CACHE_STAMPS[<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82aeb49af7a231e731ab3151b388ac59618" kindref="member">HLSL_COUNT</ref>]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;DX9p&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_PS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;DX9v&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_VS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11c&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_CS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11d&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_DS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11h&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_HS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11g&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_GS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11v&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_MS<sp/>-<sp/>aliased<sp/>with<sp/>vs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11g&apos;</highlight><highlight class="normal">),<sp/></highlight><highlight class="comment">//<sp/>HLSL_AS<sp/>-<sp/>aliased<sp/>with<sp/>gs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1a8bd68a0f8c8fab2483d536e09d187fb3" kindref="member">ShaderBytecodeCache::post</ref>(<ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCompileResult" kindref="compound">CompileResult</ref><sp/>&amp;result,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;compile_ctx)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size_in_unsigned<sp/>=<sp/>(result.<ref refid="structCompileResult_1a3d2cb0a14026b002b5e9bb174c8b2c50" kindref="member">bytecode</ref>.size()<sp/>+<sp/>3)<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>added_new<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/>codeIdx<sp/>=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>cachedShadersList.size()<sp/>-<sp/>1;<sp/>i<sp/>&gt;=<sp/>0;<sp/>i--)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cachedShadersList[i].codeType<sp/>==<sp/>stage<sp/>&amp;&amp;<sp/>cachedShadersList[i].relCode.size()<sp/>==<sp/>size_in_unsigned<sp/>+<sp/>1<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eastl::equal(result.<ref refid="structCompileResult_1a3d2cb0a14026b002b5e9bb174c8b2c50" kindref="member">bytecode</ref>.begin(),<sp/>result.<ref refid="structCompileResult_1a3d2cb0a14026b002b5e9bb174c8b2c50" kindref="member">bytecode</ref>.end(),<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*)&amp;cachedShadersList[i].relCode[1]))</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>codeIdx<sp/>=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref>{i};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Store<sp/>new<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(codeIdx<sp/>==<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>codeIdx<sp/>=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref>(append_items(cachedShadersList,<sp/>1));</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structCachedShader" kindref="compound">CachedShader</ref><sp/>&amp;cachedShader<sp/>=<sp/>cachedShadersList[eastl::to_underlying(codeIdx)];</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>cachedShader.<ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref>.resize(size_in_unsigned<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>cachedShader.<ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref><sp/>=<sp/>stage;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().validateIdenticalBytecode)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>cachedShader.<ref refid="structCachedShader_1a393f875e5a1d219514ec106f64e0448e" kindref="member">compileCtx</ref><sp/>=<sp/>compile_ctx;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>++codeCounts.<ref refid="structPerHlslStage_1a0ca5796518e7f2e078f610e89ef69400" kindref="member">all</ref>[stage];</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>cachedShader.<ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref>[0]<sp/>=<sp/>HLSL_CACHE_STAMPS[stage];</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="commonUtils_8h_1ae2667fae32711226a08120e1cc45974d" kindref="member">item_is_in</ref>(stage,<sp/>{<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a650263c7ccac846d596bd102f8731e45" kindref="member">HLSL_CS</ref>,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a817ee5a4475f199b5cd88655ac66d6c9" kindref="member">HLSL_AS</ref>,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a9b00fd134e3a16ccea975e6308ac0407" kindref="member">HLSL_MS</ref>}))</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>cachedShader.<ref refid="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" kindref="member">computeShaderInfo</ref><sp/>=<sp/>result.<ref refid="structCompileResult_1a827c9155dc66560bb4eccf2740bf278f" kindref="member">computeShaderInfo</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::copy(result.<ref refid="structCompileResult_1a3d2cb0a14026b002b5e9bb174c8b2c50" kindref="member">bytecode</ref>.begin(),<sp/>result.<ref refid="structCompileResult_1a3d2cb0a14026b002b5e9bb174c8b2c50" kindref="member">bytecode</ref>.end(),<sp/>(uint8_t<sp/>*)&amp;cachedShader.<ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref>[1]);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>added_new<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>cacheEntries[c.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>].lv2[c.<ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref>].lv3[c.<ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref>].codeIdx<sp/>=<sp/>codeIdx;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>added_new;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><ref refid="structShaderBytecodeCache_1_1LookupResult" kindref="compound">ShaderBytecodeCache::LookupResult</ref><sp/><ref refid="classShaderBytecodeCache_1a59f62e38c3b8d202eb7777a68247f4b9" kindref="member">ShaderBytecodeCache::find</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/>&amp;code_digest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/>&amp;const_digest,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><ref refid="structShaderBytecodeCache_1_1LookupResult" kindref="compound">ShaderBytecodeCache::LookupResult</ref><sp/>res{};</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(cacheEntries.size()<sp/>-<sp/>1);<sp/>i<sp/>&gt;=<sp/>0;<sp/>i--)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cacheEntries[i].codeDigest<sp/>==<sp/>code_digest)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderCacheEntry" kindref="compound">ShaderCacheEntry</ref><sp/>&amp;e<sp/>=<sp/>cacheEntries[i];</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j<sp/>=<sp/>e.<ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>.size()<sp/>-<sp/>1;<sp/>j<sp/>&gt;=<sp/>0;<sp/>j--)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.<ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>[j].constDigest<sp/>==<sp/>const_digest)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderCacheEntry_1_1Level2" kindref="compound">ShaderCacheEntry::Level2</ref><sp/>&amp;l2<sp/>=<sp/>e.<ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>[j];</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>k<sp/>=<sp/>l2.<ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>.size()<sp/>-<sp/>1;<sp/>k<sp/>&gt;=<sp/>0;<sp/>k--)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l2.<ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>[k].entry<sp/>==<sp/>entry<sp/>&amp;&amp;<sp/>l2.<ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>[k].profile<sp/>==<sp/>profile)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{l2.<ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>[k].codeIdx,<sp/>{i,<sp/>j,<sp/>k}};</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{<ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>,<sp/>{i,<sp/>j,<sp/>l2.<ref refid="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" kindref="member">addEntry</ref>(entry,<sp/>profile)}};</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{<ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>,<sp/>{i,<sp/>e.<ref refid="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" kindref="member">addEntry</ref>(const_digest,<sp/>entry,<sp/>profile),<sp/>0}};</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><ref refid="structShaderCacheEntry" kindref="compound">ShaderCacheEntry</ref><sp/>&amp;e<sp/>=<sp/>cacheEntries.push_back();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>e.<ref refid="structShaderCacheEntry_1a48aff9e279a60c514c122e4b39868906" kindref="member">codeDigest</ref><sp/>=<sp/>code_digest;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{<ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>,<sp/>{int(cacheEntries.size()<sp/>-<sp/>1),<sp/>e.<ref refid="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" kindref="member">addEntry</ref>(const_digest,<sp/>entry,<sp/>profile),<sp/>0}};</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1a456942262603af909796d18e59c56d71" kindref="member">ShaderBytecodeCache::resolvePendingPasses</ref>()</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>*p<sp/>:<sp/>pendingShaderPasses)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::optional&lt;ShaderCacheLevelIds&gt;<sp/>entryIdsMaybe;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage<sp/>:<sp/><ref refid="hlslStage_8h_1a4a8f3901eb3d47f49d8197d008c7df14" kindref="member">HLSL_ALL_LIST</ref>)</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((entryIdsMaybe<sp/>=<sp/>p-&gt;getCidx(stage)).has_value())</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a53df41b64958672c8ba7bfecc65bf0fa" kindref="member">apply_shader_from_cache</ref>(*p,<sp/>stage,<sp/>entryIdsMaybe.value(),<sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>pendingShaderPasses.clear();</highlight></codeline>
+<codeline lineno="93"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1aeb96c34e97bf8b805ceceea6f3ea4d1c" kindref="member">ShaderBytecodeCache::registerPendingPass</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;p)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!pendingShaderPasses.size()<sp/>||<sp/>pendingShaderPasses.back()<sp/>!=<sp/>&amp;p)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>pendingShaderPasses.push_back(&amp;p);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shaderBytecodeCache_8cpp_1a53df41b64958672c8ba7bfecc65bf0fa" kindref="member">apply_shader_from_cache</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;pass,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,<sp/><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref><sp/>&amp;cache)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;cachedShader<sp/>=<sp/>cache.<ref refid="classShaderBytecodeCache_1aae7fd205f02b77f3a46bd7820fb26018" kindref="member">resolveEntry</ref>(c);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>*dst[<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82aeb49af7a231e731ab3151b388ac59618" kindref="member">HLSL_COUNT</ref>]<sp/>=<sp/>{&amp;pass.<ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">fsh</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">vpr</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">cs</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">ds</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">hs</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">gs</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">vpr</ref>,<sp/>&amp;pass.<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">gs</ref>};</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>*dst[stage]<sp/>=<sp/>cachedShader.<ref refid="structCachedShader_1a9f30a4f8a4449c048a685f652d0742b6" kindref="member">getShaderOutCode</ref>(stage);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="commonUtils_8h_1ae2667fae32711226a08120e1cc45974d" kindref="member">item_is_in</ref>(stage,<sp/>{<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a650263c7ccac846d596bd102f8731e45" kindref="member">HLSL_CS</ref>,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a817ee5a4475f199b5cd88655ac66d6c9" kindref="member">HLSL_AS</ref>,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a9b00fd134e3a16ccea975e6308ac0407" kindref="member">HLSL_MS</ref>}))</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>pass.<ref refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" kindref="member">threadGroupSizes</ref>[0]<sp/>=<sp/>cachedShader.<ref refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" kindref="member">getComputeShaderInfo</ref>().<ref refid="structComputeShaderInfo_1a224f8f2a61ce2e43c1ffc14888695919" kindref="member">threadGroupSizeX</ref>;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>pass.<ref refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" kindref="member">threadGroupSizes</ref>[1]<sp/>=<sp/>cachedShader.<ref refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" kindref="member">getComputeShaderInfo</ref>().<ref refid="structComputeShaderInfo_1a003d2a2a8391d763e65226718c490930" kindref="member">threadGroupSizeY</ref>;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>pass.<ref refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" kindref="member">threadGroupSizes</ref>[2]<sp/>=<sp/>cachedShader.<ref refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" kindref="member">getComputeShaderInfo</ref>().<ref refid="structComputeShaderInfo_1a93ca00db99b376df7eceacfbbb09bab7" kindref="member">threadGroupSizeZ</ref>;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>pass.<ref refid="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" kindref="member">scarlettWave32</ref><sp/>=<sp/>cachedShader.<ref refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" kindref="member">getComputeShaderInfo</ref>().scarlettWave32;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="shaderBytecodeCache.cpp"/>
+  </compounddef>
+</doxygen>

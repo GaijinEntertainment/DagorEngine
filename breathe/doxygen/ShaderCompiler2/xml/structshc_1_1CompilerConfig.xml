@@ -1,0 +1,1114 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1CompilerConfig" kind="struct" language="C++" prot="public">
+    <compoundname>shc::CompilerConfig</compoundname>
+    <includes refid="globalConfig_8h" local="no">globalConfig.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aa7adc7e5992bf415fa44be37154208eb" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::version</definition>
+        <argsstring></argsstring>
+        <name>version</name>
+        <qualifiedname>shc::CompilerConfig::version</qualifiedname>
+        <initializer>= &quot;2.77&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="31" column="14" bodyfile="globalConfig.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a468f0ae1b98a9df45341f56afe270b59" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::singleCompilationShName</definition>
+        <argsstring></argsstring>
+        <name>singleCompilationShName</name>
+        <qualifiedname>shc::CompilerConfig::singleCompilationShName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="33" column="14" bodyfile="globalConfig.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a58a6d97a13028d24ac47353c5b762207" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::intermediateDir</definition>
+        <argsstring></argsstring>
+        <name>intermediateDir</name>
+        <qualifiedname>shc::CompilerConfig::intermediateDir</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="34" column="14" bodyfile="globalConfig.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1af49763dc3e1eae4c97c685ccde106b3b" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::logDir</definition>
+        <argsstring></argsstring>
+        <name>logDir</name>
+        <qualifiedname>shc::CompilerConfig::logDir</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="35" column="14" bodyfile="globalConfig.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a85cd961530d14958ad9606a39084b870" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::outDumpNameConfig</definition>
+        <argsstring></argsstring>
+        <name>outDumpNameConfig</name>
+        <qualifiedname>shc::CompilerConfig::outDumpNameConfig</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="36" column="14" bodyfile="globalConfig.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a695663e26e3171ea12c3734acee74249" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::sha1CacheDir</definition>
+        <argsstring></argsstring>
+        <name>sha1CacheDir</name>
+        <qualifiedname>shc::CompilerConfig::sha1CacheDir</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="37" column="14" bodyfile="globalConfig.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a6f69ee6d2352c51623188fca29c8c402" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::crossCompiler</definition>
+        <argsstring></argsstring>
+        <name>crossCompiler</name>
+        <qualifiedname>shc::CompilerConfig::crossCompiler</qualifiedname>
+        <initializer>=</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="39" column="14" bodyfile="globalConfig.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ac6097038dd45b1f9ad4f0f889ce41479" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String shc::CompilerConfig::hlslDefines</definition>
+        <argsstring></argsstring>
+        <name>hlslDefines</name>
+        <qualifiedname>shc::CompilerConfig::hlslDefines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="63" column="10" bodyfile="globalConfig.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a78772edb684e25c254d0dfa13eb3b7da" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString shc::CompilerConfig::shaderSrcRoot</definition>
+        <argsstring></argsstring>
+        <name>shaderSrcRoot</name>
+        <qualifiedname>shc::CompilerConfig::shaderSrcRoot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="64" column="16" bodyfile="globalConfig.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ad83dbc6826aeed601bc5a22a5002efc1" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString shc::CompilerConfig::engineRootDir</definition>
+        <argsstring></argsstring>
+        <name>engineRootDir</name>
+        <qualifiedname>shc::CompilerConfig::engineRootDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="65" column="16" bodyfile="globalConfig.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a20100af06abeb7d4b91584ba96e8cd49" prot="public" static="no" mutable="no">
+        <type><ref refid="structShHardwareOptions" kindref="compound">ShHardwareOptions</ref></type>
+        <definition>ShHardwareOptions shc::CompilerConfig::singleOptions</definition>
+        <argsstring></argsstring>
+        <name>singleOptions</name>
+        <qualifiedname>shc::CompilerConfig::singleOptions</qualifiedname>
+        <initializer>{4.0_sm}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="66" column="21" bodyfile="globalConfig.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ac3ebe5679284753463d7b5799cddfb02" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; String &gt;</type>
+        <definition>dag::Vector&lt;String&gt; shc::CompilerConfig::dscIncludePaths</definition>
+        <argsstring></argsstring>
+        <name>dscIncludePaths</name>
+        <qualifiedname>shc::CompilerConfig::dscIncludePaths</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="68" column="15" bodyfile="globalConfig.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a61eba89071c42b794a19a6be1bc848ab" prot="public" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; eastl::string, eastl::string &gt;</type>
+        <definition>ska::flat_hash_map&lt;eastl::string, eastl::string&gt; shc::CompilerConfig::fileToFullPath</definition>
+        <argsstring></argsstring>
+        <name>fileToFullPath</name>
+        <qualifiedname>shc::CompilerConfig::fileToFullPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="70" column="22" bodyfile="globalConfig.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a4290fd2d9d6d398410c276f59ca2b426" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t shc::CompilerConfig::dictionarySizeInKb</definition>
+        <argsstring></argsstring>
+        <name>dictionarySizeInKb</name>
+        <qualifiedname>shc::CompilerConfig::dictionarySizeInKb</qualifiedname>
+        <initializer>= 4096</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="72" column="10" bodyfile="globalConfig.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aed1ba3b0ae73d6131eaa001213c6f678" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t shc::CompilerConfig::shGroupSizeInKb</definition>
+        <argsstring></argsstring>
+        <name>shGroupSizeInKb</name>
+        <qualifiedname>shc::CompilerConfig::shGroupSizeInKb</qualifiedname>
+        <initializer>= 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="73" column="10" bodyfile="globalConfig.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1afb929004f50ede58325934b69b9d57e7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::CompilerConfig::shGroupCompressionLevel</definition>
+        <argsstring></argsstring>
+        <name>shGroupCompressionLevel</name>
+        <qualifiedname>shc::CompilerConfig::shGroupCompressionLevel</qualifiedname>
+        <initializer>= <ref refid="structshc_1_1CompilerConfig_1ac3914f6bd3d64ff56f35989193df0bdf" kindref="member">DEFAULT_COMPRESSION_LEVEL</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="77" column="7" bodyfile="globalConfig.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a9c99fa0fe1d7ce4437589196efc646da" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::CompilerConfig::shDumpCompressionLevel</definition>
+        <argsstring></argsstring>
+        <name>shDumpCompressionLevel</name>
+        <qualifiedname>shc::CompilerConfig::shDumpCompressionLevel</qualifiedname>
+        <initializer>= <ref refid="structshc_1_1CompilerConfig_1ac3914f6bd3d64ff56f35989193df0bdf" kindref="member">DEFAULT_COMPRESSION_LEVEL</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="78" column="7" bodyfile="globalConfig.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a9d8996d6227048ce45c2167bc07734ad" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned shc::CompilerConfig::numProcesses</definition>
+        <argsstring></argsstring>
+        <name>numProcesses</name>
+        <qualifiedname>shc::CompilerConfig::numProcesses</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="80" column="12" bodyfile="globalConfig.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a5171b802b37c9440c482c3b6d6a33cc0" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned shc::CompilerConfig::numWorkers</definition>
+        <argsstring></argsstring>
+        <name>numWorkers</name>
+        <qualifiedname>shc::CompilerConfig::numWorkers</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="81" column="12" bodyfile="globalConfig.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a53a10f762ecb93f3a9b01a08a5cb224b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::CompilerConfig::hlslMaximumVsfAllowed</definition>
+        <argsstring></argsstring>
+        <name>hlslMaximumVsfAllowed</name>
+        <qualifiedname>shc::CompilerConfig::hlslMaximumVsfAllowed</qualifiedname>
+        <initializer>= 2048</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="83" column="7" bodyfile="globalConfig.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1acb42ed12ba5b1dddae6ac55c14f1e0e8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::CompilerConfig::hlslMaximumPsfAllowed</definition>
+        <argsstring></argsstring>
+        <name>hlslMaximumPsfAllowed</name>
+        <qualifiedname>shc::CompilerConfig::hlslMaximumPsfAllowed</qualifiedname>
+        <initializer>= 2048</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="84" column="7" bodyfile="globalConfig.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a07709c18553c05f849ca4119010a3525" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::CompilerConfig::hlslOptimizationLevel</definition>
+        <argsstring></argsstring>
+        <name>hlslOptimizationLevel</name>
+        <qualifiedname>shc::CompilerConfig::hlslOptimizationLevel</qualifiedname>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="85" column="7" bodyfile="globalConfig.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aec26f4fced3056f5c408918cebadf77e" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* shc::CompilerConfig::assumedVarsConfig</definition>
+        <argsstring></argsstring>
+        <name>assumedVarsConfig</name>
+        <qualifiedname>shc::CompilerConfig::assumedVarsConfig</qualifiedname>
+        <initializer>= &amp;DataBlock::emptyBlock</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="87" column="19" bodyfile="globalConfig.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a1ef797efe3855bf413cd788a87b4d6a5" prot="public" static="no" mutable="no">
+        <type><ref refid="DebugLevel_8h_1a1a2e78e667f5d5bd44be96e3abc8a3ee" kindref="member">DebugLevel</ref></type>
+        <definition>DebugLevel shc::CompilerConfig::hlslDebugLevel</definition>
+        <argsstring></argsstring>
+        <name>hlslDebugLevel</name>
+        <qualifiedname>shc::CompilerConfig::hlslDebugLevel</qualifiedname>
+        <initializer>= <ref refid="DebugLevel_8h_1a1a2e78e667f5d5bd44be96e3abc8a3eeab50339a10e1de285ac99d4c3990b8693" kindref="member">DebugLevel::NONE</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="89" column="14" bodyfile="globalConfig.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a4abc6b3b94503bccc387b5c46cc55272" prot="public" static="no" mutable="no">
+        <type>shader_layout::ExternalStcodeMode</type>
+        <definition>shader_layout::ExternalStcodeMode shc::CompilerConfig::cppStcodeMode</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeMode</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeMode</qualifiedname>
+        <initializer>= shader_layout::ExternalStcodeMode::NONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="91" column="37" bodyfile="globalConfig.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1af9a6c05720a36638e58ab50926fadb1a" prot="public" static="no" mutable="no">
+        <type><ref refid="cppStcode_8h_1a2579e1021ff8983bb1b2717f514619aa" kindref="member">StcodeDynlibConfig</ref></type>
+        <definition>StcodeDynlibConfig shc::CompilerConfig::cppStcodeCompConfig</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeCompConfig</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeCompConfig</qualifiedname>
+        <initializer>= <ref refid="cppStcode_8h_1a2579e1021ff8983bb1b2717f514619aaabfeddf560ff988c07141df6135a9bfcf" kindref="member">StcodeDynlibConfig::DEV</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="92" column="22" bodyfile="globalConfig.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1abb104bd1eae00002853482d98be9ae72" prot="public" static="no" mutable="no">
+        <type><ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05" kindref="member">StcodeTargetArch</ref></type>
+        <definition>StcodeTargetArch shc::CompilerConfig::cppStcodeArch</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeArch</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeArch</qualifiedname>
+        <initializer>= <ref refid="cppStcodePlatformInfo_8h_1a67d6bd111736197f5943a0493f1dbf05a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetArch::DEFAULT</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="93" column="20" bodyfile="globalConfig.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a25842f4372faec252d1005f4b041332a" prot="public" static="no" mutable="no">
+        <type><ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88" kindref="member">StcodeTargetPlatform</ref></type>
+        <definition>StcodeTargetPlatform shc::CompilerConfig::cppStcodePlatform</definition>
+        <argsstring></argsstring>
+        <name>cppStcodePlatform</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodePlatform</qualifiedname>
+        <initializer>= <ref refid="cppStcodePlatformInfo_8h_1a2a973a4f32d63d4f3e23ad578192cb88a5b39c8b553c821e7cddc6da64b5bd2ee" kindref="member">StcodeTargetPlatform::DEFAULT</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="94" column="24" bodyfile="globalConfig.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aef6cca6053fcdbc18e78313ea087b981" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::CompilerConfig::cppStcodeCustomTag</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeCustomTag</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeCustomTag</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="95" column="14" bodyfile="globalConfig.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a99d673f1c57708e8811381b115fd8072" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::generateCppStcodeValidationData</definition>
+        <argsstring></argsstring>
+        <name>generateCppStcodeValidationData</name>
+        <qualifiedname>shc::CompilerConfig::generateCppStcodeValidationData</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="97" column="8" bodyfile="globalConfig.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a4b837b76cbc27d82052a7d67d8d138c1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::enableBindless</definition>
+        <argsstring></argsstring>
+        <name>enableBindless</name>
+        <qualifiedname>shc::CompilerConfig::enableBindless</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="102" column="8" bodyfile="globalConfig.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a7f7116a10463068508de22095ec2b3f7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::useGitTimestamps</definition>
+        <argsstring></argsstring>
+        <name>useGitTimestamps</name>
+        <qualifiedname>shc::CompilerConfig::useGitTimestamps</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="107" column="8" bodyfile="globalConfig.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a372dbab65eab33a70da402d747c73676" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::forceRebuild</definition>
+        <argsstring></argsstring>
+        <name>forceRebuild</name>
+        <qualifiedname>shc::CompilerConfig::forceRebuild</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="109" column="8" bodyfile="globalConfig.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a6b781aa93aa842f65c0891a0b7439454" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::forceRelink</definition>
+        <argsstring></argsstring>
+        <name>forceRelink</name>
+        <qualifiedname>shc::CompilerConfig::forceRelink</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="110" column="8" bodyfile="globalConfig.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aef1dd127f230f7cc530069165fe2f832" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::shortMessages</definition>
+        <argsstring></argsstring>
+        <name>shortMessages</name>
+        <qualifiedname>shc::CompilerConfig::shortMessages</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="111" column="8" bodyfile="globalConfig.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ad956933943b29c04021a3fe87772c552" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::noSave</definition>
+        <argsstring></argsstring>
+        <name>noSave</name>
+        <qualifiedname>shc::CompilerConfig::noSave</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="112" column="8" bodyfile="globalConfig.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a71c6d785ecd5e0a20ebea3760ecd6afd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslSavePPAsComments</definition>
+        <argsstring></argsstring>
+        <name>hlslSavePPAsComments</name>
+        <qualifiedname>shc::CompilerConfig::hlslSavePPAsComments</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="113" column="8" bodyfile="globalConfig.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a3af334e41eb9ae1dff36e0b0e51ae11e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::isDebugModeEnabled</definition>
+        <argsstring></argsstring>
+        <name>isDebugModeEnabled</name>
+        <qualifiedname>shc::CompilerConfig::isDebugModeEnabled</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="114" column="8" bodyfile="globalConfig.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ae804f46c99077b679a316c9c4ef9243d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::constrainCompressedBindumpSize</definition>
+        <argsstring></argsstring>
+        <name>constrainCompressedBindumpSize</name>
+        <qualifiedname>shc::CompilerConfig::constrainCompressedBindumpSize</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="115" column="8" bodyfile="globalConfig.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ab8150f9586651e5eee7b9c1237c43a93" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslEmbedSource</definition>
+        <argsstring></argsstring>
+        <name>hlslEmbedSource</name>
+        <qualifiedname>shc::CompilerConfig::hlslEmbedSource</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="116" column="8" bodyfile="globalConfig.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ae33db9d93363e2138ff51d9ecc66d555" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslSkipValidation</definition>
+        <argsstring></argsstring>
+        <name>hlslSkipValidation</name>
+        <qualifiedname>shc::CompilerConfig::hlslSkipValidation</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="117" column="8" bodyfile="globalConfig.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ad20fef357d0d0359d9a1cfce88ec9f2f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslNoDisassembly</definition>
+        <argsstring></argsstring>
+        <name>hlslNoDisassembly</name>
+        <qualifiedname>shc::CompilerConfig::hlslNoDisassembly</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="118" column="8" bodyfile="globalConfig.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a0d190625f18c010a9e4d3bad6a9ced6e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslShowWarnings</definition>
+        <argsstring></argsstring>
+        <name>hlslShowWarnings</name>
+        <qualifiedname>shc::CompilerConfig::hlslShowWarnings</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="119" column="8" bodyfile="globalConfig.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a89228dc27f00e0dcd758e022564f55e8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslWarningsAsErrors</definition>
+        <argsstring></argsstring>
+        <name>hlslWarningsAsErrors</name>
+        <qualifiedname>shc::CompilerConfig::hlslWarningsAsErrors</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="120" column="8" bodyfile="globalConfig.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ae51c3d3f048a95f48964047c944fdd8c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslDumpCodeAlways</definition>
+        <argsstring></argsstring>
+        <name>hlslDumpCodeAlways</name>
+        <qualifiedname>shc::CompilerConfig::hlslDumpCodeAlways</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="121" column="8" bodyfile="globalConfig.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ade0475de43e81a448161c748c2f3108d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslDumpCodeSeparate</definition>
+        <argsstring></argsstring>
+        <name>hlslDumpCodeSeparate</name>
+        <qualifiedname>shc::CompilerConfig::hlslDumpCodeSeparate</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="122" column="8" bodyfile="globalConfig.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1af163c7174bc5435b1a2e9622d37c015d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlslDumpCodeOnError</definition>
+        <argsstring></argsstring>
+        <name>hlslDumpCodeOnError</name>
+        <qualifiedname>shc::CompilerConfig::hlslDumpCodeOnError</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="123" column="8" bodyfile="globalConfig.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aac019f069a5c2545c52f24e42825bcb1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::validateIdenticalBytecode</definition>
+        <argsstring></argsstring>
+        <name>validateIdenticalBytecode</name>
+        <qualifiedname>shc::CompilerConfig::validateIdenticalBytecode</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="124" column="8" bodyfile="globalConfig.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a7931cab87a121710b0a7cc62aaf71609" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::hlsl2021</definition>
+        <argsstring></argsstring>
+        <name>hlsl2021</name>
+        <qualifiedname>shc::CompilerConfig::hlsl2021</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="125" column="8" bodyfile="globalConfig.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a76539f58cd85e1874a78c32e7f56f04a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::useCompression</definition>
+        <argsstring></argsstring>
+        <name>useCompression</name>
+        <qualifiedname>shc::CompilerConfig::useCompression</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="126" column="8" bodyfile="globalConfig.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ac749acaf8c40ea97d4eafd81f53990c4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::addTextureType</definition>
+        <argsstring></argsstring>
+        <name>addTextureType</name>
+        <qualifiedname>shc::CompilerConfig::addTextureType</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="127" column="8" bodyfile="globalConfig.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1af9dcfc28baeadfdd5c2f821297d36781" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::suppressLogs</definition>
+        <argsstring></argsstring>
+        <name>suppressLogs</name>
+        <qualifiedname>shc::CompilerConfig::suppressLogs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="128" column="8" bodyfile="globalConfig.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a9bae6e4c70056a2f3e737db994ba8966" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::logExactCompilationTimes</definition>
+        <argsstring></argsstring>
+        <name>logExactCompilationTimes</name>
+        <qualifiedname>shc::CompilerConfig::logExactCompilationTimes</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="129" column="8" bodyfile="globalConfig.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a2c8c31c9a52bf405f883cde103120f7b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::logFullPerFileCompilationStats</definition>
+        <argsstring></argsstring>
+        <name>logFullPerFileCompilationStats</name>
+        <qualifiedname>shc::CompilerConfig::logFullPerFileCompilationStats</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="130" column="8" bodyfile="globalConfig.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a75998b9323a200903938d4e6761d4598" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::useSha1Cache</definition>
+        <argsstring></argsstring>
+        <name>useSha1Cache</name>
+        <qualifiedname>shc::CompilerConfig::useSha1Cache</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="131" column="8" bodyfile="globalConfig.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a1d3b9aaf08546cd74ac8a12753a90eb5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::writeSha1Cache</definition>
+        <argsstring></argsstring>
+        <name>writeSha1Cache</name>
+        <qualifiedname>shc::CompilerConfig::writeSha1Cache</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="132" column="8" bodyfile="globalConfig.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a3c7d2544f3862ffec5a5288771509247" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::purgeSha1</definition>
+        <argsstring></argsstring>
+        <name>purgeSha1</name>
+        <qualifiedname>shc::CompilerConfig::purgeSha1</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="133" column="8" bodyfile="globalConfig.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aed8b72b3dacf6fa6de0a75c71630a8f8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::enableFp16Override</definition>
+        <argsstring></argsstring>
+        <name>enableFp16Override</name>
+        <qualifiedname>shc::CompilerConfig::enableFp16Override</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="134" column="8" bodyfile="globalConfig.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a45d7d553a28b00235ca7af38e3b384d7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::saveDumpOnCrash</definition>
+        <argsstring></argsstring>
+        <name>saveDumpOnCrash</name>
+        <qualifiedname>shc::CompilerConfig::saveDumpOnCrash</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="135" column="8" bodyfile="globalConfig.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a5dabafaae328e505a16c7c4e2d44dc71" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::singleBuild</definition>
+        <argsstring></argsstring>
+        <name>singleBuild</name>
+        <qualifiedname>shc::CompilerConfig::singleBuild</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="136" column="8" bodyfile="globalConfig.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a13b77d93b39884291b4efda6823c0115" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::relinkOnly</definition>
+        <argsstring></argsstring>
+        <name>relinkOnly</name>
+        <qualifiedname>shc::CompilerConfig::relinkOnly</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="137" column="8" bodyfile="globalConfig.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a433b92f326f0be76073df49222981f87" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::useThreadpool</definition>
+        <argsstring></argsstring>
+        <name>useThreadpool</name>
+        <qualifiedname>shc::CompilerConfig::useThreadpool</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="138" column="8" bodyfile="globalConfig.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aeaf859650958d09e284d5915a2cccebc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::cppStcodeUnityBuild</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeUnityBuild</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeUnityBuild</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="139" column="8" bodyfile="globalConfig.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1aecfc80dfef6beae7120b4b19c2511a1b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::cppStcodeDeleteDebugInfo</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeDeleteDebugInfo</name>
+        <qualifiedname>shc::CompilerConfig::cppStcodeDeleteDebugInfo</qualifiedname>
+        <bitfield> 1 = true</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="140" column="8" bodyfile="globalConfig.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1a70e72c83869bef720b1dd8dfc2c9e2c8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::disallowHlslHardcodedRegs</definition>
+        <argsstring></argsstring>
+        <name>disallowHlslHardcodedRegs</name>
+        <qualifiedname>shc::CompilerConfig::disallowHlslHardcodedRegs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="141" column="8" bodyfile="globalConfig.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structshc_1_1CompilerConfig_1ac3914f6bd3d64ff56f35989193df0bdf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int shc::CompilerConfig::DEFAULT_COMPRESSION_LEVEL</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_COMPRESSION_LEVEL</name>
+        <qualifiedname>shc::CompilerConfig::DEFAULT_COMPRESSION_LEVEL</qualifiedname>
+        <initializer>= 11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="75" column="24" bodyfile="globalConfig.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1CompilerConfig_1a358192f39708c7dbce84a545dfd2e62a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * shc::CompilerConfig::getShaderSrcRoot</definition>
+        <argsstring>() const</argsstring>
+        <name>getShaderSrcRoot</name>
+        <qualifiedname>shc::CompilerConfig::getShaderSrcRoot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="163" column="14" bodyfile="globalConfig.h" bodystart="163" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1CompilerConfig_1a718bba3795bc51624486004c1dd748a2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::CompilerConfig::compileCppStcode</definition>
+        <argsstring>() const</argsstring>
+        <name>compileCppStcode</name>
+        <qualifiedname>shc::CompilerConfig::compileCppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="164" column="8" bodyfile="globalConfig.h" bodystart="164" bodyend="164"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShHardwareOptions</label>
+        <link refid="structShHardwareOptions"/>
+      </node>
+      <node id="1">
+        <label>shc::CompilerConfig</label>
+        <link refid="structshc_1_1CompilerConfig"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>singleOptions</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="globalConfig.h" line="28" column="1" bodyfile="globalConfig.h" bodystart="29" bodyend="165"/>
+    <listofallmembers>
+      <member refid="structshc_1_1CompilerConfig_1ac749acaf8c40ea97d4eafd81f53990c4" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>addTextureType</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aec26f4fced3056f5c408918cebadf77e" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>assumedVarsConfig</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a718bba3795bc51624486004c1dd748a2" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>compileCppStcode</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ae804f46c99077b679a316c9c4ef9243d" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>constrainCompressedBindumpSize</name></member>
+      <member refid="structshc_1_1CompilerConfig_1abb104bd1eae00002853482d98be9ae72" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeArch</name></member>
+      <member refid="structshc_1_1CompilerConfig_1af9a6c05720a36638e58ab50926fadb1a" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeCompConfig</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aef6cca6053fcdbc18e78313ea087b981" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeCustomTag</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aecfc80dfef6beae7120b4b19c2511a1b" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeDeleteDebugInfo</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a4abc6b3b94503bccc387b5c46cc55272" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeMode</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a25842f4372faec252d1005f4b041332a" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodePlatform</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aeaf859650958d09e284d5915a2cccebc" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>cppStcodeUnityBuild</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a6f69ee6d2352c51623188fca29c8c402" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>crossCompiler</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ac3914f6bd3d64ff56f35989193df0bdf" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>DEFAULT_COMPRESSION_LEVEL</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a4290fd2d9d6d398410c276f59ca2b426" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>dictionarySizeInKb</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a70e72c83869bef720b1dd8dfc2c9e2c8" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>disallowHlslHardcodedRegs</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ac3ebe5679284753463d7b5799cddfb02" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>dscIncludePaths</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a4b837b76cbc27d82052a7d67d8d138c1" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>enableBindless</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aed8b72b3dacf6fa6de0a75c71630a8f8" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>enableFp16Override</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ad83dbc6826aeed601bc5a22a5002efc1" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>engineRootDir</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a61eba89071c42b794a19a6be1bc848ab" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>fileToFullPath</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a372dbab65eab33a70da402d747c73676" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>forceRebuild</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a6b781aa93aa842f65c0891a0b7439454" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>forceRelink</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a99d673f1c57708e8811381b115fd8072" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>generateCppStcodeValidationData</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a358192f39708c7dbce84a545dfd2e62a" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>getShaderSrcRoot</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a7931cab87a121710b0a7cc62aaf71609" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlsl2021</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a1ef797efe3855bf413cd788a87b4d6a5" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslDebugLevel</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ac6097038dd45b1f9ad4f0f889ce41479" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslDefines</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ae51c3d3f048a95f48964047c944fdd8c" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslDumpCodeAlways</name></member>
+      <member refid="structshc_1_1CompilerConfig_1af163c7174bc5435b1a2e9622d37c015d" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslDumpCodeOnError</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ade0475de43e81a448161c748c2f3108d" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslDumpCodeSeparate</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ab8150f9586651e5eee7b9c1237c43a93" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslEmbedSource</name></member>
+      <member refid="structshc_1_1CompilerConfig_1acb42ed12ba5b1dddae6ac55c14f1e0e8" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslMaximumPsfAllowed</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a53a10f762ecb93f3a9b01a08a5cb224b" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslMaximumVsfAllowed</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ad20fef357d0d0359d9a1cfce88ec9f2f" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslNoDisassembly</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a07709c18553c05f849ca4119010a3525" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslOptimizationLevel</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a71c6d785ecd5e0a20ebea3760ecd6afd" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslSavePPAsComments</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a0d190625f18c010a9e4d3bad6a9ced6e" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslShowWarnings</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ae33db9d93363e2138ff51d9ecc66d555" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslSkipValidation</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a89228dc27f00e0dcd758e022564f55e8" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>hlslWarningsAsErrors</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a58a6d97a13028d24ac47353c5b762207" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>intermediateDir</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a3af334e41eb9ae1dff36e0b0e51ae11e" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>isDebugModeEnabled</name></member>
+      <member refid="structshc_1_1CompilerConfig_1af49763dc3e1eae4c97c685ccde106b3b" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>logDir</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a9bae6e4c70056a2f3e737db994ba8966" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>logExactCompilationTimes</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a2c8c31c9a52bf405f883cde103120f7b" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>logFullPerFileCompilationStats</name></member>
+      <member refid="structshc_1_1CompilerConfig_1ad956933943b29c04021a3fe87772c552" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>noSave</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a9d8996d6227048ce45c2167bc07734ad" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>numProcesses</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a5171b802b37c9440c482c3b6d6a33cc0" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>numWorkers</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a85cd961530d14958ad9606a39084b870" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>outDumpNameConfig</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a3c7d2544f3862ffec5a5288771509247" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>purgeSha1</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a13b77d93b39884291b4efda6823c0115" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>relinkOnly</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a45d7d553a28b00235ca7af38e3b384d7" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>saveDumpOnCrash</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a695663e26e3171ea12c3734acee74249" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>sha1CacheDir</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a78772edb684e25c254d0dfa13eb3b7da" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>shaderSrcRoot</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a9c99fa0fe1d7ce4437589196efc646da" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>shDumpCompressionLevel</name></member>
+      <member refid="structshc_1_1CompilerConfig_1afb929004f50ede58325934b69b9d57e7" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>shGroupCompressionLevel</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aed1ba3b0ae73d6131eaa001213c6f678" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>shGroupSizeInKb</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aef1dd127f230f7cc530069165fe2f832" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>shortMessages</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a5dabafaae328e505a16c7c4e2d44dc71" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>singleBuild</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a468f0ae1b98a9df45341f56afe270b59" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>singleCompilationShName</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a20100af06abeb7d4b91584ba96e8cd49" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>singleOptions</name></member>
+      <member refid="structshc_1_1CompilerConfig_1af9dcfc28baeadfdd5c2f821297d36781" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>suppressLogs</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a76539f58cd85e1874a78c32e7f56f04a" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>useCompression</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a7f7116a10463068508de22095ec2b3f7" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>useGitTimestamps</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a75998b9323a200903938d4e6761d4598" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>useSha1Cache</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a433b92f326f0be76073df49222981f87" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>useThreadpool</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aac019f069a5c2545c52f24e42825bcb1" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>validateIdenticalBytecode</name></member>
+      <member refid="structshc_1_1CompilerConfig_1aa7adc7e5992bf415fa44be37154208eb" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>version</name></member>
+      <member refid="structshc_1_1CompilerConfig_1a1d3b9aaf08546cd74ac8a12753a90eb5" prot="public" virt="non-virtual"><scope>shc::CompilerConfig</scope><name>writeSha1Cache</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

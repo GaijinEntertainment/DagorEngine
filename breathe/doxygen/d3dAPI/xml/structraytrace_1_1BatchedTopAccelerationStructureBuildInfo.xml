@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::BatchedTopAccelerationStructureBuildInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1a981b8a33f650b93e033543ccf422e76c" prot="public" static="no" mutable="no">
+        <type>RaytraceTopAccelerationStructure *</type>
+        <definition>RaytraceTopAccelerationStructure* raytrace::BatchedTopAccelerationStructureBuildInfo::as</definition>
+        <argsstring></argsstring>
+        <name>as</name>
+        <qualifiedname>raytrace::BatchedTopAccelerationStructureBuildInfo::as</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The TLAS for an element of a batched BLAS build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="257" column="36" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="257" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1ad56cac5af637f429ae7b15e800e65ad1" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo" kindref="compound">TopAccelerationStructureBuildInfo</ref></type>
+        <definition>TopAccelerationStructureBuildInfo raytrace::BatchedTopAccelerationStructureBuildInfo::tasbi</definition>
+        <argsstring></argsstring>
+        <name>tasbi</name>
+        <qualifiedname>raytrace::BatchedTopAccelerationStructureBuildInfo::tasbi</qualifiedname>
+        <briefdescription>
+<para>The TLAS for an element of a batched BLAS build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="259" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::BatchedTopAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>tasbi</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::TopAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1TopAccelerationStructureBuildInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>instanceBuffer</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="254" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="255" bodyend="260"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1a981b8a33f650b93e033543ccf422e76c" prot="public" virt="non-virtual"><scope>raytrace::BatchedTopAccelerationStructureBuildInfo</scope><name>as</name></member>
+      <member refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1ad56cac5af637f429ae7b15e800e65ad1" prot="public" virt="non-virtual"><scope>raytrace::BatchedTopAccelerationStructureBuildInfo</scope><name>tasbi</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

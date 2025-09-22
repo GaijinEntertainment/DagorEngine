@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMyExpTMAnimCB" kind="class" language="C++" prot="public">
+    <compoundname>MyExpTMAnimCB</compoundname>
+    <basecompoundref refid="classExpTMAnimCB" prot="public" virt="non-virtual">ExpTMAnimCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMyExpTMAnimCB_1ae9af307fed577fea40d66a51bf087352" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* MyExpTMAnimCB::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>MyExpTMAnimCB::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1003" column="9" bodyfile="expUtil.cpp" bodystart="1003" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMyExpTMAnimCB_1ac8013cfc640fd2fe96aa66617ce275ae" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode * MyExpTMAnimCB::pnode</definition>
+        <argsstring></argsstring>
+        <name>pnode</name>
+        <qualifiedname>MyExpTMAnimCB::pnode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1003" column="14" bodyfile="expUtil.cpp" bodystart="1003" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMyExpTMAnimCB_1ab655c1619335df9ceb3f0facf313b7db" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode * MyExpTMAnimCB::origin</definition>
+        <argsstring></argsstring>
+        <name>origin</name>
+        <qualifiedname>MyExpTMAnimCB::origin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1003" column="20" bodyfile="expUtil.cpp" bodystart="1003" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMyExpTMAnimCB_1a0fb8951e7d32a802e8e19e8ec0ba51f0" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char MyExpTMAnimCB::nonort</definition>
+        <argsstring></argsstring>
+        <name>nonort</name>
+        <qualifiedname>MyExpTMAnimCB::nonort</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1004" column="8" bodyfile="expUtil.cpp" bodystart="1004" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMyExpTMAnimCB_1a8974d0b1f1d31aa74004413786e13270" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MyExpTMAnimCB::MyExpTMAnimCB</definition>
+        <argsstring>(INode *n, INode *pn, INode *orig)</argsstring>
+        <name>MyExpTMAnimCB</name>
+        <qualifiedname>MyExpTMAnimCB::MyExpTMAnimCB</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>pn</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>orig</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1006" column="3" bodyfile="expUtil.cpp" bodystart="1006" bodyend="1013"/>
+      </memberdef>
+      <memberdef kind="function" id="classMyExpTMAnimCB_1a0ec63c4a891bd14c0dfdecfa4bf3ed41" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MyExpTMAnimCB::get_name</definition>
+        <argsstring>() override</argsstring>
+        <name>get_name</name>
+        <qualifiedname>MyExpTMAnimCB::get_name</qualifiedname>
+        <reimplements refid="classExpTMAnimCB_1a7d8141f5773d9d46f76cbb0231e55089">get_name</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1014" column="15" bodyfile="expUtil.cpp" bodystart="1014" bodyend="1019"/>
+      </memberdef>
+      <memberdef kind="function" id="classMyExpTMAnimCB_1a4fec60070b816ac49c8fa15feccfdd3a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void MyExpTMAnimCB::interp_tm</definition>
+        <argsstring>(TimeValue t, Matrix3 &amp;m) override</argsstring>
+        <name>interp_tm</name>
+        <qualifiedname>MyExpTMAnimCB::interp_tm</qualifiedname>
+        <reimplements refid="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8">interp_tm</reimplements>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1020" column="8" bodyfile="expUtil.cpp" bodystart="1020" bodyend="1041"/>
+      </memberdef>
+      <memberdef kind="function" id="classMyExpTMAnimCB_1ab20e90d905e37ffac44ba069818e1aad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void MyExpTMAnimCB::non_orthog_tm</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>non_orthog_tm</name>
+        <qualifiedname>MyExpTMAnimCB::non_orthog_tm</qualifiedname>
+        <reimplements refid="classExpTMAnimCB_1af5f3138f4c485c75b29c1b0026c70b0b">non_orthog_tm</reimplements>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1042" column="8" bodyfile="expUtil.cpp" bodystart="1042" bodyend="1042"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ExpTMAnimCB</label>
+        <link refid="classExpTMAnimCB"/>
+      </node>
+      <node id="1">
+        <label>MyExpTMAnimCB</label>
+        <link refid="classMyExpTMAnimCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ExpTMAnimCB</label>
+        <link refid="classExpTMAnimCB"/>
+      </node>
+      <node id="1">
+        <label>MyExpTMAnimCB</label>
+        <link refid="classMyExpTMAnimCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="1000" column="1" bodyfile="expUtil.cpp" bodystart="1001" bodyend="1043"/>
+    <listofallmembers>
+      <member refid="classMyExpTMAnimCB_1a0ec63c4a891bd14c0dfdecfa4bf3ed41" prot="public" virt="virtual"><scope>MyExpTMAnimCB</scope><name>get_name</name></member>
+      <member refid="classMyExpTMAnimCB_1a4fec60070b816ac49c8fa15feccfdd3a" prot="public" virt="virtual"><scope>MyExpTMAnimCB</scope><name>interp_tm</name></member>
+      <member refid="classMyExpTMAnimCB_1a8974d0b1f1d31aa74004413786e13270" prot="public" virt="non-virtual"><scope>MyExpTMAnimCB</scope><name>MyExpTMAnimCB</name></member>
+      <member refid="classMyExpTMAnimCB_1ae9af307fed577fea40d66a51bf087352" prot="public" virt="non-virtual"><scope>MyExpTMAnimCB</scope><name>node</name></member>
+      <member refid="classMyExpTMAnimCB_1ab20e90d905e37ffac44ba069818e1aad" prot="public" virt="virtual"><scope>MyExpTMAnimCB</scope><name>non_orthog_tm</name></member>
+      <member refid="classMyExpTMAnimCB_1a0fb8951e7d32a802e8e19e8ec0ba51f0" prot="public" virt="non-virtual"><scope>MyExpTMAnimCB</scope><name>nonort</name></member>
+      <member refid="classMyExpTMAnimCB_1ab655c1619335df9ceb3f0facf313b7db" prot="public" virt="non-virtual"><scope>MyExpTMAnimCB</scope><name>origin</name></member>
+      <member refid="classMyExpTMAnimCB_1ac8013cfc640fd2fe96aa66617ce275ae" prot="public" virt="non-virtual"><scope>MyExpTMAnimCB</scope><name>pnode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

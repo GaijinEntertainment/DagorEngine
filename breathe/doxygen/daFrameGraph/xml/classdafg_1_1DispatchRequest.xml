@@ -1,0 +1,2125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1DispatchRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::DispatchRequest</compoundname>
+    <basecompoundref prot="private" virt="non-virtual">detail::DispatchRequestBase</basecompoundref>
+    <includes refid="dispatchRequest_8h" local="no">dispatchRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>detail::DispatchRequestPolicy</type>
+        <declname>dispatch_policy</declname>
+        <defname>dispatch_policy</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1DispatchRequest_1acd15c06a75e57786c57fbd609a329fb9" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dafg::DispatchRequest&lt; dispatch_policy &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <qualifiedname>dafg::DispatchRequest::RRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="50" column="3" bodyfile="dispatchRequest.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DispatchRequest_1abe7d7e04211dc3dc0b74af733fe5132b" prot="private" static="no">
+        <type>detail::DispatchRequestPolicy</type>
+        <definition>using dafg::DispatchRequest&lt; dispatch_policy &gt;::DRP =  detail::DispatchRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>DRP</name>
+        <qualifiedname>dafg::DispatchRequest::DRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="51" column="3" bodyfile="dispatchRequest.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DispatchRequest_1a7be08cd57f63d7d31e41d74ccbc0ec33" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; T, policy &gt;</type>
+        <definition>using dafg::DispatchRequest&lt; dispatch_policy &gt;::BlobRequest =  VirtualResourceRequest&lt;T, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>BlobRequest</name>
+        <qualifiedname>dafg::DispatchRequest::BlobRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="98" column="3" bodyfile="dispatchRequest.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DispatchRequest_1a92c64c0aa46557f6290e035729108f9f" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+        <definition>using dafg::DispatchRequest&lt; dispatch_policy &gt;::TextureRequest =  VirtualResourceRequest&lt;BaseTexture, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>TextureRequest</name>
+        <qualifiedname>dafg::DispatchRequest::TextureRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="101" column="3" bodyfile="dispatchRequest.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1DispatchRequest_1ae84244061cb6e9357f69e82c7708b71a" prot="private" static="no">
+        <type>detail::DispatchRequestBase</type>
+        <definition>using dafg::DispatchRequest&lt; dispatch_policy &gt;::Base =  detail::DispatchRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <qualifiedname>dafg::DispatchRequest::Base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="103" column="3" bodyfile="dispatchRequest.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdafg_1_1DispatchRequest_1ad01253ebd9c39272d2d3f9a14aba64fd" prot="private" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::true</definition>
+        <argsstring></argsstring>
+        <name>true</name>
+        <qualifiedname>dafg::DispatchRequest::true</qualifiedname>
+        <initializer>{ return (policy &amp; p) == p</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="54" column="25" bodyfile="dispatchRequest.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1DispatchRequest_1a949fb8ee5b97164be925072537300360" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::DispatchRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class DispatchRequest</definition>
+        <argsstring></argsstring>
+        <name>DispatchRequest</name>
+        <qualifiedname>dafg::DispatchRequest::DispatchRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="106" column="16" bodyfile="dispatchRequest.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1DispatchRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::DispatchRequest::Registry</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="108" column="16" bodyfile="dispatchRequest.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a55e6372d1a4be0446a75af79723f46db" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr DRP</type>
+        <definition>static constexpr DRP dafg::DispatchRequest&lt; dispatch_policy &gt;::flipPolicy</definition>
+        <argsstring>(DRP p)</argsstring>
+        <name>flipPolicy</name>
+        <qualifiedname>dafg::DispatchRequest::flipPolicy</qualifiedname>
+        <param>
+          <type>DRP</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="58" column="24" bodyfile="dispatchRequest.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a7897cc94aad3d9696b1e29d75a8f2128" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::hasThreadsOrGroups</definition>
+        <argsstring>()</argsstring>
+        <name>hasThreadsOrGroups</name>
+        <qualifiedname>dafg::DispatchRequest::hasThreadsOrGroups</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="60" column="25" bodyfile="dispatchRequest.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a43f21fd1f7d74d9df5e63e7e2b5ca9ac" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::isBlob</definition>
+        <argsstring>()</argsstring>
+        <name>isBlob</name>
+        <qualifiedname>dafg::DispatchRequest::isBlob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="63" column="25" bodyfile="dispatchRequest.h" bodystart="63" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a51a70c6ee2ba438609ec6cc341a1b670" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>size</declname>
+            <defname>size</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::isValidBlob</definition>
+        <argsstring>()</argsstring>
+        <name>isValidBlob</name>
+        <qualifiedname>dafg::DispatchRequest::isValidBlob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="69" column="25" bodyfile="dispatchRequest.h" bodystart="69" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a5c0f62191dbfba9f08548c7c65e81554" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::isValidBlobProjector</definition>
+        <argsstring>()</argsstring>
+        <name>isValidBlobProjector</name>
+        <qualifiedname>dafg::DispatchRequest::isValidBlobProjector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="75" column="25" bodyfile="dispatchRequest.h" bodystart="75" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1afe3df50c6e06144da69db4336538dec2" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::isValidResolutionProjector</definition>
+        <argsstring>()</argsstring>
+        <name>isValidResolutionProjector</name>
+        <qualifiedname>dafg::DispatchRequest::isValidResolutionProjector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="82" column="25" bodyfile="dispatchRequest.h" bodystart="82" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a73971bb3b42cb7a398b34eff950a66b7" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::DispatchRequest&lt; dispatch_policy &gt;::isValidTextureProjector</definition>
+        <argsstring>()</argsstring>
+        <name>isValidTextureProjector</name>
+        <qualifiedname>dafg::DispatchRequest::isValidTextureProjector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="90" column="25" bodyfile="dispatchRequest.h" bodystart="90" bodyend="95"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a2322d92161580a8fa6adb7d8e3e3d18c" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::DispatchRequest&lt; dispatch_policy &gt;::DispatchRequest</definition>
+        <argsstring>(InternalRegistry *reg, NodeNameId node_id, ShaderNameId shader_id)</argsstring>
+        <name>DispatchRequest</name>
+        <qualifiedname>dafg::DispatchRequest::DispatchRequest</qualifiedname>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node_id</declname>
+        </param>
+        <param>
+          <type>ShaderNameId</type>
+          <declname>shader_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="109" column="3" bodyfile="dispatchRequest.h" bodystart="109" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a1963c640d844bd78865c9c5b50111436" prot="private" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasMesh)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasMesh)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::mesh</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>mesh</name>
+        <qualifiedname>dafg::DispatchRequest::mesh</qualifiedname>
+    <requiresclause>(!true)    </requiresclause>
+        <briefdescription>
+<para>Set mesh dispatch mode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="552" column="19" bodyfile="dispatchRequest.h" bodystart="552" bodyend="556"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1aa2c0b08004b96ffb5dcf461e99aa018f" prot="private" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasThreads)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasThreads)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::threads</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>threads</name>
+        <qualifiedname>dafg::DispatchRequest::threads</qualifiedname>
+    <requiresclause>(!hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Use threads for dispatch request. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="561" column="19" bodyfile="dispatchRequest.h" bodystart="561" bodyend="569"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a0bba9dd43e2dcb7a3bdda12cda1ae0fc" prot="private" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasGroups)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasGroups)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::groups</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>groups</name>
+        <qualifiedname>dafg::DispatchRequest::groups</qualifiedname>
+    <requiresclause>(!hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Use thread groups for dispatch request. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="574" column="19" bodyfile="dispatchRequest.h" bodystart="574" bodyend="582"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1aa220a4c3d7c519ada24da43b28ca3f74" prot="private" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasIndirect)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasIndirect)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::indirect</definition>
+        <argsstring>(const char *buffer) &amp;&amp;</argsstring>
+        <name>indirect</name>
+        <qualifiedname>dafg::DispatchRequest::indirect</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>buffer</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Specifies the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buffer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="589" column="19" bodyfile="dispatchRequest.h" bodystart="589" bodyend="597"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1af2e706a1931928bdc67a2862da77ad06" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasX)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasX)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::x</definition>
+        <argsstring>(uint32_t x) &amp;&amp;</argsstring>
+        <name>x</name>
+        <qualifiedname>dafg::DispatchRequest::x</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>x</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Specifies the x dimension of dispatch. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The x dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="117" column="19" bodyfile="dispatchRequest.h" bodystart="117" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1af35bbddb63a0500b91bb41268188d8eb" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasX)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasX)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::x</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>x</name>
+        <qualifiedname>dafg::DispatchRequest::x</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the x dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the x dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="132" column="19" bodyfile="dispatchRequest.h" bodystart="132" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1ae2afe58badba2eca13305077f93e13ac" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasX)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasX)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::x</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>x</name>
+        <qualifiedname>dafg::DispatchRequest::x</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the x dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the x dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="148" column="19" bodyfile="dispatchRequest.h" bodystart="148" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a0f77b86b0430c3e45811270121c84150" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasX)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasX)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::x</definition>
+        <argsstring>(AutoResolutionRequest&lt; D &gt; resolution) &amp;&amp;</argsstring>
+        <name>x</name>
+        <qualifiedname>dafg::DispatchRequest::x</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>&lt; D &gt;</type>
+          <declname>resolution</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidResolutionProjector&lt;projector, D&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the x dimension of dispatch with auto resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The auto resolution request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resolution</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The auto resolution request to be used for the x dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="162" column="19" bodyfile="dispatchRequest.h" bodystart="162" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a621f85546b83095e97242f53f9cfde40" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasX)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasX)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::x</definition>
+        <argsstring>(TextureRequest&lt; policy &gt; texture) &amp;&amp;</argsstring>
+        <name>x</name>
+        <qualifiedname>dafg::DispatchRequest::x</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">TextureRequest</ref>&lt; policy &gt;</type>
+          <declname>texture</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidTextureProjector&lt;projector&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the x dimension of dispatch with texture resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the texture request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture request to be used for the x dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="176" column="19" bodyfile="dispatchRequest.h" bodystart="176" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a3aa5ba43663c5943c0ed902f0650fde2" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasY)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasY)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::y</definition>
+        <argsstring>(uint32_t y) &amp;&amp;</argsstring>
+        <name>y</name>
+        <qualifiedname>dafg::DispatchRequest::y</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Specifies the y dimension of dispatch. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The y dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="186" column="19" bodyfile="dispatchRequest.h" bodystart="186" bodyend="191"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1af3fa0f14d4739ac2b2dd02b0668e1f05" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasY)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasY)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::y</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>y</name>
+        <qualifiedname>dafg::DispatchRequest::y</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the y dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the y dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="201" column="19" bodyfile="dispatchRequest.h" bodystart="201" bodyend="205"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a2d567e67356cd1420b306174f6c66b42" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasY)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasY)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::y</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>y</name>
+        <qualifiedname>dafg::DispatchRequest::y</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the y dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the y dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="217" column="19" bodyfile="dispatchRequest.h" bodystart="217" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a67617f680376bfd7b733006a15f88307" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasY)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasY)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::y</definition>
+        <argsstring>(AutoResolutionRequest&lt; D &gt; resolution) &amp;&amp;</argsstring>
+        <name>y</name>
+        <qualifiedname>dafg::DispatchRequest::y</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>&lt; D &gt;</type>
+          <declname>resolution</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidResolutionProjector&lt;projector, D&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the y dimension of dispatch with auto resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The dimensionality of the auto resolution request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resolution</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The auto resolution request to be used for the y dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="231" column="19" bodyfile="dispatchRequest.h" bodystart="231" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a2e01118630c524786bbd1f27404f4804" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasY)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasY)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::y</definition>
+        <argsstring>(TextureRequest&lt; policy &gt; texture) &amp;&amp;</argsstring>
+        <name>y</name>
+        <qualifiedname>dafg::DispatchRequest::y</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">TextureRequest</ref>&lt; policy &gt;</type>
+          <declname>texture</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidTextureProjector&lt;projector&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the y dimension of dispatch with texture resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the texture request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture request to be used for the y dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="245" column="19" bodyfile="dispatchRequest.h" bodystart="245" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1ac11edac938c8e7c42ec785c7e917132e" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasZ)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasZ)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::z</definition>
+        <argsstring>(uint32_t z) &amp;&amp;</argsstring>
+        <name>z</name>
+        <qualifiedname>dafg::DispatchRequest::z</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>z</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups())    </requiresclause>
+        <briefdescription>
+<para>Specifies the z dimension of dispatch. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>z</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The z dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="255" column="19" bodyfile="dispatchRequest.h" bodystart="255" bodyend="260"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a67fab29d47897e3a493e0c8ae05c2712" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasZ)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasZ)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::z</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>z</name>
+        <qualifiedname>dafg::DispatchRequest::z</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the z dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the z dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="270" column="19" bodyfile="dispatchRequest.h" bodystart="270" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1aeb58312e5747adee1118eda8f929d326" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasZ)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasZ)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::z</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>z</name>
+        <qualifiedname>dafg::DispatchRequest::z</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the z dimension of dispatch with blob. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the z dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="286" column="19" bodyfile="dispatchRequest.h" bodystart="286" bodyend="290"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a97a90dfbfbd91a37597cf10ce508e2c6" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasZ)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasZ)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::z</definition>
+        <argsstring>(AutoResolutionRequest&lt; D &gt; resolution) &amp;&amp;</argsstring>
+        <name>z</name>
+        <qualifiedname>dafg::DispatchRequest::z</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>&lt; D &gt;</type>
+          <declname>resolution</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidResolutionProjector&lt;projector, D&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the z dimension of dispatch with auto resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The dimensionality of the auto resolution request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resolution</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The auto resolution request to be used for the z dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="300" column="19" bodyfile="dispatchRequest.h" bodystart="300" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a234cd9befb2088e56c6278f2f2d5992f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasZ)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasZ)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::z</definition>
+        <argsstring>(TextureRequest&lt; policy &gt; texture) &amp;&amp;</argsstring>
+        <name>z</name>
+        <qualifiedname>dafg::DispatchRequest::z</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">TextureRequest</ref>&lt; policy &gt;</type>
+          <declname>texture</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; hasThreadsOrGroups() &amp;&amp; isValidTextureProjector&lt;projector&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the z dimension of dispatch with texture resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to IPoint2/3 member to take the value from, i.e <computeroutput>&amp;IPoint2::x</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the texture request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture request to be used for the z dimension. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="314" column="19" bodyfile="dispatchRequest.h" bodystart="314" bodyend="318"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1ab4f819d8bafcc71ede071f86bef7195c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::offset</definition>
+        <argsstring>(size_t offset) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DispatchRequest::offset</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>offset</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="325" column="19" bodyfile="dispatchRequest.h" bodystart="325" bodyend="330"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a3851fbcfcfca88e0170a1dc7f023af77" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::offset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DispatchRequest::offset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy, sizeof(size_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the offset. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="340" column="19" bodyfile="dispatchRequest.h" bodystart="340" bodyend="345"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a0426fef2572a806708c113a971cdc52a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::offset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>offset</name>
+        <qualifiedname>dafg::DispatchRequest::offset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of the indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="356" column="19" bodyfile="dispatchRequest.h" bodystart="356" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a99932ec3c424ce5eac1deba4d004dcf0" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasStride)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasStride)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::stride</definition>
+        <argsstring>(size_t stride) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DispatchRequest::stride</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>stride</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the mesh indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>stride</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The stride to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="368" column="19" bodyfile="dispatchRequest.h" bodystart="368" bodyend="373"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a28ea007cdb5bcf17b628db0fe024aa71" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasStride)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasStride)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::stride</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DispatchRequest::stride</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy, sizeof(size_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the mesh indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the stride. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="383" column="19" bodyfile="dispatchRequest.h" bodystart="383" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1acced572a1f1b5cc81143e551de41db31" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasStride)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasStride)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::stride</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>stride</name>
+        <qualifiedname>dafg::DispatchRequest::stride</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the stride of the mesh indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="399" column="19" bodyfile="dispatchRequest.h" bodystart="399" bodyend="404"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1af176ecfb41ecb7c50b4dc0ae470bb9d8" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::count</definition>
+        <argsstring>(uint32_t count) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DispatchRequest::count</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The count of the mesh mispatches. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="411" column="19" bodyfile="dispatchRequest.h" bodystart="411" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a5af70dc92a573d9e57cca431fc0979cc" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::count</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DispatchRequest::count</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="426" column="19" bodyfile="dispatchRequest.h" bodystart="426" bodyend="432"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a91c9a321822be0ad2a47d61ffb925a0b" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::count</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DispatchRequest::count</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="443" column="19" bodyfile="dispatchRequest.h" bodystart="443" bodyend="448"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1acb73f1e545e03c324c8da2d7f8e588c1" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasIndirectCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasIndirectCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::count</definition>
+        <argsstring>(const char *buffer) &amp;&amp;</argsstring>
+        <name>count</name>
+        <qualifiedname>dafg::DispatchRequest::count</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>buffer</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; !true &amp;&amp; true &amp;&amp; true )    </requiresclause>
+        <briefdescription>
+<para>Specifies the indirect count mesh dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buffer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer to be used for indirect count mesh dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="455" column="19" bodyfile="dispatchRequest.h" bodystart="455" bodyend="460"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a37d8c1b67fa3ab7a7d18fccf4d033a4e" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCountOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCountOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::countOffset</definition>
+        <argsstring>(uint32_t count_offset) &amp;&amp;</argsstring>
+        <name>countOffset</name>
+        <qualifiedname>dafg::DispatchRequest::countOffset</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count_offset</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of indirect count buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>count_offset</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset to be used for indirect count buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="466" column="19" bodyfile="dispatchRequest.h" bodystart="466" bodyend="471"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1ac875b8468892b1599fc239101a713662" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCountOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCountOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::countOffset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>countOffset</name>
+        <qualifiedname>dafg::DispatchRequest::countOffset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of indirect count buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the count offset. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="481" column="19" bodyfile="dispatchRequest.h" bodystart="481" bodyend="486"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a7e58169a4b04662fe0a20360e32f062d" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasCountOffset)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasCountOffset)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::countOffset</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>countOffset</name>
+        <qualifiedname>dafg::DispatchRequest::countOffset</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the offset of indirect count buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="497" column="19" bodyfile="dispatchRequest.h" bodystart="497" bodyend="502"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1ab2ec147ab2b72bc96882295aa2944e64" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasMaxCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasMaxCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::maxCount</definition>
+        <argsstring>(uint32_t max_count) &amp;&amp;</argsstring>
+        <name>maxCount</name>
+        <qualifiedname>dafg::DispatchRequest::maxCount</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>max_count</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true)    </requiresclause>
+        <briefdescription>
+<para>Specifies the max count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>max_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The max count of the mesh dispatches. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="509" column="19" bodyfile="dispatchRequest.h" bodystart="509" bodyend="514"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1a33b23473937e7cbdf74e7a1ec3d1ca58" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasMaxCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasMaxCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::maxCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>maxCount</name>
+        <qualifiedname>dafg::DispatchRequest::maxCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlob&lt;T, policy, sizeof(uint32_t)&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the max count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The blob request to be used for the max count. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="524" column="19" bodyfile="dispatchRequest.h" bodystart="524" bodyend="529"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1DispatchRequest_1aa6adf70b7c0860f53e0f0559bd9e264c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; flipPolicy(DRP::HasMaxCount)&gt;</type>
+        <definition>DispatchRequest&lt; flipPolicy(DRP::HasMaxCount)&gt; dafg::DispatchRequest&lt; dispatch_policy &gt;::maxCount</definition>
+        <argsstring>(BlobRequest&lt; T, policy &gt; blob) &amp;&amp;</argsstring>
+        <name>maxCount</name>
+        <qualifiedname>dafg::DispatchRequest::maxCount</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">BlobRequest</ref>&lt; T, policy &gt;</type>
+          <declname>blob</declname>
+        </param>
+    <requiresclause>(!true &amp;&amp; true &amp;&amp; isValidBlobProjector&lt;projector, T, policy&gt;())    </requiresclause>
+        <briefdescription>
+<para>Specifies the max count of the mesh dispatches in indirect dispatch buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value from blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the blob request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="540" column="19" bodyfile="dispatchRequest.h" bodystart="540" bodyend="545"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Represents a request for a dispatch operation to be executed. This class is used to specify the dispatch parameters. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The intended usage is <verbatim>registry.dispatchThreads(&quot;my_shader&quot;)
+  .x&lt;&amp;IPoint2::x&gt;(registry.getResolution&lt;2&gt;(&quot;my_resolution_as_x&quot;))
+  .y&lt;&amp;IPoint2::y&gt;(registry.readTexture(&quot;texture_resolution_as_y&quot;))
+  .z&lt;&amp;MyBlob::z&gt;(registry.readBlob(&quot;blob_resolution_as_z&quot;));
+</verbatim> <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>dispatch_policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The policy of the dispatch request. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>dafg::DispatchRequest&lt; dispatch_policy &gt;</label>
+        <link refid="classdafg_1_1DispatchRequest"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>detail::DispatchRequestBase</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>dafg::DispatchRequest&lt; dispatch_policy &gt;</label>
+        <link refid="classdafg_1_1DispatchRequest"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>detail::DispatchRequestBase</label>
+      </node>
+    </collaborationgraph>
+    <location file="dispatchRequest.h" line="48" column="1" bodyfile="dispatchRequest.h" bodystart="49" bodyend="598"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1DispatchRequest_1ae84244061cb6e9357f69e82c7708b71a" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>Base</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a7be08cd57f63d7d31e41d74ccbc0ec33" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>BlobRequest</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1af176ecfb41ecb7c50b4dc0ae470bb9d8" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a5af70dc92a573d9e57cca431fc0979cc" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a91c9a321822be0ad2a47d61ffb925a0b" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1acb73f1e545e03c324c8da2d7f8e588c1" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>count</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a37d8c1b67fa3ab7a7d18fccf4d033a4e" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>countOffset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ac875b8468892b1599fc239101a713662" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>countOffset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a7e58169a4b04662fe0a20360e32f062d" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>countOffset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a949fb8ee5b97164be925072537300360" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>DispatchRequest</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a2322d92161580a8fa6adb7d8e3e3d18c" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>DispatchRequest</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1abe7d7e04211dc3dc0b74af733fe5132b" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>DRP</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a55e6372d1a4be0446a75af79723f46db" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>flipPolicy</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a0bba9dd43e2dcb7a3bdda12cda1ae0fc" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>groups</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a7897cc94aad3d9696b1e29d75a8f2128" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>hasThreadsOrGroups</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1aa220a4c3d7c519ada24da43b28ca3f74" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>indirect</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a43f21fd1f7d74d9df5e63e7e2b5ca9ac" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>isBlob</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a51a70c6ee2ba438609ec6cc341a1b670" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>isValidBlob</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a5c0f62191dbfba9f08548c7c65e81554" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>isValidBlobProjector</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1afe3df50c6e06144da69db4336538dec2" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>isValidResolutionProjector</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a73971bb3b42cb7a398b34eff950a66b7" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>isValidTextureProjector</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ab2ec147ab2b72bc96882295aa2944e64" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>maxCount</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a33b23473937e7cbdf74e7a1ec3d1ca58" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>maxCount</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1aa6adf70b7c0860f53e0f0559bd9e264c" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>maxCount</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a1963c640d844bd78865c9c5b50111436" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>mesh</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ab4f819d8bafcc71ede071f86bef7195c" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a3851fbcfcfca88e0170a1dc7f023af77" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a0426fef2572a806708c113a971cdc52a" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>offset</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1acd15c06a75e57786c57fbd609a329fb9" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>RRP</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a99932ec3c424ce5eac1deba4d004dcf0" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a28ea007cdb5bcf17b628db0fe024aa71" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1acced572a1f1b5cc81143e551de41db31" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>stride</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a92c64c0aa46557f6290e035729108f9f" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>TextureRequest</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1aa2c0b08004b96ffb5dcf461e99aa018f" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>threads</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ad01253ebd9c39272d2d3f9a14aba64fd" prot="private" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>true</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1af2e706a1931928bdc67a2862da77ad06" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>x</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1af35bbddb63a0500b91bb41268188d8eb" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>x</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ae2afe58badba2eca13305077f93e13ac" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>x</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a0f77b86b0430c3e45811270121c84150" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>x</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a621f85546b83095e97242f53f9cfde40" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>x</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a3aa5ba43663c5943c0ed902f0650fde2" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>y</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1af3fa0f14d4739ac2b2dd02b0668e1f05" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>y</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a2d567e67356cd1420b306174f6c66b42" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>y</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a67617f680376bfd7b733006a15f88307" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>y</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a2e01118630c524786bbd1f27404f4804" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>y</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1ac11edac938c8e7c42ec785c7e917132e" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>z</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a67fab29d47897e3a493e0c8ae05c2712" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>z</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1aeb58312e5747adee1118eda8f929d326" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>z</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a97a90dfbfbd91a37597cf10ce508e2c6" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>z</name></member>
+      <member refid="classdafg_1_1DispatchRequest_1a234cd9befb2088e56c6278f2f2d5992f" prot="public" virt="non-virtual"><scope>dafg::DispatchRequest</scope><name>z</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

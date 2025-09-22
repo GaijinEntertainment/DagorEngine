@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExportENCB_1_1AnimKeyLabel" kind="struct" language="C++" prot="public">
+    <compoundname>ExportENCB::AnimKeyLabel</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyLabel_1a2bd5eec25bf769dfa63fd14f42e6f5cc" prot="public" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* ExportENCB::AnimKeyLabel::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ExportENCB::AnimKeyLabel::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3322" column="12" bodyfile="expUtil.cpp" bodystart="3322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyLabel_1abf20af0b728b01d29b8c737c6b27c32c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExportENCB::AnimKeyLabel::idx</definition>
+        <argsstring></argsstring>
+        <name>idx</name>
+        <qualifiedname>ExportENCB::AnimKeyLabel::idx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3323" column="11" bodyfile="expUtil.cpp" bodystart="3323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyLabel_1a86b75bf4e85dc691a1db65bcdc11ba4e" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structExportENCB_1_1AnimKeyLabel" kindref="compound">ExportENCB::AnimKeyLabel</ref></type>
+        <definition>union ExportENCB::AnimKeyLabel ExportENCB::AnimKeyLabel</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ExportENCB::AnimKeyLabel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3324" column="5"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyLabel_1ae0c23e0b591e69ce882031aa053978c5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExportENCB::AnimKeyLabel::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>ExportENCB::AnimKeyLabel::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3325" column="9" bodyfile="expUtil.cpp" bodystart="3325" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3318" column="3" bodyfile="expUtil.cpp" bodystart="3319" bodyend="3326"/>
+    <listofallmembers>
+      <member refid="structExportENCB_1_1AnimKeyLabel_1abf20af0b728b01d29b8c737c6b27c32c" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyLabel</scope><name>idx</name></member>
+      <member refid="structExportENCB_1_1AnimKeyLabel_1a2bd5eec25bf769dfa63fd14f42e6f5cc" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyLabel</scope><name>name</name></member>
+      <member refid="structExportENCB_1_1AnimKeyLabel_1ae0c23e0b591e69ce882031aa053978c5" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyLabel</scope><name>time</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

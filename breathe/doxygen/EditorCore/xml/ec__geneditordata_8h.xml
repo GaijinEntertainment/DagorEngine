@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__geneditordata_8h" kind="file" language="C++">
+    <compoundname>ec_geneditordata.h</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">EditorCore/ec_ViewportWindow.h</includes>
+    <includes refid="ec__status__bar_8h" local="no">EditorCore/ec_status_bar.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <includedby refid="ec__gizmofilter_8h" local="no">ec_gizmofilter.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>EditorCore/ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EditorCore/ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="23">
+        <label>EditorCore/ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>EditorCore/ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+      </node>
+      <node id="17">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="20">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="14">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="22">
+        <label>gui/dag_stdGuiRenderEx.h</label>
+      </node>
+      <node id="10">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="21">
+        <label>math/dag_Quat.h</label>
+      </node>
+      <node id="8">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="15">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="3">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="4">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="24">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="5">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="3">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classGeneralEditorData" prot="public">GeneralEditorData</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__ViewportWindow_8h" kindref="compound">EditorCore/ec_ViewportWindow.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__status__bar_8h" kindref="compound">EditorCore/ec_status_bar.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManager" kindref="compound">IWndManager</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="classGeneralEditorData" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21" refid="classGeneralEditorData_1a77e2ddda98b67848e14882b7f394c885" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGeneralEditorData_1a77e2ddda98b67848e14882b7f394c885" kindref="member">GeneralEditorData</ref>();</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classGeneralEditorData_1addabcce454f5506f69bad037cf24f795" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGeneralEditorData_1addabcce454f5506f69bad037cf24f795" kindref="member">~GeneralEditorData</ref>();</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classGeneralEditorData_1a92cad25d65d7a97970d21723f2d00266" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a92cad25d65d7a97970d21723f2d00266" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="31" refid="classGeneralEditorData_1a97f6c931e63df7c68a9227bb0289c88e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a97f6c931e63df7c68a9227bb0289c88e" kindref="member">save</ref>(DataBlock<sp/>&amp;blk)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classGeneralEditorData_1a1784d2847962cf5cc7fd4e840c7074c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a1784d2847962cf5cc7fd4e840c7074c9" kindref="member">addViewport</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*parent,<sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref><sp/>*eh,<sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*manager,<sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*v);</highlight></codeline>
+<codeline lineno="39" refid="classGeneralEditorData_1aada83643da494e0e01b8dcad31951643" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*<ref refid="classGeneralEditorData_1aada83643da494e0e01b8dcad31951643" kindref="member">createViewport</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*parent,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h,<sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref><sp/>*eh,<sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*manager);</highlight></codeline>
+<codeline lineno="41" refid="classGeneralEditorData_1a7cded99df3b311b610e5b48fc476540c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a7cded99df3b311b610e5b48fc476540c" kindref="member">deleteViewport</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="classGeneralEditorData_1a6ad24e4025cb68f505fd8e7903254ab2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a6ad24e4025cb68f505fd8e7903254ab2" kindref="member">getViewportCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>vpw.size();<sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classGeneralEditorData_1a5d5a7c6190fedb61670d44c8f0d2528b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a5d5a7c6190fedb61670d44c8f0d2528b" kindref="member">setEH</ref>(<ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref><sp/>*eh);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classGeneralEditorData_1a43b735c61a754700c00042903d292f9f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*<ref refid="classGeneralEditorData_1a43b735c61a754700c00042903d292f9f" kindref="member">getActiveViewport</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classGeneralEditorData_1a2f32f3e533bc8b69cfc2d855e10464ca" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a2f32f3e533bc8b69cfc2d855e10464ca" kindref="member">activateCurrentViewport</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="57"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*curVp<sp/>=<sp/><ref refid="classGeneralEditorData_1a366e3b86ef59bdb87e5867465bffe642" kindref="member">getCurrentViewport</ref>();</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(curVp)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>curVp-&gt;<ref refid="classIGenViewportWnd_1a043bb5eff10634b7564e32327d9add4b" kindref="member">activate</ref>();</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classGeneralEditorData_1a366e3b86ef59bdb87e5867465bffe642" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*<ref refid="classGeneralEditorData_1a366e3b86ef59bdb87e5867465bffe642" kindref="member">getCurrentViewport</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(currentViewportId<sp/>==<sp/>-1)<sp/>?<sp/>NULL<sp/>:<sp/>vpw[currentViewportId];<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classGeneralEditorData_1a163e4958dad7b115fb673188f8f18f25" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a163e4958dad7b115fb673188f8f18f25" kindref="member">getCurrentViewportId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>currentViewportId;<sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classGeneralEditorData_1adccc85f3b85a68c592676b04ff7a30cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1adccc85f3b85a68c592676b04ff7a30cf" kindref="member">setCurrentViewportId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/>currentViewportId<sp/>=<sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="classGeneralEditorData_1a7df6b335bf552301524ee753982a0eb8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*<ref refid="classGeneralEditorData_1a7df6b335bf552301524ee753982a0eb8" kindref="member">getRenderViewport</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="classGeneralEditorData_1a5a7856e6cb53d6d055e9c50bb21b7656" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref><sp/>*<ref refid="classGeneralEditorData_1a5a7856e6cb53d6d055e9c50bb21b7656" kindref="member">getViewport</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(n<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>n<sp/>&lt;<sp/>vpw.size())<sp/>?<sp/>vpw[n]<sp/>:<sp/>NULL;<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="classGeneralEditorData_1a3950ac1d6680c32feda9cf927d30b0be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a3950ac1d6680c32feda9cf927d30b0be" kindref="member">findViewportIndex</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*w)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="classGeneralEditorData_1ab1dd3427e2e840dd9da4301c1de0145e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*<ref refid="classGeneralEditorData_1ab1dd3427e2e840dd9da4301c1de0145e" kindref="member">screenToViewport</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;y)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="classGeneralEditorData_1a4652c2eccf787ab978cb6460276a1e21" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a4652c2eccf787ab978cb6460276a1e21" kindref="member">setViewportCacheMode</ref>(<ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">IEditorCoreEngine::ViewportCacheMode</ref><sp/>mode);</highlight></codeline>
+<codeline lineno="102" refid="classGeneralEditorData_1a3fc5703d760f39696fe5f6a60e7498d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a3fc5703d760f39696fe5f6a60e7498d6" kindref="member">invalidateCache</ref>();</highlight></codeline>
+<codeline lineno="108" refid="classGeneralEditorData_1a3d4f163ac518223aa5daca7f1e705679" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a3d4f163ac518223aa5daca7f1e705679" kindref="member">setZnearZfar</ref>(real<sp/>zn,<sp/>real<sp/>zf);</highlight></codeline>
+<codeline lineno="110"></codeline>
+<codeline lineno="114" refid="classGeneralEditorData_1a9690de5aa9ee137c3cd68632cd31b371" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a9690de5aa9ee137c3cd68632cd31b371" kindref="member">act</ref>(real<sp/>dt);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classGeneralEditorData_1afd5e025c7bdb1df1220c9fd25421880b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1afd5e025c7bdb1df1220c9fd25421880b" kindref="member">redrawClientRect</ref>();</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref><sp/>*<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="classGeneralEditorData_1ae670a9f9e2d2c5e5302c601b7a738296" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classToolBarManager" kindref="compound">ToolBarManager</ref><sp/>*<ref refid="classGeneralEditorData_1ae670a9f9e2d2c5e5302c601b7a738296" kindref="member">tbManager</ref>;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="classGeneralEditorData_1a13b7784f99b800aa042ac98a09a72b23" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a13b7784f99b800aa042ac98a09a72b23" kindref="member">getViewportLayout</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>viewportLayout;<sp/>}</highlight></codeline>
+<codeline lineno="126" refid="classGeneralEditorData_1a3ff6cebeefdedb98887200279670bebf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGeneralEditorData_1a3ff6cebeefdedb98887200279670bebf" kindref="member">setViewportLayout</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value)<sp/>{<sp/>viewportLayout<sp/>=<sp/>value;<sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>Tab&lt;ViewportWindow<sp/>*&gt;<sp/>vpw;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewportLayout;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">IEditorCoreEngine::ViewportCacheMode</ref><sp/>vcmode;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>currentViewportId;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_geneditordata.h"/>
+  </compounddef>
+</doxygen>

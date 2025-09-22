@@ -1,0 +1,633 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPhysExportENodeCB" kind="class" language="C++" prot="public">
+    <compoundname>PhysExportENodeCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+    <innerclass refid="structPhysExportENodeCB_1_1MomjNode" prot="public">PhysExportENodeCB::MomjNode</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classPhysExportENodeCB_1a8c4774a97536cbcf7dabf55a698b77ca" prot="public" static="no" mutable="no">
+        <type>Tab&lt; INode * &gt;</type>
+        <definition>Tab&lt;INode *&gt; PhysExportENodeCB::bodies</definition>
+        <argsstring></argsstring>
+        <name>bodies</name>
+        <qualifiedname>PhysExportENodeCB::bodies</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="128" column="7" bodyfile="physExport.cpp" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPhysExportENodeCB_1adc5a641f6db720ad0c286d8fa952d76d" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue PhysExportENodeCB::curTime</definition>
+        <argsstring></argsstring>
+        <name>curTime</name>
+        <qualifiedname>PhysExportENodeCB::curTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="130" column="13" bodyfile="physExport.cpp" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classPhysExportENodeCB_1ac36a6de2778376e3bbeb424dcd940d01" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool PhysExportENodeCB::getNodeProp</definition>
+        <argsstring>(INode *node, const char *name, TSTR &amp;value)</argsstring>
+        <name>getNodeProp</name>
+        <qualifiedname>PhysExportENodeCB::getNodeProp</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="133" column="15" bodyfile="physExport.cpp" bodystart="133" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a9d2b79e8546fe1ccd9db1ddda94befee" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool PhysExportENodeCB::getNodePropStr</definition>
+        <argsstring>(INode *node, const char *name, TSTR &amp;val)</argsstring>
+        <name>getNodePropStr</name>
+        <qualifiedname>PhysExportENodeCB::getNodePropStr</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="143" column="15" bodyfile="physExport.cpp" bodystart="143" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a656007df12832ffe6fe04ae4643206c7" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool PhysExportENodeCB::getNodePropBool</definition>
+        <argsstring>(INode *node, const char *name, bool def)</argsstring>
+        <name>getNodePropBool</name>
+        <qualifiedname>PhysExportENodeCB::getNodePropBool</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="163" column="15" bodyfile="physExport.cpp" bodystart="163" bodyend="173"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1aa31607efeff073dd00cf7039cb6b1959" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>static float PhysExportENodeCB::getNodePropReal</definition>
+        <argsstring>(INode *node, const char *name, float def)</argsstring>
+        <name>getNodePropReal</name>
+        <qualifiedname>PhysExportENodeCB::getNodePropReal</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="176" column="16" bodyfile="physExport.cpp" bodystart="176" bodyend="191"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1aaeec15a79760d162af66b8866d6f0a57" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>static Point3 PhysExportENodeCB::getNodePropPoint3</definition>
+        <argsstring>(INode *node, const char *name, const Point3 &amp;def)</argsstring>
+        <name>getNodePropPoint3</name>
+        <qualifiedname>PhysExportENodeCB::getNodePropPoint3</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="194" column="17" bodyfile="physExport.cpp" bodystart="194" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a57b08d23308ab3a4d5750b5140e381a0" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void PhysExportENodeCB::setNodeProp</definition>
+        <argsstring>(INode *node, const char *name, const char *val)</argsstring>
+        <name>setNodeProp</name>
+        <qualifiedname>PhysExportENodeCB::setNodeProp</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="214" column="15" bodyfile="physExport.cpp" bodystart="214" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a8a2f1efae982e336e306d61be99a31af" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void PhysExportENodeCB::adjWtm</definition>
+        <argsstring>(Matrix3 &amp;tm)</argsstring>
+        <name>adjWtm</name>
+        <qualifiedname>PhysExportENodeCB::adjWtm</qualifiedname>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="251" column="22" bodyfile="physExport.cpp" bodystart="251" bodyend="261"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1ac80646bf85ddb49f432de8acef3431d1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>static Matrix3 PhysExportENodeCB::getScaledNodeTm</definition>
+        <argsstring>(INode *node, TimeValue time)</argsstring>
+        <name>getScaledNodeTm</name>
+        <qualifiedname>PhysExportENodeCB::getScaledNodeTm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="264" column="25" bodyfile="physExport.cpp" bodystart="264" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a0318d188b5b87429f2c35464f1ac0a71" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>static Matrix3 PhysExportENodeCB::getScaledObjectTm</definition>
+        <argsstring>(INode *node, TimeValue time)</argsstring>
+        <name>getScaledObjectTm</name>
+        <qualifiedname>PhysExportENodeCB::getScaledObjectTm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="279" column="25" bodyfile="physExport.cpp" bodystart="279" bodyend="291"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a92e68a09eb51de1dcdf82846676f0d15" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void PhysExportENodeCB::makeMatrixRightOrthonormal</definition>
+        <argsstring>(Matrix3 &amp;wtm)</argsstring>
+        <name>makeMatrixRightOrthonormal</name>
+        <qualifiedname>PhysExportENodeCB::makeMatrixRightOrthonormal</qualifiedname>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="300" column="15" bodyfile="physExport.cpp" bodystart="300" bodyend="312"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a3c2b65be7fa6bea0a2576dca66f485bc" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>static float PhysExportENodeCB::getAverageScale</definition>
+        <argsstring>(Matrix3 &amp;tm)</argsstring>
+        <name>getAverageScale</name>
+        <qualifiedname>PhysExportENodeCB::getAverageScale</qualifiedname>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="315" column="16" bodyfile="physExport.cpp" bodystart="315" bodyend="324"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a1e567fc4898a2941dfffc536246dff45" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>static Matrix3 PhysExportENodeCB::diagonalMatrix3</definition>
+        <argsstring>(const Point3 &amp;d)</argsstring>
+        <name>diagonalMatrix3</name>
+        <qualifiedname>PhysExportENodeCB::diagonalMatrix3</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="612" column="25" bodyfile="physExport.cpp" bodystart="612" bodyend="617"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPhysExportENodeCB_1a0aa0e9cfd59b94de646e6274c066c096" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::setNodePropReal</definition>
+        <argsstring>(INode *node, const char *name, float val)</argsstring>
+        <name>setNodePropReal</name>
+        <qualifiedname>PhysExportENodeCB::setNodePropReal</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="225" column="8" bodyfile="physExport.cpp" bodystart="225" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a01b961d4407ee0338070a76f5b65fc57" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::setNodePropPoint3</definition>
+        <argsstring>(INode *node, const char *name, const Point3 &amp;val)</argsstring>
+        <name>setNodePropPoint3</name>
+        <qualifiedname>PhysExportENodeCB::setNodePropPoint3</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="238" column="8" bodyfile="physExport.cpp" bodystart="238" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1abbe1996766d477a670511fc4c32d705a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 PhysExportENodeCB::getScaledNodeTm</definition>
+        <argsstring>(INode *node)</argsstring>
+        <name>getScaledNodeTm</name>
+        <qualifiedname>PhysExportENodeCB::getScaledNodeTm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="294" column="11" bodyfile="physExport.cpp" bodystart="294" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a7061d04ce98ae1ee9171f4d3f5b64ee9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 PhysExportENodeCB::getScaledObjectTm</definition>
+        <argsstring>(INode *node)</argsstring>
+        <name>getScaledObjectTm</name>
+        <qualifiedname>PhysExportENodeCB::getScaledObjectTm</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="297" column="11" bodyfile="physExport.cpp" bodystart="297" bodyend="297"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1aa9ed376c3273d34d9b96beb3ae4727fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int PhysExportENodeCB::proc</definition>
+        <argsstring>(INode *node) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>PhysExportENodeCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="327" column="7" bodyfile="physExport.cpp" bodystart="327" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a6a0221527c37e0baaf120740bdf876e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::saveHelper</definition>
+        <argsstring>(PhysFileSaver &amp;sv, INode *node, const Matrix3 &amp;body_wtm)</argsstring>
+        <name>saveHelper</name>
+        <qualifiedname>PhysExportENodeCB::saveHelper</qualifiedname>
+        <param>
+          <type><ref refid="classPhysFileSaver" kindref="compound">PhysFileSaver</ref> &amp;</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>body_wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="349" column="8" bodyfile="physExport.cpp" bodystart="349" bodyend="371"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1ad8c6cc6b13c5aaa1378b6235c2a16b5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::saveCollision</definition>
+        <argsstring>(PhysFileSaver &amp;sv, INode *node, const Matrix3 &amp;body_wtm)</argsstring>
+        <name>saveCollision</name>
+        <qualifiedname>PhysExportENodeCB::saveCollision</qualifiedname>
+        <param>
+          <type><ref refid="classPhysFileSaver" kindref="compound">PhysFileSaver</ref> &amp;</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>body_wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="374" column="8" bodyfile="physExport.cpp" bodystart="374" bodyend="547"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a8f46997c4afd973e48e81a57f81151ef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::saveBody</definition>
+        <argsstring>(PhysFileSaver &amp;sv, int body_id)</argsstring>
+        <name>saveBody</name>
+        <qualifiedname>PhysExportENodeCB::saveBody</qualifiedname>
+        <param>
+          <type><ref refid="classPhysFileSaver" kindref="compound">PhysFileSaver</ref> &amp;</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>body_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="550" column="8" bodyfile="physExport.cpp" bodystart="550" bodyend="580"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1a8e385509c29cd6440f5a6521792f9376" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::save</definition>
+        <argsstring>(FILE *file, Interface *ip)</argsstring>
+        <name>save</name>
+        <qualifiedname>PhysExportENodeCB::save</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="583" column="8" bodyfile="physExport.cpp" bodystart="583" bodyend="601"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1ad3b1b427d2cc5ca840c3410c20402124" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PhysExportENodeCB::calcNodeMomj</definition>
+        <argsstring>(INode *node, MomjNode &amp;mj)</argsstring>
+        <name>calcNodeMomj</name>
+        <qualifiedname>PhysExportENodeCB::calcNodeMomj</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type><ref refid="structPhysExportENodeCB_1_1MomjNode" kindref="compound">MomjNode</ref> &amp;</type>
+          <declname>mj</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="620" column="8" bodyfile="physExport.cpp" bodystart="620" bodyend="798"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1ad9f99dd7a7ec9d250175826c5f8943b8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::calcBodyMomj</definition>
+        <argsstring>(int body_id)</argsstring>
+        <name>calcBodyMomj</name>
+        <qualifiedname>PhysExportENodeCB::calcBodyMomj</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>body_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="801" column="8" bodyfile="physExport.cpp" bodystart="801" bodyend="1141"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysExportENodeCB_1adbf72bb3dc6c685546e0dd5267610b5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysExportENodeCB::calcMomjs</definition>
+        <argsstring>(Interface *ip)</argsstring>
+        <name>calcMomjs</name>
+        <qualifiedname>PhysExportENodeCB::calcMomjs</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="1144" column="8" bodyfile="physExport.cpp" bodystart="1144" bodyend="1152"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>PhysExportENodeCB</label>
+        <link refid="classPhysExportENodeCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>PhysExportENodeCB</label>
+        <link refid="classPhysExportENodeCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="physExport.cpp" line="125" column="1" bodyfile="physExport.cpp" bodystart="126" bodyend="1153"/>
+    <listofallmembers>
+      <member refid="classPhysExportENodeCB_1a8a2f1efae982e336e306d61be99a31af" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>adjWtm</name></member>
+      <member refid="classPhysExportENodeCB_1a8c4774a97536cbcf7dabf55a698b77ca" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>bodies</name></member>
+      <member refid="classPhysExportENodeCB_1ad9f99dd7a7ec9d250175826c5f8943b8" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>calcBodyMomj</name></member>
+      <member refid="classPhysExportENodeCB_1adbf72bb3dc6c685546e0dd5267610b5e" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>calcMomjs</name></member>
+      <member refid="classPhysExportENodeCB_1ad3b1b427d2cc5ca840c3410c20402124" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>calcNodeMomj</name></member>
+      <member refid="classPhysExportENodeCB_1adc5a641f6db720ad0c286d8fa952d76d" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>curTime</name></member>
+      <member refid="classPhysExportENodeCB_1a1e567fc4898a2941dfffc536246dff45" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>diagonalMatrix3</name></member>
+      <member refid="classPhysExportENodeCB_1a3c2b65be7fa6bea0a2576dca66f485bc" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getAverageScale</name></member>
+      <member refid="classPhysExportENodeCB_1ac36a6de2778376e3bbeb424dcd940d01" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getNodeProp</name></member>
+      <member refid="classPhysExportENodeCB_1a656007df12832ffe6fe04ae4643206c7" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getNodePropBool</name></member>
+      <member refid="classPhysExportENodeCB_1aaeec15a79760d162af66b8866d6f0a57" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getNodePropPoint3</name></member>
+      <member refid="classPhysExportENodeCB_1aa31607efeff073dd00cf7039cb6b1959" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getNodePropReal</name></member>
+      <member refid="classPhysExportENodeCB_1a9d2b79e8546fe1ccd9db1ddda94befee" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getNodePropStr</name></member>
+      <member refid="classPhysExportENodeCB_1ac80646bf85ddb49f432de8acef3431d1" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getScaledNodeTm</name></member>
+      <member refid="classPhysExportENodeCB_1abbe1996766d477a670511fc4c32d705a" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getScaledNodeTm</name></member>
+      <member refid="classPhysExportENodeCB_1a0318d188b5b87429f2c35464f1ac0a71" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getScaledObjectTm</name></member>
+      <member refid="classPhysExportENodeCB_1a7061d04ce98ae1ee9171f4d3f5b64ee9" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>getScaledObjectTm</name></member>
+      <member refid="classPhysExportENodeCB_1a92e68a09eb51de1dcdf82846676f0d15" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>makeMatrixRightOrthonormal</name></member>
+      <member refid="classPhysExportENodeCB_1aa9ed376c3273d34d9b96beb3ae4727fa" prot="public" virt="virtual"><scope>PhysExportENodeCB</scope><name>proc</name></member>
+      <member refid="classPhysExportENodeCB_1a8e385509c29cd6440f5a6521792f9376" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>save</name></member>
+      <member refid="classPhysExportENodeCB_1a8f46997c4afd973e48e81a57f81151ef" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>saveBody</name></member>
+      <member refid="classPhysExportENodeCB_1ad8c6cc6b13c5aaa1378b6235c2a16b5e" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>saveCollision</name></member>
+      <member refid="classPhysExportENodeCB_1a6a0221527c37e0baaf120740bdf876e4" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>saveHelper</name></member>
+      <member refid="classPhysExportENodeCB_1a57b08d23308ab3a4d5750b5140e381a0" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>setNodeProp</name></member>
+      <member refid="classPhysExportENodeCB_1a01b961d4407ee0338070a76f5b65fc57" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>setNodePropPoint3</name></member>
+      <member refid="classPhysExportENodeCB_1a0aa0e9cfd59b94de646e6274c066c096" prot="public" virt="non-virtual"><scope>PhysExportENodeCB</scope><name>setNodePropReal</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>PhysExportENodeCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

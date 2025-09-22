@@ -1,0 +1,284 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStcodeBuilder" kind="class" language="C++" prot="public">
+    <compoundname>StcodeBuilder</compoundname>
+    <includes refid="cppStcodeBuilder_8h" local="no">cppStcodeBuilder.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classStcodeBuilder_1a8f03e562340d8e49fb9fc3f8eb76b4fe" prot="private" static="no" mutable="no">
+        <type>Tab&lt; eastl::string &gt;</type>
+        <definition>Tab&lt;eastl::string&gt; StcodeBuilder::m_fragments</definition>
+        <argsstring></argsstring>
+        <name>m_fragments</name>
+        <qualifiedname>StcodeBuilder::m_fragments</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="73" column="7" bodyfile="cppStcodeBuilder.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStcodeBuilder_1aeed2511c2fb1d6f5eaa076d4710f94ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBuilder::StcodeBuilder</definition>
+        <argsstring>()=default</argsstring>
+        <name>StcodeBuilder</name>
+        <qualifiedname>StcodeBuilder::StcodeBuilder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="14" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1a542857291b6cece7dad3650aad6aab41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBuilder::StcodeBuilder</definition>
+        <argsstring>(StcodeBuilder &amp;&amp;other)=default</argsstring>
+        <name>StcodeBuilder</name>
+        <qualifiedname>StcodeBuilder::StcodeBuilder</qualifiedname>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="15" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1afc5a2acd3673c2a37af9b856a841ff51" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;</type>
+        <definition>StcodeBuilder &amp; StcodeBuilder::operator=</definition>
+        <argsstring>(StcodeBuilder &amp;&amp;other)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>StcodeBuilder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="16" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1ad07b2c03514c7aef5311d427e05adc46" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBuilder::pushBack</definition>
+        <argsstring>(eastl::string &amp;&amp;str)</argsstring>
+        <name>pushBack</name>
+        <qualifiedname>StcodeBuilder::pushBack</qualifiedname>
+        <param>
+          <type>eastl::string &amp;&amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="20" column="8" bodyfile="cppStcodeBuilder.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>Args</declname>
+            <defname>Args</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void StcodeBuilder::emplaceBack</definition>
+        <argsstring>(Args &amp;&amp;...args)</argsstring>
+        <name>emplaceBack</name>
+        <qualifiedname>StcodeBuilder::emplaceBack</qualifiedname>
+        <param>
+          <type>Args &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="23" column="8" bodyfile="cppStcodeBuilder.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1a75203805b3d48da057cbe761021e19b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>Args</declname>
+            <defname>Args</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void StcodeBuilder::emplaceBackFmt</definition>
+        <argsstring>(const char *fmt, Args &amp;&amp;...args)</argsstring>
+        <name>emplaceBackFmt</name>
+        <qualifiedname>StcodeBuilder::emplaceBackFmt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>Args &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="29" column="8" bodyfile="cppStcodeBuilder.h" bodystart="29" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1ac4026355a2a4acf32bd0d8959c1d812f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBuilder::pushFront</definition>
+        <argsstring>(eastl::string &amp;&amp;str)</argsstring>
+        <name>pushFront</name>
+        <qualifiedname>StcodeBuilder::pushFront</qualifiedname>
+        <param>
+          <type>eastl::string &amp;&amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="34" column="8" bodyfile="cppStcodeBuilder.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1af800507e36690d738a1633c2d922df74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeBuilder::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>StcodeBuilder::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="36" column="17" bodyfile="cppStcodeBuilder.h" bodystart="36" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1ad93f999de78031af3a8c05b3bc4929a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBuilder::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>StcodeBuilder::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="53" column="8" bodyfile="cppStcodeBuilder.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1ae1a8e9f49f6eca4a50b25cb5c72115eb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool StcodeBuilder::empty</definition>
+        <argsstring>() const</argsstring>
+        <name>empty</name>
+        <qualifiedname>StcodeBuilder::empty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="55" column="8" bodyfile="cppStcodeBuilder.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1ae505b9a39d4c9fd54ebcf83a1c9a5d15" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t StcodeBuilder::fragCount</definition>
+        <argsstring>() const</argsstring>
+        <name>fragCount</name>
+        <qualifiedname>StcodeBuilder::fragCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="56" column="10" bodyfile="cppStcodeBuilder.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1a6acb740daccdc2ead0421eb40d33d038" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBuilder::merge</definition>
+        <argsstring>(StcodeBuilder &amp;&amp;other)</argsstring>
+        <name>merge</name>
+        <qualifiedname>StcodeBuilder::merge</qualifiedname>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="58" column="8" bodyfile="cppStcodeBuilder.h" bodystart="58" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBuilder_1a8dca69d7f57e0359dbdeb7d2c98eb250" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TClb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void StcodeBuilder::iterateFragments</definition>
+        <argsstring>(TClb &amp;&amp;cb)</argsstring>
+        <name>iterateFragments</name>
+        <qualifiedname>StcodeBuilder::iterateFragments</qualifiedname>
+        <param>
+          <type>TClb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeBuilder.h" line="66" column="8" bodyfile="cppStcodeBuilder.h" bodystart="66" bodyend="70"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeBuilder.h" line="11" column="1" bodyfile="cppStcodeBuilder.h" bodystart="12" bodyend="74"/>
+    <listofallmembers>
+      <member refid="classStcodeBuilder_1ad93f999de78031af3a8c05b3bc4929a5" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>clear</name></member>
+      <member refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>emplaceBack</name></member>
+      <member refid="classStcodeBuilder_1a75203805b3d48da057cbe761021e19b3" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>emplaceBackFmt</name></member>
+      <member refid="classStcodeBuilder_1ae1a8e9f49f6eca4a50b25cb5c72115eb" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>empty</name></member>
+      <member refid="classStcodeBuilder_1ae505b9a39d4c9fd54ebcf83a1c9a5d15" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>fragCount</name></member>
+      <member refid="classStcodeBuilder_1a8dca69d7f57e0359dbdeb7d2c98eb250" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>iterateFragments</name></member>
+      <member refid="classStcodeBuilder_1a8f03e562340d8e49fb9fc3f8eb76b4fe" prot="private" virt="non-virtual"><scope>StcodeBuilder</scope><name>m_fragments</name></member>
+      <member refid="classStcodeBuilder_1a6acb740daccdc2ead0421eb40d33d038" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>merge</name></member>
+      <member refid="classStcodeBuilder_1afc5a2acd3673c2a37af9b856a841ff51" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>operator=</name></member>
+      <member refid="classStcodeBuilder_1ad07b2c03514c7aef5311d427e05adc46" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>pushBack</name></member>
+      <member refid="classStcodeBuilder_1ac4026355a2a4acf32bd0d8959c1d812f" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>pushFront</name></member>
+      <member refid="classStcodeBuilder_1af800507e36690d738a1633c2d922df74" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>release</name></member>
+      <member refid="classStcodeBuilder_1aeed2511c2fb1d6f5eaa076d4710f94ce" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>StcodeBuilder</name></member>
+      <member refid="classStcodeBuilder_1a542857291b6cece7dad3650aad6aab41" prot="public" virt="non-virtual"><scope>StcodeBuilder</scope><name>StcodeBuilder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

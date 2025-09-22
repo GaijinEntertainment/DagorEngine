@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1Job" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>shc::Job</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">cpujobs::IJob</basecompoundref>
+    <derivedcompoundref refid="classCompileShaderJob" prot="public" virt="non-virtual">CompileShaderJob</derivedcompoundref>
+    <derivedcompoundref refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase" prot="public" virt="non-virtual">anonymous_namespace{linkShaders.cpp}::RecompileJobBase</derivedcompoundref>
+    <includes refid="shCompiler_8h" local="no">shCompiler.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>shc::Job::Job</definition>
+        <argsstring>()</argsstring>
+        <name>Job</name>
+        <qualifiedname>shc::Job::Job</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="89" column="3" bodyfile="shCompiler.cpp" bodystart="121" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" prot="public" static="no" const="yes" explicit="no" inline="yes" final="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * shc::Job::getJobName</definition>
+        <argsstring>(bool &amp;) const override final</argsstring>
+        <name>getJobName</name>
+        <qualifiedname>shc::Job::getJobName</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="90" column="14" bodyfile="shCompiler.h" bodystart="90" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Job_1a0db61e3f075b115844f23da94bc912a0" prot="public" static="no" const="no" explicit="no" inline="no" final="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::Job::doJob</definition>
+        <argsstring>() final</argsstring>
+        <name>doJob</name>
+        <qualifiedname>shc::Job::doJob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="91" column="8" bodyfile="shCompiler.cpp" bodystart="132" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Job_1a511710ba0cb8538630fd63b83396dc31" prot="public" static="no" const="no" explicit="no" inline="no" final="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::Job::releaseJob</definition>
+        <argsstring>() final</argsstring>
+        <name>releaseJob</name>
+        <qualifiedname>shc::Job::releaseJob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="92" column="8" bodyfile="shCompiler.cpp" bodystart="140" bodyend="151"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void shc::Job::doJobBody</definition>
+        <argsstring>()=0</argsstring>
+        <name>doJobBody</name>
+        <qualifiedname>shc::Job::doJobBody</qualifiedname>
+        <reimplementedby refid="classCompileShaderJob_1adfe72ca3945bf4e769508e3ed6e3e7c2">doJobBody</reimplementedby>
+        <reimplementedby refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileVPRogJob_1a60927e364f59f6bec277b214ccc705a0">doJobBody</reimplementedby>
+        <reimplementedby refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a167c9033a0dad55c0bd7e16682a9ae44">doJobBody</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="95" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void shc::Job::releaseJobBody</definition>
+        <argsstring>()=0</argsstring>
+        <name>releaseJobBody</name>
+        <qualifiedname>shc::Job::releaseJobBody</qualifiedname>
+        <reimplementedby refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileVPRogJob_1adbfb7b264177425b3e4046194913fddb">releaseJobBody</reimplementedby>
+        <reimplementedby refid="classCompileShaderJob_1a5b45bfc7e2851fe1b8930c7fb52e477b">releaseJobBody</reimplementedby>
+        <reimplementedby refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a9e5969e22ea7014a60e4dc844a4c9ff6">releaseJobBody</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="96" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>CompileShaderJob</label>
+        <link refid="classCompileShaderJob"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompileJobBase</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompileVPRogJob</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileVPRogJob"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="1">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="1">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shCompiler.h" line="86" column="1" bodyfile="shCompiler.h" bodystart="87" bodyend="97"/>
+    <listofallmembers>
+      <member refid="structshc_1_1Job_1a0db61e3f075b115844f23da94bc912a0" prot="public" virt="non-virtual"><scope>shc::Job</scope><name>doJob</name></member>
+      <member refid="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57" prot="protected" virt="pure-virtual"><scope>shc::Job</scope><name>doJobBody</name></member>
+      <member refid="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" prot="public" virt="non-virtual"><scope>shc::Job</scope><name>getJobName</name></member>
+      <member refid="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" prot="public" virt="non-virtual"><scope>shc::Job</scope><name>Job</name></member>
+      <member refid="structshc_1_1Job_1a511710ba0cb8538630fd63b83396dc31" prot="public" virt="non-virtual"><scope>shc::Job</scope><name>releaseJob</name></member>
+      <member refid="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971" prot="protected" virt="pure-virtual"><scope>shc::Job</scope><name>releaseJobBody</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

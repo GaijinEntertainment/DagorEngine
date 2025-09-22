@@ -1,0 +1,564 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIWndManager" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IWndManager</compoundname>
+    <includes refid="ec__wndPublic_8h" local="no">ec_wndPublic.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIWndManager_1a087937ed6ea8dfe0b1d64e07ca38154c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual IWndManager::~IWndManager</definition>
+        <argsstring>()</argsstring>
+        <name>~IWndManager</name>
+        <qualifiedname>IWndManager::~IWndManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="39" column="11" bodyfile="ec_wndPublic.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a23dac27785b77efbae0a892030499e56" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IWndManager::run</definition>
+        <argsstring>(int width, int height, const char *caption, const char *icon=&quot;&quot;, WindowSizeInit size=WSI_NORMAL)=0</argsstring>
+        <name>run</name>
+        <qualifiedname>IWndManager::run</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>icon</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" kindref="member">WindowSizeInit</ref></type>
+          <declname>size</declname>
+          <defval><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" kindref="member">WSI_NORMAL</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="42" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1aad40d80a88e49ead53b1dc127c64a4a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::close</definition>
+        <argsstring>()=0</argsstring>
+        <name>close</name>
+        <qualifiedname>IWndManager::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a14bc6ba57bf6b44912945cf4b27eb6ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManager::loadLayout</definition>
+        <argsstring>(const char *filename=NULL)=0</argsstring>
+        <name>loadLayout</name>
+        <qualifiedname>IWndManager::loadLayout</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a2e66fe61644620f8ed3245765d9d681c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::saveLayout</definition>
+        <argsstring>(const char *filename=NULL)=0</argsstring>
+        <name>saveLayout</name>
+        <qualifiedname>IWndManager::saveLayout</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a1566c09bb34cc4bb39c51f2aeb47ca8b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::setMainWindowCaption</definition>
+        <argsstring>(const char *caption)=0</argsstring>
+        <name>setMainWindowCaption</name>
+        <qualifiedname>IWndManager::setMainWindowCaption</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a0afcd519558f72dec6348b5365b8ef93" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::registerWindowHandler</definition>
+        <argsstring>(IWndManagerWindowHandler *handler)=0</argsstring>
+        <name>registerWindowHandler</name>
+        <qualifiedname>IWndManager::registerWindowHandler</qualifiedname>
+        <param>
+          <type><ref refid="classIWndManagerWindowHandler" kindref="compound">IWndManagerWindowHandler</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a3ff42ed4e82d4e88a94521abc6dadac7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::unregisterWindowHandler</definition>
+        <argsstring>(IWndManagerWindowHandler *handler)=0</argsstring>
+        <name>unregisterWindowHandler</name>
+        <qualifiedname>IWndManager::unregisterWindowHandler</qualifiedname>
+        <param>
+          <type><ref refid="classIWndManagerWindowHandler" kindref="compound">IWndManagerWindowHandler</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="51" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1ad881e96f686e5901409095721b1c77de" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::reset</definition>
+        <argsstring>()=0</argsstring>
+        <name>reset</name>
+        <qualifiedname>IWndManager::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="53" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a635da18d6bc738ee1947239f362d13b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::show</definition>
+        <argsstring>(WindowSizeInit size=WSI_NORMAL)=0</argsstring>
+        <name>show</name>
+        <qualifiedname>IWndManager::show</qualifiedname>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" kindref="member">WindowSizeInit</ref></type>
+          <declname>size</declname>
+          <defval><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" kindref="member">WSI_NORMAL</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="54" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a96fc8e17ed55847a6f51efb4917c2642" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IWndManager::getMainWindow</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getMainWindow</name>
+        <qualifiedname>IWndManager::getMainWindow</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="57" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a1b47a1b424c30c438c0197c866667dee" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManager::removeWindow</definition>
+        <argsstring>(void *handle)=0</argsstring>
+        <name>removeWindow</name>
+        <qualifiedname>IWndManager::removeWindow</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="59" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a25bc169ee3fd94c25dcb79e82ada4743" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::setWindowType</definition>
+        <argsstring>(void *handle, int type)=0</argsstring>
+        <name>setWindowType</name>
+        <qualifiedname>IWndManager::setWindowType</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="61" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a225b04b8a5cb4d327d6152b055159ef1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::getWindowClientSize</definition>
+        <argsstring>(void *handle, unsigned &amp;width, unsigned &amp;height)=0</argsstring>
+        <name>getWindowClientSize</name>
+        <qualifiedname>IWndManager::getWindowClientSize</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="63" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a68f508f0b64ccd56fd1cfaaf81defc10" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManager::getWindowPosSize</definition>
+        <argsstring>(void *handle, int &amp;x, int &amp;y, unsigned &amp;width, unsigned &amp;height)=0</argsstring>
+        <name>getWindowPosSize</name>
+        <qualifiedname>IWndManager::getWindowPosSize</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="64" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1ae37d62bfb90e6449d776724e5bcdcb28" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::setMenuArea</definition>
+        <argsstring>(void *handle, hdpi::Px width, hdpi::Px height)=0</argsstring>
+        <name>setMenuArea</name>
+        <qualifiedname>IWndManager::setMenuArea</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>hdpi::Px</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>hdpi::Px</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="66" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a621a900896a32ee56d513af2fade38a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManager::init3d</definition>
+        <argsstring>(const char *drv_name=NULL, const DataBlock *blkTexStreaming=NULL)=0</argsstring>
+        <name>init3d</name>
+        <qualifiedname>IWndManager::init3d</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>drv_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>const DataBlock *</type>
+          <declname>blkTexStreaming</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="71" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a8edf8b29d8a5ca86b927433ccd90753c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::addAccelerator</definition>
+        <argsstring>(unsigned cmd_id, ImGuiKeyChord key_chord)=0</argsstring>
+        <name>addAccelerator</name>
+        <qualifiedname>IWndManager::addAccelerator</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>cmd_id</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="74" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1aefa595191f56bdd8b1513721cbdf6847" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::addAcceleratorUp</definition>
+        <argsstring>(unsigned cmd_id, ImGuiKeyChord key_chord)=0</argsstring>
+        <name>addAcceleratorUp</name>
+        <qualifiedname>IWndManager::addAcceleratorUp</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>cmd_id</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="75" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a90c5279b72e2d7001da995acb87233b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::addViewportAccelerator</definition>
+        <argsstring>(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat=false)=0</argsstring>
+        <name>addViewportAccelerator</name>
+        <qualifiedname>IWndManager::addViewportAccelerator</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>cmd_id</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_repeat</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="76" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a26cf1373c8cac026b8e5202fdfe1a7f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::clearAccelerators</definition>
+        <argsstring>()=0</argsstring>
+        <name>clearAccelerators</name>
+        <qualifiedname>IWndManager::clearAccelerators</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="77" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a9ec5f6e5ebf6e130fb4c951fa29e119d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned</type>
+        <definition>virtual unsigned IWndManager::processImguiAccelerator</definition>
+        <argsstring>()=0</argsstring>
+        <name>processImguiAccelerator</name>
+        <qualifiedname>IWndManager::processImguiAccelerator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="78" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a99ec047592df1a4e4c8d3ad75054ab77" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned</type>
+        <definition>virtual unsigned IWndManager::processImguiViewportAccelerator</definition>
+        <argsstring>(ImGuiID viewport_id)=0</argsstring>
+        <name>processImguiViewportAccelerator</name>
+        <qualifiedname>IWndManager::processImguiViewportAccelerator</qualifiedname>
+        <param>
+          <type><ref refid="ec__wndPublic_8h_1a1785c9b6f4e16406764a85f32582236f" kindref="member">ImGuiID</ref></type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="79" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1ad45e9a41b3510b5a2086efc5e9f7d7f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::initCustomMouseCursors</definition>
+        <argsstring>(const char *path)=0</argsstring>
+        <name>initCustomMouseCursors</name>
+        <qualifiedname>IWndManager::initCustomMouseCursors</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="81" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManager_1a650d02191d0635b9e9b477063900da30" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManager::updateImguiMouseCursor</definition>
+        <argsstring>()=0</argsstring>
+        <name>updateImguiMouseCursor</name>
+        <qualifiedname>IWndManager::updateImguiMouseCursor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="82" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classIWndManager_1a080e93be6f351b05e63d4e637ff0f0cb" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+        <definition>static IWndManager * IWndManager::createManager</definition>
+        <argsstring>(IWndManagerEventHandler *event_handler)</argsstring>
+        <name>createManager</name>
+        <qualifiedname>IWndManager::createManager</qualifiedname>
+        <param>
+          <type><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref> *</type>
+          <declname>event_handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="69" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_wndPublic.h" line="36" column="1" bodyfile="ec_wndPublic.h" bodystart="37" bodyend="83"/>
+    <listofallmembers>
+      <member refid="classIWndManager_1a8edf8b29d8a5ca86b927433ccd90753c" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>addAccelerator</name></member>
+      <member refid="classIWndManager_1aefa595191f56bdd8b1513721cbdf6847" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>addAcceleratorUp</name></member>
+      <member refid="classIWndManager_1a90c5279b72e2d7001da995acb87233b9" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>addViewportAccelerator</name></member>
+      <member refid="classIWndManager_1a26cf1373c8cac026b8e5202fdfe1a7f2" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>clearAccelerators</name></member>
+      <member refid="classIWndManager_1aad40d80a88e49ead53b1dc127c64a4a0" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>close</name></member>
+      <member refid="classIWndManager_1a080e93be6f351b05e63d4e637ff0f0cb" prot="public" virt="non-virtual"><scope>IWndManager</scope><name>createManager</name></member>
+      <member refid="classIWndManager_1a96fc8e17ed55847a6f51efb4917c2642" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>getMainWindow</name></member>
+      <member refid="classIWndManager_1a225b04b8a5cb4d327d6152b055159ef1" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>getWindowClientSize</name></member>
+      <member refid="classIWndManager_1a68f508f0b64ccd56fd1cfaaf81defc10" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>getWindowPosSize</name></member>
+      <member refid="classIWndManager_1a621a900896a32ee56d513af2fade38a0" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>init3d</name></member>
+      <member refid="classIWndManager_1ad45e9a41b3510b5a2086efc5e9f7d7f0" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>initCustomMouseCursors</name></member>
+      <member refid="classIWndManager_1a14bc6ba57bf6b44912945cf4b27eb6ad" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>loadLayout</name></member>
+      <member refid="classIWndManager_1a9ec5f6e5ebf6e130fb4c951fa29e119d" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>processImguiAccelerator</name></member>
+      <member refid="classIWndManager_1a99ec047592df1a4e4c8d3ad75054ab77" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>processImguiViewportAccelerator</name></member>
+      <member refid="classIWndManager_1a0afcd519558f72dec6348b5365b8ef93" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>registerWindowHandler</name></member>
+      <member refid="classIWndManager_1a1b47a1b424c30c438c0197c866667dee" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>removeWindow</name></member>
+      <member refid="classIWndManager_1ad881e96f686e5901409095721b1c77de" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>reset</name></member>
+      <member refid="classIWndManager_1a23dac27785b77efbae0a892030499e56" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>run</name></member>
+      <member refid="classIWndManager_1a2e66fe61644620f8ed3245765d9d681c" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>saveLayout</name></member>
+      <member refid="classIWndManager_1a1566c09bb34cc4bb39c51f2aeb47ca8b" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>setMainWindowCaption</name></member>
+      <member refid="classIWndManager_1ae37d62bfb90e6449d776724e5bcdcb28" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>setMenuArea</name></member>
+      <member refid="classIWndManager_1a25bc169ee3fd94c25dcb79e82ada4743" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>setWindowType</name></member>
+      <member refid="classIWndManager_1a635da18d6bc738ee1947239f362d13b9" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>show</name></member>
+      <member refid="classIWndManager_1a3ff42ed4e82d4e88a94521abc6dadac7" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>unregisterWindowHandler</name></member>
+      <member refid="classIWndManager_1a650d02191d0635b9e9b477063900da30" prot="public" virt="pure-virtual"><scope>IWndManager</scope><name>updateImguiMouseCursor</name></member>
+      <member refid="classIWndManager_1a087937ed6ea8dfe0b1d64e07ca38154c" prot="public" virt="virtual"><scope>IWndManager</scope><name>~IWndManager</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

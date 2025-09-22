@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="hash_8h" kind="file" language="C++">
+    <compoundname>hash.h</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="hash_8h_1a99fb83031ce9923c84392b4e92f956b5" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a1dac28b930a8243e5482be767fc82b94" prot="public">
+          <name>HASH_SAVECB_CRC32</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a6be89b483103880640a0833e8235537b" prot="public">
+          <name>HASH_SAVECB_MD5</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a0388d688056c8ef2f8a8ae173b0c032d" prot="public">
+          <name>HASH_SAVECB_SHA1</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="15" column="1" bodyfile="hash.h" bodystart="16" bodyend="20"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="hash_8h_1a0192630fe22167c7e86fbe9b6c9eced6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_hash</definition>
+        <argsstring>(const char *key, unsigned int init_val)</argsstring>
+        <name>get_hash</name>
+        <param>
+          <type>const char *</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>init_val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="8" column="10" declfile="hash.h" declline="8" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="hash_8h_1a9bb2174ff6e548d94ed144e21b3e9296" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_crc32</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>get_crc32</name>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="10" column="10" declfile="hash.h" declline="10" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="hash_8h_1aef4f2f6b8390ff920fe290592b2dedc8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_file_crc32</definition>
+        <argsstring>(const char *path, unsigned &amp;crc)</argsstring>
+        <name>get_file_crc32</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>crc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="11" column="6" declfile="hash.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="hash_8h_1ae0f281debf642a2ec916c46701994cc3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IGenSave *</type>
+        <definition>IGenSave * create_hash_computer_cb</definition>
+        <argsstring>(int hash_savecb_type, IGenSave *copy_cwr=NULL)</argsstring>
+        <name>create_hash_computer_cb</name>
+        <param>
+          <type>int</type>
+          <declname>hash_savecb_type</declname>
+        </param>
+        <param>
+          <type>IGenSave *</type>
+          <declname>copy_cwr</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>creates &quot;write stream callback&quot; designed for hash computation; only IGenSave::write is usable </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="23" column="10" declfile="hash.h" declline="23" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="hash_8h_1af1be164613465bb6557ef969dbec7fa6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_computed_hash</definition>
+        <argsstring>(IGenSave *hash_cb, void *out_data, int out_data_sz, bool reset=true)</argsstring>
+        <name>get_computed_hash</name>
+        <param>
+          <type>IGenSave *</type>
+          <declname>hash_cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>out_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>out_data_sz</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>reset</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>copies current computed hash to specified buffer, optionally resets structures for new hash computations; returns size of hash </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="25" column="5" declfile="hash.h" declline="25" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="hash_8h_1a33a723f40a3e7f6b02e173869cc3993e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void destory_hash_computer_cb</definition>
+        <argsstring>(IGenSave *hash_cb)</argsstring>
+        <name>destory_hash_computer_cb</name>
+        <param>
+          <type>IGenSave *</type>
+          <declname>hash_cb</declname>
+        </param>
+        <briefdescription>
+<para>deallocates data allocated in <ref refid="hash_8h_1ae0f281debf642a2ec916c46701994cc3" kindref="member">create_hash_computer_cb()</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hash.h" line="27" column="6" declfile="hash.h" declline="27" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>calculates<sp/>hash<sp/>for<sp/>a<sp/>string<sp/>&quot;key&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="hash_8h_1a0192630fe22167c7e86fbe9b6c9eced6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="hash_8h_1a0192630fe22167c7e86fbe9b6c9eced6" kindref="member">get_hash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*key,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>init_val);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="hash_8h_1a9bb2174ff6e548d94ed144e21b3e9296" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="hash_8h_1a9bb2174ff6e548d94ed144e21b3e9296" kindref="member">get_crc32</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="11" refid="hash_8h_1aef4f2f6b8390ff920fe290592b2dedc8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="hash_8h_1aef4f2f6b8390ff920fe290592b2dedc8" kindref="member">get_file_crc32</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;crc);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenSave;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17" refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a1dac28b930a8243e5482be767fc82b94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a1dac28b930a8243e5482be767fc82b94" kindref="member">HASH_SAVECB_CRC32</ref>,</highlight></codeline>
+<codeline lineno="18" refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a6be89b483103880640a0833e8235537b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a6be89b483103880640a0833e8235537b" kindref="member">HASH_SAVECB_MD5</ref>,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a0388d688056c8ef2f8a8ae173b0c032d" kindref="member">HASH_SAVECB_SHA1</ref></highlight></codeline>
+<codeline lineno="20" refid="hash_8h_1a99fb83031ce9923c84392b4e92f956b5a0388d688056c8ef2f8a8ae173b0c032d" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="hash_8h_1ae0f281debf642a2ec916c46701994cc3" refkind="member"><highlight class="normal">IGenSave<sp/>*<ref refid="hash_8h_1ae0f281debf642a2ec916c46701994cc3" kindref="member">create_hash_computer_cb</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>hash_savecb_type,<sp/>IGenSave<sp/>*copy_cwr<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="25" refid="hash_8h_1af1be164613465bb6557ef969dbec7fa6" refkind="member"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="hash_8h_1af1be164613465bb6557ef969dbec7fa6" kindref="member">get_computed_hash</ref>(IGenSave<sp/>*hash_cb,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*out_data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>out_data_sz,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reset<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="27" refid="hash_8h_1a33a723f40a3e7f6b02e173869cc3993e" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="hash_8h_1a33a723f40a3e7f6b02e173869cc3993e" kindref="member">destory_hash_computer_cb</ref>(IGenSave<sp/>*hash_cb);</highlight></codeline>
+    </programlisting>
+    <location file="hash.h"/>
+  </compounddef>
+</doxygen>

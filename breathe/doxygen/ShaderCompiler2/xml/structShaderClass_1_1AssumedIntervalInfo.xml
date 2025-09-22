@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderClass_1_1AssumedIntervalInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderClass::AssumedIntervalInfo</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderClass_1_1AssumedIntervalInfo_1ab772a6f6d5a157eac3e8b9295b46f8b4" prot="public" static="no" mutable="no">
+        <type>bindump::string</type>
+        <definition>bindump::string ShaderClass::AssumedIntervalInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderClass::AssumedIntervalInfo::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="162" column="21" bodyfile="shcode.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderClass_1_1AssumedIntervalInfo_1a91b8f2ee315f4f3b869e21bd51a9589e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderClass::AssumedIntervalInfo::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ShaderClass::AssumedIntervalInfo::value</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="163" column="13" bodyfile="shcode.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shcode.h" line="160" column="3" bodyfile="shcode.h" bodystart="161" bodyend="164"/>
+    <listofallmembers>
+      <member refid="structShaderClass_1_1AssumedIntervalInfo_1ab772a6f6d5a157eac3e8b9295b46f8b4" prot="public" virt="non-virtual"><scope>ShaderClass::AssumedIntervalInfo</scope><name>name</name></member>
+      <member refid="structShaderClass_1_1AssumedIntervalInfo_1a91b8f2ee315f4f3b869e21bd51a9589e" prot="public" virt="non-virtual"><scope>ShaderClass::AssumedIntervalInfo</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,167 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classObjectPropertiesEditorDesc" kind="class" language="C++" prot="public">
+    <compoundname>ObjectPropertiesEditorDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1a101c43133cdfdbb3cdcee95913f955d9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ObjectPropertiesEditorDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="17" column="7" bodyfile="objectPropertiesEditor.cpp" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1ac11333df1ffc48717bb4c571a4539bdc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * ObjectPropertiesEditorDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="18" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1ac3910b64bbd563cc0f935dee0f6e995c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ObjectPropertiesEditorDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="19" column="15" bodyfile="objectPropertiesEditor.cpp" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1a48d6ee5308ff0273af4a120406516d2e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * ObjectPropertiesEditorDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="23" column="15" bodyfile="objectPropertiesEditor.cpp" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1ac2514fc481870949867f52fcda2c659f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID ObjectPropertiesEditorDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="25" column="13" bodyfile="objectPropertiesEditor.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1a8c35f586e388f5d58105db1a57b18033" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID ObjectPropertiesEditorDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="26" column="12" bodyfile="objectPropertiesEditor.cpp" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1a0fa8f7d04ed035fa17372d5630545c54" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ObjectPropertiesEditorDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="27" column="15" bodyfile="objectPropertiesEditor.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditorDesc_1ae2a6960bcabb0ab233643d411cd78e0d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditorDesc::ResetClassParams</definition>
+        <argsstring>(BOOL fileReset) override</argsstring>
+        <name>ResetClassParams</name>
+        <qualifiedname>ObjectPropertiesEditorDesc::ResetClassParams</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>fileReset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="28" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ObjectPropertiesEditorDesc</label>
+        <link refid="classObjectPropertiesEditorDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ObjectPropertiesEditorDesc</label>
+        <link refid="classObjectPropertiesEditorDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="objectPropertiesEditor.cpp" line="14" column="1" bodyfile="objectPropertiesEditor.cpp" bodystart="15" bodyend="29"/>
+    <listofallmembers>
+      <member refid="classObjectPropertiesEditorDesc_1a0fa8f7d04ed035fa17372d5630545c54" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>Category</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1a8c35f586e388f5d58105db1a57b18033" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>ClassID</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1ac3910b64bbd563cc0f935dee0f6e995c" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>ClassName</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1ac11333df1ffc48717bb4c571a4539bdc" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>Create</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1a101c43133cdfdbb3cdcee95913f955d9" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>IsPublic</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1a48d6ee5308ff0273af4a120406516d2e" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1ae2a6960bcabb0ab233643d411cd78e0d" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>ResetClassParams</name></member>
+      <member refid="classObjectPropertiesEditorDesc_1ac2514fc481870949867f52fcda2c659f" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

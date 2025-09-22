@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__linearMatrixBufferAllocator_8h" kind="file" language="C++">
+    <compoundname>dag_linearMatrixBufferAllocator.h</compoundname>
+    <includes refid="dag__linearSbufferAllocator_8h" local="no">shaders/dag_linearSbufferAllocator.h</includes>
+    <includes local="no">math/dag_TMatrix.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includedby refid="dag__bindposeBufferManager_8h" local="no">dag_bindposeBufferManager.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_linearMatrixBufferAllocator.h</label>
+        <link refid="dag__linearMatrixBufferAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_linearSbufferAllocator.h</label>
+        <link refid="dag__linearSbufferAllocator_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_info.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_bindposeBufferManager.h</label>
+        <link refid="dag__bindposeBufferManager_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_linearMatrixBufferAllocator.h</label>
+        <link refid="dag__linearMatrixBufferAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structMatrixBufferHeapManager" prot="public">MatrixBufferHeapManager</innerclass>
+    <innerclass refid="structMatrixBufferHeapManager_1_1Heap" prot="public">MatrixBufferHeapManager::Heap</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__linearMatrixBufferAllocator_8h_1a837e82ad78760fefc394c01c92103a99" prot="public" static="no">
+        <type><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator</ref>&lt; <ref refid="structMatrixBufferHeapManager" kindref="compound">MatrixBufferHeapManager</ref> &gt;</type>
+        <definition>typedef LinearHeapAllocator&lt;MatrixBufferHeapManager&gt; LinearHeapAllocatorMatrixBuffer</definition>
+        <argsstring></argsstring>
+        <name>LinearHeapAllocatorMatrixBuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="56" column="29" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_linearSbufferAllocator.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>A<sp/>specialized<sp/>SBuffer<sp/>heap<sp/>manager,<sp/>which<sp/>also<sp/>has<sp/>a<sp/>CPU<sp/>copy<sp/>for<sp/>mapping<sp/>(transformations).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>CPU<sp/>copy<sp/>uses<sp/>TMatrix,<sp/>the<sp/>GPU<sp/>one<sp/>is<sp/>packed<sp/>as<sp/>3*float4<sp/>matrices,<sp/>using<sp/>float4<sp/>buffer<sp/>elements<sp/>in<sp/>a<sp/>StructuredBuffer.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="structMatrixBufferHeapManager" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structMatrixBufferHeapManager" kindref="compound">MatrixBufferHeapManager</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/>ELEM_SIZE<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(float)<sp/>*<sp/>4;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/>MTX_SIZE<sp/>=<sp/>ELEM_SIZE<sp/>*<sp/>3;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structMatrixBufferHeapManager_1_1Heap" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structMatrixBufferHeapManager_1_1Heap" kindref="compound">Heap</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>UniqueBuf<sp/>buffer;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;TMatrix&gt;<sp/>bindposeArr;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="structMatrixBufferHeapManager" kindref="compound">MatrixBufferHeapManager</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>:<sp/>sbufferHeapManager(name,<sp/>ELEM_SIZE,<sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_MISC_STRUCTURED,<sp/>0)<sp/>{}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>copy(Heap<sp/>&amp;to,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>to_offset,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Heap<sp/>&amp;from,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>from_offset,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len)</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(from_offset<sp/>+<sp/>len<sp/>&lt;=<sp/>from.bindposeArr.size());</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(to_offset<sp/>+<sp/>len<sp/>&lt;=<sp/>to.bindposeArr.size());</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>mem_copy_to(make_span_const(from.bindposeArr.data()<sp/>+<sp/>from_offset,<sp/>len),<sp/>to.bindposeArr.data()<sp/>+<sp/>to_offset);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>sbufferHeapManager.copy(to.buffer,<sp/>to_offset<sp/>*<sp/>MTX_SIZE,<sp/>from.buffer,<sp/>from_offset<sp/>*<sp/>MTX_SIZE,<sp/>len<sp/>*<sp/>MTX_SIZE);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>canCopyInSameHeap()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbufferHeapManager.canCopyInSameHeap();<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>canCopyOverlapped()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbufferHeapManager.canCopyOverlapped();<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>create(Heap<sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sz)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>h.bindposeArr.resize(sz);<sp/></highlight><highlight class="comment">//<sp/>no<sp/>clearing,<sp/>keep<sp/>data,<sp/>so<sp/>it<sp/>can<sp/>be<sp/>copied<sp/>over</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbufferHeapManager.create(h.buffer,<sp/>sz<sp/>*<sp/>MTX_SIZE);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>orphan(Heap<sp/>&amp;h)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(h.bindposeArr);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>sbufferHeapManager.orphan(h.buffer);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sbufferHeapManager.getName();<sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><ref refid="structSbufferHeapManager" kindref="compound">SbufferHeapManager</ref><sp/>sbufferHeapManager;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="55" refid="structLinearHeapAllocator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator</ref>;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator&lt;MatrixBufferHeapManager&gt;</ref><sp/><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocatorMatrixBuffer</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="dag_linearMatrixBufferAllocator.h"/>
+  </compounddef>
+</doxygen>

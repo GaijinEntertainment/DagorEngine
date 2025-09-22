@@ -1,0 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStcodeBytecodeCache" kind="class" language="C++" prot="public">
+    <compoundname>StcodeBytecodeCache</compoundname>
+    <includes refid="stcodeBytecode_8h" local="no">stcodeBytecode.h</includes>
+    <innerclass refid="structStcodeBytecodeCache_1_1Refs" prot="public">StcodeBytecodeCache::Refs</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classStcodeBytecodeCache_1a501d926fe5aafbc6f649849e68e7e3d4" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="shaderTab_8h_1adaa8b885671aa7f33745dcdeaafd088e" kindref="member">TabStcode</ref> &gt;</type>
+        <definition>Tab&lt;TabStcode&gt; StcodeBytecodeCache::stcode</definition>
+        <argsstring></argsstring>
+        <name>stcode</name>
+        <qualifiedname>StcodeBytecodeCache::stcode</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="216" column="7" bodyfile="stcodeBytecode.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeBytecodeCache_1a92f9d76f9d9db80e5d3fdd96465477b0" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="shaderTab_8h_1adaa8b885671aa7f33745dcdeaafd088e" kindref="member">TabStcode</ref> &gt;</type>
+        <definition>Tab&lt;TabStcode&gt; StcodeBytecodeCache::stblkcode</definition>
+        <argsstring></argsstring>
+        <name>stblkcode</name>
+        <qualifiedname>StcodeBytecodeCache::stblkcode</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="217" column="7" bodyfile="stcodeBytecode.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStcodeBytecodeCache_1aa33b84934c59ab57b097262344a2a36b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBytecodeCache::StcodeBytecodeCache</definition>
+        <argsstring>()=default</argsstring>
+        <name>StcodeBytecodeCache</name>
+        <qualifiedname>StcodeBytecodeCache::StcodeBytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="220" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBytecodeCache_1a321639744fade3b86ed39b92c73d0da1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBytecodeCache::~StcodeBytecodeCache</definition>
+        <argsstring>()</argsstring>
+        <name>~StcodeBytecodeCache</name>
+        <qualifiedname>StcodeBytecodeCache::~StcodeBytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="221" column="3" bodyfile="stcodeBytecode.h" bodystart="221" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBytecodeCache_1aaca6d55b8812420e3115b3cf4f389132" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBytecodeCache::PINNED_TYPE</definition>
+        <argsstring>(StcodeBytecodeCache)</argsstring>
+        <name>PINNED_TYPE</name>
+        <qualifiedname>StcodeBytecodeCache::PINNED_TYPE</qualifiedname>
+        <param>
+          <type><ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="223" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structStcodeBytecodeCache_1_1Refs" kindref="compound">Refs</ref></type>
+        <definition>Refs StcodeBytecodeCache::findOrPost</definition>
+        <argsstring>(StcodeBytecodeAccumulator &amp;&amp;a_code)</argsstring>
+        <name>findOrPost</name>
+        <qualifiedname>StcodeBytecodeCache::findOrPost</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref> &amp;&amp;</type>
+          <declname>a_code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="231" column="8" bodyfile="stcodeBytecode.h" bodystart="231" bodyend="234"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classStcodeBytecodeCache_1a07f55f10b1154269ce30548b057f9393" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt; int &gt; StcodeBytecodeCache::findOrPost</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;&amp;a_routine, bool dyn)</argsstring>
+        <name>findOrPost</name>
+        <qualifiedname>StcodeBytecodeCache::findOrPost</qualifiedname>
+        <param>
+          <type>Tab&lt; int &gt; &amp;&amp;</type>
+          <declname>a_routine</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>dyn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="237" column="18" bodyfile="stcodeBytecode.cpp" bodystart="11" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stcodeBytecode.h" line="214" column="1" bodyfile="stcodeBytecode.h" bodystart="215" bodyend="238"/>
+    <listofallmembers>
+      <member refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>findOrPost</name></member>
+      <member refid="classStcodeBytecodeCache_1a07f55f10b1154269ce30548b057f9393" prot="private" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>findOrPost</name></member>
+      <member refid="classStcodeBytecodeCache_1aaca6d55b8812420e3115b3cf4f389132" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>PINNED_TYPE</name></member>
+      <member refid="classStcodeBytecodeCache_1a92f9d76f9d9db80e5d3fdd96465477b0" prot="private" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>stblkcode</name></member>
+      <member refid="classStcodeBytecodeCache_1a501d926fe5aafbc6f649849e68e7e3d4" prot="private" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>stcode</name></member>
+      <member refid="classStcodeBytecodeCache_1aa33b84934c59ab57b097262344a2a36b" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>StcodeBytecodeCache</name></member>
+      <member refid="classStcodeBytecodeCache_1a321639744fade3b86ed39b92c73d0da1" prot="public" virt="non-virtual"><scope>StcodeBytecodeCache</scope><name>~StcodeBytecodeCache</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

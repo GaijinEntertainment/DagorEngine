@@ -1,0 +1,348 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="globalConfig_8cpp" kind="file" language="C++">
+    <compoundname>globalConfig.cpp</compoundname>
+    <includes refid="globalConfig_8h" local="yes">globalConfig.h</includes>
+    <incdepgraph>
+      <node id="46">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="4">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>globalConfig.cpp</label>
+        <link refid="globalConfig_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="14">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="30">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="38">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="31">
+        <label>cstdint</label>
+      </node>
+      <node id="25">
+        <label>cstring</label>
+      </node>
+      <node id="21">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="20">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="37">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="28">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="29">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="42">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="18">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="24">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="48">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="33">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="45">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="34">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="35">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="40">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="32">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="39">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="19">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="17">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="44">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="5">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="globalConfig_8cpp_1a9f90cc69da2c450c1446e9f93052766a" prot="public" static="yes" mutable="no">
+        <type><ref refid="structshc_1_1CompilerConfig" kindref="compound">shc::CompilerConfig</ref></type>
+        <definition>shc::CompilerConfig g_config</definition>
+        <argsstring></argsstring>
+        <name>g_config</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.cpp" line="5" column="28" bodyfile="globalConfig.cpp" bodystart="5" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globalConfig_8h" kindref="compound">globalConfig.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1CompilerConfig" kindref="compound">shc::CompilerConfig</ref><sp/>g_config{};</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1CompilerConfig" kindref="compound">shc::CompilerConfig</ref><sp/>&amp;<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>g_config;<sp/>}</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><ref refid="structshc_1_1CompilerConfig" kindref="compound">shc::CompilerConfig</ref><sp/>&amp;<ref refid="namespaceshc_1aa485440d0f45a996614a2ea63907089a" kindref="member">shc::acquire_rw_config</ref>()</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>acquired<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>G_ASSERT(!acquired);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>acquired<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>g_config;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="globalConfig.cpp"/>
+  </compounddef>
+</doxygen>

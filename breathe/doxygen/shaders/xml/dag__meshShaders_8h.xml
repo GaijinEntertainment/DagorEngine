@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__meshShaders_8h" kind="file" language="C++">
+    <compoundname>dag_meshShaders.h</compoundname>
+    <includes refid="dag__computeShaders_8h" local="no">shaders/dag_computeShaders.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>shaders/dag_computeShaders.h</label>
+        <link refid="dag__computeShaders_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_meshShaders.h</label>
+        <link refid="dag__meshShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="5">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="6">
+        <label>memory/dag_mem.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classMeshShaderElement" prot="public">MeshShaderElement</innerclass>
+    <innerclass refid="classMeshShader" prot="public">MeshShader</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__meshShaders_8h_1ac160e9a5c1adcdda70148b61be91c69f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref> *</type>
+        <definition>MeshShaderElement * new_mesh_shader</definition>
+        <argsstring>(const char *shader_name, bool optional=false)</argsstring>
+        <name>new_mesh_shader</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="27" column="19" declfile="dag_meshShaders.h" declline="27" declcolumn="19"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_computeShaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="classMeshShaderElement" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>decl_class_name(<ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref>)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref>(ScriptedShaderMaterial<sp/>*ssm,<sp/><ref refid="classShaderElement" kindref="compound">ShaderElement</ref><sp/>*selem<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>:<sp/><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref>(ssm,<sp/>selem)<sp/>{}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatch(uint32_t<sp/>groups_x,<sp/>uint32_t<sp/>groups_y,<sp/>uint32_t<sp/>groups_z,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchThreads(uint32_t<sp/>threads_x,<sp/>uint32_t<sp/>threads_y,<sp/>uint32_t<sp/>threads_z,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchIndirect(Sbuffer<sp/>*args,<sp/>uint32_t<sp/>count,<sp/>uint32_t<sp/>offset,<sp/>uint32_t<sp/>stride,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchIndirectCount(Sbuffer<sp/>*args,<sp/>uint32_t<sp/>args_offset,<sp/>uint32_t<sp/>args_stride,<sp/>Sbuffer<sp/>*count,<sp/>uint32_t<sp/>count_offset,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>max_count,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref><sp/>*new_mesh_shader(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="classMeshShader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMeshShader" kindref="compound">MeshShader</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;MeshShaderElement&gt;<sp/>elem;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><ref refid="classMeshShader" kindref="compound">MeshShader</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="classMeshShader" kindref="compound">MeshShader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name)<sp/>:<sp/>elem(shader_name<sp/>?<sp/>new_mesh_shader(shader_name)<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchGroups(uint32_t<sp/>groups_x,<sp/>uint32_t<sp/>groups_y,<sp/>uint32_t<sp/>groups_z)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="40"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatch(groups_x,<sp/>groups_y,<sp/>groups_z);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchThreads(uint32_t<sp/>threads_x,<sp/>uint32_t<sp/>threads_y,<sp/>uint32_t<sp/>threads_z)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="44"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatchThreads(threads_x,<sp/>threads_y,<sp/>threads_z);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchIndirect(Sbuffer<sp/>*args,<sp/>uint32_t<sp/>count,<sp/>uint32_t<sp/>offset,<sp/>uint32_t<sp/>stride)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="48"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatchIndirect(args,<sp/>count,<sp/>offset,<sp/>stride);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchIndirectCount(Sbuffer<sp/>*args,<sp/>uint32_t<sp/>args_offset,<sp/>uint32_t<sp/>args_stride,<sp/>Sbuffer<sp/>*count,<sp/>uint32_t<sp/>count_offset,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>max_count)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="53"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatchIndirectCount(args,<sp/>args_offset,<sp/>args_stride,<sp/>count,<sp/>count_offset,<sp/>max_count);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_meshShaders.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverIssuesAndroid" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesAndroid</compoundname>
+    <basecompoundref refid="structDeviceDriverIssuesBase" prot="public" virt="non-virtual">DeviceDriverIssuesBase</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverIssuesAndroid_1af6f16b1a4bdad0514a3507a7268777fb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesAndroid::hasClearColorBug</definition>
+        <argsstring></argsstring>
+        <name>hasClearColorBug</name>
+        <qualifiedname>DeviceDriverIssuesAndroid::hasClearColorBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1a25023af43de6a5d31e6b1e06f2189922" kindref="member">DeviceDriverIssuesBase::hasClearColorBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2313" column="25" bodyfile="dag_consts.h" bodystart="2313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesAndroid_1aeed84c224f2f1edabf045c35348f27a8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesAndroid::hasBrokenNvApiGetSleepStatus</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenNvApiGetSleepStatus</name>
+        <qualifiedname>DeviceDriverIssuesAndroid::hasBrokenNvApiGetSleepStatus</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1a35c976b009067902b9b8dd02e2d8f920" kindref="member">DeviceDriverIssuesBase::hasBrokenNvApiGetSleepStatus</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2318" column="25" bodyfile="dag_consts.h" bodystart="2318" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Issues structure specific for \android. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverIssuesAndroid</label>
+        <link refid="structDeviceDriverIssuesAndroid"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverIssuesAndroid</label>
+        <link refid="structDeviceDriverIssuesAndroid"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="2307" column="1" bodyfile="dag_consts.h" bodystart="2308" bodyend="2319"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverIssuesBase_1aed100b8cc04c55fb5a645a31b4f6f1bd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="structDeviceDriverIssuesBase_1aec7355cec1007e0b36dab07785577444" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a9b8a521d3ddb09a523a1cb5517cdac33" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenMultisampledInputAttachment</name></member>
+      <member refid="structDeviceDriverIssuesAndroid_1aeed84c224f2f1edabf045c35348f27a8" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenNvApiGetSleepStatus</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a3928aca35169986ebd34a4e811c54f62" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="structDeviceDriverIssuesBase_1ae4a622bc9d156d0dd2afe06b06287387" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a5eb9f931ffee8c8cba46d2cdbb97a6ee" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="structDeviceDriverIssuesAndroid_1af6f16b1a4bdad0514a3507a7268777fb" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasClearColorBug</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a47992c604a6c9348ed72906e2faa9c9e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a4155a0570f12968d78e323e26304929f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a9f1e938965f383922e73f877d544996d" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasFloatClearBug</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a73a3b06020df31b84570b6e073204237" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="structDeviceDriverIssuesBase_1ad502c03e9b8bc5f466439ede61f20a9c" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="structDeviceDriverIssuesBase_1ad14daea5fce019300ab5227acdf12886" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasPollDeviceFences</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a0c0e9635e0bd509ed6febe7bf41b1037" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="structDeviceDriverIssuesBase_1af41da6d79519916b216c91c8c0b16c26" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a0cadf2df929f3c2ea141d7f7a338bfd9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesAndroid</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCameraNodeEnumerator_1_1Cam" kind="struct" language="C++" prot="public">
+    <compoundname>CameraNodeEnumerator::Cam</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCameraNodeEnumerator_1_1Cam_1aa7f742ee653a247ab1fc03ced297220b" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* CameraNodeEnumerator::Cam::cameraNode</definition>
+        <argsstring></argsstring>
+        <name>cameraNode</name>
+        <qualifiedname>CameraNodeEnumerator::Cam::cameraNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4564" column="11" bodyfile="expUtil.cpp" bodystart="4564" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCameraNodeEnumerator_1_1Cam_1a905e243d97395eeecef3e195ae3dd1d2" prot="public" static="no" mutable="no">
+        <type>CameraObject *</type>
+        <definition>CameraObject* CameraNodeEnumerator::Cam::camera</definition>
+        <argsstring></argsstring>
+        <name>camera</name>
+        <qualifiedname>CameraNodeEnumerator::Cam::camera</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4565" column="18" bodyfile="expUtil.cpp" bodystart="4565" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCameraNodeEnumerator_1_1Cam_1afee3ca0760ce18951e8c0c10f44381f6" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* CameraNodeEnumerator::Cam::hero</definition>
+        <argsstring></argsstring>
+        <name>hero</name>
+        <qualifiedname>CameraNodeEnumerator::Cam::hero</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4566" column="11" bodyfile="expUtil.cpp" bodystart="4566" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCameraNodeEnumerator_1_1Cam_1ae878de56076e5950c8b05a95618b4fa4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CameraNodeEnumerator::Cam::keyNum</definition>
+        <argsstring></argsstring>
+        <name>keyNum</name>
+        <qualifiedname>CameraNodeEnumerator::Cam::keyNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4567" column="9" bodyfile="expUtil.cpp" bodystart="4567" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCameraNodeEnumerator_1_1Cam_1aa28c3d3a3a52c38e12f0d642de0419e0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CameraNodeEnumerator::Cam::animated</definition>
+        <argsstring></argsstring>
+        <name>animated</name>
+        <qualifiedname>CameraNodeEnumerator::Cam::animated</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4568" column="10" bodyfile="expUtil.cpp" bodystart="4568" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="4562" column="3" bodyfile="expUtil.cpp" bodystart="4563" bodyend="4569"/>
+    <listofallmembers>
+      <member refid="structCameraNodeEnumerator_1_1Cam_1aa28c3d3a3a52c38e12f0d642de0419e0" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator::Cam</scope><name>animated</name></member>
+      <member refid="structCameraNodeEnumerator_1_1Cam_1a905e243d97395eeecef3e195ae3dd1d2" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator::Cam</scope><name>camera</name></member>
+      <member refid="structCameraNodeEnumerator_1_1Cam_1aa7f742ee653a247ab1fc03ced297220b" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator::Cam</scope><name>cameraNode</name></member>
+      <member refid="structCameraNodeEnumerator_1_1Cam_1afee3ca0760ce18951e8c0c10f44381f6" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator::Cam</scope><name>hero</name></member>
+      <member refid="structCameraNodeEnumerator_1_1Cam_1ae878de56076e5950c8b05a95618b4fa4" prot="public" virt="non-virtual"><scope>CameraNodeEnumerator::Cam</scope><name>keyNum</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

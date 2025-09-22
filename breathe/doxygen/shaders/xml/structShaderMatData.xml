@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMatData" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMatData</compoundname>
+    <innerclass refid="unionShaderMatData_1_1VarValue" prot="public">ShaderMatData::VarValue</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMatData_1a3e411434e73bcee34c7478605bac6533" prot="public" static="no" mutable="no">
+        <type>D3dMaterial</type>
+        <definition>D3dMaterial ShaderMatData::d3dm</definition>
+        <argsstring></argsstring>
+        <name>d3dm</name>
+        <qualifiedname>ShaderMatData::d3dm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="29" column="15" bodyfile="dag_shaderMatData.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatData_1a7d25f5c4bc582bdd1abba2dfac6f2de0" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderMatData::sclassName</definition>
+        <argsstring></argsstring>
+        <name>sclassName</name>
+        <qualifiedname>ShaderMatData::sclassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="30" column="14" bodyfile="dag_shaderMatData.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatData_1a29fe63c858356e13889cfb2b6fa39241" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderMatData::textureId[MAXMATTEXNUM]</definition>
+        <argsstring>[MAXMATTEXNUM]</argsstring>
+        <name>textureId</name>
+        <qualifiedname>ShaderMatData::textureId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="32" column="13" bodyfile="dag_shaderMatData.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatData_1ab9f109e30a2cb9f3655b187e11573bbf" prot="public" static="no" mutable="no">
+        <type>dag::Span&lt; <ref refid="unionShaderMatData_1_1VarValue" kindref="compound">VarValue</ref> &gt;</type>
+        <definition>dag::Span&lt;VarValue&gt; ShaderMatData::stvar</definition>
+        <argsstring></argsstring>
+        <name>stvar</name>
+        <qualifiedname>ShaderMatData::stvar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="34" column="13" bodyfile="dag_shaderMatData.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatData_1abe5ae224b54069fef62f448df7560140" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t ShaderMatData::matflags</definition>
+        <argsstring></argsstring>
+        <name>matflags</name>
+        <qualifiedname>ShaderMatData::matflags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="36" column="11" bodyfile="dag_shaderMatData.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMatData.h" line="11" column="1" bodyfile="dag_shaderMatData.h" bodystart="12" bodyend="37"/>
+    <listofallmembers>
+      <member refid="structShaderMatData_1a3e411434e73bcee34c7478605bac6533" prot="public" virt="non-virtual"><scope>ShaderMatData</scope><name>d3dm</name></member>
+      <member refid="structShaderMatData_1abe5ae224b54069fef62f448df7560140" prot="public" virt="non-virtual"><scope>ShaderMatData</scope><name>matflags</name></member>
+      <member refid="structShaderMatData_1a7d25f5c4bc582bdd1abba2dfac6f2de0" prot="public" virt="non-virtual"><scope>ShaderMatData</scope><name>sclassName</name></member>
+      <member refid="structShaderMatData_1ab9f109e30a2cb9f3655b187e11573bbf" prot="public" virt="non-virtual"><scope>ShaderMatData</scope><name>stvar</name></member>
+      <member refid="structShaderMatData_1a29fe63c858356e13889cfb2b6fa39241" prot="public" virt="non-virtual"><scope>ShaderMatData</scope><name>textureId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

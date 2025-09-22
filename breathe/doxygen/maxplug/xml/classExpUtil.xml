@@ -1,0 +1,1319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classExpUtil" kind="class" language="C++" prot="public">
+    <compoundname>ExpUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ExportMode</name>
+        <qualifiedname>ExpUtil::ExportMode</qualifiedname>
+        <enumvalue id="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71a3d6de23c17caebe5e1069e9d8162f68e" prot="public">
+          <name>Standard</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71aa8276397b749e6de07630003c71a17b2" prot="public">
+          <name>ObjectsAsDags</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71a1a84d00dd5e6f917c72da626b5760a7e" prot="public">
+          <name>LayersAsDags</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="112" column="3" bodyfile="expUtil.cpp" bodystart="114" bodyend="118"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classExpUtil_1aee33a88f0af2c0a96b997bd264532429" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* ExpUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>ExpUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="120" column="9" bodyfile="expUtil.cpp" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a76c9be1e2852162613c12f9bf5423b9a" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* ExpUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>ExpUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="121" column="13" bodyfile="expUtil.cpp" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a1e17af3c62062a6c3a2e6f5e16f3204c" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ExpUtil::hExpDag</definition>
+        <argsstring></argsstring>
+        <name>hExpDag</name>
+        <qualifiedname>ExpUtil::hExpDag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="122" column="8" bodyfile="expUtil.cpp" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1abc7096c9c625e44cc2e4ef5e64ae49bd" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ExpUtil::hExpAnim</definition>
+        <argsstring></argsstring>
+        <name>hExpAnim</name>
+        <qualifiedname>ExpUtil::hExpAnim</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="122" column="16" bodyfile="expUtil.cpp" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a60a1f8f89838afdf076be986e10c1564" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ExpUtil::hExpOther</definition>
+        <argsstring></argsstring>
+        <name>hExpOther</name>
+        <qualifiedname>ExpUtil::hExpOther</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="122" column="25" bodyfile="expUtil.cpp" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a1ccb2c2fe0f49d9944cc9a33bd3f6db9" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ExpUtil::hLog</definition>
+        <argsstring></argsstring>
+        <name>hLog</name>
+        <qualifiedname>ExpUtil::hLog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="122" column="35" bodyfile="expUtil.cpp" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a357951d13253dded351001f0d91ae0c7" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* ExpUtil::eastart</definition>
+        <argsstring></argsstring>
+        <name>eastart</name>
+        <qualifiedname>ExpUtil::eastart</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="123" column="13" bodyfile="expUtil.cpp" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a997c2bfb9706e92532b48c95e8d17948" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * ExpUtil::eaend</definition>
+        <argsstring></argsstring>
+        <name>eaend</name>
+        <qualifiedname>ExpUtil::eaend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="123" column="21" bodyfile="expUtil.cpp" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1ab1801e923e5a910a80dca6f3c1dbb1b9" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* ExpUtil::epose</definition>
+        <argsstring></argsstring>
+        <name>epose</name>
+        <qualifiedname>ExpUtil::epose</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="124" column="13" bodyfile="expUtil.cpp" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a32e208eaa430c444b8d8169b8a8ffd50" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * ExpUtil::erote</definition>
+        <argsstring></argsstring>
+        <name>erote</name>
+        <qualifiedname>ExpUtil::erote</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="124" column="19" bodyfile="expUtil.cpp" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a1c50c8e94e4cc1a57577217e722c11c1" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * ExpUtil::escle</definition>
+        <argsstring></argsstring>
+        <name>escle</name>
+        <qualifiedname>ExpUtil::escle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="124" column="25" bodyfile="expUtil.cpp" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1adfaa8b523c7116fbca61a3c806625e79" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * ExpUtil::eorte</definition>
+        <argsstring></argsstring>
+        <name>eorte</name>
+        <qualifiedname>ExpUtil::eorte</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="124" column="31" bodyfile="expUtil.cpp" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a9672f7c2e5ae7a9c3f0f56bcfad40954" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* ExpUtil::epose2</definition>
+        <argsstring></argsstring>
+        <name>epose2</name>
+        <qualifiedname>ExpUtil::epose2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="125" column="13" bodyfile="expUtil.cpp" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1acb6cba9122e8a026155ca94f639db3f8" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * ExpUtil::erote2</definition>
+        <argsstring></argsstring>
+        <name>erote2</name>
+        <qualifiedname>ExpUtil::erote2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="125" column="20" bodyfile="expUtil.cpp" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a3751f0176ca3e72f41e949bd7ab926aa" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ExpUtil::exp_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_fname</name>
+        <qualifiedname>ExpUtil::exp_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="127" column="8" bodyfile="expUtil.cpp" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a574065a40555a0055242667cda0716f3" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ExpUtil::exp_anim2_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_anim2_fname</name>
+        <qualifiedname>ExpUtil::exp_anim2_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="128" column="8" bodyfile="expUtil.cpp" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a887f9b0d80416214d28b608275052a5b" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ExpUtil::exp_camera_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_camera_fname</name>
+        <qualifiedname>ExpUtil::exp_camera_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="129" column="8" bodyfile="expUtil.cpp" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1ad4108e9533c4dd517034af21ef39795f" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ExpUtil::exp_phys_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_phys_fname</name>
+        <qualifiedname>ExpUtil::exp_phys_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="130" column="8" bodyfile="expUtil.cpp" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a56fd79b5d613e82d43dc4bffe039bcb4" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ExpUtil::exp_instances_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_instances_fname</name>
+        <qualifiedname>ExpUtil::exp_instances_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="131" column="8" bodyfile="expUtil.cpp" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a15b14c2ed61b0b57c8981b21bd2c7530" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExpUtil::expflg</definition>
+        <argsstring></argsstring>
+        <name>expflg</name>
+        <qualifiedname>ExpUtil::expflg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="133" column="7" bodyfile="expUtil.cpp" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a33454b89fd841b5b1fee1de4ac57e850" prot="public" static="no" mutable="no">
+        <type><ref refid="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71" kindref="member">ExportMode</ref></type>
+        <definition>ExportMode ExpUtil::exportMode</definition>
+        <argsstring></argsstring>
+        <name>exportMode</name>
+        <qualifiedname>ExpUtil::exportMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="134" column="14" bodyfile="expUtil.cpp" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1afaa97785354e31ef4951ae28c5ccccd3" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::poseps</definition>
+        <argsstring></argsstring>
+        <name>poseps</name>
+        <qualifiedname>ExpUtil::poseps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="135" column="9" bodyfile="expUtil.cpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1aa04a871d433c0d968ba72bd23bdb9a61" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::roteps</definition>
+        <argsstring></argsstring>
+        <name>roteps</name>
+        <qualifiedname>ExpUtil::roteps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="135" column="16" bodyfile="expUtil.cpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1aec43fc2ae864c27db6159601ba2506b3" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::scleps</definition>
+        <argsstring></argsstring>
+        <name>scleps</name>
+        <qualifiedname>ExpUtil::scleps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="135" column="23" bodyfile="expUtil.cpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1ab64905843d83c6b29649ed85736396cf" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::orteps</definition>
+        <argsstring></argsstring>
+        <name>orteps</name>
+        <qualifiedname>ExpUtil::orteps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="135" column="30" bodyfile="expUtil.cpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1aca8d554d9d91add33362d522582f2e10" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::poseps2</definition>
+        <argsstring></argsstring>
+        <name>poseps2</name>
+        <qualifiedname>ExpUtil::poseps2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="136" column="9" bodyfile="expUtil.cpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a7c90f88999e7842d63e294ffa78b1a41" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExpUtil::roteps2</definition>
+        <argsstring></argsstring>
+        <name>roteps2</name>
+        <qualifiedname>ExpUtil::roteps2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="136" column="17" bodyfile="expUtil.cpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a11e3343900a93370d7eb826dcc5ea98b" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue ExpUtil::astart</definition>
+        <argsstring></argsstring>
+        <name>astart</name>
+        <qualifiedname>ExpUtil::astart</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="137" column="13" bodyfile="expUtil.cpp" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a3b55a6b7b7eb2f628552d88a28679793" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue ExpUtil::aend</definition>
+        <argsstring></argsstring>
+        <name>aend</name>
+        <qualifiedname>ExpUtil::aend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="137" column="20" bodyfile="expUtil.cpp" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classExpUtil_1a9c812ede9a27d6f648d285dddb655f51" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ExpUtil::suppressPrompts</definition>
+        <argsstring></argsstring>
+        <name>suppressPrompts</name>
+        <qualifiedname>ExpUtil::suppressPrompts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="138" column="8" bodyfile="expUtil.cpp" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classExpUtil_1a54cbcbf59bc30747b508e94da72ce792" prot="private" static="no" mutable="no">
+        <type>ToolTipExtender</type>
+        <definition>ToolTipExtender ExpUtil::tooltipExtender</definition>
+        <argsstring></argsstring>
+        <name>tooltipExtender</name>
+        <qualifiedname>ExpUtil::tooltipExtender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="187" column="19" bodyfile="expUtil.cpp" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classExpUtil_1ae85784dc140ee6022d047de4c0ea9ee8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ExpUtil::ExpUtil</definition>
+        <argsstring>()</argsstring>
+        <name>ExpUtil</name>
+        <qualifiedname>ExpUtil::ExpUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="140" column="3" bodyfile="expUtil.cpp" bodystart="695" bodyend="716"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a076bfcffcc8ad5631d3e526cae820a51" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>ExpUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="141" column="8" bodyfile="expUtil.cpp" bodystart="718" bodyend="727"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1abe4333360c385a613bc8d838cfe5f6da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>ExpUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="142" column="8" bodyfile="expUtil.cpp" bodystart="729" bodyend="738"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a2d2db67b78cd798184a8be8b5351fb8e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>ExpUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="143" column="8" bodyfile="expUtil.cpp" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a4f6f9a090dba0a8b63e4662a9acbf244" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::update_ui_dag</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>update_ui_dag</name>
+        <qualifiedname>ExpUtil::update_ui_dag</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="145" column="8" bodyfile="expUtil.cpp" bodystart="769" bodyend="787"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1afff7390ef934861b72935d5802f36739" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::update_ui_anim</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>update_ui_anim</name>
+        <qualifiedname>ExpUtil::update_ui_anim</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="146" column="8" bodyfile="expUtil.cpp" bodystart="789" bodyend="814"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1adad70095a1ee366d60185ff1a72c4ba7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::update_ui_other</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>update_ui_other</name>
+        <qualifiedname>ExpUtil::update_ui_other</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="147" column="8" bodyfile="expUtil.cpp" bodystart="816" bodyend="825"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a39aec5f75bfc81bf561fa7aa8851f158" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::update_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_ui</name>
+        <qualifiedname>ExpUtil::update_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="148" column="8" bodyfile="expUtil.cpp" bodystart="827" bodyend="832"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a5ca36e001149f70b7ba8dfb8a52792d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::update_tooltips</definition>
+        <argsstring>()</argsstring>
+        <name>update_tooltips</name>
+        <qualifiedname>ExpUtil::update_tooltips</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="149" column="8" bodyfile="expUtil.cpp" bodystart="740" bodyend="767"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1adf6a1207abcb9c4344f631e16fa5ffa2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::set_expflg</definition>
+        <argsstring>(int flg, int)</argsstring>
+        <name>set_expflg</name>
+        <qualifiedname>ExpUtil::set_expflg</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <defname>v</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="151" column="8" bodyfile="expUtil.cpp" bodystart="460" bodyend="465"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1ade542522c542a4ebf52623b1e70e8a45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::Init</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>Init</name>
+        <qualifiedname>ExpUtil::Init</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="153" column="8" bodyfile="expUtil.cpp" bodystart="841" bodyend="862"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a006fc2e221311c6be89405c9358c6fe6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::Destroy</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>Destroy</name>
+        <qualifiedname>ExpUtil::Destroy</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="154" column="8" bodyfile="expUtil.cpp" bodystart="864" bodyend="864"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a248be070d4b538d715840f4693466bd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::InitAnim</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>InitAnim</name>
+        <qualifiedname>ExpUtil::InitAnim</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="156" column="8" bodyfile="expUtil.cpp" bodystart="866" bodyend="877"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a4c2a8843d6881766de389c194e81eb9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::DestroyAnim</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>DestroyAnim</name>
+        <qualifiedname>ExpUtil::DestroyAnim</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="157" column="8" bodyfile="expUtil.cpp" bodystart="879" bodyend="889"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1aa5219b9747527ac27a1d5bd524aab711" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtil::input_exp_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_exp_fname</name>
+        <qualifiedname>ExpUtil::input_exp_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="159" column="7" bodyfile="expUtil.cpp" bodystart="891" bodyend="897"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a6b8e2f02740081112cebaff294a8c7c7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtil::input_exp_anim2_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_exp_anim2_fname</name>
+        <qualifiedname>ExpUtil::input_exp_anim2_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="160" column="7" bodyfile="expUtil.cpp" bodystart="899" bodyend="905"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1abaa4ce5c2870fa36ed63376dfc25cb33" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtil::input_exp_camera_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_exp_camera_fname</name>
+        <qualifiedname>ExpUtil::input_exp_camera_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="161" column="7" bodyfile="expUtil.cpp" bodystart="907" bodyend="913"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a9d41c5429368145c923a35c5ad1e7f07" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtil::input_exp_phys_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_exp_phys_fname</name>
+        <qualifiedname>ExpUtil::input_exp_phys_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="162" column="7" bodyfile="expUtil.cpp" bodystart="915" bodyend="921"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a7531906ea173c7167121e513f5260f3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtil::input_exp_instances_fname</definition>
+        <argsstring>()</argsstring>
+        <name>input_exp_instances_fname</name>
+        <qualifiedname>ExpUtil::input_exp_instances_fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="163" column="7" bodyfile="expUtil.cpp" bodystart="923" bodyend="929"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1ad58eb39df2700603f66a9ac20054a22b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_one_dag</definition>
+        <argsstring>(const TCHAR *exp_fn, TCHAR **textures=NULL, int max_textures=0, TCHAR *default_material=NULL)</argsstring>
+        <name>export_one_dag</name>
+        <qualifiedname>ExpUtil::export_one_dag</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>exp_fn</declname>
+        </param>
+        <param>
+          <type>TCHAR **</type>
+          <declname>textures</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_textures</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>default_material</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="164" column="8" bodyfile="expUtil.cpp" bodystart="4165" bodyend="4178"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a7213d1d4cf45d2bee678b9a7f253b5d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_one_dag_cb</definition>
+        <argsstring>(ExportENCB &amp;cb, const TCHAR *exp_fn, TCHAR **textures=NULL, int max_textures=0, TCHAR *default_material=NULL)</argsstring>
+        <name>export_one_dag_cb</name>
+        <qualifiedname>ExpUtil::export_one_dag_cb</qualifiedname>
+        <param>
+          <type><ref refid="classExportENCB" kindref="compound">ExportENCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>exp_fn</declname>
+        </param>
+        <param>
+          <type>TCHAR **</type>
+          <declname>textures</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_textures</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>default_material</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="165" column="8" bodyfile="expUtil.cpp" bodystart="4180" bodyend="4254"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a57fe73c0502686d0215c4fe0ddabf49a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_dag</definition>
+        <argsstring>(TCHAR **textures=NULL, int max_textures=0, TCHAR *default_material=NULL)</argsstring>
+        <name>export_dag</name>
+        <qualifiedname>ExpUtil::export_dag</qualifiedname>
+        <param>
+          <type>TCHAR **</type>
+          <declname>textures</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_textures</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>default_material</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="167" column="8" bodyfile="expUtil.cpp" bodystart="4104" bodyend="4163"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a74c1bbf62427141225ba6564b30c2436" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::export_anim_v2</definition>
+        <argsstring>()</argsstring>
+        <name>export_anim_v2</name>
+        <qualifiedname>ExpUtil::export_anim_v2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="168" column="8" bodyfile="expUtil.cpp" bodystart="4255" bodyend="4299"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1ae0f155f8dbbc7b7d793bfe5e0f0cf9d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::export_camera_v1</definition>
+        <argsstring>()</argsstring>
+        <name>export_camera_v1</name>
+        <qualifiedname>ExpUtil::export_camera_v1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="169" column="8" bodyfile="expUtil.cpp" bodystart="4839" bodyend="4861"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a3df5005e61a1aa2a841fb1e4a4ead059" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportPhysics</definition>
+        <argsstring>()</argsstring>
+        <name>exportPhysics</name>
+        <qualifiedname>ExpUtil::exportPhysics</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="170" column="8" bodyfile="expUtil.cpp" bodystart="4864" bodyend="4886"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1afa2aec6461f400b682bfc31d29a4658a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::export_instances</definition>
+        <argsstring>()</argsstring>
+        <name>export_instances</name>
+        <qualifiedname>ExpUtil::export_instances</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="171" column="8" bodyfile="expUtil.cpp" bodystart="4963" bodyend="5093"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a7b73360afda994312cf13615d5dc8a4c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::calcMomj</definition>
+        <argsstring>()</argsstring>
+        <name>calcMomj</name>
+        <qualifiedname>ExpUtil::calcMomj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="172" column="8" bodyfile="expUtil.cpp" bodystart="4889" bodyend="4897"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1aa97d7ec2929c2a808a5e1d904d881f67" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>export_dlg_proc</name>
+        <qualifiedname>ExpUtil::export_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="173" column="8" bodyfile="expUtil.cpp" bodystart="467" bodyend="516"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a775db58423b75b014ff2aebaa6c321fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_anim_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>export_anim_dlg_proc</name>
+        <qualifiedname>ExpUtil::export_anim_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="174" column="8" bodyfile="expUtil.cpp" bodystart="518" bodyend="574"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a2ca9ca74dbcdc104e14605788ea348e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtil::export_other_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>export_other_dlg_proc</name>
+        <qualifiedname>ExpUtil::export_other_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="175" column="8" bodyfile="expUtil.cpp" bodystart="577" bodyend="661"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a96e84d22def812865afea0c96b0b5366" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::checkDupesAndSpaces</definition>
+        <argsstring>(Tab&lt; INode * &gt; &amp;node_list)</argsstring>
+        <name>checkDupesAndSpaces</name>
+        <qualifiedname>ExpUtil::checkDupesAndSpaces</qualifiedname>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>node_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="176" column="8" bodyfile="expUtil.cpp" bodystart="4900" bodyend="4960"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a23ccbd104c1d2ae07dabfde193bb0ede" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::errorMessage</definition>
+        <argsstring>(const TCHAR *msg)</argsstring>
+        <name>errorMessage</name>
+        <qualifiedname>ExpUtil::errorMessage</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="177" column="8" bodyfile="expUtil.cpp" bodystart="3921" bodyend="3929"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1ad3cb4f47443771f59b653941df73972c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::warningMessage</definition>
+        <argsstring>(const TCHAR *msg, const TCHAR *title=NULL)</argsstring>
+        <name>warningMessage</name>
+        <qualifiedname>ExpUtil::warningMessage</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="178" column="8" bodyfile="expUtil.cpp" bodystart="3931" bodyend="3940"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classExpUtil_1aa870d25edcb94587610d27f5690a89b3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportObjectsAsDagsInternal</definition>
+        <argsstring>(const TCHAR *folder, INode &amp;node)</argsstring>
+        <name>exportObjectsAsDagsInternal</name>
+        <qualifiedname>ExpUtil::exportObjectsAsDagsInternal</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>folder</declname>
+        </param>
+        <param>
+          <type>INode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="181" column="8" bodyfile="expUtil.cpp" bodystart="4367" bodyend="4409"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a3c3871af0e2abe78308dc205dbfd07b6" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportObjectsAsDags</definition>
+        <argsstring>()</argsstring>
+        <name>exportObjectsAsDags</name>
+        <qualifiedname>ExpUtil::exportObjectsAsDags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="182" column="8" bodyfile="expUtil.cpp" bodystart="4411" bodyend="4429"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a62fdc570b7e8f7036c97e036f88bcc01" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportLayerAsDag</definition>
+        <argsstring>(const TCHAR *folder, ILayer &amp;layer)</argsstring>
+        <name>exportLayerAsDag</name>
+        <qualifiedname>ExpUtil::exportLayerAsDag</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>folder</declname>
+        </param>
+        <param>
+          <type>ILayer &amp;</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="183" column="8" bodyfile="expUtil.cpp" bodystart="4431" bodyend="4470"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a0ac917a3fe2eb97ee2fcb7ad91ebf448" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportLayersAsDagsInternal</definition>
+        <argsstring>(const TCHAR *folder, ILayer &amp;layer)</argsstring>
+        <name>exportLayersAsDagsInternal</name>
+        <qualifiedname>ExpUtil::exportLayersAsDagsInternal</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>folder</declname>
+        </param>
+        <param>
+          <type>ILayer &amp;</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="184" column="8" bodyfile="expUtil.cpp" bodystart="4472" bodyend="4495"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtil_1a753ab4b4ca0f90192c282fefd3508251" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpUtil::exportLayersAsDags</definition>
+        <argsstring>()</argsstring>
+        <name>exportLayersAsDags</name>
+        <qualifiedname>ExpUtil::exportLayersAsDags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="185" column="8" bodyfile="expUtil.cpp" bodystart="4497" bodyend="4556"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ExpUtil</label>
+        <link refid="classExpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ExpUtil</label>
+        <link refid="classExpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="105" column="1" bodyfile="expUtil.cpp" bodystart="106" bodyend="188"/>
+    <listofallmembers>
+      <member refid="classExpUtil_1a3b55a6b7b7eb2f628552d88a28679793" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>aend</name></member>
+      <member refid="classExpUtil_1a11e3343900a93370d7eb826dcc5ea98b" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>astart</name></member>
+      <member refid="classExpUtil_1a076bfcffcc8ad5631d3e526cae820a51" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classExpUtil_1a7b73360afda994312cf13615d5dc8a4c" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>calcMomj</name></member>
+      <member refid="classExpUtil_1a96e84d22def812865afea0c96b0b5366" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>checkDupesAndSpaces</name></member>
+      <member refid="classExpUtil_1a2d2db67b78cd798184a8be8b5351fb8e" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>DeleteThis</name></member>
+      <member refid="classExpUtil_1a006fc2e221311c6be89405c9358c6fe6" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>Destroy</name></member>
+      <member refid="classExpUtil_1a4c2a8843d6881766de389c194e81eb9b" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>DestroyAnim</name></member>
+      <member refid="classExpUtil_1a997c2bfb9706e92532b48c95e8d17948" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>eaend</name></member>
+      <member refid="classExpUtil_1a357951d13253dded351001f0d91ae0c7" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>eastart</name></member>
+      <member refid="classExpUtil_1abe4333360c385a613bc8d838cfe5f6da" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>EndEditParams</name></member>
+      <member refid="classExpUtil_1adfaa8b523c7116fbca61a3c806625e79" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>eorte</name></member>
+      <member refid="classExpUtil_1ab1801e923e5a910a80dca6f3c1dbb1b9" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>epose</name></member>
+      <member refid="classExpUtil_1a9672f7c2e5ae7a9c3f0f56bcfad40954" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>epose2</name></member>
+      <member refid="classExpUtil_1a32e208eaa430c444b8d8169b8a8ffd50" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>erote</name></member>
+      <member refid="classExpUtil_1acb6cba9122e8a026155ca94f639db3f8" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>erote2</name></member>
+      <member refid="classExpUtil_1a23ccbd104c1d2ae07dabfde193bb0ede" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>errorMessage</name></member>
+      <member refid="classExpUtil_1a1c50c8e94e4cc1a57577217e722c11c1" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>escle</name></member>
+      <member refid="classExpUtil_1a574065a40555a0055242667cda0716f3" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exp_anim2_fname</name></member>
+      <member refid="classExpUtil_1a887f9b0d80416214d28b608275052a5b" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exp_camera_fname</name></member>
+      <member refid="classExpUtil_1a3751f0176ca3e72f41e949bd7ab926aa" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exp_fname</name></member>
+      <member refid="classExpUtil_1a56fd79b5d613e82d43dc4bffe039bcb4" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exp_instances_fname</name></member>
+      <member refid="classExpUtil_1ad4108e9533c4dd517034af21ef39795f" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exp_phys_fname</name></member>
+      <member refid="classExpUtil_1a15b14c2ed61b0b57c8981b21bd2c7530" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>expflg</name></member>
+      <member refid="classExpUtil_1a775db58423b75b014ff2aebaa6c321fe" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_anim_dlg_proc</name></member>
+      <member refid="classExpUtil_1a74c1bbf62427141225ba6564b30c2436" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_anim_v2</name></member>
+      <member refid="classExpUtil_1ae0f155f8dbbc7b7d793bfe5e0f0cf9d1" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_camera_v1</name></member>
+      <member refid="classExpUtil_1a57fe73c0502686d0215c4fe0ddabf49a" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_dag</name></member>
+      <member refid="classExpUtil_1aa97d7ec2929c2a808a5e1d904d881f67" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_dlg_proc</name></member>
+      <member refid="classExpUtil_1afa2aec6461f400b682bfc31d29a4658a" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_instances</name></member>
+      <member refid="classExpUtil_1ad58eb39df2700603f66a9ac20054a22b" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_one_dag</name></member>
+      <member refid="classExpUtil_1a7213d1d4cf45d2bee678b9a7f253b5d0" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_one_dag_cb</name></member>
+      <member refid="classExpUtil_1a2ca9ca74dbcdc104e14605788ea348e2" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>export_other_dlg_proc</name></member>
+      <member refid="classExpUtil_1a62fdc570b7e8f7036c97e036f88bcc01" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>exportLayerAsDag</name></member>
+      <member refid="classExpUtil_1a753ab4b4ca0f90192c282fefd3508251" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>exportLayersAsDags</name></member>
+      <member refid="classExpUtil_1a0ac917a3fe2eb97ee2fcb7ad91ebf448" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>exportLayersAsDagsInternal</name></member>
+      <member refid="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>ExportMode</name></member>
+      <member refid="classExpUtil_1a33454b89fd841b5b1fee1de4ac57e850" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exportMode</name></member>
+      <member refid="classExpUtil_1a3c3871af0e2abe78308dc205dbfd07b6" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>exportObjectsAsDags</name></member>
+      <member refid="classExpUtil_1aa870d25edcb94587610d27f5690a89b3" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>exportObjectsAsDagsInternal</name></member>
+      <member refid="classExpUtil_1a3df5005e61a1aa2a841fb1e4a4ead059" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>exportPhysics</name></member>
+      <member refid="classExpUtil_1ae85784dc140ee6022d047de4c0ea9ee8" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>ExpUtil</name></member>
+      <member refid="classExpUtil_1abc7096c9c625e44cc2e4ef5e64ae49bd" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>hExpAnim</name></member>
+      <member refid="classExpUtil_1a1e17af3c62062a6c3a2e6f5e16f3204c" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>hExpDag</name></member>
+      <member refid="classExpUtil_1a60a1f8f89838afdf076be986e10c1564" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>hExpOther</name></member>
+      <member refid="classExpUtil_1a1ccb2c2fe0f49d9944cc9a33bd3f6db9" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>hLog</name></member>
+      <member refid="classExpUtil_1ade542522c542a4ebf52623b1e70e8a45" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>Init</name></member>
+      <member refid="classExpUtil_1a248be070d4b538d715840f4693466bd8" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>InitAnim</name></member>
+      <member refid="classExpUtil_1a6b8e2f02740081112cebaff294a8c7c7" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>input_exp_anim2_fname</name></member>
+      <member refid="classExpUtil_1abaa4ce5c2870fa36ed63376dfc25cb33" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>input_exp_camera_fname</name></member>
+      <member refid="classExpUtil_1aa5219b9747527ac27a1d5bd524aab711" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>input_exp_fname</name></member>
+      <member refid="classExpUtil_1a7531906ea173c7167121e513f5260f3b" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>input_exp_instances_fname</name></member>
+      <member refid="classExpUtil_1a9d41c5429368145c923a35c5ad1e7f07" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>input_exp_phys_fname</name></member>
+      <member refid="classExpUtil_1a76c9be1e2852162613c12f9bf5423b9a" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>ip</name></member>
+      <member refid="classExpUtil_1aee33a88f0af2c0a96b997bd264532429" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>iu</name></member>
+      <member refid="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71a1a84d00dd5e6f917c72da626b5760a7e" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>LayersAsDags</name></member>
+      <member refid="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71aa8276397b749e6de07630003c71a17b2" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>ObjectsAsDags</name></member>
+      <member refid="classExpUtil_1ab64905843d83c6b29649ed85736396cf" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>orteps</name></member>
+      <member refid="classExpUtil_1afaa97785354e31ef4951ae28c5ccccd3" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>poseps</name></member>
+      <member refid="classExpUtil_1aca8d554d9d91add33362d522582f2e10" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>poseps2</name></member>
+      <member refid="classExpUtil_1aa04a871d433c0d968ba72bd23bdb9a61" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>roteps</name></member>
+      <member refid="classExpUtil_1a7c90f88999e7842d63e294ffa78b1a41" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>roteps2</name></member>
+      <member refid="classExpUtil_1aec43fc2ae864c27db6159601ba2506b3" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>scleps</name></member>
+      <member refid="classExpUtil_1adf6a1207abcb9c4344f631e16fa5ffa2" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>set_expflg</name></member>
+      <member refid="classExpUtil_1a96d3da2a9ad3fc0511b17476803eaa71a3d6de23c17caebe5e1069e9d8162f68e" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>Standard</name></member>
+      <member refid="classExpUtil_1a9c812ede9a27d6f648d285dddb655f51" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>suppressPrompts</name></member>
+      <member refid="classExpUtil_1a54cbcbf59bc30747b508e94da72ce792" prot="private" virt="non-virtual"><scope>ExpUtil</scope><name>tooltipExtender</name></member>
+      <member refid="classExpUtil_1a5ca36e001149f70b7ba8dfb8a52792d1" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>update_tooltips</name></member>
+      <member refid="classExpUtil_1a39aec5f75bfc81bf561fa7aa8851f158" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>update_ui</name></member>
+      <member refid="classExpUtil_1afff7390ef934861b72935d5802f36739" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>update_ui_anim</name></member>
+      <member refid="classExpUtil_1a4f6f9a090dba0a8b63e4662a9acbf244" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>update_ui_dag</name></member>
+      <member refid="classExpUtil_1adad70095a1ee366d60185ff1a72c4ba7" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>update_ui_other</name></member>
+      <member refid="classExpUtil_1ad3cb4f47443771f59b653941df73972c" prot="public" virt="non-virtual"><scope>ExpUtil</scope><name>warningMessage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,721 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dagfmt_8h" kind="file" language="C++">
+    <compoundname>dagfmt.h</compoundname>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <invincdepgraph>
+      <node id="1">
+        <label>dagfmt.h</label>
+        <link refid="dagfmt_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structDagColor" prot="public">DagColor</innerclass>
+    <innerclass refid="structDagMater" prot="public">DagMater</innerclass>
+    <innerclass refid="structDagNodeData" prot="public">DagNodeData</innerclass>
+    <innerclass refid="structDagLight" prot="public">DagLight</innerclass>
+    <innerclass refid="structDagLight2" prot="public">DagLight2</innerclass>
+    <innerclass refid="structDagBone" prot="public">DagBone</innerclass>
+    <innerclass refid="structDagPosKey" prot="public">DagPosKey</innerclass>
+    <innerclass refid="structDagRotKey" prot="public">DagRotKey</innerclass>
+    <innerclass refid="structDagNoteKey" prot="public">DagNoteKey</innerclass>
+    <innerclass refid="structDagFace" prot="public">DagFace</innerclass>
+    <innerclass refid="structDagBigFace" prot="public">DagBigFace</innerclass>
+    <innerclass refid="structDagTFace" prot="public">DagTFace</innerclass>
+    <innerclass refid="structDagBigTFace" prot="public">DagBigTFace</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dagfmt_8h_1a7f2c9efc6b71060e5602c8fe4464688f" prot="public" static="no">
+        <name>DAG_ID</name>
+        <initializer>0x1A474144</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="6" column="9" bodyfile="dagfmt.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1aac860b5c517c20a86ab30d1e6ac098cc" prot="public" static="no">
+        <name>DAG_FACEFLG_EDGE0</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="45" column="9" bodyfile="dagfmt.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1af064665dfa5dee73725d376e7d3f7c9c" prot="public" static="no">
+        <name>DAG_FACEFLG_EDGE1</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="46" column="9" bodyfile="dagfmt.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a6d61dc0291a695986f789bc95c462a8d" prot="public" static="no">
+        <name>DAG_FACEFLG_EDGE2</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="47" column="9" bodyfile="dagfmt.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a60ef8f5a97371351817f3ab3034b8b91" prot="public" static="no">
+        <name>DAG_FACEFLG_HIDDEN</name>
+        <initializer>8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="48" column="9" bodyfile="dagfmt.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a57c22b5e490e806168b189dda7ea961d" prot="public" static="no">
+        <name>DAG_MF_2SIDED</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="50" column="9" bodyfile="dagfmt.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a3068a5b72fff6b6bf5073c5579cbe165" prot="public" static="no">
+        <name>DAG_MF_16TEX</name>
+        <initializer>0x80000000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="51" column="9" bodyfile="dagfmt.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a282dfcbdaafa034b352413466c4f781e" prot="public" static="no">
+        <name>DAGTEXNUM</name>
+        <initializer>16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="85" column="9" bodyfile="dagfmt.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a58387a5ae7b7d5e8b0d03c90583a338e" prot="public" static="no">
+        <name>DAGBADMATID</name>
+        <initializer>0xFFFF</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="87" column="9" bodyfile="dagfmt.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1afc0232e42686b05f96aede9f3a37ac8b" prot="public" static="no">
+        <name>DAG_NF_RENDERABLE</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="106" column="9" bodyfile="dagfmt.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a71c98ba575f1023b2ccabe8ac3cd3e64" prot="public" static="no">
+        <name>DAG_NF_CASTSHADOW</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="107" column="9" bodyfile="dagfmt.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a7f5db6a0e6d573d7b1c2924e8cb77072" prot="public" static="no">
+        <name>DAG_NF_RCVSHADOW</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="108" column="9" bodyfile="dagfmt.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a3229e39caf35e803a1a09140e501b82d" prot="public" static="no">
+        <name>DAG_SPLINE_CLOSED</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="198" column="9" bodyfile="dagfmt.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a75cc064ee1d62f347fafc0f0d836ecf3" prot="public" static="no">
+        <name>DAG_SKNOT_BEZIER</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="201" column="9" bodyfile="dagfmt.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagfmt_8h_1a296fc51afb976d98a9fae2f378d80ce8" prot="public" static="no">
+        <name>DAG_SKNOT_CORNER</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="203" column="9" bodyfile="dagfmt.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55b" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9063faa2c19c09b129a91162540f8dc2" prot="public">
+          <name>DAG_END</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55bae86c37d60258015f247e4e8b50d5bda8" prot="public">
+          <name>DAG_NODE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baa54953b8e05322be30b25cac182c882d" prot="public">
+          <name>DAG_MATER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baf53833c694202e189b5e0e83b79d5d2c" prot="public">
+          <name>DAG_TEXTURES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba3f8a21c38be942b9a6f296ccc8bcff1e" prot="public">
+          <name>DAG_KEYLABELS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7ca2a5c2df3babea3f8f371e262b6478" prot="public">
+          <name>DAG_NOTETRACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="8" column="1" bodyfile="dagfmt.h" bodystart="9" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="enum" id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a51bac9ae8de9425a1c871296794f27c5" prot="public">
+          <name>DAG_NODE_TM</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a77d078c73b62a3a142315c2d21c3aecb" prot="public">
+          <name>DAG_NODE_DATA</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a2ff2a721145b148de54684ff31b6ef80" prot="public">
+          <name>DAG_NODE_SCRIPT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a9f987c74de054b5678c587ecb4c68611" prot="public">
+          <name>DAG_NODE_OBJ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7abaa5d4b96ab7235f3ba08c9bcaea180c" prot="public">
+          <name>DAG_NODE_MATER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a41213fca2a1de143db6165e6b2e5cc9e" prot="public">
+          <name>DAG_NODE_ANIM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7afad952e8f66ed1ca41d882b58b6e3dda" prot="public">
+          <name>DAG_NODE_CHILDREN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a153c45a9a14b43e4e496e089c09fdd3d" prot="public">
+          <name>DAG_NODE_NOTETRACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="19" column="1" bodyfile="dagfmt.h" bodystart="20" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="enum" id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a0467aa48acc4c3ac8feffb0c8adeb7e2" prot="public">
+          <name>DAG_OBJ_MESH</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ab38107edf27f3c0710b681b59ceccf1c" prot="public">
+          <name>DAG_OBJ_BIGMESH</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a6717336d0c0ec615dc685bfe09b7ca65" prot="public">
+          <name>DAG_OBJ_LIGHT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a5198d2fa1d87f4c4d09859333acd32f9" prot="public">
+          <name>DAG_OBJ_BONES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5adfe3047dff3d10a4998683891573438b" prot="public">
+          <name>DAG_OBJ_SPLINES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a30dab6dc725e918846b10d8a753767a3" prot="public">
+          <name>DAG_OBJ_FACEFLG</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ae1a0209b9391ec3aacd908d17b87a306" prot="public">
+          <name>DAG_OBJ_NORMALS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ac0ba1219bc79d04eb404daecb702af33" prot="public">
+          <name>DAG_OBJ_MORPH</name>
+          <initializer>= 10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="32" column="1" bodyfile="dagfmt.h" bodystart="33" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="enum" id="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a5c974b13691d07553f5b3f41a36fcb6b" prot="public">
+          <name>DAG_LIGHT_OMNI</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a56298c71d402bc2a3909033d4af67e98" prot="public">
+          <name>DAG_LIGHT_SPOT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a2002148ad383116768dfd195bafb3673" prot="public">
+          <name>DAG_LIGHT_DIR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="127" column="1" bodyfile="dagfmt.h" bodystart="128" bodyend="132"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dagfmt_8h_1a6a96a6eaa00aa411eb4b29980c8fd8a4" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool operator==</definition>
+        <argsstring>(const DagMater &amp;a, const DagMater &amp;b)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structDagMater" kindref="compound">DagMater</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDagMater" kindref="compound">DagMater</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="104" column="13" bodyfile="dagfmt.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>pack(push,<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="dagfmt_8h_1a7f2c9efc6b71060e5602c8fe4464688f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_ID<sp/>0x1A474144</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9063faa2c19c09b129a91162540f8dc2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9063faa2c19c09b129a91162540f8dc2" kindref="member">DAG_END</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="11" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55bae86c37d60258015f247e4e8b50d5bda8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55bae86c37d60258015f247e4e8b50d5bda8" kindref="member">DAG_NODE</ref>,</highlight></codeline>
+<codeline lineno="12" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baa54953b8e05322be30b25cac182c882d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baa54953b8e05322be30b25cac182c882d" kindref="member">DAG_MATER</ref>,</highlight></codeline>
+<codeline lineno="13" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baf53833c694202e189b5e0e83b79d5d2c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55baf53833c694202e189b5e0e83b79d5d2c" kindref="member">DAG_TEXTURES</ref>,</highlight></codeline>
+<codeline lineno="14" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba3f8a21c38be942b9a6f296ccc8bcff1e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba3f8a21c38be942b9a6f296ccc8bcff1e" kindref="member">DAG_KEYLABELS</ref>,</highlight></codeline>
+<codeline lineno="15" refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7ca2a5c2df3babea3f8f371e262b6478" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7ca2a5c2df3babea3f8f371e262b6478" kindref="member">DAG_NOTETRACK</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>inside<sp/>DAG_NODE:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a51bac9ae8de9425a1c871296794f27c5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a51bac9ae8de9425a1c871296794f27c5" kindref="member">DAG_NODE_TM</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="22" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a77d078c73b62a3a142315c2d21c3aecb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a77d078c73b62a3a142315c2d21c3aecb" kindref="member">DAG_NODE_DATA</ref>,</highlight></codeline>
+<codeline lineno="23" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a2ff2a721145b148de54684ff31b6ef80" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a2ff2a721145b148de54684ff31b6ef80" kindref="member">DAG_NODE_SCRIPT</ref>,</highlight></codeline>
+<codeline lineno="24" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a9f987c74de054b5678c587ecb4c68611" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a9f987c74de054b5678c587ecb4c68611" kindref="member">DAG_NODE_OBJ</ref>,</highlight></codeline>
+<codeline lineno="25" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7abaa5d4b96ab7235f3ba08c9bcaea180c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7abaa5d4b96ab7235f3ba08c9bcaea180c" kindref="member">DAG_NODE_MATER</ref>,</highlight></codeline>
+<codeline lineno="26" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a41213fca2a1de143db6165e6b2e5cc9e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a41213fca2a1de143db6165e6b2e5cc9e" kindref="member">DAG_NODE_ANIM</ref>,</highlight></codeline>
+<codeline lineno="27" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7afad952e8f66ed1ca41d882b58b6e3dda" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7afad952e8f66ed1ca41d882b58b6e3dda" kindref="member">DAG_NODE_CHILDREN</ref>,</highlight></codeline>
+<codeline lineno="28" refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a153c45a9a14b43e4e496e089c09fdd3d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1adf764cbdea00d65edcd07bb9953ad2b7a153c45a9a14b43e4e496e089c09fdd3d" kindref="member">DAG_NODE_NOTETRACK</ref>,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="comment">//<sp/>inside<sp/>DAG_NODE_OBJ:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a0467aa48acc4c3ac8feffb0c8adeb7e2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a0467aa48acc4c3ac8feffb0c8adeb7e2" kindref="member">DAG_OBJ_MESH</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="35" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ab38107edf27f3c0710b681b59ceccf1c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ab38107edf27f3c0710b681b59ceccf1c" kindref="member">DAG_OBJ_BIGMESH</ref>,</highlight></codeline>
+<codeline lineno="36" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a6717336d0c0ec615dc685bfe09b7ca65" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a6717336d0c0ec615dc685bfe09b7ca65" kindref="member">DAG_OBJ_LIGHT</ref>,</highlight></codeline>
+<codeline lineno="37" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a5198d2fa1d87f4c4d09859333acd32f9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a5198d2fa1d87f4c4d09859333acd32f9" kindref="member">DAG_OBJ_BONES</ref>,</highlight></codeline>
+<codeline lineno="38" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5adfe3047dff3d10a4998683891573438b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5adfe3047dff3d10a4998683891573438b" kindref="member">DAG_OBJ_SPLINES</ref>,</highlight></codeline>
+<codeline lineno="39" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a30dab6dc725e918846b10d8a753767a3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5a30dab6dc725e918846b10d8a753767a3" kindref="member">DAG_OBJ_FACEFLG</ref>,</highlight></codeline>
+<codeline lineno="40" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ae1a0209b9391ec3aacd908d17b87a306" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ae1a0209b9391ec3aacd908d17b87a306" kindref="member">DAG_OBJ_NORMALS</ref>,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ac0ba1219bc79d04eb404daecb702af33" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1a99fb83031ce9923c84392b4e92f956b5ac0ba1219bc79d04eb404daecb702af33" kindref="member">DAG_OBJ_MORPH</ref><sp/>=<sp/>10,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="dagfmt_8h_1aac860b5c517c20a86ab30d1e6ac098cc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_FACEFLG_EDGE0<sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="dagfmt_8h_1af064665dfa5dee73725d376e7d3f7c9c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_FACEFLG_EDGE1<sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="dagfmt_8h_1a6d61dc0291a695986f789bc95c462a8d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_FACEFLG_EDGE2<sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="dagfmt_8h_1a60ef8f5a97371351817f3ab3034b8b91" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_FACEFLG_HIDDEN<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="dagfmt_8h_1a57c22b5e490e806168b189dda7ea961d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_MF_2SIDED<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="dagfmt_8h_1a3068a5b72fff6b6bf5073c5579cbe165" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_MF_16TEX<sp/><sp/>0x80000000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="structDagColor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagColor" kindref="compound">DagColor</ref></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55" refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" kindref="member">b</ref>,<sp/><ref refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" kindref="member">g</ref>,<sp/><ref refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" kindref="member">r</ref>;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>VERSION_3DSMAX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" kindref="member">DagColor</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><ref refid="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" kindref="member">DagColor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color<sp/>&amp;c)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.r<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" kindref="member">r</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.r<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" kindref="member">r</ref><sp/>=<sp/>255;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" kindref="member">r</ref><sp/>=<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>char)(c.r<sp/>*<sp/>255);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.g<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" kindref="member">g</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.g<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" kindref="member">g</ref><sp/>=<sp/>255;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" kindref="member">g</ref><sp/>=<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>char)(c.g<sp/>*<sp/>255);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.b<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" kindref="member">b</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c.b<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" kindref="member">b</ref><sp/>=<sp/>255;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" kindref="member">b</ref><sp/>=<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>char)(c.b<sp/>*<sp/>255);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>Color()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Color(<ref refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" kindref="member">r</ref><sp/>/<sp/>255.0f,<sp/><ref refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" kindref="member">g</ref><sp/>/<sp/>255.0f,<sp/><ref refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" kindref="member">b</ref><sp/>/<sp/>255.0f);<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" kindref="member">DagColor</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="dagfmt_8h_1a282dfcbdaafa034b352413466c4f781e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAGTEXNUM<sp/>16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="dagfmt_8h_1a58387a5ae7b7d5e8b0d03c90583a338e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAGBADMATID<sp/>0xFFFF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="structDagMater" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagMater" kindref="compound">DagMater</ref></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>uchar<sp/>namelen;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>char<sp/>matname[namelen];</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="structDagMater_1a05b84552c4d9c66cc4261aef9c5a2527" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagColor" kindref="compound">DagColor</ref><sp/><ref refid="structDagMater_1a05b84552c4d9c66cc4261aef9c5a2527" kindref="member">amb</ref>,<sp/><ref refid="structDagMater_1ade0995b87a7c30f2e6f58551a631cd8d" kindref="member">diff</ref>,<sp/><ref refid="structDagMater_1ae4d320fd5dc658247d0392e4b9bb8c0e" kindref="member">spec</ref>,<sp/><ref refid="structDagMater_1a7053dfde42a85aea927cd9a63b6a8f6b" kindref="member">emis</ref>;</highlight></codeline>
+<codeline lineno="94" refid="structDagMater_1aba09a83825d6d2e79bc5107f04735c96" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagMater_1aba09a83825d6d2e79bc5107f04735c96" kindref="member">power</ref>;</highlight></codeline>
+<codeline lineno="95" refid="structDagMater_1af2c43c9d53a6cf2436ce87d1386ffc14" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structDagMater_1af2c43c9d53a6cf2436ce87d1386ffc14" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="96" refid="structDagMater_1a8a278ea7d627dc6b5f710060e5ce3f52" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagMater_1a8a278ea7d627dc6b5f710060e5ce3f52" kindref="member">texid</ref>[<ref refid="dagfmt_8h_1a282dfcbdaafa034b352413466c4f781e" kindref="member">DAGTEXNUM</ref>];</highlight></codeline>
+<codeline lineno="97" refid="structDagMater_1abd051a7aac53c2ea1385aa99603ee3c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagMater_1abd051a7aac53c2ea1385aa99603ee3c4" kindref="member">_resv</ref>[8];</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>uchar<sp/>namelen;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>char<sp/>classname[namelen];</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>char<sp/>script[];</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="structDagMater_1a468af8619c4417acd907640a6e62f750" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagMater_1a468af8619c4417acd907640a6e62f750" kindref="member">DagMater</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDagMater" kindref="compound">DagMater</ref><sp/>&amp;a,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDagMater" kindref="compound">DagMater</ref><sp/>&amp;b)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!memcmp(&amp;a,<sp/>&amp;b,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structDagMater" kindref="compound">DagMater</ref>));<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="dagfmt_8h_1afc0232e42686b05f96aede9f3a37ac8b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_NF_RENDERABLE<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="dagfmt_8h_1a71c98ba575f1023b2ccabe8ac3cd3e64" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_NF_CASTSHADOW<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="dagfmt_8h_1a7f5db6a0e6d573d7b1c2924e8cb77072" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_NF_RCVSHADOW<sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="structDagNodeData" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagNodeData" kindref="compound">DagNodeData</ref></highlight></codeline>
+<codeline lineno="111"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="112" refid="structDagNodeData_1a13d181080f2bec849922b5b5e255fc98" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagNodeData_1a7f59307c5bb4e2c54998f58d83fd8101" kindref="member">id</ref>,<sp/><ref refid="structDagNodeData_1a13d181080f2bec849922b5b5e255fc98" kindref="member">cnum</ref>;</highlight></codeline>
+<codeline lineno="113" refid="structDagNodeData_1a1bd2388447c485c5c1a42a0ef7d72588" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structDagNodeData_1a1bd2388447c485c5c1a42a0ef7d72588" kindref="member">flg</ref>;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>node<sp/>name<sp/>follows</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116" refid="structDagNodeData_1a2bfcbe4af50a1798973f8bd920ce2801" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagNodeData_1a2bfcbe4af50a1798973f8bd920ce2801" kindref="member">DagNodeData</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="structDagLight" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagLight" kindref="compound">DagLight</ref></highlight></codeline>
+<codeline lineno="120"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121" refid="structDagLight_1a38e0dfeeba77ea75a334d7f822a08cfa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagLight_1a9ddde5a9057f0479a6660f80732d0abd" kindref="member">r</ref>,<sp/><ref refid="structDagLight_1a51d9e2499cc8f4c052bc0052e0819b8d" kindref="member">g</ref>,<sp/><ref refid="structDagLight_1a38e0dfeeba77ea75a334d7f822a08cfa" kindref="member">b</ref>;</highlight></codeline>
+<codeline lineno="122" refid="structDagLight_1a60681e33fb6279b0141c4405f1140758" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagLight_1a25eebd5c643d1850f7ff00adac52d40d" kindref="member">range</ref>,<sp/><ref refid="structDagLight_1a60681e33fb6279b0141c4405f1140758" kindref="member">drad</ref>;</highlight></codeline>
+<codeline lineno="123" refid="structDagLight_1a7680f03a14534f23d1c291ac74b6f11d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structDagLight_1a7680f03a14534f23d1c291ac74b6f11d" kindref="member">decay</ref>;</highlight></codeline>
+<codeline lineno="124" refid="structDagLight_1a319e7be78e0a0f3be15f12b0d7744a1d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagLight_1a319e7be78e0a0f3be15f12b0d7744a1d" kindref="member">DagLight</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="129" refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a5c974b13691d07553f5b3f41a36fcb6b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a5c974b13691d07553f5b3f41a36fcb6b" kindref="member">DAG_LIGHT_OMNI</ref>,</highlight></codeline>
+<codeline lineno="130" refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a56298c71d402bc2a3909033d4af67e98" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a56298c71d402bc2a3909033d4af67e98" kindref="member">DAG_LIGHT_SPOT</ref>,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><ref refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a2002148ad383116768dfd195bafb3673" kindref="member">DAG_LIGHT_DIR</ref></highlight></codeline>
+<codeline lineno="132" refid="dagfmt_8h_1abc6126af1d45847bc59afa0aa3216b04a2002148ad383116768dfd195bafb3673" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="structDagLight2" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagLight2" kindref="compound">DagLight2</ref></highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136" refid="structDagLight2_1acd0be638e1b29de98d213926c4f6d30e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structDagLight2_1acd0be638e1b29de98d213926c4f6d30e" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="137" refid="structDagLight2_1a05dc43d7fc32ebec34843c3231d22567" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagLight2_1a4b90d1ec2617399b7f82f3604a144d3d" kindref="member">hotspot</ref>,<sp/><ref refid="structDagLight2_1a05dc43d7fc32ebec34843c3231d22567" kindref="member">falloff</ref>;<sp/></highlight><highlight class="comment">//<sp/>in<sp/>degrees,<sp/>if<sp/>angle</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="structDagLight2_1ae76d3e5172b8a893ea57ee834c9902be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagLight2_1ae76d3e5172b8a893ea57ee834c9902be" kindref="member">mult</ref>;</highlight></codeline>
+<codeline lineno="139" refid="structDagLight2_1aebebf82d415d4d6de351448c494182e7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagLight2_1aebebf82d415d4d6de351448c494182e7" kindref="member">DagLight2</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142" refid="structDagBone" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagBone" kindref="compound">DagBone</ref></highlight></codeline>
+<codeline lineno="143"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="144" refid="structDagBone_1a145563458792c88537d675f02ae3c3f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagBone_1a145563458792c88537d675f02ae3c3f2" kindref="member">id</ref>;</highlight></codeline>
+<codeline lineno="145" refid="structDagBone_1a7e498473b976829559f180294bbf8865" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structDagBone_1a7e498473b976829559f180294bbf8865" kindref="member">tm</ref>[4][3];</highlight></codeline>
+<codeline lineno="146" refid="structDagBone_1aae294f9cf8fabe3e232daa3f96574fb3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagBone_1aae294f9cf8fabe3e232daa3f96574fb3" kindref="member">DagBone</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="structDagPosKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagPosKey" kindref="compound">DagPosKey</ref></highlight></codeline>
+<codeline lineno="150"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="151" refid="structDagPosKey_1a9e253baa3d10dc693dcf43664aedf2e7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDagPosKey_1a9e253baa3d10dc693dcf43664aedf2e7" kindref="member">t</ref>;</highlight></codeline>
+<codeline lineno="152" refid="structDagPosKey_1abbe789defa2d895419c259a58099629a" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="structDagPosKey_1ac2af4871b6af345f146444dc8adc04d3" kindref="member">p</ref>,<sp/><ref refid="structDagPosKey_1abbe789defa2d895419c259a58099629a" kindref="member">i</ref>,<sp/><ref refid="structDagPosKey_1a7af49d7332a09e5f74a8da06b7f6efe0" kindref="member">o</ref>;</highlight></codeline>
+<codeline lineno="153" refid="structDagPosKey_1a880b53678a3a26358e400431a7325c9c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagPosKey_1a880b53678a3a26358e400431a7325c9c" kindref="member">DagPosKey</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156" refid="structDagRotKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagRotKey" kindref="compound">DagRotKey</ref></highlight></codeline>
+<codeline lineno="157"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="158" refid="structDagRotKey_1a836b45de95003c2c3c432248e7d677f6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDagRotKey_1a836b45de95003c2c3c432248e7d677f6" kindref="member">t</ref>;</highlight></codeline>
+<codeline lineno="159" refid="structDagRotKey_1a63686c785e26af838fc04f150cd36ac7" refkind="member"><highlight class="normal"><sp/><sp/>Quat<sp/><ref refid="structDagRotKey_1aa8b06ee2591c10dfcd0907d3f50310a8" kindref="member">p</ref>,<sp/><ref refid="structDagRotKey_1a63686c785e26af838fc04f150cd36ac7" kindref="member">i</ref>,<sp/><ref refid="structDagRotKey_1a9d3235752cd134a39be076c4feb30824" kindref="member">o</ref>;</highlight></codeline>
+<codeline lineno="160" refid="structDagRotKey_1a65a0fdd449d9d006e35321ad10578abe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagRotKey_1a65a0fdd449d9d006e35321ad10578abe" kindref="member">DagRotKey</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="structDagNoteKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagNoteKey" kindref="compound">DagNoteKey</ref></highlight></codeline>
+<codeline lineno="164"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="165" refid="structDagNoteKey_1a220b02b685ce75afd3f17fc37afd17e5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagNoteKey_1a220b02b685ce75afd3f17fc37afd17e5" kindref="member">id</ref>;</highlight></codeline>
+<codeline lineno="166" refid="structDagNoteKey_1a589fd33beed9329fad9d9265a0b06bc9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDagNoteKey_1a589fd33beed9329fad9d9265a0b06bc9" kindref="member">t</ref>;</highlight></codeline>
+<codeline lineno="167" refid="structDagNoteKey_1ac35007a3f97f3b541e613cbd13469326" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagNoteKey_1ac35007a3f97f3b541e613cbd13469326" kindref="member">DagNoteKey</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170" refid="structDagFace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagFace" kindref="compound">DagFace</ref></highlight></codeline>
+<codeline lineno="171"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="172" refid="structDagFace_1a158277f233be6293b93ad00988caa05e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagFace_1a158277f233be6293b93ad00988caa05e" kindref="member">v</ref>[3];</highlight></codeline>
+<codeline lineno="173" refid="structDagFace_1a8b3883555a74190689dcb01a134906b3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structDagFace_1a8b3883555a74190689dcb01a134906b3" kindref="member">smgr</ref>;</highlight></codeline>
+<codeline lineno="174" refid="structDagFace_1a947397672bbdd18edf2fe06dab23c4e2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagFace_1a947397672bbdd18edf2fe06dab23c4e2" kindref="member">mat</ref>;</highlight></codeline>
+<codeline lineno="175" refid="structDagFace_1a1d034fdc520e38de46adcb571d2b1c47" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagFace_1a1d034fdc520e38de46adcb571d2b1c47" kindref="member">DagFace</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="176"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="structDagBigFace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagBigFace" kindref="compound">DagBigFace</ref></highlight></codeline>
+<codeline lineno="179"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="180" refid="structDagBigFace_1a1b430c0a040da2c1716c738531b7830c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDagBigFace_1a1b430c0a040da2c1716c738531b7830c" kindref="member">v</ref>[3];</highlight></codeline>
+<codeline lineno="181" refid="structDagBigFace_1ac8ec83b84f3c125e32aa8cfdb0cc914a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structDagBigFace_1ac8ec83b84f3c125e32aa8cfdb0cc914a" kindref="member">smgr</ref>;</highlight></codeline>
+<codeline lineno="182" refid="structDagBigFace_1aa34160c34739683aee40a6ff58e46412" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagBigFace_1aa34160c34739683aee40a6ff58e46412" kindref="member">mat</ref>;</highlight></codeline>
+<codeline lineno="183" refid="structDagBigFace_1a5458415545b2a8c2955e766ee77f3414" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagBigFace_1a5458415545b2a8c2955e766ee77f3414" kindref="member">DagBigFace</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="structDagTFace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagTFace" kindref="compound">DagTFace</ref></highlight></codeline>
+<codeline lineno="187"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="188" refid="structDagTFace_1a4bb9b2a320e704ed850d0481a4d5b4b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDagTFace_1a4bb9b2a320e704ed850d0481a4d5b4b5" kindref="member">t</ref>[3];</highlight></codeline>
+<codeline lineno="189" refid="structDagTFace_1a584efe6d920034789872045b89faf453" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagTFace_1a584efe6d920034789872045b89faf453" kindref="member">DagTFace</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192" refid="structDagBigTFace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagBigTFace" kindref="compound">DagBigTFace</ref></highlight></codeline>
+<codeline lineno="193"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="194" refid="structDagBigTFace_1a848201911e05420a960aa0e5aa509593" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDagBigTFace_1a848201911e05420a960aa0e5aa509593" kindref="member">t</ref>[3];</highlight></codeline>
+<codeline lineno="195" refid="structDagBigTFace_1abbc16b0490c14e84ae7236a02588e142" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDagBigTFace_1abbc16b0490c14e84ae7236a02588e142" kindref="member">DagBigTFace</ref>()<sp/>{<sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198" refid="dagfmt_8h_1a3229e39caf35e803a1a09140e501b82d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_SPLINE_CLOSED<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight><highlight class="comment">//<sp/>bezier<sp/>or<sp/>auto</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="201" refid="dagfmt_8h_1a75cc064ee1d62f347fafc0f0d836ecf3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_SKNOT_BEZIER<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight><highlight class="comment">//<sp/>corner<sp/>or<sp/>smooth</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203" refid="dagfmt_8h_1a296fc51afb976d98a9fae2f378d80ce8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAG_SKNOT_CORNER<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="206"><highlight class="comment">SPLINES<sp/>format:</highlight></codeline>
+<codeline lineno="207"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>int<sp/>numsplines;</highlight></codeline>
+<codeline lineno="208"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>for(each<sp/>spline)<sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>char<sp/>flg;<sp/>//<sp/>DAG_SPLINE_CLOSED</highlight></codeline>
+<codeline lineno="210"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>int<sp/>numknots;</highlight></codeline>
+<codeline lineno="211"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>for(each<sp/>knot)<sp/>{</highlight></codeline>
+<codeline lineno="212"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>char<sp/>ktype;</highlight></codeline>
+<codeline lineno="213"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>struct{float<sp/>x,y,z;}<sp/>in,pt,out;<sp/>//<sp/>absolute<sp/>positions<sp/>of<sp/>control<sp/>points</highlight></codeline>
+<codeline lineno="214"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="216"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="219"><highlight class="comment">MESH<sp/>format:</highlight></codeline>
+<codeline lineno="220"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>numv;</highlight></codeline>
+<codeline lineno="221"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>struct{float<sp/>x,y,z;}<sp/>vert[numv];</highlight></codeline>
+<codeline lineno="222"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>numf;</highlight></codeline>
+<codeline lineno="223"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DagFace<sp/>face[numf];</highlight></codeline>
+<codeline lineno="224"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uchar<sp/>number_of_mapping_channels;</highlight></codeline>
+<codeline lineno="225"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>for(each<sp/>channel)<sp/>{</highlight></codeline>
+<codeline lineno="226"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>numtv;</highlight></codeline>
+<codeline lineno="227"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uchar<sp/>num_tv_coords;<sp/>//<sp/>currently<sp/>2<sp/>or<sp/>3</highlight></codeline>
+<codeline lineno="228"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uchar<sp/>channel_id;</highlight></codeline>
+<codeline lineno="229"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>struct{float<sp/>c[num_tv_coords];}<sp/>tvert[numtv];</highlight></codeline>
+<codeline lineno="230"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DagTFace<sp/>tface[numf];</highlight></codeline>
+<codeline lineno="231"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="232"><highlight class="comment">BIGMESH<sp/>format:</highlight></codeline>
+<codeline lineno="233"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>same<sp/>as<sp/>above,<sp/>change<sp/>shorts<sp/>to<sp/>ints<sp/>and<sp/>Faces<sp/>to<sp/>BigFaces</highlight></codeline>
+<codeline lineno="234"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="237"><highlight class="comment">BONES<sp/>format:</highlight></codeline>
+<codeline lineno="238"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>numb;</highlight></codeline>
+<codeline lineno="239"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DagBone<sp/>bone[numb];</highlight></codeline>
+<codeline lineno="240"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>numv;<sp/>//<sp/>should<sp/>be<sp/>equal<sp/>to<sp/>number<sp/>of<sp/>mesh<sp/>vertexes</highlight></codeline>
+<codeline lineno="241"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>float<sp/>weight[numb][numv];</highlight></codeline>
+<codeline lineno="242"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="245"><highlight class="comment">ANIM<sp/>format:</highlight></codeline>
+<codeline lineno="246"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>ntrack_id;</highlight></codeline>
+<codeline lineno="247"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pos_track;<sp/>//<sp/>T=Point3</highlight></codeline>
+<codeline lineno="248"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rot_track;<sp/>//<sp/>T=Quat</highlight></codeline>
+<codeline lineno="249"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>scl_track;<sp/>//<sp/>T=Point3</highlight></codeline>
+<codeline lineno="250"><highlight class="comment"></highlight></codeline>
+<codeline lineno="251"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Track<sp/>format:</highlight></codeline>
+<codeline lineno="252"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ushort<sp/>numkeys;</highlight></codeline>
+<codeline lineno="253"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if(numkeys==1)<sp/>{</highlight></codeline>
+<codeline lineno="254"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>T<sp/>val;</highlight></codeline>
+<codeline lineno="255"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}else<sp/>for(each<sp/>key)<sp/>{</highlight></codeline>
+<codeline lineno="256"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DagPosKey/DagRotKey;</highlight></codeline>
+<codeline lineno="257"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="258"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>pack(pop)</highlight></codeline>
+    </programlisting>
+    <location file="dagfmt.h"/>
+  </compounddef>
+</doxygen>

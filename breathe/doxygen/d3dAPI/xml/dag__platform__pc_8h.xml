@@ -1,0 +1,338 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__platform__pc_8h" kind="file" language="C++">
+    <compoundname>dag_platform_pc.h</compoundname>
+    <includes refid="dag__driver_8h" local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <includedby refid="dag__platform_8h" local="no">dag_platform.h</includedby>
+    <incdepgraph>
+      <node id="9">
+        <label>drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3dResource_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="32">
+        <label>drv/3d/dag_hangHandler.h</label>
+        <link refid="dag__hangHandler_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__resId_8h"/>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h"/>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__samplerHandle_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>drv/3d/dag_shaderLibraryObject.h</label>
+        <link refid="dag__shaderLibraryObject_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shaderModelVersion_8h"/>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__texFlags_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+        <link refid="dag__drvRayTrace_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>rayTrace/rayTracedrv3d.inl.h</label>
+        <link refid="rayTracedrv3d_8inl_8h"/>
+      </node>
+      <node id="31">
+        <label>EASTL/functional.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="39">
+        <label>EASTL/span.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="38">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="13">
+        <label>cstdint</label>
+      </node>
+      <node id="11">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="34">
+        <label>generic/dag_enumBitMask.h</label>
+      </node>
+      <node id="37">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="41">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="7">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="27">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="23">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="8">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="28">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="29">
+        <label>string.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="36">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="22">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="30">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!(_TARGET_PC<sp/>|<sp/>_TARGET_XBOX)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#error<sp/>must<sp/>not<sp/>be<sp/>included<sp/>for<sp/>non-PC<sp/>target!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__driver_8h" kindref="compound">drv/3d/dag_driver.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>create_vertex_shader_hlsl(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*hlsl_text,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile,<sp/>String<sp/>*out_err<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>create_pixel_shader_hlsl(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*hlsl_text,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile,<sp/>String<sp/>*out_err<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compile_compute_shader_hlsl(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*hlsl_text,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile,</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>Tab&lt;uint32_t&gt;<sp/>&amp;shader_bin,<sp/>String<sp/>&amp;out_err);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="namespaced3d_1a9e145d1b61d58e405ea63d9e2d335c93" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/><ref refid="namespaced3d_1a9e145d1b61d58e405ea63d9e2d335c93" kindref="member">get_program_vdecl</ref>(<ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref>);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="namespaced3d_1a6bbf51c7bf7d8496b00fb55082399427" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a6bbf51c7bf7d8496b00fb55082399427" kindref="member">set_vertex_shader</ref>(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>ps);</highlight></codeline>
+<codeline lineno="29" refid="namespaced3d_1a044591ff3151ce73516e88620f889fd3" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a044591ff3151ce73516e88620f889fd3" kindref="member">set_pixel_shader</ref>(<ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>ps);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN<sp/>|<sp/>_TARGET_PC_MACOSX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">pcwin</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>get_texture_format(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex);</highlight></codeline>
+<codeline lineno="36"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_texture_format_str(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*get_native_surface(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>pcwin</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="namespaced3d_1af908ddca82916e5fccb59cd2ad52505b" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/><ref refid="namespaced3d_1af908ddca82916e5fccb59cd2ad52505b" kindref="member">create_vertex_shader_asm</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*asm_text);</highlight></codeline>
+<codeline lineno="42" refid="namespaced3d_1a49ade36af878e6253fb5695e67816a40" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/><ref refid="namespaced3d_1a49ade36af878e6253fb5695e67816a40" kindref="member">create_vertex_shader_dagor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a97b1ab981eb0a7c26f9f8b8eee0bc620" kindref="member">VPRTYPE</ref><sp/>*p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="namespaced3d_1a3f8588843c2cbe8959508c60cfb9d12c" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/><ref refid="namespaced3d_1a3f8588843c2cbe8959508c60cfb9d12c" kindref="member">create_pixel_shader_asm</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*asm_text);</highlight></codeline>
+<codeline lineno="45" refid="namespaced3d_1a994ccb10e653497a1a211a6a626f9396" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/><ref refid="namespaced3d_1a994ccb10e653497a1a211a6a626f9396" kindref="member">create_pixel_shader_dagor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a6ecc91d8112a11bacecab1bf0f1d3b10" kindref="member">FSHTYPE</ref><sp/>*p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN<sp/>|<sp/>_TARGET_PC_MACOSX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">//<sp/>additional<sp/>d3d::pcwin<sp/>interface<sp/>(PC<sp/>specific)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">pcwin</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_present_wnd(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>can_render_to_window();</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*get_swapchain_for_window(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>present_to_window(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="comment">//<sp/>set<sp/>capture<sp/>whole<sp/>framebuffer<sp/>with<sp/>capture_screen(),<sp/>not<sp/>only<sp/>window<sp/>data.<sp/>returns<sp/>previous<sp/>state.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_capture_full_frame_buffer(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ison);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>pcwin</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+<codeline lineno="62"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1abc3dec902a6e26cfd294ffd7b596e313" kindref="member">get_vsync_enabled</ref>();</highlight></codeline>
+<codeline lineno="64"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac10d075649cf9abfe892df5492192e6b" kindref="member">enable_vsync</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable);</highlight></codeline>
+<codeline lineno="66" refid="namespaced3d_1a0bcd4ac6c650505f630f1df613263920" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a0bcd4ac6c650505f630f1df613263920" kindref="member">get_video_modes_list</ref>(Tab&lt;String&gt;<sp/>&amp;list);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_platform_pc.h"/>
+  </compounddef>
+</doxygen>

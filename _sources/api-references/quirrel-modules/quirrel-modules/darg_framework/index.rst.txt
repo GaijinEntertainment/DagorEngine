@@ -1,0 +1,217 @@
+
+daRG Framework
+==============
+
+Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).
+
+Overview
+--------
+
+daRG (Dagor Reactive GUI) is a reactive GUI framework integrated into the Dagor
+Engine. It is significantly inspired by React JS and React Native from Facebook,
+as well as frameworks like Flutter.
+
+Documentation and examples are available in the viewer located at:
+
+.. code-block:: shell
+
+   dagor2/tools/dargbox/
+
+You can run the examples using:
+
+.. code-block:: shell
+
+   dargbox-64-dev.exe -config\:script\:t=samples_prog/_basic/layout/basic_layout.ui.nut
+
+Use ``s.bat`` to launch the example browser. The examples themselves are located
+at:
+
+.. code-block:: shell
+
+   prog/tools/dargbox/gamebase
+
+The author and conceptual designer of daRG is Vasiliy Ryabtsev. Current
+maintainers: Alexey Borisov, Alexey Volynskov.
+
+Core Principles
+---------------
+
+* **Reactivity**: Code executes only when changes occur.
+* **Portability**: UI logic and markup are written in the interpreted language
+  Quirrel, ensuring compatibility across multiple platforms (consoles, mobile
+  devices) without requiring code submission. This facilitates easy modding.
+* **Responsiveness and Performance**: Interfaces must quickly and efficiently
+  respond to user interactions.
+* **Native and Simple Animations**: Animations should be straightforward to
+  create and perform efficiently.
+* **Explicit State Management**: The UI explicitly reflects visible state
+  changes, simplifying debugging and reducing state-related errors common in
+  traditional approaches.
+* **VR Support**: Full support for 3D interfaces.
+
+In daRG, all UI elements are created using a single language (Quirrel), unlike
+traditional web stacks (HTML, CSS, JS) or daGUI (blk, css, quirrel).
+
+Separation of Concerns
+----------------------
+
+Traditional technologies (HTML, CSS, JS) do not effectively separate
+responsibilities. In daRG, separation is based on responsibilities rather than
+technologies. Each UI component is self-contained, reusable, and maintained
+independently. Components explicitly state their dependencies, ensuring
+consistency across different interface instances.
+
+Immediate vs Retained Mode
+--------------------------
+
+Working with daRG can feel like using Immediate Mode GUI—code seemingly executes
+each frame. However, in practice, daRG only executes scripts when the relevant
+state changes, thus optimizing performance. You describe UI rendering logic, and
+daRG selectively updates components affected by state changes, providing
+significant performance optimizations.
+
+Explicit State
+--------------
+
+All state in daRG is entirely explicit, eliminating hidden states (e.g.,
+checkbox values). The state is a clearly defined model, changing explicitly and
+triggering UI updates accordingly. This approach simplifies debugging and
+facilitates advanced debugging features like a state history ("time machine"),
+assuming state adheres to certain contracts. The ``persist`` function can save
+the state, allowing restoration upon reload.
+
+Core Concepts
+-------------
+
+**Component**
+A description of UI element in form of a table with properties or a function that generates such a table.
+This description maps a logical state into an interactive representation.
+
+**Element**
+A current interactive piece of an UI scene that may be rendered, may define visual layout, and may process input and other events.
+
+**Behaviors**
+A Behavior is a reusable unit of UI logic implemented in C++ and exposed to Quirrel scripts.
+It encapsulates event handling, state management, and interaction patterns for UI elements.
+A behavior instance is usually attached to a UI element in markup and can react to events such as pointer movement, clicks, keyboard input, or custom signals.
+Behaviors can modify element properties directly, call user-defined callback functions, or update reactive variables to trigger UI updates.
+They provide the equivalent of a "controller" in other UI frameworks and allow complex interactivity to be implemented once and reused across multiple views.
+Common behaviors include: Button, Slider, TextInput, TextArea, Pannable, MoveResize, DragAndDrop and others.
+
+**Render Objects**
+Render objects are the low-level drawing primitives in daRG.
+A render object represents something that can be drawn on screen: an image, a piece of text, a shape, or anything else visual.
+They are implemented in C++ and are processed by the C++ rendering pipeline.
+Common render objects include: ROBJ_SOLID, ROBJ_IMAGE, ROBJ_TEXT, ROBJ_INSCRIPTION, ROBJ_FRAME, ROBJ_BOX, ROBJ_MOVIE and others.
+
+**Watch Fields (FRP Observables)**
+Watch fields are reactive variables that automatically propagate changes to any dependent computations or bound UI properties.
+They implement a form of Functional Reactive Programming (FRP) in which UI state is expressed as a network of dependencies.
+When a watch field changes value, all computations that depend on it are invalidated and recomputed, any dependent UI components are recalculated, and scene elements are rebuild to reflect the changes.
+This eliminates the need for explicit update calls, as the data flow is declarative.
+Watch fields can be combined, transformed, or computed from other watch fields, allowing complex state to be derived without manual synchronization.
+
+**Events and Input Handling**
+The UI layer processes events from multiple sources (mouse, touch, gamepad, keyboard, VR input devices) and routes them to the relevant behaviors of elements.
+Event propagation follows a tree structure matching the UI hierarchy. Behaviors can inform the subsequent behaviors about whether these events were consumed earlier.
+
+**Layout and Composition**
+UI elements in daRG use a flexible layout model inspired by CSS flexbox and flow layouts.
+Elements can size themselves based on content, fill available space, align and flow relative to parent containers, or use fixed positioning.
+Layouts are recomputed automatically when relevant state changes occur.
+
+
+Example
+--------
+
+Here is a sample daRG component (``introduction.nut``):
+
+.. code-block:: quirrel
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(2)
+     flow = FLOW_HORIZONTAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_MIDDLE
+     children = [
+       {
+         size = [sh(5), sh(5)]
+         rendObj = ROBJ_IMAGE
+         image= Picture("ui/image.png")
+       },
+       {
+         rendObj = ROBJ_TEXT
+         text = "Hello World!"
+       }
+     ]
+   }
+
+Interoperability with Native Code
+---------------------------------
+
+daRG offers three main methods to interface with native (game) code:
+
+* **ECS**: Quirrel bindings provide access to ECS world data.
+* **Watch/Observables**: Native observables or callback registration from native
+  code.
+* **Behavior.RtPropUpdate**: A method for updating properties every frame if
+  necessary (this won't be fast). It is more performant than frequently updating
+  observable values and is used primarily for animations or real-time UI
+  updates.
+
+Observables (Watched)
+---------------------
+
+The Observable pattern (``Watched``) works as follows:
+
+* ``watched.get()``: Retrieve the object's value.
+* ``watched.set(some_value)`` / ``watched.modify(callback, called with current value, and should return new value)``: Set a new value.
+* ``watched.mutate(callback)``: Modify content within the object (e.g., arrays
+  or tables).
+* ``watched.subscribe(callback)``: Subscribe to object changes, triggering
+  callbacks post-change.
+* ``watched.unsubscribe(callback)``: Unsubscribe callback
+* ``watched.trigger()``: Manually invoke all subscribers of an observable
+  object.
+
+Example counter component (``counter.ui.nut``):
+
+.. code-block:: quirrel
+
+   from "daRg" import *
+   from "frp" import *
+
+   let counter = Watched(0)
+   let increment = @() counter.modify(@(v) v+1)
+   let decrement = @() counter.modify(@(v) v-1)
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(5)
+     flow = FLOW_VERTICAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = [
+       button("Increment", increment, "^I"),
+       @() { rendObj = ROBJ_TEXT, text=$"Counter value = {counter.get()}", watch=counter },
+       button("Decrement", decrement, "^D")
+     ]
+   }
+
+This approach emphasizes clarity, explicit state, and high performance.
+
+Component Reference
+-------------------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   :glob:
+
+   *
+

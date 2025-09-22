@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeAccumulator" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeAccumulator</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeAccumulator_1af8209ee1604fffe5d39ca1835b6090fd" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeAccumulator::cppStrings</definition>
+        <argsstring></argsstring>
+        <name>cppStrings</name>
+        <qualifiedname>StcodeAccumulator::cppStrings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="35" column="17" bodyfile="cppStcodeAssembly.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeAccumulator_1a7c85824e9998e44e7deb09988df542d4" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeAccumulator::headerStrings</definition>
+        <argsstring></argsstring>
+        <name>headerStrings</name>
+        <qualifiedname>StcodeAccumulator::headerStrings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="35" column="28" bodyfile="cppStcodeAssembly.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeAccumulator_1a15142f09cb4b72f9b75b38c317e81870" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structStcodeStrings" kindref="compound">StcodeStrings</ref></type>
+        <definition>StcodeStrings StcodeAccumulator::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>StcodeAccumulator::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="37" column="17" bodyfile="cppStcodeAssembly.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeAccumulator_1af790c95159521ebe8438be93ee8e8640" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeAccumulator::merge</definition>
+        <argsstring>(StcodeAccumulator &amp;&amp;other)</argsstring>
+        <name>merge</name>
+        <qualifiedname>StcodeAccumulator::merge</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeAccumulator" kindref="compound">StcodeAccumulator</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="38" column="8" bodyfile="cppStcodeAssembly.h" bodystart="38" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>StcodeAccumulator</label>
+        <link refid="structStcodeAccumulator"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cppStrings</edgelabel>
+          <edgelabel>headerStrings</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="33" column="1" bodyfile="cppStcodeAssembly.h" bodystart="34" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structStcodeAccumulator_1af8209ee1604fffe5d39ca1835b6090fd" prot="public" virt="non-virtual"><scope>StcodeAccumulator</scope><name>cppStrings</name></member>
+      <member refid="structStcodeAccumulator_1a7c85824e9998e44e7deb09988df542d4" prot="public" virt="non-virtual"><scope>StcodeAccumulator</scope><name>headerStrings</name></member>
+      <member refid="structStcodeAccumulator_1af790c95159521ebe8438be93ee8e8640" prot="public" virt="non-virtual"><scope>StcodeAccumulator</scope><name>merge</name></member>
+      <member refid="structStcodeAccumulator_1a15142f09cb4b72f9b75b38c317e81870" prot="public" virt="non-virtual"><scope>StcodeAccumulator</scope><name>release</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

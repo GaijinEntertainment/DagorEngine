@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeGlobalVars_1_1Strings" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeGlobalVars::Strings</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeGlobalVars_1_1Strings_1ad728d0054603665c54d7b3998ce36c60" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeGlobalVars::Strings::cppCode</definition>
+        <argsstring></argsstring>
+        <name>cppCode</name>
+        <qualifiedname>StcodeGlobalVars::Strings::cppCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="364" column="19" bodyfile="cppStcodeAssembly.h" bodystart="364" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeGlobalVars_1_1Strings_1a72eb4a40d8d3964701dfd71caf4f0b77" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeGlobalVars::Strings::fetchersOrFwdCppCode</definition>
+        <argsstring></argsstring>
+        <name>fetchersOrFwdCppCode</name>
+        <qualifiedname>StcodeGlobalVars::Strings::fetchersOrFwdCppCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="365" column="19" bodyfile="cppStcodeAssembly.h" bodystart="365" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="362" column="3" bodyfile="cppStcodeAssembly.h" bodystart="363" bodyend="366"/>
+    <listofallmembers>
+      <member refid="structStcodeGlobalVars_1_1Strings_1ad728d0054603665c54d7b3998ce36c60" prot="public" virt="non-virtual"><scope>StcodeGlobalVars::Strings</scope><name>cppCode</name></member>
+      <member refid="structStcodeGlobalVars_1_1Strings_1a72eb4a40d8d3964701dfd71caf4f0b77" prot="public" virt="non-virtual"><scope>StcodeGlobalVars::Strings</scope><name>fetchersOrFwdCppCode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

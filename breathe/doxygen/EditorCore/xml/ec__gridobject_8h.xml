@@ -1,0 +1,222 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__gridobject_8h" kind="file" language="C++">
+    <compoundname>ec_gridobject.h</compoundname>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <includedby refid="ec__gizmofilter_8h" local="no">ec_gizmofilter.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="6">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="5">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="3">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classGridObject" prot="public">GridObject</innerclass>
+    <innerclass refid="classGridEditDialog" prot="public">GridEditDialog</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BBox3;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Point3;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ShaderElement;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ShaderMaterial;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classGridObject" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGridObject" kindref="compound">GridObject</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="classGridObject_1aea45b95ec380f8830b383d325627fff1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGridObject_1aea45b95ec380f8830b383d325627fff1" kindref="member">GridObject</ref>();</highlight></codeline>
+<codeline lineno="25" refid="classGridObject_1a37d7b0d1dfa77d8f1804ea5f0af3d6ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGridObject_1a37d7b0d1dfa77d8f1804ea5f0af3d6ba" kindref="member">~GridObject</ref>();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>****************************************************************</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"></highlight></codeline>
+<codeline lineno="30"></codeline>
+<codeline lineno="33" refid="classGridObject_1af267e41718a4e3d73cdad9d4f594cee4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1af267e41718a4e3d73cdad9d4f594cee4" kindref="member">isVisible</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(idx<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>idx<sp/>&lt;<sp/><ref refid="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" kindref="member">VIS_CNT</ref>)<sp/>?<sp/><ref refid="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" kindref="member">visible</ref>[idx]<sp/>:<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classGridObject_1ac8aa7e3fe70fc24b7404aee0b342d36d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classGridObject_1ac8aa7e3fe70fc24b7404aee0b342d36d" kindref="member">getStep</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1af371015468e37ba5af71afed492d0c28" kindref="member">step</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="40" refid="classGridObject_1ab2b7dfa8d985d5b076ad5f7d8f5353c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classGridObject_1ab2b7dfa8d985d5b076ad5f7d8f5353c4" kindref="member">getAngleStep</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" kindref="member">angleStep</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classGridObject_1aa4ff1081cf12e6c11dace2261a00f1d9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classGridObject_1aa4ff1081cf12e6c11dace2261a00f1d9" kindref="member">getScaleStep</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" kindref="member">scaleStep</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>****************************************************************</highlight></codeline>
+<codeline lineno="48"><highlight class="comment"></highlight></codeline>
+<codeline lineno="49"></codeline>
+<codeline lineno="52" refid="classGridObject_1a04869248e5dbfbe83357cd771642588a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a04869248e5dbfbe83357cd771642588a" kindref="member">setVisible</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>v,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/><ref refid="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" kindref="member">visible</ref>[index]<sp/>=<sp/>v;<sp/>}</highlight></codeline>
+<codeline lineno="55" refid="classGridObject_1ab5a81744c0ab28ce853013f2d58b6d31" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ab5a81744c0ab28ce853013f2d58b6d31" kindref="member">setStep</ref>(real<sp/>st)<sp/>{<sp/><ref refid="classGridObject_1af371015468e37ba5af71afed492d0c28" kindref="member">step</ref><sp/>=<sp/>st;<sp/>}</highlight></codeline>
+<codeline lineno="58" refid="classGridObject_1ad81d88929b43697a0cc654493b6739ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ad81d88929b43697a0cc654493b6739ad" kindref="member">setAngleStep</ref>(real<sp/>st)<sp/>{<sp/><ref refid="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" kindref="member">angleStep</ref><sp/>=<sp/>st;<sp/>}</highlight></codeline>
+<codeline lineno="61" refid="classGridObject_1ae8cb503f8e743543394c7444b1c730ce" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ae8cb503f8e743543394c7444b1c730ce" kindref="member">setScaleStep</ref>(real<sp/>st)<sp/>{<sp/><ref refid="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" kindref="member">scaleStep</ref><sp/>=<sp/>st;<sp/>}</highlight></codeline>
+<codeline lineno="63"></codeline>
+<codeline lineno="66" refid="classGridObject_1ab6c4bda87281b0bf794899e67b1e75fd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ab6c4bda87281b0bf794899e67b1e75fd" kindref="member">save</ref>(DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="69" refid="classGridObject_1a8c4f2e896442320935e63351f221ffc7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a8c4f2e896442320935e63351f221ffc7" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="classGridObject_1aee891170e98ce57e232ab3b0b8550867" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aee891170e98ce57e232ab3b0b8550867" kindref="member">render</ref>(Point3<sp/>*pt,<sp/>Point3<sp/>*dirs,<sp/>real<sp/>zoom,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>test_z<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>write_z<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="classGridObject_1af05c59ba43f1ff6d0b636b47ce1ea457" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1af05c59ba43f1ff6d0b636b47ce1ea457" kindref="member">snap</ref>(real<sp/>f,<sp/>real<sp/>st)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="classGridObject_1aa21901759deedd906a64e661a88b037d" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGridObject_1aa21901759deedd906a64e661a88b037d" kindref="member">snapToGrid</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="93" refid="classGridObject_1a2e5c2bd3957ed2f523e9dc3b32ba894b" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGridObject_1a2e5c2bd3957ed2f523e9dc3b32ba894b" kindref="member">snapToAngle</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="97" refid="classGridObject_1a4ace62ac911f407c02565ad5c4200dc5" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGridObject_1a4ace62ac911f407c02565ad5c4200dc5" kindref="member">snapToScale</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*******************************************************</highlight></codeline>
+<codeline lineno="102"><highlight class="comment"></highlight></codeline>
+<codeline lineno="103"></codeline>
+<codeline lineno="106" refid="classGridObject_1aa963ee2ee6ae7098a6e3ab6b95a33df6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aa963ee2ee6ae7098a6e3ab6b95a33df6" kindref="member">getMoveSnap</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" kindref="member">isMoveSnap</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="109" refid="classGridObject_1a544e51adfdf60cf02c776501071bd106" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a544e51adfdf60cf02c776501071bd106" kindref="member">setMoveSnap</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_snap)<sp/>{<sp/><ref refid="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" kindref="member">isMoveSnap</ref><sp/>=<sp/>is_snap;<sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="classGridObject_1a3f5b0b0cd0881b5ac9962510bd78bb3c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a3f5b0b0cd0881b5ac9962510bd78bb3c" kindref="member">getRotateSnap</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" kindref="member">isRotateSnap</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="117" refid="classGridObject_1a5549bbea5239a7374bedc61ab7bdc6b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a5549bbea5239a7374bedc61ab7bdc6b0" kindref="member">setRotateSnap</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_snap)<sp/>{<sp/><ref refid="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" kindref="member">isRotateSnap</ref><sp/>=<sp/>is_snap;<sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122" refid="classGridObject_1a0dfe7ca835d0c4ffc89c1c48ea2cd796" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a0dfe7ca835d0c4ffc89c1c48ea2cd796" kindref="member">getScaleSnap</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" kindref="member">isScaleSnap</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="125" refid="classGridObject_1a04331c45f4b7e1f853844a357ad8f9c2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a04331c45f4b7e1f853844a357ad8f9c2" kindref="member">setScaleSnap</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_snap)<sp/>{<sp/><ref refid="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" kindref="member">isScaleSnap</ref><sp/>=<sp/>is_snap;<sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="classGridObject_1a577f74c1dfeff8661b0acdb29cf13a82" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a577f74c1dfeff8661b0acdb29cf13a82" kindref="member">getDrawMajorLines</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" kindref="member">isDrawMajorLines</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="129" refid="classGridObject_1ab01b9bcc05dfb110aaa128b5613d70b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ab01b9bcc05dfb110aaa128b5613d70b1" kindref="member">setDrawMajorLines</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>draw)<sp/>{<sp/><ref refid="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" kindref="member">isDrawMajorLines</ref><sp/>=<sp/>draw;<sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131" refid="classGridObject_1a1468291731ce2dd8c5e731ffb0a6bc34" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a1468291731ce2dd8c5e731ffb0a6bc34" kindref="member">getDrawAxisLines</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" kindref="member">isDrawAxisLines</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="132" refid="classGridObject_1a48ee2feec72b935ef54901db29afc096" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a48ee2feec72b935ef54901db29afc096" kindref="member">setDrawAxisLines</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>draw)<sp/>{<sp/><ref refid="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" kindref="member">isDrawAxisLines</ref><sp/>=<sp/>draw;<sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="classGridObject_1af0df2412833088a3d956c7b052cc88d6" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1af0df2412833088a3d956c7b052cc88d6" kindref="member">getGridHeight</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aa39c876176be13e5be9de51b7389b36e" kindref="member">gridHeight</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="135" refid="classGridObject_1ad7c8c7eb69f72185222b57164604f8f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ad7c8c7eb69f72185222b57164604f8f2" kindref="member">setGridHeight</ref>(real<sp/>new_height)<sp/>{<sp/><ref refid="classGridObject_1aa39c876176be13e5be9de51b7389b36e" kindref="member">gridHeight</ref><sp/>=<sp/>new_height;<sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137" refid="classGridObject_1aec953a9fde98ef4fff62b4b4faa766b3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aec953a9fde98ef4fff62b4b4faa766b3" kindref="member">getUseInfiniteGrid</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" kindref="member">isUseInfiniteGrid</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="138" refid="classGridObject_1a8fed07daa3ccc777c0c1e344385cc14a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a8fed07daa3ccc777c0c1e344385cc14a" kindref="member">setUseInfiniteGrid</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>infinite)<sp/>{<sp/><ref refid="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" kindref="member">isUseInfiniteGrid</ref><sp/>=<sp/>infinite;<sp/>}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140" refid="classGridObject_1a0ac3c0165d2a5a79259802c69c443365" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1a0ac3c0165d2a5a79259802c69c443365" kindref="member">getInfiniteGridMajorLineColor</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a18b4b6620b738bcfe65946358269a539" kindref="member">infiniteGridMajorLineColor</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="141" refid="classGridObject_1aec3f4ec814dc1628285b44aba54f805c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aec3f4ec814dc1628285b44aba54f805c" kindref="member">setInfiniteGridMajorLineColor</ref>(E3DCOLOR<sp/>color)<sp/>{<sp/><ref refid="classGridObject_1a18b4b6620b738bcfe65946358269a539" kindref="member">infiniteGridMajorLineColor</ref><sp/>=<sp/>color;<sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143" refid="classGridObject_1a4c8b997eef863be596c7cff69a9e3c2d" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1a4c8b997eef863be596c7cff69a9e3c2d" kindref="member">getInfiniteGridMinorLineColor</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" kindref="member">infiniteGridMinorLineColor</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="144" refid="classGridObject_1a3154213a55c119847aa9188966729d42" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a3154213a55c119847aa9188966729d42" kindref="member">setInfiniteGridMinorLineColor</ref>(E3DCOLOR<sp/>color)<sp/>{<sp/><ref refid="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" kindref="member">infiniteGridMinorLineColor</ref><sp/>=<sp/>color;<sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="classGridObject_1a20bda36ada64a846c5a5810b95ed5d93" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1a20bda36ada64a846c5a5810b95ed5d93" kindref="member">getInfiniteGridMajorLineWidth</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ace314c8b926af069d60705af420ec248" kindref="member">infiniteGridMajorLineWidth</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="147" refid="classGridObject_1a13b130aa9c9b80b184cd44c9a3d3ede8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a13b130aa9c9b80b184cd44c9a3d3ede8" kindref="member">setInfiniteGridMajorLineWidth</ref>(real<sp/>width)<sp/>{<sp/><ref refid="classGridObject_1ace314c8b926af069d60705af420ec248" kindref="member">infiniteGridMajorLineWidth</ref><sp/>=<sp/>width;<sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="classGridObject_1a45c5d820ebb5030317d0a6d09b4a092a" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1a45c5d820ebb5030317d0a6d09b4a092a" kindref="member">getInfiniteGridMinorLineWidth</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a8437a8393bc5bf085db092447b99ed92" kindref="member">infiniteGridMinorLineWidth</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="150" refid="classGridObject_1a9da3eeaccfba99b3f821af81cc08a910" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a9da3eeaccfba99b3f821af81cc08a910" kindref="member">setInfiniteGridMinorLineWidth</ref>(real<sp/>width)<sp/>{<sp/><ref refid="classGridObject_1a8437a8393bc5bf085db092447b99ed92" kindref="member">infiniteGridMinorLineWidth</ref><sp/>=<sp/>width;<sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="classGridObject_1a36f7ddaf59d05a7b0bbd47665dec9e09" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a36f7ddaf59d05a7b0bbd47665dec9e09" kindref="member">getInfiniteGridMajorSubdivisions</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" kindref="member">infiniteGridMajorSubdivisions</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="153" refid="classGridObject_1a0d453ac1bd5b3fda4ff20206b4ad0a67" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a0d453ac1bd5b3fda4ff20206b4ad0a67" kindref="member">setInfiniteGridMajorSubdivisions</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>subdivisions)<sp/>{<sp/><ref refid="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" kindref="member">infiniteGridMajorSubdivisions</ref><sp/>=<sp/>subdivisions;<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="classGridObject_1a6b3333879e6cdd43e08f8ce7eb7ab5ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a6b3333879e6cdd43e08f8ce7eb7ab5ee" kindref="member">resetToDefault</ref>();</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="159" refid="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" kindref="member">VIS_CNT</ref><sp/>=<sp/>4;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a22dc04d67804d61a01acd9da8a55a0d1" kindref="member">visible</ref>[<ref refid="classGridObject_1a1e5119d6a103a6417b4c31cbd1b35aae" kindref="member">VIS_CNT</ref>];</highlight></codeline>
+<codeline lineno="162" refid="classGridObject_1af371015468e37ba5af71afed492d0c28" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1af371015468e37ba5af71afed492d0c28" kindref="member">step</ref>;</highlight></codeline>
+<codeline lineno="163" refid="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1ac59c367ff2aee9b24a8fcacf59a064fd" kindref="member">angleStep</ref>;</highlight></codeline>
+<codeline lineno="164" refid="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1a207a5a94bb078b62aef11f15a4580a33" kindref="member">scaleStep</ref>;</highlight></codeline>
+<codeline lineno="165" refid="classGridObject_1aa39c876176be13e5be9de51b7389b36e" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1aa39c876176be13e5be9de51b7389b36e" kindref="member">gridHeight</ref>;</highlight></codeline>
+<codeline lineno="166" refid="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a9c57afcb7ebd8bce52181823c1194255" kindref="member">isMoveSnap</ref>;</highlight></codeline>
+<codeline lineno="167" refid="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1aaa549bdf1d631acfeecb1d8205036441" kindref="member">isRotateSnap</ref>;</highlight></codeline>
+<codeline lineno="168" refid="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a1e06ca03d4ed6c07d790b8a251f51f7d" kindref="member">isScaleSnap</ref>;</highlight></codeline>
+<codeline lineno="169" refid="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ad3bda1cc0f9aaa95c4089f519dbf6b7b" kindref="member">isDrawMajorLines</ref>;</highlight></codeline>
+<codeline lineno="170" refid="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a13ff2242573b19e178339ef57ae1f0b1" kindref="member">isDrawAxisLines</ref>;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172" refid="classGridObject_1abd21149702d065c0bb7961a37b94f026" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1abd21149702d065c0bb7961a37b94f026" kindref="member">infiniteGridInitialized</ref>;</highlight></codeline>
+<codeline lineno="173" refid="classGridObject_1ac84a4eaec3322dccf1834e12173de6bf" refkind="member"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderMaterial&gt;<sp/><ref refid="classGridObject_1ac84a4eaec3322dccf1834e12173de6bf" kindref="member">infiniteGridShaderMaterial</ref>;</highlight></codeline>
+<codeline lineno="174" refid="classGridObject_1a5e36f646b775bb65c4b8b99e2681ba44" refkind="member"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderElement&gt;<sp/><ref refid="classGridObject_1a5e36f646b775bb65c4b8b99e2681ba44" kindref="member">infiniteGridShaderElement</ref>;</highlight></codeline>
+<codeline lineno="175" refid="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1ae8d76f9ca931440c74b49c26a8a07a3f" kindref="member">isUseInfiniteGrid</ref>;</highlight></codeline>
+<codeline lineno="176" refid="classGridObject_1a18b4b6620b738bcfe65946358269a539" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1a18b4b6620b738bcfe65946358269a539" kindref="member">infiniteGridMajorLineColor</ref>;</highlight></codeline>
+<codeline lineno="177" refid="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1a70c5989edfc461dd73c90d592f21d1aa" kindref="member">infiniteGridMinorLineColor</ref>;</highlight></codeline>
+<codeline lineno="178" refid="classGridObject_1ae6398ae0fb3ed84b875f0a9e34f79d98" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1ae6398ae0fb3ed84b875f0a9e34f79d98" kindref="member">infiniteGridXAxisColor</ref>;</highlight></codeline>
+<codeline lineno="179" refid="classGridObject_1a21aaf5c5785f031cc4066b40ae107eab" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="classGridObject_1a21aaf5c5785f031cc4066b40ae107eab" kindref="member">infiniteGridZAxisColor</ref>;</highlight></codeline>
+<codeline lineno="180" refid="classGridObject_1ace314c8b926af069d60705af420ec248" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1ace314c8b926af069d60705af420ec248" kindref="member">infiniteGridMajorLineWidth</ref>;</highlight></codeline>
+<codeline lineno="181" refid="classGridObject_1a8437a8393bc5bf085db092447b99ed92" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGridObject_1a8437a8393bc5bf085db092447b99ed92" kindref="member">infiniteGridMinorLineWidth</ref>;</highlight></codeline>
+<codeline lineno="182" refid="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a27a5478ae716ff4f9180c1cd789cf8b0" kindref="member">infiniteGridMajorSubdivisions</ref>;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="classGridObject_1a0db2b42419ddea70b36631ce79e8c138" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridObject_1a0db2b42419ddea70b36631ce79e8c138" kindref="member">renderInfiniteGrid</ref>();</highlight></codeline>
+<codeline lineno="185"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="classGridEditDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGridEditDialog" kindref="compound">GridEditDialog</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="189"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="191" refid="classGridEditDialog_1aa89f8bda00af16443c771cceb350e329" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGridEditDialog_1aa89f8bda00af16443c771cceb350e329" kindref="member">GridEditDialog</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*phandle,<sp/><ref refid="classGridObject" kindref="compound">GridObject</ref><sp/>&amp;grid,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="193" refid="classGridEditDialog_1ab876949dee56cf04a48a716ee7ee514d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridEditDialog_1ab876949dee56cf04a48a716ee7ee514d" kindref="member">showGridEditDialog</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewport_index);</highlight></codeline>
+<codeline lineno="194" refid="classGridEditDialog_1a92c6be406175bc1529c33ed159fbf74a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGridEditDialog_1a92c6be406175bc1529c33ed159fbf74a" kindref="member">onGridVisibilityChanged</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>viewport_index);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onChange(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillPanel();</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateShowGridDialogControl();</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><ref refid="classGridObject" kindref="compound">GridObject</ref><sp/>&amp;mGrid;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_gridobject.h"/>
+  </compounddef>
+</doxygen>

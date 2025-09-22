@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__query_8h" kind="file" language="C++">
+    <compoundname>dag_query.h</compoundname>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">D3dEventQuery;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>=<sp/>D3dEventQuery;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="namespaced3d_1a72bf6dffd3abadc2dfa6595f1d838bc3" refkind="member"><highlight class="normal"><ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*<ref refid="namespaced3d_1a72bf6dffd3abadc2dfa6595f1d838bc3" kindref="member">create_event_query</ref>();</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="namespaced3d_1a7d8e971add94f9214e9f6708ade5173d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a7d8e971add94f9214e9f6708ade5173d" kindref="member">release_event_query</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*query);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="namespaced3d_1a33b36863ba4ea264eb4e10807344e988" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a33b36863ba4ea264eb4e10807344e988" kindref="member">issue_event_query</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*query);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="namespaced3d_1aebaa987efa05864c349f52f7167cead6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1aebaa987efa05864c349f52f7167cead6" kindref="member">get_event_query_status</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*query,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force_flush);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*<ref refid="namespaced3d_1a72bf6dffd3abadc2dfa6595f1d838bc3" kindref="member">create_event_query</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abae5a85c31cf999a6ea5a15cc0a141b2" kindref="member">create_event_query</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a7d8e971add94f9214e9f6708ade5173d" kindref="member">release_event_query</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*q)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1af3734ad3c7def1174920f799642a42d0" kindref="member">release_event_query</ref>(q);<sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a33b36863ba4ea264eb4e10807344e988" kindref="member">issue_event_query</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*q)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8408b6f2a90476ef965a042f0dbc7be2" kindref="member">issue_event_query</ref>(q);<sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1aebaa987efa05864c349f52f7167cead6" kindref="member">get_event_query_status</ref>(<ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref><sp/>*q,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force_flush)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a3effb0a6f9e878b2c33dacf3cc739449" kindref="member">get_event_query_status</ref>(q,<sp/>force_flush);<sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_query.h"/>
+  </compounddef>
+</doxygen>

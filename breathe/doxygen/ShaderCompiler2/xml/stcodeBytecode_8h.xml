@@ -1,0 +1,733 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="stcodeBytecode_8h" kind="file" language="C++">
+    <compoundname>stcodeBytecode.h</compoundname>
+    <includes refid="shaderTab_8h" local="yes">shaderTab.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes refid="shErrorReporting_8h" local="yes">shErrorReporting.h</includes>
+    <includes local="no">shaders/dag_shaderVarType.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includes local="no">EASTL/vector_map.h</includes>
+    <includedby refid="shTargetContext_8h" local="yes">shTargetContext.h</includedby>
+    <includedby refid="stcodeBytecode_8cpp" local="yes">stcodeBytecode.cpp</includedby>
+    <incdepgraph>
+      <node id="9">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="3">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="22">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="20">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="19">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="16">
+        <label>shsyn.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="10">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="3">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="6">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="29">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="28">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="15">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="20">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="19">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="24">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="21">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="38">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="10">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="26">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="35">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="37">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>stcodeBytecode.cpp</label>
+        <link refid="stcodeBytecode_8cpp"/>
+      </node>
+      <node id="1">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="14">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="30">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="32">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classStcodeVMRegisterAllocator" prot="public">StcodeVMRegisterAllocator</innerclass>
+    <innerclass refid="classRegister" prot="public">Register</innerclass>
+    <innerclass refid="structStcodeBytecodeAccumulator" prot="public">StcodeBytecodeAccumulator</innerclass>
+    <innerclass refid="classStcodeBytecodeCache" prot="public">StcodeBytecodeCache</innerclass>
+    <innerclass refid="structStcodeBytecodeCache_1_1Refs" prot="public">StcodeBytecodeCache::Refs</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderTab_8h" kindref="compound">shaderTab.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVarType.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_map.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRegister" kindref="compound">Register</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="classStcodeVMRegisterAllocator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>shadervar<sp/>id,<sp/>opcode<sp/>-&gt;<sp/>register</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>eastl::vector_map&lt;eastl::pair&lt;int,<sp/>int&gt;,<sp/><ref refid="classRegister" kindref="compound">Register</ref>&gt;<sp/>stVarToReg{};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>eastl::array&lt;int,<sp/>256&gt;<sp/>usedRegs{};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxregsize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser;<sp/></highlight><highlight class="comment">//<sp/>for<sp/>allocation<sp/>failure<sp/>reporting</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classStcodeVMRegisterAllocator_1af96be54aeb4f60afab7c31e75e891990" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRegister" kindref="compound">Register</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="27" refid="classStcodeVMRegisterAllocator_1a2cadcb8a5f97e9f040669939adeb488d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a2cadcb8a5f97e9f040669939adeb488d" kindref="member">StcodeVMRegisterAllocator</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser)<sp/>:<sp/>parser{parser}<sp/>{}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classStcodeVMRegisterAllocator_1a15564a174e675d346238bd9573794444" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a15564a174e675d346238bd9573794444" kindref="member">requiredRegCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>maxregsize;<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" kindref="member">_add_reg_word32</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>aligned);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" kindref="member">add_vec_reg</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" kindref="member">add_reg</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" kindref="member">add_reg</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" kindref="member">add_resource_reg</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>eastl::optional&lt;Register&gt;<sp/><ref refid="classStcodeVMRegisterAllocator_1a7fc0a41ce5982f0fe92084e607f05ae3" kindref="member">registerStvarGetter</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getter_opcode,<sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>new_reg);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1af91d9b65ccacd87d3e0c9d8551f4ff1e" kindref="member">manuallyReleaseRegister</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1abdf175550e6402292695ee7921149664" kindref="member">dropCachedStvars</ref>();</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classRegister" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRegister" kindref="compound">Register</ref></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>startReg<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>currentReg<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref><sp/>*owner<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classRegister_1ac01bed97bee160f8fdd1986a19e31c61" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref>;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>acquireRegs(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>r,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>startReg<sp/>=<sp/>r;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>count<sp/>=<sp/>num;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>currentReg<sp/>=<sp/>r;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>startReg;<sp/>i<sp/>&lt;<sp/>startReg<sp/>+<sp/>count;<sp/>i++)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>owner-&gt;usedRegs[i]++;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>releaseRegs()</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>startReg;<sp/>i<sp/>&lt;<sp/>startReg<sp/>+<sp/>count;<sp/>i++)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(owner-&gt;usedRegs[i]<sp/>&gt;<sp/>0);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>owner-&gt;usedRegs[i]--;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::move(*this).release();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a7566214f60522ec6d0dc10982ba5f603" kindref="member">Register</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg,<sp/><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref><sp/>&amp;owner)<sp/>:<sp/>startReg(reg),<sp/>count(4),<sp/>currentReg(reg),<sp/>owner(&amp;owner)<sp/>{}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a7566214f60522ec6d0dc10982ba5f603" kindref="member">Register</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>aligned,<sp/><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref><sp/>&amp;owner)<sp/>:<sp/>count(num),<sp/>owner(&amp;owner)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;=<sp/>owner.usedRegs.size()<sp/>-<sp/>num;<sp/>i<sp/>+=<sp/>(aligned<sp/>?<sp/>4<sp/>:<sp/>1))</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(eastl::all_of(&amp;owner.usedRegs[i],<sp/>&amp;owner.usedRegs[i<sp/>+<sp/>num],<sp/>[](</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>used)<sp/>{<sp/>return<sp/>used<sp/>==<sp/>0;<sp/>}))</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>acquireRegs(i,<sp/>num);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(owner.parser,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;Unable<sp/>to<sp/>allocate<sp/>registers&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>swap(<ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(startReg,<sp/>r.startReg);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(currentReg,<sp/>r.currentReg);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(count,<sp/>r.count);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(owner,<sp/>r.owner);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="93" refid="classRegister_1a7566214f60522ec6d0dc10982ba5f603" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a7566214f60522ec6d0dc10982ba5f603" kindref="member">Register</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94" refid="classRegister_1a7a1b14600123adc23826f30707b7e770" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a7a1b14600123adc23826f30707b7e770" kindref="member">Register</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;r)<sp/>:<sp/>owner(r.owner)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>acquireRegs(r.startReg,<sp/>r.count);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>currentReg<sp/>=<sp/>r.currentReg;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99" refid="classRegister_1a33b5ba3b01a143ecb6edc88e8b0e0bcf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;<ref refid="classRegister_1a33b5ba3b01a143ecb6edc88e8b0e0bcf" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>re(r);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>re.swap(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105" refid="classRegister_1a87b8228cc4af2c2377f9bfa792979bdb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a87b8228cc4af2c2377f9bfa792979bdb" kindref="member">Register</ref>(<ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;&amp;r)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"><sp/>{<sp/>r.swap(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="106" refid="classRegister_1abd7e2838273dd81db52eb4473ddc332e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;<ref refid="classRegister_1abd7e2838273dd81db52eb4473ddc332e" kindref="member">operator=</ref>(<ref refid="classRegister" kindref="compound">Register</ref><sp/>&amp;&amp;r)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>re(eastl::move(r));</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>re.swap(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112" refid="classRegister_1a27490bda19cd4bd6ca09b48a795fc060" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRegister_1a27490bda19cd4bd6ca09b48a795fc060" kindref="member">~Register</ref>()<sp/>{<sp/>releaseRegs();<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="classRegister_1a5fbe9ff73dd0c365b32c1bc7bd8c2132" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRegister_1a5fbe9ff73dd0c365b32c1bc7bd8c2132" kindref="member">release</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>r<sp/>=<sp/>currentReg;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>startReg<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>currentReg<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>r;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="classRegister_1a72ee810e60f2375750a0f1af06e851bf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRegister_1a72ee810e60f2375750a0f1af06e851bf" kindref="member">reset</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>r,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num)</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>releaseRegs();</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(eastl::all_of(&amp;owner-&gt;usedRegs[r],<sp/>&amp;owner-&gt;usedRegs[r<sp/>+<sp/>num],<sp/>[](</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>used)<sp/>{<sp/>return<sp/>used<sp/>&gt;<sp/>0;<sp/>}));</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>acquireRegs(r,<sp/>num);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="classRegister_1a4d392cce814e941594a8538b67dfd5f4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>int()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="131"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(startReg<sp/>!=<sp/>-1<sp/>&amp;&amp;<sp/>count<sp/>&gt;<sp/>0<sp/>&amp;&amp;<sp/>currentReg<sp/>!=<sp/>-1);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>currentReg;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137" refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" kindref="member">StcodeVMRegisterAllocator::_add_reg_word32</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>aligned)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>reg(num,<sp/>aligned,<sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(maxregsize<sp/>&lt;<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(reg)<sp/>+<sp/>num)</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>maxregsize<sp/>=<sp/>int(reg)<sp/>+<sp/>num;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>reg;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145" refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" kindref="member">StcodeVMRegisterAllocator::add_vec_reg</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" kindref="member">_add_reg_word32</ref>(4<sp/>*<sp/>num,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="146" refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" kindref="member">StcodeVMRegisterAllocator::add_reg</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" kindref="member">_add_reg_word32</ref>(1,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="147" refid="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" kindref="member">StcodeVMRegisterAllocator::add_resource_reg</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" kindref="member">_add_reg_word32</ref>(2,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="classStcodeVMRegisterAllocator_1a2de8a57495fa5b20de8bc89d2fffb1e5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/><ref refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" kindref="member">StcodeVMRegisterAllocator::add_reg</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type)</highlight></codeline>
+<codeline lineno="150"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(type)</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_BUFFER:</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TLAS:</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TEXTURE:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" kindref="member">add_resource_reg</ref>();</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT4:</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_COLOR4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" kindref="member">add_vec_reg</ref>();</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" kindref="member">add_reg</ref>();</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_FLOAT4X4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" kindref="member">add_vec_reg</ref>(4);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165" refid="classStcodeVMRegisterAllocator_1a7fc0a41ce5982f0fe92084e607f05ae3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>eastl::optional&lt;Register&gt;<sp/><ref refid="classStcodeVMRegisterAllocator_1a7fc0a41ce5982f0fe92084e607f05ae3" kindref="member">StcodeVMRegisterAllocator::registerStvarGetter</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getter_opcode,<sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>new_reg)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[it,<sp/>inserted]<sp/>=<sp/>stVarToReg.emplace(eastl::make_pair(var_id,<sp/>getter_opcode),<sp/>new_reg);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!inserted)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it-&gt;second;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174" refid="classStcodeVMRegisterAllocator_1af91d9b65ccacd87d3e0c9d8551f4ff1e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1af91d9b65ccacd87d3e0c9d8551f4ff1e" kindref="member">StcodeVMRegisterAllocator::manuallyReleaseRegister</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg)<sp/>{<sp/><ref refid="classRegister" kindref="compound">Register</ref><sp/>raiiReg{reg,<sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">};<sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176" refid="classStcodeVMRegisterAllocator_1abdf175550e6402292695ee7921149664" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeVMRegisterAllocator_1abdf175550e6402292695ee7921149664" kindref="member">StcodeVMRegisterAllocator::dropCachedStvars</ref>()<sp/>{<sp/>stVarToReg.clear();<sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="structStcodeBytecodeAccumulator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref></highlight></codeline>
+<codeline lineno="179"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="180" refid="structStcodeBytecodeAccumulator_1a0548df4771375aa02b7d292da657c62a" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="structStcodeBytecodeAccumulator_1a0548df4771375aa02b7d292da657c62a" kindref="member">stcode</ref>;</highlight></codeline>
+<codeline lineno="181" refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" kindref="member">stblkcode</ref>;</highlight></codeline>
+<codeline lineno="182" refid="structStcodeBytecodeAccumulator_1ad0f379ff1b62a2277340b6ea463b345d" refkind="member"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;StcodeVMRegisterAllocator&gt;<sp/><ref refid="structStcodeBytecodeAccumulator_1ad0f379ff1b62a2277340b6ea463b345d" kindref="member">regAllocator</ref>;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="structStcodeBytecodeAccumulator_1abea8b18725041acf5304fcdd778d358b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1abea8b18725041acf5304fcdd778d358b" kindref="member">StcodeBytecodeAccumulator</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser)<sp/>:<sp/><ref refid="structStcodeBytecodeAccumulator_1ad0f379ff1b62a2277340b6ea463b345d" kindref="member">regAllocator</ref>{new<sp/><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref>{parser}}<sp/>{}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="structStcodeBytecodeAccumulator_1a81d4ca7d0854e932a4fdbbfd41caee71" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1a81d4ca7d0854e932a4fdbbfd41caee71" kindref="member">push_stcode</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)<sp/>{<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>.push_back(a);<sp/>}</highlight></codeline>
+<codeline lineno="187" refid="structStcodeBytecodeAccumulator_1a81e7776e1af220968a4c58f1ed27346d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1a81e7776e1af220968a4c58f1ed27346d" kindref="member">push_stblkcode</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)<sp/>{<sp/><ref refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" kindref="member">stblkcode</ref>.push_back(a);<sp/>}</highlight></codeline>
+<codeline lineno="188" refid="structStcodeBytecodeAccumulator_1a7be2d5e41fb77e3caa1028fa61c78466" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1a7be2d5e41fb77e3caa1028fa61c78466" kindref="member">append_stcode</ref>(dag::ConstSpan&lt;int&gt;<sp/>c)<sp/>{<sp/>append_items(<ref refid="namespacestcode" kindref="compound">stcode</ref>,<sp/>c.size(),<sp/>c.data());<sp/>}</highlight></codeline>
+<codeline lineno="189" refid="structStcodeBytecodeAccumulator_1aaccb64a6da13c337bc82efbe1ceaec55" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1aaccb64a6da13c337bc82efbe1ceaec55" kindref="member">append_stblkcode</ref>(dag::ConstSpan&lt;int&gt;<sp/>c)<sp/>{<sp/>append_items(<ref refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" kindref="member">stblkcode</ref>,<sp/>c.size(),<sp/>c.data());<sp/>}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191" refid="structStcodeBytecodeAccumulator_1aadd39a557a0960ffc96710d4a5df9931" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1aadd39a557a0960ffc96710d4a5df9931" kindref="member">push_alt_stcode</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dyn,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dyn)</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structStcodeBytecodeAccumulator_1a81d4ca7d0854e932a4fdbbfd41caee71" kindref="member">push_stcode</ref>(a);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structStcodeBytecodeAccumulator_1a81e7776e1af220968a4c58f1ed27346d" kindref="member">push_stblkcode</ref>(a);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="198" refid="structStcodeBytecodeAccumulator_1a00ce6156560f33b4e7deede3abd08fd4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1a00ce6156560f33b4e7deede3abd08fd4" kindref="member">append_alt_stcode</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dyn,<sp/>dag::ConstSpan&lt;int&gt;<sp/>c)</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dyn)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structStcodeBytecodeAccumulator_1a7be2d5e41fb77e3caa1028fa61c78466" kindref="member">append_stcode</ref>(c);</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structStcodeBytecodeAccumulator_1aaccb64a6da13c337bc82efbe1ceaec55" kindref="member">append_stblkcode</ref>(c);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="205" refid="structStcodeBytecodeAccumulator_1a9a3613b1842f4fe8efbf4b2e2969dc2b" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>&amp;<ref refid="structStcodeBytecodeAccumulator_1a9a3613b1842f4fe8efbf4b2e2969dc2b" kindref="member">get_alt_curstcode</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dyn)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dyn<sp/>?<sp/><ref refid="structStcodeBytecodeAccumulator_1a0548df4771375aa02b7d292da657c62a" kindref="member">stcode</ref><sp/>:<sp/><ref refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" kindref="member">stblkcode</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207" refid="structStcodeBytecodeAccumulator_1adf1bdd68387a4d3bebef7e261974d2a3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structStcodeBytecodeAccumulator_1adf1bdd68387a4d3bebef7e261974d2a3" kindref="member">reset</ref>()</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>.clear();</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" kindref="member">stblkcode</ref>.clear();</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="212"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight></codeline>
+<codeline lineno="214" refid="classStcodeBytecodeCache" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref></highlight></codeline>
+<codeline lineno="215"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>Tab&lt;TabStcode&gt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>{};</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/>Tab&lt;TabStcode&gt;<sp/>stblkcode{};</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="220" refid="classStcodeBytecodeCache_1aa33b84934c59ab57b097262344a2a36b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classStcodeBytecodeCache_1aa33b84934c59ab57b097262344a2a36b" kindref="member">StcodeBytecodeCache</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="221" refid="classStcodeBytecodeCache_1a321639744fade3b86ed39b92c73d0da1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classStcodeBytecodeCache_1a321639744fade3b86ed39b92c73d0da1" kindref="member">~StcodeBytecodeCache</ref>()<sp/>{<sp/>debug(</highlight><highlight class="stringliteral">&quot;[stat]<sp/>stcode.count=%d<sp/><sp/>stblk.size()=%d&quot;</highlight><highlight class="normal">,<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>.size(),<sp/>stblkcode.size());<sp/>}</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223" refid="classStcodeBytecodeCache_1aaca6d55b8812420e3115b3cf4f389132" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classStcodeBytecodeCache_1aaca6d55b8812420e3115b3cf4f389132" kindref="member">PINNED_TYPE</ref>(<ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref>);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="225" refid="structStcodeBytecodeCache_1_1Refs" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structStcodeBytecodeCache_1_1Refs" kindref="compound">Refs</ref></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="227" refid="structStcodeBytecodeCache_1_1Refs_1a967093436d938ab21929802ee03e4b2e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/><ref refid="structStcodeBytecodeCache_1_1Refs_1a967093436d938ab21929802ee03e4b2e" kindref="member">stcode</ref>;</highlight></codeline>
+<codeline lineno="228" refid="structStcodeBytecodeCache_1_1Refs_1a5934d0bf0db5405e3c193edcc81b6b5a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/><ref refid="structStcodeBytecodeCache_1_1Refs_1a5934d0bf0db5405e3c193edcc81b6b5a" kindref="member">stblkcode</ref>;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231" refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structStcodeBytecodeCache_1_1Refs" kindref="compound">Refs</ref><sp/><ref refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" kindref="member">findOrPost</ref>(<ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref><sp/>&amp;&amp;a_code)</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{<ref refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" kindref="member">findOrPost</ref>(eastl::move(a_code.stcode),<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">),<sp/><ref refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" kindref="member">findOrPost</ref>(eastl::move(a_code.stblkcode),<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)};</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/><ref refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" kindref="member">findOrPost</ref>(Tab&lt;int&gt;<sp/>&amp;&amp;a_routine,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dyn);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="stcodeBytecode.h"/>
+  </compounddef>
+</doxygen>

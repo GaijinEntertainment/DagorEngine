@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="mathAng_8cpp" kind="file" language="C++">
+    <compoundname>mathAng.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes refid="mathAng_8h" local="yes">mathAng.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>mathAng.cpp</label>
+        <link refid="mathAng_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>mathAng.h</label>
+        <link refid="mathAng_8h"/>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="mathAng_8cpp_1a330b8b77f204622d27a04a8a7314a774" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real square_rec</definition>
+        <argsstring>(int iter_no, real val, real *hashed_iter)</argsstring>
+        <name>square_rec</name>
+        <param>
+          <type>int</type>
+          <declname>iter_no</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> *</type>
+          <declname>hashed_iter</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mathAng.cpp" line="6" column="6" bodyfile="mathAng.cpp" bodystart="6" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="mathAng_8cpp_1ac91ac97db53de63426e55c47ea6ea6f6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_cos_power_from_ang</definition>
+        <argsstring>(real alfa, real part, real &amp;real_part)</argsstring>
+        <name>get_cos_power_from_ang</name>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>alfa</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>part</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>real_part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mathAng.cpp" line="20" column="5" bodyfile="mathAng.cpp" bodystart="20" bodyend="40"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="mathAng_8h" kindref="compound">mathAng.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="mathAng_8cpp_1a330b8b77f204622d27a04a8a7314a774" kindref="member">square_rec</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>iter_no,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>val,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>*hashed_iter)</highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(iter_no<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>val;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>mulRez<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>mul<sp/>=<sp/>1<sp/>-<sp/>val<sp/>*<sp/>val;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>(iter_no<sp/>-<sp/>1)<sp/>/<sp/>2;<sp/>i++)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/>mulRez<sp/>*=<sp/>mul;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hashed_iter)</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(val<sp/>*<sp/>mulRez<sp/>-<sp/>(1<sp/>-<sp/>iter_no)<sp/>*<sp/>(*hashed_iter))<sp/>/<sp/>iter_no;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(val<sp/>*<sp/>mulRez<sp/>-<sp/>(1<sp/>-<sp/>iter_no)<sp/>*<sp/><ref refid="mathAng_8cpp_1a330b8b77f204622d27a04a8a7314a774" kindref="member">square_rec</ref>(iter_no<sp/>-<sp/>2,<sp/>val,<sp/>NULL))<sp/>/<sp/>iter_no;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="mathAng_8cpp_1ac91ac97db53de63426e55c47ea6ea6f6" kindref="member">get_cos_power_from_ang</ref>(<ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>alfa,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>part,<sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>&amp;real_part)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxDegree<sp/>=<sp/>100000;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>alfaIters[(maxDegree<sp/>-<sp/>1)<sp/>/<sp/>2],<sp/>oneIters[(maxDegree<sp/>-<sp/>1)<sp/>/<sp/>2],<sp/>zeroIters[(maxDegree<sp/>-<sp/>1)<sp/>/<sp/>2];</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>k<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(d<sp/>=<sp/>1;<sp/>d<sp/>&lt;<sp/>maxDegree;<sp/>d<sp/>+=<sp/>2)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>zeroIter<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>oneIter<sp/>=<sp/><ref refid="mathAng_8cpp_1a330b8b77f204622d27a04a8a7314a774" kindref="member">square_rec</ref>(d,<sp/>1,<sp/>d<sp/>&gt;<sp/>1<sp/>?<sp/>&amp;oneIters[(d<sp/>-<sp/>3)<sp/>/<sp/>2]<sp/>:<sp/>NULL);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>alfaIter<sp/>=<sp/><ref refid="mathAng_8cpp_1a330b8b77f204622d27a04a8a7314a774" kindref="member">square_rec</ref>(d,<sp/>sin(alfa),<sp/>d<sp/>&gt;<sp/>1<sp/>?<sp/>&amp;alfaIters[(d<sp/>-<sp/>3)<sp/>/<sp/>2]<sp/>:<sp/>NULL);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>alfaIters[k]<sp/>=<sp/>alfaIter;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>oneIters[k]<sp/>=<sp/>oneIter;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>zeroIters[k]<sp/>=<sp/>zeroIter;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>k++;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>real_part<sp/>=<sp/>(alfaIter<sp/>-<sp/>zeroIter)<sp/>/<sp/>(oneIter<sp/>-<sp/>zeroIter);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(real_part<sp/>&gt;<sp/>part)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="mathAng.cpp"/>
+  </compounddef>
+</doxygen>

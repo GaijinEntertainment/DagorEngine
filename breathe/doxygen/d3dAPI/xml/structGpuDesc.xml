@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGpuDesc" kind="struct" language="C++" prot="public">
+    <compoundname>GpuDesc</compoundname>
+    <includes refid="dag__gpuDesc_8h" local="no">dag_gpuDesc.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" prot="public" static="no" mutable="no">
+        <type>decltype(DeviceAttributes::vendor)</type>
+        <definition>decltype(DeviceAttributes::vendor) GpuDesc::vendor</definition>
+        <argsstring></argsstring>
+        <name>vendor</name>
+        <qualifiedname>GpuDesc::vendor</qualifiedname>
+        <initializer>= <ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref></initializer>
+        <briefdescription>
+<para>Dagor specific value about the vendor of the currently use GPU. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="26" column="12" bodyfile="dag_gpuDesc.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuDesc_1a57d225b655c278ad62504bc697308d8f" prot="public" static="no" mutable="no">
+        <type>decltype(DeviceAttributes::isUMA)</type>
+        <definition>decltype(DeviceAttributes::isUMA) GpuDesc::isUMA</definition>
+        <argsstring></argsstring>
+        <name>isUMA</name>
+        <qualifiedname>GpuDesc::isUMA</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Unified Memory Architecture, true if the GPU is integrated. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="30" column="12" bodyfile="dag_gpuDesc.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuDesc_1a21edcab131ed098d493fa334d56803f2" prot="public" static="no" mutable="no">
+        <type>decltype(DeviceAttributes::vendorId)</type>
+        <definition>decltype(DeviceAttributes::vendorId) GpuDesc::vendorId</definition>
+        <argsstring></argsstring>
+        <name>vendorId</name>
+        <qualifiedname>GpuDesc::vendorId</qualifiedname>
+        <initializer>= <ref refid="structDeviceAttributesBase_1a88a15de97029a1c9d6ceee58d9b3d909" kindref="member">DeviceAttributes::UNKNOWN</ref></initializer>
+        <briefdescription>
+<para>ID of the vendor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="34" column="12" bodyfile="dag_gpuDesc.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" prot="public" static="no" mutable="no">
+        <type>decltype(DeviceAttributes::family)</type>
+        <definition>decltype(DeviceAttributes::family) GpuDesc::family</definition>
+        <argsstring></argsstring>
+        <name>family</name>
+        <qualifiedname>GpuDesc::family</qualifiedname>
+        <initializer>= <ref refid="structDeviceAttributesBase_1a88a15de97029a1c9d6ceee58d9b3d909" kindref="member">DeviceAttributes::UNKNOWN</ref></initializer>
+        <briefdescription>
+<para>Internal representation of the currently used GPU&apos;s microarchitecture, aka family. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="38" column="12" bodyfile="dag_gpuDesc.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structGpuDesc_1a38b8c9fbea798fc4ac63aa349908b2fc" prot="public" static="no" strong="no">
+        <type></type>
+        <name>AmdFamily</name>
+        <qualifiedname>GpuDesc::AmdFamily</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="19" column="1" bodyfile="dag_consts.h" bodystart="379" bodyend="390"/>
+      </memberdef>
+      <memberdef kind="enum" id="structGpuDesc_1a76c0bb5419ef5e4273f5efee025aa873" prot="public" static="no" strong="no">
+        <type></type>
+        <name>IntelFamily</name>
+        <qualifiedname>GpuDesc::IntelFamily</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="20" column="1" bodyfile="dag_consts.h" bodystart="394" bodyend="434"/>
+      </memberdef>
+      <memberdef kind="enum" id="structGpuDesc_1a12124c11aea71be08e0d23c938e73959" prot="public" static="no" strong="no">
+        <type></type>
+        <name>NvidiaFamily</name>
+        <qualifiedname>GpuDesc::NvidiaFamily</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="21" column="1" bodyfile="dag_consts.h" bodystart="438" bodyend="463"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>To describe a GPU category and make query with it. Example usage: if (auto &amp;desc = <ref refid="namespaced3d_1a767cfb3d1ee6f65970fd4391b2a2df36" kindref="member">d3d::get_driver_desc()</ref>; desc.info &gt;= <ref refid="structGpuDesc" kindref="compound">GpuDesc</ref>{.vendor = <ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70af9232ef48e81c8fa4eb9a0cafbe1f13d" kindref="member">GpuVendor::INTEL</ref>, .family = GpuDesc::ALCHEMIST}) ... </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_gpuDesc.h" line="17" column="1" bodyfile="dag_gpuDesc.h" bodystart="18" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structGpuDesc_1a38b8c9fbea798fc4ac63aa349908b2fc" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>AmdFamily</name></member>
+      <member refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>family</name></member>
+      <member refid="structGpuDesc_1a76c0bb5419ef5e4273f5efee025aa873" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>IntelFamily</name></member>
+      <member refid="structGpuDesc_1a57d225b655c278ad62504bc697308d8f" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>isUMA</name></member>
+      <member refid="structGpuDesc_1a12124c11aea71be08e0d23c938e73959" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>NvidiaFamily</name></member>
+      <member refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>vendor</name></member>
+      <member refid="structGpuDesc_1a21edcab131ed098d493fa334d56803f2" prot="public" virt="non-virtual"><scope>GpuDesc</scope><name>vendorId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

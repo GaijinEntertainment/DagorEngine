@@ -1,0 +1,349 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLockedImage" kind="class" language="C++" prot="public">
+    <compoundname>LockedImage</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ImageView</basecompoundref>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ImageView</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLockedImage_1accf1c8829c45ad0771b7b247ddecba56" prot="private" static="no" mutable="no">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture* LockedImage&lt; ImageView &gt;::lockedTexture</definition>
+        <argsstring></argsstring>
+        <name>lockedTexture</name>
+        <qualifiedname>LockedImage::lockedTexture</qualifiedname>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="405" column="15" bodyfile="dag_lockTexture.h" bodystart="405" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classLockedImage_1ac8822cc6b6fdee44f66f4a93aeab9f46" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::LockedImage</definition>
+        <argsstring>(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt, BaseTexture *owner)</argsstring>
+        <name>LockedImage</name>
+        <qualifiedname>LockedImage::LockedImage</qualifiedname>
+        <param>
+          <type>uint8_t *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>byte_stride</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>owner</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="328" column="3" bodyfile="dag_lockTexture.h" bodystart="328" bodyend="330"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classLockedImage_1a79d1d6395ec85f0d5cb607262d0a1d0f" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref></type>
+        <definition>static LockedImage LockedImage&lt; ImageView &gt;::lock_texture</definition>
+        <argsstring>(BaseTexture *tex, eastl::optional&lt; int &gt; layer, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <qualifiedname>LockedImage::lock_texture</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; int &gt;</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="332" column="22" bodyfile="dag_lockTexture.h" bodystart="332" bodyend="359"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLockedImage_1ad06753dded69044e3b589b45fef0e859" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::LockedImage</definition>
+        <argsstring>()=default</argsstring>
+        <name>LockedImage</name>
+        <qualifiedname>LockedImage::LockedImage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="362" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a5a8fced74f879b615966aee1401a9f79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::~LockedImage</definition>
+        <argsstring>()</argsstring>
+        <name>~LockedImage</name>
+        <qualifiedname>LockedImage::~LockedImage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="382" column="3" bodyfile="dag_lockTexture.h" bodystart="382" bodyend="386"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1ae4bc057ca70b9988f4caa7ad10638cb2" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::LockedImage</definition>
+        <argsstring>(LockedImage &amp;&amp;rhs) noexcept</argsstring>
+        <name>LockedImage</name>
+        <qualifiedname>LockedImage::LockedImage</qualifiedname>
+        <param>
+          <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="388" column="3" bodyfile="dag_lockTexture.h" bodystart="388" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a446b7c5c28fc6a80d83100a2fd231fca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;</type>
+        <definition>LockedImage &amp; LockedImage&lt; ImageView &gt;::operator=</definition>
+        <argsstring>(LockedImage &amp;&amp;rhs)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>LockedImage::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="390" column="15" bodyfile="dag_lockTexture.h" bodystart="390" bodyend="395"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a3afea4dce0a8b994473ac4871c66c8a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::LockedImage</definition>
+        <argsstring>(const LockedImage &amp;)=delete</argsstring>
+        <name>LockedImage</name>
+        <qualifiedname>LockedImage::LockedImage</qualifiedname>
+        <param>
+          <type>const <ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="397" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a3da34dad5464b71196f391246fd13cd9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;</type>
+        <definition>LockedImage &amp; LockedImage&lt; ImageView &gt;::operator=</definition>
+        <argsstring>(const LockedImage &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>LockedImage::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classLockedImage" kindref="compound">LockedImage</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="398" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1aeeff6a6ded5823aee19f748a81b43da1" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedImage&lt; ImageView &gt;::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>LockedImage::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="400" column="12" bodyfile="dag_lockTexture.h" bodystart="400" bodyend="400"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a08cf0434ffd9020ec3b124582456bf40" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void LockedImage&lt; ImageView &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>LockedImage::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="402" column="8" bodyfile="dag_lockTexture.h" bodystart="402" bodyend="402"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classLockedImage_1a1dcb51b211cf7b12e060e38f59b091d1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref></type>
+        <definition>static LockedImage LockedImage&lt; ImageView &gt;::lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <qualifiedname>LockedImage::lock_texture</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="364" column="22" bodyfile="dag_lockTexture.h" bodystart="364" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a341be565937730d52b53f90c9e712d22" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool LockedImage&lt; ImageView &gt;::has_layers</definition>
+        <argsstring>(BaseTexture *tex)</argsstring>
+        <name>has_layers</name>
+        <qualifiedname>LockedImage::has_layers</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="369" column="15" bodyfile="dag_lockTexture.h" bodystart="369" bodyend="375"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedImage_1a400b365b19744419c7d76addcb9b4d5d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref></type>
+        <definition>static LockedImage LockedImage&lt; ImageView &gt;::lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int layer, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <qualifiedname>LockedImage::lock_texture</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="377" column="22" bodyfile="dag_lockTexture.h" bodystart="377" bodyend="380"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ImageView</label>
+      </node>
+      <node id="1">
+        <label>LockedImage&lt; ImageView &gt;</label>
+        <link refid="classLockedImage"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ImageView</label>
+      </node>
+      <node id="1">
+        <label>LockedImage&lt; ImageView &gt;</label>
+        <link refid="classLockedImage"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_lockTexture.h" line="326" column="1" bodyfile="dag_lockTexture.h" bodystart="327" bodyend="406"/>
+    <listofallmembers>
+      <member refid="classLockedImage_1a08cf0434ffd9020ec3b124582456bf40" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>close</name></member>
+      <member refid="classLockedImage_1a341be565937730d52b53f90c9e712d22" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>has_layers</name></member>
+      <member refid="classLockedImage_1a79d1d6395ec85f0d5cb607262d0a1d0f" prot="private" virt="non-virtual"><scope>LockedImage</scope><name>lock_texture</name></member>
+      <member refid="classLockedImage_1a1dcb51b211cf7b12e060e38f59b091d1" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>lock_texture</name></member>
+      <member refid="classLockedImage_1a400b365b19744419c7d76addcb9b4d5d" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>lock_texture</name></member>
+      <member refid="classLockedImage_1ac8822cc6b6fdee44f66f4a93aeab9f46" prot="private" virt="non-virtual"><scope>LockedImage</scope><name>LockedImage</name></member>
+      <member refid="classLockedImage_1ad06753dded69044e3b589b45fef0e859" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>LockedImage</name></member>
+      <member refid="classLockedImage_1ae4bc057ca70b9988f4caa7ad10638cb2" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>LockedImage</name></member>
+      <member refid="classLockedImage_1a3afea4dce0a8b994473ac4871c66c8a4" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>LockedImage</name></member>
+      <member refid="classLockedImage_1accf1c8829c45ad0771b7b247ddecba56" prot="private" virt="non-virtual"><scope>LockedImage</scope><name>lockedTexture</name></member>
+      <member refid="classLockedImage_1aeeff6a6ded5823aee19f748a81b43da1" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>operator bool</name></member>
+      <member refid="classLockedImage_1a446b7c5c28fc6a80d83100a2fd231fca" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>operator=</name></member>
+      <member refid="classLockedImage_1a3da34dad5464b71196f391246fd13cd9" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>operator=</name></member>
+      <member refid="classLockedImage_1a5a8fced74f879b615966aee1401a9f79" prot="public" virt="non-virtual"><scope>LockedImage</scope><name>~LockedImage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

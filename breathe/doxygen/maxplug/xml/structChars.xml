@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structChars" kind="struct" language="C++" prot="public">
+    <compoundname>Chars</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Chars::v</definition>
+        <argsstring></argsstring>
+        <name>v</name>
+        <qualifiedname>Chars::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="171" column="9" bodyfile="font.cpp" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structChars_1a67771733753d55f8374478619d35a1ad" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* Chars::s</definition>
+        <argsstring></argsstring>
+        <name>s</name>
+        <qualifiedname>Chars::s</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="172" column="9" bodyfile="font.cpp" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="font.cpp" line="169" column="1" bodyfile="font.cpp" bodystart="170" bodyend="173"/>
+    <listofallmembers>
+      <member refid="structChars_1a67771733753d55f8374478619d35a1ad" prot="public" virt="non-virtual"><scope>Chars</scope><name>s</name></member>
+      <member refid="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" prot="public" virt="non-virtual"><scope>Chars</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,440 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynShaderQuadBuf" kind="class" language="C++" prot="public">
+    <compoundname>DynShaderQuadBuf</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1adc981e2b83d2390ee3c41c9220217582" prot="private" static="no" mutable="no">
+        <type>SmallTab&lt; uint8_t, InimemAlloc &gt;</type>
+        <definition>SmallTab&lt;uint8_t, InimemAlloc&gt; DynShaderQuadBuf::vBuf</definition>
+        <argsstring></argsstring>
+        <name>vBuf</name>
+        <qualifiedname>DynShaderQuadBuf::vBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="146" column="12" bodyfile="dag_dynShaderBuf.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1a878e725844925a3cd60ebf5b8c71096a" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DynShaderQuadBuf::currentShader</definition>
+        <argsstring></argsstring>
+        <name>currentShader</name>
+        <qualifiedname>DynShaderQuadBuf::currentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="147" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1aae65e69c25cb30ca6e872b0172c722fc" prot="private" static="no" mutable="no">
+        <type>RingDynamicVB *</type>
+        <definition>RingDynamicVB* DynShaderQuadBuf::vb</definition>
+        <argsstring></argsstring>
+        <name>vb</name>
+        <qualifiedname>DynShaderQuadBuf::vb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="148" column="17" bodyfile="dag_dynShaderBuf.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1ac2cbd66a1e45f4ffabdfdfcba13d00ce" prot="private" static="no" mutable="no">
+        <type>VDECL</type>
+        <definition>VDECL DynShaderQuadBuf::vdecl</definition>
+        <argsstring></argsstring>
+        <name>vdecl</name>
+        <qualifiedname>DynShaderQuadBuf::vdecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="149" column="9" bodyfile="dag_dynShaderBuf.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1a832bba02e6788c15e0500216abd577e5" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderQuadBuf::qStride</definition>
+        <argsstring></argsstring>
+        <name>qStride</name>
+        <qualifiedname>DynShaderQuadBuf::qStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="150" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderQuadBuf_1a42aeef6b710610d6c2639291f0044e42" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderQuadBuf::qUsed</definition>
+        <argsstring></argsstring>
+        <name>qUsed</name>
+        <qualifiedname>DynShaderQuadBuf::qUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="151" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a85b09f2dc6c07121695bc9664254cb20" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderQuadBuf::DynShaderQuadBuf</definition>
+        <argsstring>()</argsstring>
+        <name>DynShaderQuadBuf</name>
+        <qualifiedname>DynShaderQuadBuf::DynShaderQuadBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="101" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="101" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1adf6533b0540656f1ea7fc24b423a1f5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderQuadBuf::~DynShaderQuadBuf</definition>
+        <argsstring>()</argsstring>
+        <name>~DynShaderQuadBuf</name>
+        <qualifiedname>DynShaderQuadBuf::~DynShaderQuadBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="102" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="102" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a85ca4ee1f5781b3628fbe1df512343ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::setRingBuf</definition>
+        <argsstring>(RingDynamicVB *_vb)</argsstring>
+        <name>setRingBuf</name>
+        <qualifiedname>DynShaderQuadBuf::setRingBuf</qualifiedname>
+        <param>
+          <type>RingDynamicVB *</type>
+          <declname>_vb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="104" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a404daa5ed3706cf768387eba59fd4bd6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::init</definition>
+        <argsstring>(dag::ConstSpan&lt; CompiledShaderChannelId &gt; ch, int max_quads)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynShaderQuadBuf::init</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> &gt;</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_quads</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="106" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1ab3cebbdc913202252847d8973ea03d13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::initCopy</definition>
+        <argsstring>(const DynShaderQuadBuf &amp;b)</argsstring>
+        <name>initCopy</name>
+        <qualifiedname>DynShaderQuadBuf::initCopy</qualifiedname>
+        <param>
+          <type>const <ref refid="classDynShaderQuadBuf" kindref="compound">DynShaderQuadBuf</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="107" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a23be83259acac9b65d2f2a0197351245" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>DynShaderQuadBuf::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1aad49bcf1a95decbf4a7e58d750181c48" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * DynShaderQuadBuf::getCurrentShader</definition>
+        <argsstring>()</argsstring>
+        <name>getCurrentShader</name>
+        <qualifiedname>DynShaderQuadBuf::getCurrentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="110" column="24" bodyfile="dag_dynShaderBuf.h" bodystart="110" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a76584b687e4912538ff7be6c2cece1e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::setCurrentShader</definition>
+        <argsstring>(ShaderElement *shader)</argsstring>
+        <name>setCurrentShader</name>
+        <qualifiedname>DynShaderQuadBuf::setCurrentShader</qualifiedname>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="111" column="15" bodyfile="dag_dynShaderBuf.h" bodystart="111" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a2d479e8d3c9d98b3ac35d33612aac4a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderQuadBuf::fillRawQuads</definition>
+        <argsstring>(void **__restrict out_vdata, int quad_num)</argsstring>
+        <name>fillRawQuads</name>
+        <qualifiedname>DynShaderQuadBuf::fillRawQuads</qualifiedname>
+        <param>
+          <type>void **__restrict</type>
+          <declname>out_vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>quad_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="121" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1ac4d2491dc86c5be868e55404b100b0f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool DynShaderQuadBuf::fillRawQuadsEx</definition>
+        <argsstring>(T **__restrict ov, int nq)</argsstring>
+        <name>fillRawQuadsEx</name>
+        <qualifiedname>DynShaderQuadBuf::fillRawQuadsEx</qualifiedname>
+        <param>
+          <type>T **__restrict</type>
+          <declname>ov</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nq</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="123" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="123" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a48da951b0016f6826e4eab60772d6b46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::addQuads</definition>
+        <argsstring>(const void *__restrict vertices, int quad_num)</argsstring>
+        <name>addQuads</name>
+        <qualifiedname>DynShaderQuadBuf::addQuads</qualifiedname>
+        <param>
+          <type>const void *__restrict</type>
+          <declname>vertices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>quad_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="135" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1acdec64e12e124ec0624a595e018c484e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DynShaderQuadBuf::lockData</definition>
+        <argsstring>(int max_quad_num)</argsstring>
+        <name>lockData</name>
+        <qualifiedname>DynShaderQuadBuf::lockData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_quad_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="136" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1aedd102c4e9eedf1b5d946d309b076337" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::unlockDataAndFlush</definition>
+        <argsstring>(int quad_num)</argsstring>
+        <name>unlockDataAndFlush</name>
+        <qualifiedname>DynShaderQuadBuf::unlockDataAndFlush</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>quad_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="137" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1ad30d107db6f9aa4d2ccc651d40e84115" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::flush</definition>
+        <argsstring>()</argsstring>
+        <name>flush</name>
+        <qualifiedname>DynShaderQuadBuf::flush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="138" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1abda0453ae0eb70e34306817b5064af4d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>DynShaderQuadBuf::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="139" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="139" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a8ea8f23c5cb8edef34e4497e9ed650b6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderQuadBuf::hasEnoughBufFor</definition>
+        <argsstring>(int q) const</argsstring>
+        <name>hasEnoughBufFor</name>
+        <qualifiedname>DynShaderQuadBuf::hasEnoughBufFor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>q</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="141" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="141" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a7bb41eb4274135e8821f0e7540b43468" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>VDECL</type>
+        <definition>VDECL DynShaderQuadBuf::getVDecl</definition>
+        <argsstring>() const</argsstring>
+        <name>getVDecl</name>
+        <qualifiedname>DynShaderQuadBuf::getVDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="143" column="9" bodyfile="dag_dynShaderBuf.h" bodystart="143" bodyend="143"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDynShaderQuadBuf_1a82f7c63c2a91c1acd48cf2c48b556e8d" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderQuadBuf::ctorInit</definition>
+        <argsstring>()</argsstring>
+        <name>ctorInit</name>
+        <qualifiedname>DynShaderQuadBuf::ctorInit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="153" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="153" bodyend="159"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynShaderBuf.h" line="98" column="1" bodyfile="dag_dynShaderBuf.h" bodystart="99" bodyend="160"/>
+    <listofallmembers>
+      <member refid="classDynShaderQuadBuf_1a48da951b0016f6826e4eab60772d6b46" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>addQuads</name></member>
+      <member refid="classDynShaderQuadBuf_1abda0453ae0eb70e34306817b5064af4d" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>clear</name></member>
+      <member refid="classDynShaderQuadBuf_1a23be83259acac9b65d2f2a0197351245" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>close</name></member>
+      <member refid="classDynShaderQuadBuf_1a82f7c63c2a91c1acd48cf2c48b556e8d" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>ctorInit</name></member>
+      <member refid="classDynShaderQuadBuf_1a878e725844925a3cd60ebf5b8c71096a" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>currentShader</name></member>
+      <member refid="classDynShaderQuadBuf_1a85b09f2dc6c07121695bc9664254cb20" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>DynShaderQuadBuf</name></member>
+      <member refid="classDynShaderQuadBuf_1a2d479e8d3c9d98b3ac35d33612aac4a4" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>fillRawQuads</name></member>
+      <member refid="classDynShaderQuadBuf_1ac4d2491dc86c5be868e55404b100b0f6" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>fillRawQuadsEx</name></member>
+      <member refid="classDynShaderQuadBuf_1ad30d107db6f9aa4d2ccc651d40e84115" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>flush</name></member>
+      <member refid="classDynShaderQuadBuf_1aad49bcf1a95decbf4a7e58d750181c48" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>getCurrentShader</name></member>
+      <member refid="classDynShaderQuadBuf_1a7bb41eb4274135e8821f0e7540b43468" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>getVDecl</name></member>
+      <member refid="classDynShaderQuadBuf_1a8ea8f23c5cb8edef34e4497e9ed650b6" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>hasEnoughBufFor</name></member>
+      <member refid="classDynShaderQuadBuf_1a404daa5ed3706cf768387eba59fd4bd6" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>init</name></member>
+      <member refid="classDynShaderQuadBuf_1ab3cebbdc913202252847d8973ea03d13" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>initCopy</name></member>
+      <member refid="classDynShaderQuadBuf_1acdec64e12e124ec0624a595e018c484e" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>lockData</name></member>
+      <member refid="classDynShaderQuadBuf_1a832bba02e6788c15e0500216abd577e5" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>qStride</name></member>
+      <member refid="classDynShaderQuadBuf_1a42aeef6b710610d6c2639291f0044e42" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>qUsed</name></member>
+      <member refid="classDynShaderQuadBuf_1a76584b687e4912538ff7be6c2cece1e3" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>setCurrentShader</name></member>
+      <member refid="classDynShaderQuadBuf_1a85ca4ee1f5781b3628fbe1df512343ce" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>setRingBuf</name></member>
+      <member refid="classDynShaderQuadBuf_1aedd102c4e9eedf1b5d946d309b076337" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>unlockDataAndFlush</name></member>
+      <member refid="classDynShaderQuadBuf_1aae65e69c25cb30ca6e872b0172c722fc" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>vb</name></member>
+      <member refid="classDynShaderQuadBuf_1adc981e2b83d2390ee3c41c9220217582" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>vBuf</name></member>
+      <member refid="classDynShaderQuadBuf_1ac2cbd66a1e45f4ffabdfdfcba13d00ce" prot="private" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>vdecl</name></member>
+      <member refid="classDynShaderQuadBuf_1adf6533b0540656f1ea7fc24b423a1f5e" prot="public" virt="non-virtual"><scope>DynShaderQuadBuf</scope><name>~DynShaderQuadBuf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

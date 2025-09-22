@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceAnyAccelerationStructure" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceAnyAccelerationStructure</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" prot="public" static="no" mutable="no">
+        <type>RaytraceTopAccelerationStructure *</type>
+        <definition>RaytraceTopAccelerationStructure* RaytraceAnyAccelerationStructure::top</definition>
+        <argsstring></argsstring>
+        <name>top</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::top</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="30" column="36" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" prot="public" static="no" mutable="no">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>RaytraceBottomAccelerationStructure* RaytraceAnyAccelerationStructure::bottom</definition>
+        <argsstring></argsstring>
+        <name>bottom</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::bottom</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="31" column="39" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1a5c13e66624cd137f5d988d33d6941632" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</definition>
+        <argsstring>()=default</argsstring>
+        <name>RaytraceAnyAccelerationStructure</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1a2fc00a617b7b7ed4249a4af2c2cbbd52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</definition>
+        <argsstring>(const RaytraceAnyAccelerationStructure &amp;)=default</argsstring>
+        <name>RaytraceAnyAccelerationStructure</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</qualifiedname>
+        <param>
+          <type>const <ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="34" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1a2cea709cefecf5210afff36ad1a164a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref> &amp;</type>
+        <definition>RaytraceAnyAccelerationStructure &amp; RaytraceAnyAccelerationStructure::operator=</definition>
+        <argsstring>(const RaytraceAnyAccelerationStructure &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="35" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1ad6715308051381d8552fe549fa17769c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</definition>
+        <argsstring>(RaytraceTopAccelerationStructure *t)</argsstring>
+        <name>RaytraceAnyAccelerationStructure</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</qualifiedname>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="36" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1a61fc8aaecbbf95c8f97d87c4fa1fa095" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *b)</argsstring>
+        <name>RaytraceAnyAccelerationStructure</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::RaytraceAnyAccelerationStructure</qualifiedname>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="37" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="structRaytraceAnyAccelerationStructure_1aad752b4e4a740ef29b03cd4aab359578" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RaytraceAnyAccelerationStructure::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>RaytraceAnyAccelerationStructure::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="38" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="38" bodyend="38"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="28" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="29" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>bottom</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1aad752b4e4a740ef29b03cd4aab359578" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>operator bool</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1a2cea709cefecf5210afff36ad1a164a8" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>operator=</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1a5c13e66624cd137f5d988d33d6941632" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>RaytraceAnyAccelerationStructure</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1a2fc00a617b7b7ed4249a4af2c2cbbd52" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>RaytraceAnyAccelerationStructure</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1ad6715308051381d8552fe549fa17769c" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>RaytraceAnyAccelerationStructure</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1a61fc8aaecbbf95c8f97d87c4fa1fa095" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>RaytraceAnyAccelerationStructure</name></member>
+      <member refid="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" prot="public" virt="non-virtual"><scope>RaytraceAnyAccelerationStructure</scope><name>top</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

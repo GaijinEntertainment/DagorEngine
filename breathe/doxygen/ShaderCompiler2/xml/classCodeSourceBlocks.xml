@@ -1,0 +1,393 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCodeSourceBlocks" kind="class" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+    <innerclass refid="structCodeSourceBlocks_1_1CondIf" prot="public">CodeSourceBlocks::CondIf</innerclass>
+    <innerclass refid="structCodeSourceBlocks_1_1Condition" prot="public">CodeSourceBlocks::Condition</innerclass>
+    <innerclass refid="structCodeSourceBlocks_1_1Fragment" prot="public">CodeSourceBlocks::Fragment</innerclass>
+    <innerclass refid="structCodeSourceBlocks_1_1ParserContext" prot="public">CodeSourceBlocks::ParserContext</innerclass>
+    <innerclass refid="structCodeSourceBlocks_1_1Unconditional" prot="public">CodeSourceBlocks::Unconditional</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ExprValue</name>
+        <qualifiedname>CodeSourceBlocks::ExprValue</qualifiedname>
+        <enumvalue id="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3ca6267ef339fe3b5e7cc5d6160917ca593" prot="public">
+          <name>NonConst</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3ca2f7a06bf2844224cac2140b35e20a9bb" prot="public">
+          <name>ConstFalse</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3caf7a81025ec822b1a7554e3b641cff501" prot="public">
+          <name>ConstTrue</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="22" column="3" bodyfile="codeBlocks.h" bodystart="23" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCodeSourceBlocks_1ab6ab4d1de2fc690ec8de6c5c79e87f8b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1Fragment" kindref="compound">Fragment</ref> &gt;</type>
+        <definition>Tab&lt;Fragment&gt; CodeSourceBlocks::blocks</definition>
+        <argsstring></argsstring>
+        <name>blocks</name>
+        <qualifiedname>CodeSourceBlocks::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="114" column="7" bodyfile="codeBlocks.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCodeSourceBlocks_1abaa15702645aa8ba99ff4367b643f83f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::declCount</definition>
+        <argsstring></argsstring>
+        <name>declCount</name>
+        <qualifiedname>CodeSourceBlocks::declCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="115" column="7" bodyfile="codeBlocks.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classCodeSourceBlocks_1a019f1745807a8f2da9de6362c5629d17" prot="public" static="yes" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap CodeSourceBlocks::incFiles</definition>
+        <argsstring></argsstring>
+        <name>incFiles</name>
+        <qualifiedname>CodeSourceBlocks::incFiles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="117" column="24" bodyfile="codeBlocks.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCodeSourceBlocks_1a17b846d381335238c85b16271f096687" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CodeSourceBlocks::CodeSourceBlocks</definition>
+        <argsstring>()</argsstring>
+        <name>CodeSourceBlocks</name>
+        <qualifiedname>CodeSourceBlocks::CodeSourceBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="87" column="3" bodyfile="codeBlocks.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1af8bec0946473ef49a4d057b4eadc9dd2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CodeSourceBlocks::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>CodeSourceBlocks::reset</qualifiedname>
+        <briefdescription>
+<para>resets data structure </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="90" column="8" bodyfile="codeBlocks.h" bodystart="90" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1a2e8f5b78279512fb8ed6ddcab3486dbf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::parseSourceCode</definition>
+        <argsstring>(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &amp;cb, bool pp_as_comments, shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>parseSourceCode</name>
+        <qualifiedname>CodeSourceBlocks::parseSourceCode</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>pp_as_comments</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+<para>parse source text into code fragments </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="97" column="8" bodyfile="codeBlocks.cpp" bodystart="251" bodyend="444"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1adf3f0ae6d5be4fa27b0e9bee5789dcb2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structCodeSourceBlocks_1_1Unconditional" kindref="compound">Unconditional</ref> * &gt;</type>
+        <definition>dag::ConstSpan&lt; ublock_t * &gt; CodeSourceBlocks::getPreprocessedCode</definition>
+        <argsstring>(ShaderParser::ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>getPreprocessedCode</name>
+        <qualifiedname>CodeSourceBlocks::getPreprocessedCode</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+<para>returns code unique identifier for specific variant [returns reference to highly temporary storage] </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="101" column="18" bodyfile="codeBlocks.cpp" bodystart="821" bodyend="826"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1a8406dddd1aaff87dcf17ca60b30fabea" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash CodeSourceBlocks::getCodeDigest</definition>
+        <argsstring>(dag::ConstSpan&lt; Unconditional * &gt; code) const</argsstring>
+        <name>getCodeDigest</name>
+        <qualifiedname>CodeSourceBlocks::getCodeDigest</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCodeSourceBlocks_1_1Unconditional" kindref="compound">Unconditional</ref> * &gt;</type>
+          <declname>code</declname>
+        </param>
+        <briefdescription>
+<para>builds and returns code digest for given code [returns reference to highly temporary storage] </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="104" column="14" bodyfile="codeBlocks.cpp" bodystart="828" bodyend="855"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1a6b7e88fe6e26dbe946f23fb45be76f7a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; char &gt;</type>
+        <definition>dag::ConstSpan&lt; char &gt; CodeSourceBlocks::buildSourceCode</definition>
+        <argsstring>(dag::ConstSpan&lt; Unconditional * &gt; code)</argsstring>
+        <name>buildSourceCode</name>
+        <qualifiedname>CodeSourceBlocks::buildSourceCode</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCodeSourceBlocks_1_1Unconditional" kindref="compound">Unconditional</ref> * &gt;</type>
+          <declname>code</declname>
+        </param>
+        <briefdescription>
+<para>returns code text for given code [returns reference to highly temporary storage] </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="107" column="18" bodyfile="codeBlocks.cpp" bodystart="857" bodyend="888"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classCodeSourceBlocks_1aa9580c5ad7a0f07a5066c9a4c90074bf" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CodeSourceBlocks::resetCompilation</definition>
+        <argsstring>()</argsstring>
+        <name>resetCompilation</name>
+        <qualifiedname>CodeSourceBlocks::resetCompilation</qualifiedname>
+        <briefdescription>
+<para>removes all unconditional code fragments (used between shaders compilation) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="111" column="15" bodyfile="codeBlocks.cpp" bodystart="891" bodyend="899"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classCodeSourceBlocks_1a09af05a0f0bd204e2515dd7a890bfd3a" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CodeSourceBlocks::ppSrcCode</definition>
+        <argsstring>(char *s, int len, int fnameId, int line, ParserContext &amp;ctx, char *st_comment, char *end_comment)</argsstring>
+        <name>ppSrcCode</name>
+        <qualifiedname>CodeSourceBlocks::ppSrcCode</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fnameId</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type><ref refid="structCodeSourceBlocks_1_1ParserContext" kindref="compound">ParserContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>st_comment</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>end_comment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="120" column="8" bodyfile="codeBlocks.cpp" bodystart="447" bodyend="477"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1accda1ef626ab5b6ca05707da18f132bd" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::ppCheckDirective</definition>
+        <argsstring>(char *s, ParserContext &amp;ctx)</argsstring>
+        <name>ppCheckDirective</name>
+        <qualifiedname>CodeSourceBlocks::ppCheckDirective</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structCodeSourceBlocks_1_1ParserContext" kindref="compound">ParserContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="121" column="8" bodyfile="codeBlocks.cpp" bodystart="479" bodyend="484"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1a0d4a24b752fe215455a3f8cd0232f7e5" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::ppDirective</definition>
+        <argsstring>(char *s, int len, char *dtext, int fnameId, int line, ParserContext &amp;ctx)</argsstring>
+        <name>ppDirective</name>
+        <qualifiedname>CodeSourceBlocks::ppDirective</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>dtext</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fnameId</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type><ref refid="structCodeSourceBlocks_1_1ParserContext" kindref="compound">ParserContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="122" column="8" bodyfile="codeBlocks.cpp" bodystart="486" bodyend="708"/>
+      </memberdef>
+      <memberdef kind="function" id="classCodeSourceBlocks_1af099e1a1bbbc1bdd6d50d106abb7a78e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::ppDoInclude</definition>
+        <argsstring>(const char *incl_fn, Tab&lt; char &gt; &amp;out_text, const char *src_fn, int src_ln, ParserContext &amp;ctx)</argsstring>
+        <name>ppDoInclude</name>
+        <qualifiedname>CodeSourceBlocks::ppDoInclude</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>incl_fn</declname>
+        </param>
+        <param>
+          <type>Tab&lt; char &gt; &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>src_fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_ln</declname>
+        </param>
+        <param>
+          <type><ref refid="structCodeSourceBlocks_1_1ParserContext" kindref="compound">ParserContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="123" column="8" bodyfile="codeBlocks.cpp" bodystart="709" bodyend="773"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="codeBlocks.h" line="14" column="1" bodyfile="codeBlocks.h" bodystart="15" bodyend="124"/>
+    <listofallmembers>
+      <member refid="classCodeSourceBlocks_1ab6ab4d1de2fc690ec8de6c5c79e87f8b" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>blocks</name></member>
+      <member refid="classCodeSourceBlocks_1a6b7e88fe6e26dbe946f23fb45be76f7a" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>buildSourceCode</name></member>
+      <member refid="classCodeSourceBlocks_1a17b846d381335238c85b16271f096687" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>CodeSourceBlocks</name></member>
+      <member refid="classCodeSourceBlocks_1abaa15702645aa8ba99ff4367b643f83f" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>declCount</name></member>
+      <member refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>ExprValue</name></member>
+      <member refid="classCodeSourceBlocks_1a8406dddd1aaff87dcf17ca60b30fabea" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>getCodeDigest</name></member>
+      <member refid="classCodeSourceBlocks_1adf3f0ae6d5be4fa27b0e9bee5789dcb2" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>getPreprocessedCode</name></member>
+      <member refid="classCodeSourceBlocks_1a019f1745807a8f2da9de6362c5629d17" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>incFiles</name></member>
+      <member refid="classCodeSourceBlocks_1a2e8f5b78279512fb8ed6ddcab3486dbf" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>parseSourceCode</name></member>
+      <member refid="classCodeSourceBlocks_1accda1ef626ab5b6ca05707da18f132bd" prot="protected" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>ppCheckDirective</name></member>
+      <member refid="classCodeSourceBlocks_1a0d4a24b752fe215455a3f8cd0232f7e5" prot="protected" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>ppDirective</name></member>
+      <member refid="classCodeSourceBlocks_1af099e1a1bbbc1bdd6d50d106abb7a78e" prot="protected" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>ppDoInclude</name></member>
+      <member refid="classCodeSourceBlocks_1a09af05a0f0bd204e2515dd7a890bfd3a" prot="protected" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>ppSrcCode</name></member>
+      <member refid="classCodeSourceBlocks_1af8bec0946473ef49a4d057b4eadc9dd2" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>reset</name></member>
+      <member refid="classCodeSourceBlocks_1aa9580c5ad7a0f07a5066c9a4c90074bf" prot="public" virt="non-virtual"><scope>CodeSourceBlocks</scope><name>resetCompilation</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

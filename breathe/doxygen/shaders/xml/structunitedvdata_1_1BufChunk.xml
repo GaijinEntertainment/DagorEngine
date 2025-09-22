@@ -1,0 +1,230 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structunitedvdata_1_1BufChunk" kind="struct" language="C++" prot="public">
+    <compoundname>unitedvdata::BufChunk</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structunitedvdata_1_1BufChunk_1a0593f15503153ee3fef980771ff7e576" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufChunk::ofs</definition>
+        <argsstring></argsstring>
+        <name>ofs</name>
+        <qualifiedname>unitedvdata::BufChunk::ofs</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="43" column="12" bodyfile="dag_shaderResUnitedData.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufChunk_1a3c9309c10fe1f3896c4e496475033ceb" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufChunk::sz</definition>
+        <argsstring></argsstring>
+        <name>sz</name>
+        <qualifiedname>unitedvdata::BufChunk::sz</qualifiedname>
+        <bitfield> 28</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="43" column="17" bodyfile="dag_shaderResUnitedData.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufChunk_1a6fb92f4fb65d11ce84a2f49951901bfe" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufChunk::vbIdx</definition>
+        <argsstring></argsstring>
+        <name>vbIdx</name>
+        <qualifiedname>unitedvdata::BufChunk::vbIdx</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="43" column="21" bodyfile="dag_shaderResUnitedData.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1a9807e5a9fce491b3d06382f9a25f99ef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>unitedvdata::BufChunk::BufChunk</definition>
+        <argsstring>()</argsstring>
+        <name>BufChunk</name>
+        <qualifiedname>unitedvdata::BufChunk::BufChunk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="44" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1a42481de2a5126dde847848c888a362d7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>unitedvdata::BufChunk::BufChunk</definition>
+        <argsstring>(unsigned o, unsigned s, unsigned i)</argsstring>
+        <name>BufChunk</name>
+        <qualifiedname>unitedvdata::BufChunk::BufChunk</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>o</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="45" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1af4ee31f89ac69dde57aee8cff2505407" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufChunk::end</definition>
+        <argsstring>() const</argsstring>
+        <name>end</name>
+        <qualifiedname>unitedvdata::BufChunk::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="47" column="12" bodyfile="dag_shaderResUnitedData.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1a9c92d2f6682d76532d79b3b23ac70466" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TAB</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void unitedvdata::BufChunk::add_chunk</definition>
+        <argsstring>(TAB &amp;used_chunks, const BufChunk &amp;new_chunk)</argsstring>
+        <name>add_chunk</name>
+        <qualifiedname>unitedvdata::BufChunk::add_chunk</qualifiedname>
+        <param>
+          <type>TAB &amp;</type>
+          <declname>used_chunks</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &amp;</type>
+          <declname>new_chunk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="50" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1ad618fcfd10a6abc671037fe1b17c4637" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int unitedvdata::BufChunk::find_top_chunk</definition>
+        <argsstring>(dag::ConstSpan&lt; BufChunk &gt; used_chunks)</argsstring>
+        <name>find_top_chunk</name>
+        <qualifiedname>unitedvdata::BufChunk::find_top_chunk</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+          <declname>used_chunks</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="51" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1ae5f544cbb77c3ae8695b97661b0c8a12" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int unitedvdata::BufChunk::find_chunk</definition>
+        <argsstring>(dag::ConstSpan&lt; BufChunk &gt; used_chunks, int req_sz)</argsstring>
+        <name>find_chunk</name>
+        <qualifiedname>unitedvdata::BufChunk::find_chunk</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+          <declname>used_chunks</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>req_sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="52" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufChunk_1a7f71f36788553ff94d20381171c0fe87" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TAB</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void unitedvdata::BufChunk::cut_chunk</definition>
+        <argsstring>(TAB &amp;used_chunks, int chunk_idx, BufChunk &amp;new_chunk, int min_gap)</argsstring>
+        <name>cut_chunk</name>
+        <qualifiedname>unitedvdata::BufChunk::cut_chunk</qualifiedname>
+        <param>
+          <type>TAB &amp;</type>
+          <declname>used_chunks</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>chunk_idx</declname>
+        </param>
+        <param>
+          <type><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &amp;</type>
+          <declname>new_chunk</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_gap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="54" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderResUnitedData.h" line="41" column="1" bodyfile="dag_shaderResUnitedData.h" bodystart="42" bodyend="55"/>
+    <listofallmembers>
+      <member refid="structunitedvdata_1_1BufChunk_1a9c92d2f6682d76532d79b3b23ac70466" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>add_chunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a9807e5a9fce491b3d06382f9a25f99ef" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>BufChunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a42481de2a5126dde847848c888a362d7" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>BufChunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a7f71f36788553ff94d20381171c0fe87" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>cut_chunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1af4ee31f89ac69dde57aee8cff2505407" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>end</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1ae5f544cbb77c3ae8695b97661b0c8a12" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>find_chunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1ad618fcfd10a6abc671037fe1b17c4637" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>find_top_chunk</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a0593f15503153ee3fef980771ff7e576" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>ofs</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a3c9309c10fe1f3896c4e496475033ceb" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>sz</name></member>
+      <member refid="structunitedvdata_1_1BufChunk_1a6fb92f4fb65d11ce84a2f49951901bfe" prot="public" virt="non-virtual"><scope>unitedvdata::BufChunk</scope><name>vbIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

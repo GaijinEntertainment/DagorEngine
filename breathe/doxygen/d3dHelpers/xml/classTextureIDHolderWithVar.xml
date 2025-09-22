@@ -1,0 +1,363 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTextureIDHolderWithVar" kind="class" language="C++" prot="public">
+    <compoundname>TextureIDHolderWithVar</compoundname>
+    <basecompoundref refid="classTextureIDPair" prot="public" virt="non-virtual">TextureIDPair</basecompoundref>
+    <derivedcompoundref refid="classResizableTextureIDHolder" prot="public" virt="non-virtual">ResizableTextureIDHolder</derivedcompoundref>
+    <includes refid="dag__textureIDHolder_8h" local="no">dag_textureIDHolder.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TextureIDHolderWithVar::varId</definition>
+        <argsstring></argsstring>
+        <name>varId</name>
+        <qualifiedname>TextureIDHolderWithVar::varId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="139" column="7" bodyfile="dag_textureIDHolder.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1acf2acbebc1efcbf2e67b272be9848f08" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolderWithVar::TextureIDHolderWithVar</definition>
+        <argsstring>()=default</argsstring>
+        <name>TextureIDHolderWithVar</name>
+        <qualifiedname>TextureIDHolderWithVar::TextureIDHolderWithVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="93" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a3cdeb5f94a50005d61cb10fa0ce69e94" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolderWithVar::TextureIDHolderWithVar</definition>
+        <argsstring>(const TextureIDHolderWithVar &amp;)=delete</argsstring>
+        <name>TextureIDHolderWithVar</name>
+        <qualifiedname>TextureIDHolderWithVar::TextureIDHolderWithVar</qualifiedname>
+        <param>
+          <type>const <ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="94" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a8f2b0ce50fb192892c012e48bf8dd728" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;</type>
+        <definition>TextureIDHolderWithVar &amp; TextureIDHolderWithVar::operator=</definition>
+        <argsstring>(const TextureIDHolderWithVar &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>TextureIDHolderWithVar::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="95" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a33b33c4aff57b1b068dba3ce0bd15dbb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolderWithVar::TextureIDHolderWithVar</definition>
+        <argsstring>(TextureIDHolderWithVar &amp;&amp;rhs)</argsstring>
+        <name>TextureIDHolderWithVar</name>
+        <qualifiedname>TextureIDHolderWithVar::TextureIDHolderWithVar</qualifiedname>
+        <param>
+          <type><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="96" column="3" bodyfile="dag_textureIDHolder.h" bodystart="96" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a2d1a3a5c0078024311eda04b145558d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolderWithVar::~TextureIDHolderWithVar</definition>
+        <argsstring>()</argsstring>
+        <name>~TextureIDHolderWithVar</name>
+        <qualifiedname>TextureIDHolderWithVar::~TextureIDHolderWithVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="105" column="3" bodyfile="dag_textureIDHolder.h" bodystart="105" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1ad19222eacc3b18029a893951d8002ea5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;</type>
+        <definition>TextureIDHolderWithVar &amp; TextureIDHolderWithVar::operator=</definition>
+        <argsstring>(TextureIDHolderWithVar &amp;&amp;rhs)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>TextureIDHolderWithVar::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="107" column="26" bodyfile="dag_textureIDHolder.h" bodystart="107" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a1de51b0887578d53248aae1a119da448" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::setRaw</definition>
+        <argsstring>(BaseTexture *tex_, TEXTUREID texId_)</argsstring>
+        <name>setRaw</name>
+        <qualifiedname>TextureIDHolderWithVar::setRaw</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="119" column="8" bodyfile="dag_textureIDHolder.h" bodystart="119" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a11bcf9447fc95645065f18f645a45c0a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::set</definition>
+        <argsstring>(BaseTexture *tex_, TEXTUREID texId_)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolderWithVar::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="124" column="8" bodyfile="dag_textureIDHolder.h" bodystart="124" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a7f4176b7013f893a1837ff32f55000f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::set</definition>
+        <argsstring>(BaseTexture *tex_, const char *tex_name, const char *shader_var_name)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolderWithVar::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="129" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1ad850502295421f01f21d3bdacb7e77ff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::set</definition>
+        <argsstring>(BaseTexture *tex_, const char *name)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolderWithVar::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="130" column="8" bodyfile="dag_textureIDHolder.h" bodystart="130" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1acc16528e6e1a0676059ce9d751895829" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::set</definition>
+        <argsstring>(BaseTexture *tex)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolderWithVar::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="131" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>TextureIDHolderWithVar::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="132" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a2f8e0ed2833e317d19a20cb23a79534d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::setVarId</definition>
+        <argsstring>(int id)</argsstring>
+        <name>setVarId</name>
+        <qualifiedname>TextureIDHolderWithVar::setVarId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="134" column="8" bodyfile="dag_textureIDHolder.h" bodystart="134" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1ab4ede9d9ae900e72bbcf9aa5501e4a41" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TextureIDHolderWithVar::getVarId</definition>
+        <argsstring>() const</argsstring>
+        <name>getVarId</name>
+        <qualifiedname>TextureIDHolderWithVar::getVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="135" column="7" bodyfile="dag_textureIDHolder.h" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolderWithVar_1a37a42e10c8e9ca082987870041754777" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolderWithVar::setVar</definition>
+        <argsstring>() const</argsstring>
+        <name>setVar</name>
+        <qualifiedname>TextureIDHolderWithVar::setVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="136" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>ResizableTextureIDHolder</label>
+        <link refid="classResizableTextureIDHolder"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TextureIDHolderWithVar</label>
+        <link refid="classTextureIDHolderWithVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureIDPair</label>
+        <link refid="classTextureIDPair"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>TextureIDHolderWithVar</label>
+        <link refid="classTextureIDHolderWithVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureIDPair</label>
+        <link refid="classTextureIDPair"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_textureIDHolder.h" line="90" column="1" bodyfile="dag_textureIDHolder.h" bodystart="91" bodyend="140"/>
+    <listofallmembers>
+      <member refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>close</name></member>
+      <member refid="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getArrayTex</name></member>
+      <member refid="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getCubeTex</name></member>
+      <member refid="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getId</name></member>
+      <member refid="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getTex</name></member>
+      <member refid="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getTex2D</name></member>
+      <member refid="classTextureIDHolderWithVar_1ab4ede9d9ae900e72bbcf9aa5501e4a41" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getVarId</name></member>
+      <member refid="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>getVolTex</name></member>
+      <member refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>is_arrtex</name></member>
+      <member refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>is_cubetex</name></member>
+      <member refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>is_tex2d</name></member>
+      <member refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>is_voltex</name></member>
+      <member refid="classTextureIDHolderWithVar_1a8f2b0ce50fb192892c012e48bf8dd728" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>operator=</name></member>
+      <member refid="classTextureIDHolderWithVar_1ad19222eacc3b18029a893951d8002ea5" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>operator=</name></member>
+      <member refid="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>releaseAndEvictTexId</name></member>
+      <member refid="classTextureIDHolderWithVar_1a11bcf9447fc95645065f18f645a45c0a" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>set</name></member>
+      <member refid="classTextureIDHolderWithVar_1a7f4176b7013f893a1837ff32f55000f4" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>set</name></member>
+      <member refid="classTextureIDHolderWithVar_1ad850502295421f01f21d3bdacb7e77ff" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>set</name></member>
+      <member refid="classTextureIDHolderWithVar_1acc16528e6e1a0676059ce9d751895829" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>set</name></member>
+      <member refid="classTextureIDHolderWithVar_1a1de51b0887578d53248aae1a119da448" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>setRaw</name></member>
+      <member refid="classTextureIDHolderWithVar_1a37a42e10c8e9ca082987870041754777" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>setVar</name></member>
+      <member refid="classTextureIDHolderWithVar_1a2f8e0ed2833e317d19a20cb23a79534d" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>setVarId</name></member>
+      <member refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" prot="protected" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>tex</name></member>
+      <member refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" prot="protected" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>texId</name></member>
+      <member refid="classTextureIDHolderWithVar_1acf2acbebc1efcbf2e67b272be9848f08" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>TextureIDHolderWithVar</name></member>
+      <member refid="classTextureIDHolderWithVar_1a3cdeb5f94a50005d61cb10fa0ce69e94" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>TextureIDHolderWithVar</name></member>
+      <member refid="classTextureIDHolderWithVar_1a33b33c4aff57b1b068dba3ce0bd15dbb" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>TextureIDHolderWithVar</name></member>
+      <member refid="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>TextureIDPair</name></member>
+      <member refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" prot="protected" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>varId</name></member>
+      <member refid="classTextureIDHolderWithVar_1a2d1a3a5c0078024311eda04b145558d6" prot="public" virt="non-virtual"><scope>TextureIDHolderWithVar</scope><name>~TextureIDHolderWithVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__gpuDesc_8h" kind="file" language="C++">
+    <compoundname>dag_gpuDesc.h</compoundname>
+    <includes refid="dag__consts_8h" local="yes">dag_consts.h</includes>
+    <includes refid="dag__info_8h" local="yes">dag_info.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_gpuDesc.h</label>
+        <link refid="dag__gpuDesc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_info.h</label>
+        <link refid="dag__info_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shaderModelVersion_8h"/>
+      </node>
+      <node id="9">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="3">
+        <label>cstdint</label>
+      </node>
+      <node id="10">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structGpuDesc" prot="public">GpuDesc</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__gpuDesc_8h_1a46115a7ad7f82a306f04ab6b7c4c99ba" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool operator==</definition>
+        <argsstring>(const DeviceAttributes &amp;l, const GpuDesc &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="dag__consts_8h_1afbd81c17e5c6bfc197b37ad70ad1299a" kindref="member">DeviceAttributes</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structGpuDesc" kindref="compound">GpuDesc</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="41" column="16" bodyfile="dag_gpuDesc.h" bodystart="41" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__gpuDesc_8h_1aef8e831e8783f07641671ade2f0fe05c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool operator!=</definition>
+        <argsstring>(const DeviceAttributes &amp;l, const GpuDesc &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="dag__consts_8h_1afbd81c17e5c6bfc197b37ad70ad1299a" kindref="member">DeviceAttributes</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structGpuDesc" kindref="compound">GpuDesc</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="51" column="16" bodyfile="dag_gpuDesc.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__gpuDesc_8h_1a37977b675b76d847f13d4da9c5f2ed4a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool operator&gt;=</definition>
+        <argsstring>(const DeviceAttributes &amp;l, const GpuDesc &amp;r)</argsstring>
+        <name>operator&gt;=</name>
+        <param>
+          <type>const <ref refid="dag__consts_8h_1afbd81c17e5c6bfc197b37ad70ad1299a" kindref="member">DeviceAttributes</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structGpuDesc" kindref="compound">GpuDesc</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuDesc.h" line="53" column="16" bodyfile="dag_gpuDesc.h" bodystart="53" bodyend="70"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dag__consts_8h" kindref="compound">dag_consts.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dag__info_8h" kindref="compound">dag_info.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structGpuDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGpuDesc" kindref="compound">GpuDesc</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">enum<sp/><ref refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fc" kindref="member">DeviceAttributes::AmdFamily</ref>;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">enum<sp/><ref refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873" kindref="member">DeviceAttributes::IntelFamily</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">enum<sp/><ref refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959" kindref="member">DeviceAttributes::NvidiaFamily</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">DeviceAttributes::vendor</ref>)<sp/><ref refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" kindref="member">vendor</ref><sp/>=<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref>;</highlight></codeline>
+<codeline lineno="30" refid="structGpuDesc_1a57d225b655c278ad62504bc697308d8f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(<ref refid="structDeviceAttributesBase_1ab7195fa8064a41d0e4b93090b41b195e" kindref="member">DeviceAttributes::isUMA</ref>)<sp/><ref refid="structGpuDesc_1a57d225b655c278ad62504bc697308d8f" kindref="member">isUMA</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34" refid="structGpuDesc_1a21edcab131ed098d493fa334d56803f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(<ref refid="structDeviceAttributesBase_1a94077fec595442fec1f78d494640c60f" kindref="member">DeviceAttributes::vendorId</ref>)<sp/><ref refid="structGpuDesc_1a21edcab131ed098d493fa334d56803f2" kindref="member">vendorId</ref><sp/>=<sp/><ref refid="structDeviceAttributesBase_1a88a15de97029a1c9d6ceee58d9b3d909" kindref="member">DeviceAttributes::UNKNOWN</ref>;</highlight></codeline>
+<codeline lineno="38" refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(<ref refid="structDeviceAttributesBase_1a9b2e2b7a51137ff648b4e27ec23801b2" kindref="member">DeviceAttributes::family</ref>)<sp/><ref refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" kindref="member">family</ref><sp/>=<sp/><ref refid="structDeviceAttributesBase_1a88a15de97029a1c9d6ceee58d9b3d909" kindref="member">DeviceAttributes::UNKNOWN</ref>;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="dag__gpuDesc_8h_1a46115a7ad7f82a306f04ab6b7c4c99ba" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__gpuDesc_8h_1a46115a7ad7f82a306f04ab6b7c4c99ba" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDeviceAttributesBase" kindref="compound">DeviceAttributes</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGpuDesc" kindref="compound">GpuDesc</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l.<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">vendor</ref><sp/>==<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref><sp/>||<sp/>r.<ref refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" kindref="member">vendor</ref><sp/>==<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref><sp/>||<sp/>l.<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">vendor</ref><sp/>!=<sp/>r.<ref refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" kindref="member">vendor</ref>)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>l.<ref refid="structDeviceAttributesBase_1a9b2e2b7a51137ff648b4e27ec23801b2" kindref="member">family</ref><sp/>==<sp/>r.<ref refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" kindref="member">family</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="dag__gpuDesc_8h_1aef8e831e8783f07641671ade2f0fe05c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__gpuDesc_8h_1aef8e831e8783f07641671ade2f0fe05c" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDeviceAttributesBase" kindref="compound">DeviceAttributes</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGpuDesc" kindref="compound">GpuDesc</ref><sp/>&amp;r)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(l<sp/>==<sp/>r);<sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="dag__gpuDesc_8h_1a37977b675b76d847f13d4da9c5f2ed4a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__gpuDesc_8h_1a37977b675b76d847f13d4da9c5f2ed4a" kindref="member">operator&gt;=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDeviceAttributesBase" kindref="compound">DeviceAttributes</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGpuDesc" kindref="compound">GpuDesc</ref><sp/>&amp;r)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l.<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">vendor</ref><sp/>==<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref><sp/>||<sp/>r.<ref refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" kindref="member">vendor</ref><sp/>==<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a696b031073e74bf2cb98e5ef201d4aa3" kindref="member">GpuVendor::UNKNOWN</ref><sp/>||<sp/>l.<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">vendor</ref><sp/>!=<sp/>r.<ref refid="structGpuDesc_1acb538e363eecf22271ee2e0e56112794" kindref="member">vendor</ref>)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l.<ref refid="structDeviceAttributesBase_1aceda31814b5b0242b0f52fff19ea8790" kindref="member">vendor</ref><sp/>==<sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70aa2fe9051fe051f819bd739ef3e340377" kindref="member">GpuVendor::NVIDIA</ref>)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>tegraBasedMask<sp/>=<sp/>0xE0000000;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((l.<ref refid="structDeviceAttributesBase_1a9b2e2b7a51137ff648b4e27ec23801b2" kindref="member">family</ref><sp/>&amp;<sp/>tegraBasedMask)<sp/>!=<sp/>(r.<ref refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" kindref="member">family</ref><sp/>&amp;<sp/>tegraBasedMask))</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>l.<ref refid="structDeviceAttributesBase_1a9b2e2b7a51137ff648b4e27ec23801b2" kindref="member">family</ref><sp/>&gt;=<sp/>r.<ref refid="structGpuDesc_1a74c416c0156ec442a1582d685b69eced" kindref="member">family</ref>;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="dag_gpuDesc.h"/>
+  </compounddef>
+</doxygen>
