@@ -100,9 +100,12 @@ if __name__ == '__main__':
   if 'dagorTools' in BUILD_PROJECTS and 'code' in BUILD_COMPONENTS:
     proj_dir = 'prog/tools'
     if DAGOR_HOST == 'windows':
-      if not run('build_dagor_cdk_mini.cmd', cwd=proj_dir):
-        print('build_dagor3_cdk_mini.cmd failed, trying once more...')
-        if not run('build_dagor_cdk_mini.cmd', cwd=proj_dir):
+      BUILD_TOOLS_CMD = 'build_dagor_cdk_mini.cmd'
+      if BUILD_TARGET_ARCH != '':
+        BUILD_TOOLS_CMD += ' ' + BUILD_TARGET_ARCH
+      if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
+        print('{} failed, trying once more...'.subst(BUILD_TOOLS_CMD))
+        if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
           print('echo failed to build CDK, stop!')
           exit(1)
     elif DAGOR_HOST == 'macOS':
