@@ -104,7 +104,7 @@ if __name__ == '__main__':
       if BUILD_TARGET_ARCH != '':
         BUILD_TOOLS_CMD += ' ' + BUILD_TARGET_ARCH
       if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
-        print('{} failed, trying once more...'.subst(BUILD_TOOLS_CMD))
+        print('"{}" failed, trying once more...'.format(BUILD_TOOLS_CMD))
         if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
           print('echo failed to build CDK, stop!')
           exit(1)
