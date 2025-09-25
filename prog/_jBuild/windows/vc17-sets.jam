@@ -10,7 +10,9 @@ _VC_CRT_TYPE ?= -MT ;
 if $(PlatformArch) = x86_64 { _WIN_SDK_TARGET_SUFFIX = x64 ; }
 if $(PlatformArch) = arm64 { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
-_VC_DIR_BIN = $(_VC_DIR)/bin/Hostx64/$(_WIN_SDK_TARGET_SUFFIX) ;
+local _VC_HOST_DIR = Hostx64 ;
+if $(WindowsHostArch) = arm64 { _VC_HOST_DIR = Hostarm64 ; }
+_VC_DIR_BIN = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/$(_WIN_SDK_TARGET_SUFFIX) ;
 
 local _DEF_C_CMDLINE = -X /c /nologo ;
 switch $(PlatformArch) {
@@ -72,7 +74,7 @@ switch $(PlatformArch) {
     _LINK += /machine:x86 ;
     _LIB  += /machine:x86 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win32 ;
-    _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x86/ml.exe -c -nologo ;
+    _MASM_COMPILER = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/x86/ml.exe -c -nologo ;
     _DEP_COMPILER += -D_TARGET_ARCH_X86 -DWIN32 -D__IA32__ ;
     _CVTRES_EXE   += /MACHINE:x86 ;
 
@@ -80,7 +82,7 @@ switch $(PlatformArch) {
     _LINK += /machine:x64 ;
     _LIB  += /machine:x64 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
-    _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x64/ml64.exe -c -nologo ;
+    _MASM_COMPILER = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/x64/ml64.exe -c -nologo ;
     _DEP_COMPILER += -D_TARGET_ARCH_X86_64 -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:x64 ;
 
@@ -88,7 +90,7 @@ switch $(PlatformArch) {
     _LINK += /machine:arm64 ;
     _LIB  += /machine:arm64 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f arm64 ;
-    _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/arm64/ml64.exe -c -nologo ;
+    _MASM_COMPILER = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/arm64/ml64.exe -c -nologo ;
     _GAS_COMPILER = $(_DEVTOOL)/LLVM-$(CLangVer)/bin/clang.exe --target=aarch64-pc-windows-msvc -g -c ;
     _DEP_COMPILER += -D_TARGET_ARCH_ARM64 -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:arm64 ;

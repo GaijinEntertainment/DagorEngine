@@ -1,9 +1,10 @@
 @ECHO OFF
+call ..\..\..\prog\_jBuild\make_dagor_tools_path.cmd
 set /P a=...<nul
 
 set /P a=...<nul
 @ECHO ON
-..\..\..\tools\dagor_cdk\windows-x86_64\vromfsPacker-dev.exe prog.vromfs.blk %VROMOPT% %1 %2 %3 %4 %5 -quiet -addpath:.
+%DAGOR_CDK_DIR%\vromfsPacker-dev.exe prog.vromfs.blk %VROMOPT% %1 %2 %3 %4 %5 -quiet -addpath:.
 @ECHO OFF
 if ERRORLEVEL 1 goto on_error
 goto EOF

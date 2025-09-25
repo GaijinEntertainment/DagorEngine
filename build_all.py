@@ -12,6 +12,9 @@ DAGOR_HOST_ARCH = 'x86_64'
 
 if sys.platform.startswith('win'):
   DAGOR_HOST = 'windows'
+  if (os.environ.get('PROCESSOR_ARCHITECTURE', '') == 'ARM64' or
+     ('ARMv' in os.environ.get('PROCESSOR_IDENTIFIER', '') and '64-bit' in os.environ.get('PROCESSOR_IDENTIFIER', ''))):
+    DAGOR_HOST_ARCH = 'arm64'
   DAGOR_TOOLS_FOLDER = os.path.realpath('{0}/tools/dagor_cdk/windows-{1}'.format(DAGOR_ROOT_FOLDER, DAGOR_HOST_ARCH))
 elif sys.platform.startswith('darwin'):
   DAGOR_HOST = 'macOS'
@@ -97,9 +100,12 @@ if __name__ == '__main__':
   if 'dagorTools' in BUILD_PROJECTS and 'code' in BUILD_COMPONENTS:
     proj_dir = 'prog/tools'
     if DAGOR_HOST == 'windows':
-      if not run('build_dagor_cdk_mini.cmd', cwd=proj_dir):
-        print('build_dagor3_cdk_mini.cmd failed, trying once more...')
-        if not run('build_dagor_cdk_mini.cmd', cwd=proj_dir):
+      BUILD_TOOLS_CMD = 'build_dagor_cdk_mini.cmd'
+      if BUILD_TARGET_ARCH != '':
+        BUILD_TOOLS_CMD += ' ' + BUILD_TARGET_ARCH
+      if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
+        print('"{}" failed, trying once more...'.format(BUILD_TOOLS_CMD))
+        if not run(BUILD_TOOLS_CMD, cwd=proj_dir):
           print('echo failed to build CDK, stop!')
           exit(1)
     elif DAGOR_HOST == 'macOS':

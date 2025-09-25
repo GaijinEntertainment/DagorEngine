@@ -1149,8 +1149,8 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   if (!compileConfig.rootSignatureDefine.empty())
     compileConfig.defines.emplace_back(L"_AUTO_GENERATED_ROOT_SIGNATURE", compileConfig.rootSignatureDefine);
 
-  auto compileResult = ::dxil::compileHLSLWithDXC({ppResult.preprocessedSource.data(), ppResult.preprocessedSource.size()}, entry,
-    profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion);
+  auto compileResult = ::dxil::compileHLSLWithDXC({ppResult.preprocessedSource.data(), intptr_t(ppResult.preprocessedSource.size())},
+    entry, profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion);
 
   result.messageLog += compileResult.messageLog;
 

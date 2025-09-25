@@ -1,7 +1,9 @@
 @ECHO OFF
+call ..\..\..\..\prog\_jBuild\make_dagor_tools_path.cmd
+
 
 set /P a=...<nul
-  ..\..\..\..\tools\dagor_cdk\windows-x86_64\vromfsPacker-dev.exe common.vromfs.blk -platform:PC >log_vrom_pc
+  %DAGOR_CDK_DIR%\vromfsPacker-dev.exe common.vromfs.blk -platform:PC >log_vrom_pc
   if ERRORLEVEL 1 goto err_pc
 
   set /P a=...<nul

@@ -614,7 +614,10 @@ try:
 except FileNotFoundError:
   print("jam.exe not found, installing jam...")
   jam_zip = 'jam-windows-x86_64.zip'
-  download_url("https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.3-2024%2F04%2F01/jam-windows-x86_64.zip")
+  if (os.environ.get('PROCESSOR_ARCHITECTURE', '') == 'ARM64' or
+     ('ARMv' in os.environ.get('PROCESSOR_IDENTIFIER', '') and '64-bit' in os.environ.get('PROCESSOR_IDENTIFIER', ''))):
+    jam_zip = 'jam-windows-arm64.zip'
+  download_url("https://github.com/GaijinEntertainment/jam-G8/releases/download/2.5-G8-1.3-2024%2F04%2F01/"+jam_zip)
   with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+jam_zip), 'r') as zip_file:
     zip_file.extractall(dest_dir)
 
