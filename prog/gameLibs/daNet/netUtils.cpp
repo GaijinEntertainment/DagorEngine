@@ -87,7 +87,7 @@ bool readCompressedBlk(const danet::BitStream *message, DataBlock &blk)
 }
 
 #if defined(_MSC_VER) || defined(__clang__)
-#if !(_TARGET_APPLE || _TARGET_C3) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
+#if !(_TARGET_APPLE || _TARGET_C3 || defined(__e2k__)) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
@@ -295,7 +295,7 @@ void unpack_velocity(unsigned int packed, Point3 &vel, float maxSpeed)
 }
 
 #if defined(_MSC_VER) || defined(__clang__)
-#if !(_TARGET_APPLE || _TARGET_C3) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
+#if !(_TARGET_APPLE || _TARGET_C3 || defined(__e2k__)) || (_TARGET_PC_MACOSX && !_TARGET_SIMD_NEON)
 #pragma float_control(pop)
 #endif
 #endif

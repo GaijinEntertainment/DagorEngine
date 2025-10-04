@@ -67,6 +67,10 @@ if $(PlatformSpec) in clang gcc && $(PlatformArch) in x86 x86_64 {
     }
   }
 }
+if $(PlatformSpec) in clang && $(PlatformArch) in e2k {
+  opt on collisionGameRes.cpp += -Wno-pass-failed ;
+  opt on collisionGameRes_avx.cpp += -Wno-pass-failed ;
+}
 
 # Disable WPO to workaround `collisionGameRes.cpp(1350) : fatal error C1001: Internal compiler error.`
 if $(UseWholeOpt) = yes && $(Platform)-$(PlatformArch) = windows-arm64 && $(PlatformSpec) = vc17 { opt on collisionGameRes.cpp = /GL- ; }
