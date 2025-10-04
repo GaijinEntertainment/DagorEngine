@@ -1,0 +1,407 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIBrushClient" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IBrushClient</compoundname>
+    <includes refid="ec__brush_8h" local="no">ec_brush.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIBrushClient_1a40e30bf886adcff1d7dc93f27f837a53" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onBrushPaintStart</definition>
+        <argsstring>(Brush *brush, int buttons, int key_modif)=0</argsstring>
+        <name>onBrushPaintStart</name>
+        <qualifiedname>IBrushClient::onBrushPaintStart</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about start of painting. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="73" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIBrushClient_1aeb6c72b82cc97eec844e8a4e77fca0db" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onRBBrushPaintStart</definition>
+        <argsstring>(Brush *brush, int buttons, int key_modif)=0</argsstring>
+        <name>onRBBrushPaintStart</name>
+        <qualifiedname>IBrushClient::onRBBrushPaintStart</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about start of painting by right mouse button. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="79" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIBrushClient_1af7b64b7f26c93210573917b7267e9f74" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onBrushPaintEnd</definition>
+        <argsstring>(Brush *brush, int buttons, int key_modif)=0</argsstring>
+        <name>onBrushPaintEnd</name>
+        <qualifiedname>IBrushClient::onBrushPaintEnd</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about end of painting. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="85" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIBrushClient_1a214485e12ddf84bd8c873c49119ea18f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onRBBrushPaintEnd</definition>
+        <argsstring>(Brush *brush, int buttons, int key_modif)=0</argsstring>
+        <name>onRBBrushPaintEnd</name>
+        <qualifiedname>IBrushClient::onRBBrushPaintEnd</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about end of painting by right mouse button. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="91" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIBrushClient_1aabb36498e7c657732de1b82c35fa6424" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onBrushPaint</definition>
+        <argsstring>(Brush *brush, const Point3 &amp;center, const Point3 &amp;prev_center, const Point3 &amp;normal, int buttons, int key_modif)=0</argsstring>
+        <name>onBrushPaint</name>
+        <qualifiedname>IBrushClient::onBrushPaint</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>prev_center</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>normal</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about process of painting. Function is called either at the beginning of painting, when user moves mouse with left button pressed or periodically (if the brush is in repeat mode) while left mouse button is pressed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">center</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates of brush center </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">prev_center</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates of brush center at previous call to <ref refid="classIBrushClient_1aabb36498e7c657732de1b82c35fa6424" kindref="member">onBrushPaint()</ref>. If <ref refid="classIBrushClient_1aabb36498e7c657732de1b82c35fa6424" kindref="member">onBrushPaint()</ref> is called after <ref refid="classIBrushClient_1a40e30bf886adcff1d7dc93f27f837a53" kindref="member">onBrushPaintStart()</ref> then center == prev_center. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">normal</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal at <bold>center</bold> point </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="105" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIBrushClient_1ae96a61b09febf157962bf85ed6a7842d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IBrushClient::onRBBrushPaint</definition>
+        <argsstring>(Brush *brush, const Point3 &amp;center, const Point3 &amp;prev_center, const Point3 &amp;normal, int buttons, int key_modif)=0</argsstring>
+        <name>onRBBrushPaint</name>
+        <qualifiedname>IBrushClient::onRBBrushPaint</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>prev_center</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>normal</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs client code about process of painting. Function is called either at the beginning of painting, when user moves mouse with right button pressed or periodically (if the brush is in repeat mode) while left mouse button is pressed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush (see <ref refid="classBrush" kindref="compound">Brush</ref>) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">center</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates of brush center </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">prev_center</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates of brush center at previous call to <ref refid="classIBrushClient_1ae96a61b09febf157962bf85ed6a7842d" kindref="member">onRBBrushPaint()</ref>. If <ref refid="classIBrushClient_1ae96a61b09febf157962bf85ed6a7842d" kindref="member">onRBBrushPaint()</ref> is called after <ref refid="classIBrushClient_1a40e30bf886adcff1d7dc93f27f837a53" kindref="member">onBrushPaintStart()</ref> then center == prev_center. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">normal</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal at <bold>center</bold> point </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="120" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class for receiving messages from <ref refid="classBrush" kindref="compound">Brush</ref>. </para>
+    </detaileddescription>
+    <location file="ec_brush.h" line="66" column="1" bodyfile="ec_brush.h" bodystart="67" bodyend="122"/>
+    <listofallmembers>
+      <member refid="classIBrushClient_1aabb36498e7c657732de1b82c35fa6424" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onBrushPaint</name></member>
+      <member refid="classIBrushClient_1af7b64b7f26c93210573917b7267e9f74" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onBrushPaintEnd</name></member>
+      <member refid="classIBrushClient_1a40e30bf886adcff1d7dc93f27f837a53" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onBrushPaintStart</name></member>
+      <member refid="classIBrushClient_1ae96a61b09febf157962bf85ed6a7842d" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onRBBrushPaint</name></member>
+      <member refid="classIBrushClient_1a214485e12ddf84bd8c873c49119ea18f" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onRBBrushPaintEnd</name></member>
+      <member refid="classIBrushClient_1aeb6c72b82cc97eec844e8a4e77fca0db" prot="public" virt="pure-virtual"><scope>IBrushClient</scope><name>onRBBrushPaintStart</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

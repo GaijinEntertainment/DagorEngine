@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs" kind="struct" language="C++" prot="private">
+    <compoundname>MultidrawContext::ExtendedDrawIndexedIndirectArgs</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1a510d82eb05a6207375ea2ecae9bb7975" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t MultidrawContext&lt; PerDrawDataT &gt;::ExtendedDrawIndexedIndirectArgs::drawcallId</definition>
+        <argsstring></argsstring>
+        <name>drawcallId</name>
+        <qualifiedname>MultidrawContext::ExtendedDrawIndexedIndirectArgs::drawcallId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="69" column="14" bodyfile="dag_multidrawContext.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1af2a0c0ab0443586fd38ff98a91f6ab17" prot="public" static="no" mutable="no">
+        <type>DrawIndexedIndirectArgs</type>
+        <definition>DrawIndexedIndirectArgs MultidrawContext&lt; PerDrawDataT &gt;::ExtendedDrawIndexedIndirectArgs::args</definition>
+        <argsstring></argsstring>
+        <name>args</name>
+        <qualifiedname>MultidrawContext::ExtendedDrawIndexedIndirectArgs::args</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="70" column="29" bodyfile="dag_multidrawContext.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Extended draw call arguments structure. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This structure is used for platforms that pass draw call id/per draw parameters using per draw root constants. Currently it is used only for DX12. </para>
+    </detaileddescription>
+    <location file="dag_multidrawContext.h" line="67" column="3" bodyfile="dag_multidrawContext.h" bodystart="68" bodyend="71"/>
+    <listofallmembers>
+      <member refid="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1af2a0c0ab0443586fd38ff98a91f6ab17" prot="public" virt="non-virtual"><scope>MultidrawContext::ExtendedDrawIndexedIndirectArgs</scope><name>args</name></member>
+      <member refid="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1a510d82eb05a6207375ea2ecae9bb7975" prot="public" virt="non-virtual"><scope>MultidrawContext::ExtendedDrawIndexedIndirectArgs</scope><name>drawcallId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

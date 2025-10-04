@@ -1,0 +1,668 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1drivercode_1_1matcher" kind="namespace" language="C++">
+    <compoundname>d3d::drivercode::matcher</compoundname>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1AllMatch" prot="public">d3d::drivercode::matcher::AllMatch</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1Any" prot="public">d3d::drivercode::matcher::Any</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" prot="public">d3d::drivercode::matcher::BinaryOp</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1Const" prot="public">d3d::drivercode::matcher::Const</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1ConstID" prot="public">d3d::drivercode::matcher::ConstID</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1EnableIf" prot="public">d3d::drivercode::matcher::EnableIf</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1EnableIf_3_01true_00_01T_01_4" prot="public">d3d::drivercode::matcher::EnableIf&lt; true, T &gt;</innerclass>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1FirstMatch" prot="public">d3d::drivercode::matcher::FirstMatch</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1ID" prot="public">d3d::drivercode::matcher::ID</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1Inverted" prot="public">d3d::drivercode::matcher::Inverted</innerclass>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1Map" prot="public">d3d::drivercode::matcher::Map</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1OpAnd" prot="public">d3d::drivercode::matcher::OpAnd</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1OpOr" prot="public">d3d::drivercode::matcher::OpOr</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1SameAs" prot="public">d3d::drivercode::matcher::SameAs</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1SameAs_3_01T_00_01T_01_4" prot="public">d3d::drivercode::matcher::SameAs&lt; T, T &gt;</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1Undefined" prot="public">d3d::drivercode::matcher::Undefined</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" prot="public">d3d::drivercode::matcher::Unsupported</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaced3d_1_1drivercode_1_1matcher_1a441c3f5ee375922bb64b12b48a340525" prot="public" static="no">
+        <type>decltype(!(<ref refid="namespaced3d_1a69450882aa2d6edf9c3365388e840fb3" kindref="member">d3d::dx11</ref>||<ref refid="namespaced3d_1a379fdccd89a679d3d3f60aa5adccff46" kindref="member">d3d::dx12</ref>||<ref refid="namespaced3d_1a0c4ec8811b6cb2415f0d970d1ad3b09f" kindref="member">d3d::vulkan</ref>||<ref refid="namespaced3d_1a11c448fac4890d7a7e6fdde8dc68e9b9" kindref="member">d3d::ps4</ref>||<ref refid="namespaced3d_1a2e85cfa526d03301bb509cb03d361400" kindref="member">d3d::ps5</ref>||<ref refid="namespaced3d_1a68ae646b3ed40f473cf8b441714bdab7" kindref="member">d3d::metal</ref>||<ref refid="namespaced3d_1a4a5ce3875969d20bc813f50d91bbd1eb" kindref="member">d3d::null</ref>||<ref refid="namespaced3d_1ae96b52312925b3c8950e6242e7bce42d" kindref="member">d3d::stub</ref>))</type>
+        <definition>using d3d::drivercode::matcher::NotAnyDriver = typedef decltype(!(d3d::dx11 || d3d::dx12 || d3d::vulkan || d3d::ps4 || d3d::ps5 || d3d::metal || d3d::null || d3d::stub))</definition>
+        <argsstring></argsstring>
+        <name>NotAnyDriver</name>
+        <qualifiedname>d3d::drivercode::matcher::NotAnyDriver</qualifiedname>
+        <briefdescription>
+<para>Helper type for doxygen, do not use! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="1117" column="1" bodyfile="dag_driverCode.h" bodystart="1118" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1accb02aa76d69abfb6d1905a0347a2ff6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int d3d::drivercode::matcher::make_foucc</definition>
+        <argsstring>(int value)</argsstring>
+        <name>make_foucc</name>
+        <qualifiedname>d3d::drivercode::matcher::make_foucc</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to generate the IDs correctly so they can be used as four character codes. This helper is needed as _MAKE4C macro may not be available here. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>4 character code as integer. \retruns Platform specific encoded 4 character code as integer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="97" column="22" bodyfile="dag_driverCode.h" bodystart="97" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a22e7adbd7eaa5346e2ab82d55a956d84" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Inverted&lt; T &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Inverted" kindref="compound">Inverted</ref>&lt; T &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpAnd" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="173" column="16" bodyfile="dag_driverCode.h" bodystart="173" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a7def84a8afda49fa6dbfa4ca67310b5c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Inverted&lt; T &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Inverted" kindref="compound">Inverted</ref>&lt; T &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpOr" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="182" column="16" bodyfile="dag_driverCode.h" bodystart="182" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a183fc30dd082bdd5e1e628cb3f34eb87" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T0</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+          <param>
+            <type>typename Operator</type>
+          </param>
+          <param>
+            <type>typename TO</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const BinaryOp&lt; T0, T1, Operator &gt; &amp;l, const TO &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref>&lt; T0, T1, Operator &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const TO &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpAnd" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="191" column="16" bodyfile="dag_driverCode.h" bodystart="191" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a0728dcd37b0a74d84c064b3d2786b33a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T0</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+          <param>
+            <type>typename Operator</type>
+          </param>
+          <param>
+            <type>typename TO</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const BinaryOp&lt; T0, T1, Operator &gt; &amp;l, const TO &amp;r)</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref>&lt; T0, T1, Operator &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const TO &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpOr" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="200" column="16" bodyfile="dag_driverCode.h" bodystart="200" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1afe150eb71db5d533262b6f31d2e24c1b" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Ident</declname>
+            <defname>Ident</defname>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const ID&lt; Ident &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1ID" kindref="compound">ID</ref>&lt; Ident &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>is the type of the second operand. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpAnd" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="208" column="16" bodyfile="dag_driverCode.h" bodystart="208" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a8c1ab3d96dbb87793a185b095d5afb46" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Ident</declname>
+            <defname>Ident</defname>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const ID&lt; Ident &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1ID" kindref="compound">ID</ref>&lt; Ident &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>is the type of the second operand. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1BinaryOp" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1OpOr" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="216" column="16" bodyfile="dag_driverCode.h" bodystart="216" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a89d77a48788dc3c4abe469b8c16cef09" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1 &amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Const&lt; true &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The matercher of <computeroutput>r</computeroutput>, as logical and with constant true can be short circuited to just evaluating the second parameter. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="225" column="20" bodyfile="dag_driverCode.h" bodystart="225" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1adb03d2d4d1152e35bf943ac5b7291509" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+        <definition>constexpr const Const&lt; true &gt; &amp; d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Const&lt; true &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A true matcher, as logical or with a constant true can be short circuited to just the constant true. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="235" column="23" bodyfile="dag_driverCode.h" bodystart="235" bodyend="239"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1ad82e1be5340bf710fbebd02a6bbb64e6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+        <definition>constexpr const Const&lt; false &gt; &amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Const&lt; false &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A constant false matcher, as logical and with a constant false can be short circuited to just the constant false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="245" column="23" bodyfile="dag_driverCode.h" bodystart="245" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a059c7b0a0aad99b7f4ab89463bfda3fe" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1 &amp; d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Const&lt; false &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The matercher of <computeroutput>r</computeroutput>, as logical or with constant false can be short circuited to just evaluating the second parameter. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="255" column="20" bodyfile="dag_driverCode.h" bodystart="255" bodyend="259"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a6459a924052a4ff8249fe71a1cbececb" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1 &amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(Any, T1)=delete</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T1</type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="262" column="20" declfile="dag_driverCode.h" declline="262" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a72ae5c7ca0f2707696f6afa49178f6fe" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        <definition>constexpr Any d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(Any, T1)=delete</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T1</type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="265" column="15" declfile="dag_driverCode.h" declline="265" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a3bcc493ad6aa5eeccafeff8d9996ee9c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1 &amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(T1, Any)=delete</argsstring>
+        <name>operator&amp;&amp;</name>
+        <qualifiedname>d3d::drivercode::matcher::operator&amp;&amp;</qualifiedname>
+        <param>
+          <type>T1</type>
+        </param>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="267" column="20" declfile="dag_driverCode.h" declline="267" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a102a6d8345bb9ce678bd12ff2d6b0bd2" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        <definition>constexpr Any d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(T1, Any)=delete</argsstring>
+        <name>operator||</name>
+        <qualifiedname>d3d::drivercode::matcher::operator||</qualifiedname>
+        <param>
+          <type>T1</type>
+        </param>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">Any</ref></type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="270" column="15" declfile="dag_driverCode.h" declline="270" declcolumn="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>This namespace holds the matcher types and operations. </para>
+    </detaileddescription>
+    <location file="dag_driverCode.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

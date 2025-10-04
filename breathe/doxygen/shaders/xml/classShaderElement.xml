@@ -1,0 +1,465 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderElement" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderElement</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderElement_1a8e239de64dd4c699c18ac6b591cd3e40" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ScriptedShaderElement &amp;</type>
+        <definition>ScriptedShaderElement &amp; ShaderElement::native</definition>
+        <argsstring>()</argsstring>
+        <name>native</name>
+        <qualifiedname>ShaderElement::native</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="151" column="32" bodyfile="dag_shaders.h" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a2e7881f58c92eafd3848d00a2e66a05d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ScriptedShaderElement &amp;</type>
+        <definition>const ScriptedShaderElement &amp; ShaderElement::native</definition>
+        <argsstring>() const</argsstring>
+        <name>native</name>
+        <qualifiedname>ShaderElement::native</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="152" column="38" bodyfile="dag_shaders.h" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1aedf3816928f10d5aeb83065e1af3e8f1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::setStates</definition>
+        <argsstring>() const =0</argsstring>
+        <name>setStates</name>
+        <qualifiedname>ShaderElement::setStates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="154" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a93a4b9fffd28f6df81b0397bc99eb8ac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderElement::setStates</definition>
+        <argsstring>(int, bool)</argsstring>
+        <name>setStates</name>
+        <qualifiedname>ShaderElement::setStates</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="155" column="15" bodyfile="dag_shaders.h" bodystart="155" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a4df02a3dbb3b6794b4c10dea12005886" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::setStatesDispatch</definition>
+        <argsstring>() const =0</argsstring>
+        <name>setStatesDispatch</name>
+        <qualifiedname>ShaderElement::setStatesDispatch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="156" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a7bc1b05888c75eee73ab5edbb7774743" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::render</definition>
+        <argsstring>(int minvert, int numvert, int sind, int numf, int base_vertex=0, int prim=PRIM_TRILIST) const =0</argsstring>
+        <name>render</name>
+        <qualifiedname>ShaderElement::render</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>minvert</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numvert</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sind</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base_vertex</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>prim</declname>
+          <defval>PRIM_TRILIST</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="157" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a2de092e7bb66956a10ac67fdfdad849c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderElement::getTextureCount</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getTextureCount</name>
+        <qualifiedname>ShaderElement::getTextureCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="159" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a9f0755c95d37e3a4fa0c6286fd51d21c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TEXTUREID</type>
+        <definition>virtual TEXTUREID ShaderElement::getTexture</definition>
+        <argsstring>(int index) const =0</argsstring>
+        <name>getTexture</name>
+        <qualifiedname>ShaderElement::getTexture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="160" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1abdf49d6139bb6923c88138a122568ff0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::gatherUsedTex</definition>
+        <argsstring>(TextureIdSet &amp;tex_id_list) const =0</argsstring>
+        <name>gatherUsedTex</name>
+        <qualifiedname>ShaderElement::gatherUsedTex</qualifiedname>
+        <param>
+          <type>TextureIdSet &amp;</type>
+          <declname>tex_id_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="161" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a6df2887ec4859b34c76ba97a2a9d639f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::replaceTexture</definition>
+        <argsstring>(TEXTUREID tex_id_prev, TEXTUREID tex_id_new)=0</argsstring>
+        <name>replaceTexture</name>
+        <qualifiedname>ShaderElement::replaceTexture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_prev</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="162" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a309e9a90e582f96a289cd7b183ae1068" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::hasTexture</definition>
+        <argsstring>(TEXTUREID tex_id) const =0</argsstring>
+        <name>hasTexture</name>
+        <qualifiedname>ShaderElement::hasTexture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="163" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1ae403cb19e40f1d65357bdc77c9c10bf5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::acquireTexRefs</definition>
+        <argsstring>()=0</argsstring>
+        <name>acquireTexRefs</name>
+        <qualifiedname>ShaderElement::acquireTexRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="165" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1adccd47821bd8998a5322695f37b08541" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::releaseTexRefs</definition>
+        <argsstring>()=0</argsstring>
+        <name>releaseTexRefs</name>
+        <qualifiedname>ShaderElement::releaseTexRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="166" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a1a2e7a9770b6278636dbed7135e23d4c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * ShaderElement::getShaderClassName</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getShaderClassName</name>
+        <qualifiedname>ShaderElement::getShaderClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>element flags. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="169" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a2097e8517d6d86e8d3b26ad7bd84cdc1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::setProgram</definition>
+        <argsstring>(uint32_t variant)=0</argsstring>
+        <name>setProgram</name>
+        <qualifiedname>ShaderElement::setProgram</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>variant</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="170" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a1a7d3f85104b8f3fc93895ee3b5dcdc9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned int</type>
+        <definition>virtual unsigned int ShaderElement::getVertexStride</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getVertexStride</name>
+        <qualifiedname>ShaderElement::getVertexStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>vertex size on shader input. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="173" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a1e6e81fd353eb9c8c985372a7fc205fe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structShaderChannelId" kindref="compound">ShaderChannelId</ref> &gt;</type>
+        <definition>virtual dag::ConstSpan&lt; ShaderChannelId &gt; ShaderElement::getChannels</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderElement::getChannels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="175" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1abf78d9ce5117842289ede8d434833791" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderElement::replaceVdecl</definition>
+        <argsstring>(VDECL vDecl)=0</argsstring>
+        <name>replaceVdecl</name>
+        <qualifiedname>ShaderElement::replaceVdecl</qualifiedname>
+        <param>
+          <type>VDECL</type>
+          <declname>vDecl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="176" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a686af8e6500ed21fcd53cbd81ed44ea8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>VDECL</type>
+        <definition>virtual VDECL ShaderElement::getEffectiveVDecl</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getEffectiveVDecl</name>
+        <qualifiedname>ShaderElement::getEffectiveVDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="177" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1adeceea8d1895fea2926eb429a1080ac7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderElement::getSupportedBlock</definition>
+        <argsstring>(int variant, int layer) const =0</argsstring>
+        <name>getSupportedBlock</name>
+        <qualifiedname>ShaderElement::getSupportedBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variant</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="179" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1ac69a0b95ed70fab3a34fb672156278f8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::setReqTexLevel</definition>
+        <argsstring>(int req_level=15) const =0</argsstring>
+        <name>setReqTexLevel</name>
+        <qualifiedname>ShaderElement::setReqTexLevel</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>req_level</declname>
+          <defval>15</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="181" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderElement_1a078ad975fa2fa575066638a51230f575" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderElement::checkAndPrefetchMissingTextures</definition>
+        <argsstring>() const =0</argsstring>
+        <name>checkAndPrefetchMissingTextures</name>
+        <qualifiedname>ShaderElement::checkAndPrefetchMissingTextures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="183" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classShaderElement_1a0c60766c708dd5885f8e0339e09c0ec6" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderElement::invalidate_cached_state_block</definition>
+        <argsstring>()</argsstring>
+        <name>invalidate_cached_state_block</name>
+        <qualifiedname>ShaderElement::invalidate_cached_state_block</qualifiedname>
+        <briefdescription>
+<para>Invalidates internal cached state block (to force block re-apply and d3d program update). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="186" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>ShaderElement</label>
+        <link refid="classShaderElement"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>ShaderElement</label>
+        <link refid="classShaderElement"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaders.h" line="144" column="1" bodyfile="dag_shaders.h" bodystart="145" bodyend="187"/>
+    <listofallmembers>
+      <member refid="classShaderElement_1ae403cb19e40f1d65357bdc77c9c10bf5" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>acquireTexRefs</name></member>
+      <member refid="classShaderElement_1a078ad975fa2fa575066638a51230f575" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>checkAndPrefetchMissingTextures</name></member>
+      <member refid="classShaderElement_1abdf49d6139bb6923c88138a122568ff0" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>gatherUsedTex</name></member>
+      <member refid="classShaderElement_1a1e6e81fd353eb9c8c985372a7fc205fe" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getChannels</name></member>
+      <member refid="classShaderElement_1a686af8e6500ed21fcd53cbd81ed44ea8" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getEffectiveVDecl</name></member>
+      <member refid="classShaderElement_1a1a2e7a9770b6278636dbed7135e23d4c" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getShaderClassName</name></member>
+      <member refid="classShaderElement_1adeceea8d1895fea2926eb429a1080ac7" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getSupportedBlock</name></member>
+      <member refid="classShaderElement_1a9f0755c95d37e3a4fa0c6286fd51d21c" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getTexture</name></member>
+      <member refid="classShaderElement_1a2de092e7bb66956a10ac67fdfdad849c" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getTextureCount</name></member>
+      <member refid="classShaderElement_1a1a7d3f85104b8f3fc93895ee3b5dcdc9" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>getVertexStride</name></member>
+      <member refid="classShaderElement_1a309e9a90e582f96a289cd7b183ae1068" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>hasTexture</name></member>
+      <member refid="classShaderElement_1a0c60766c708dd5885f8e0339e09c0ec6" prot="public" virt="non-virtual"><scope>ShaderElement</scope><name>invalidate_cached_state_block</name></member>
+      <member refid="classShaderElement_1a8e239de64dd4c699c18ac6b591cd3e40" prot="public" virt="non-virtual"><scope>ShaderElement</scope><name>native</name></member>
+      <member refid="classShaderElement_1a2e7881f58c92eafd3848d00a2e66a05d" prot="public" virt="non-virtual"><scope>ShaderElement</scope><name>native</name></member>
+      <member refid="classShaderElement_1adccd47821bd8998a5322695f37b08541" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>releaseTexRefs</name></member>
+      <member refid="classShaderElement_1a7bc1b05888c75eee73ab5edbb7774743" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>render</name></member>
+      <member refid="classShaderElement_1a6df2887ec4859b34c76ba97a2a9d639f" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>replaceTexture</name></member>
+      <member refid="classShaderElement_1abf78d9ce5117842289ede8d434833791" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>replaceVdecl</name></member>
+      <member refid="classShaderElement_1a2097e8517d6d86e8d3b26ad7bd84cdc1" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>setProgram</name></member>
+      <member refid="classShaderElement_1ac69a0b95ed70fab3a34fb672156278f8" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>setReqTexLevel</name></member>
+      <member refid="classShaderElement_1aedf3816928f10d5aeb83065e1af3e8f1" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>setStates</name></member>
+      <member refid="classShaderElement_1a93a4b9fffd28f6df81b0397bc99eb8ac" prot="public" virt="non-virtual"><scope>ShaderElement</scope><name>setStates</name></member>
+      <member refid="classShaderElement_1a4df02a3dbb3b6794b4c10dea12005886" prot="public" virt="pure-virtual"><scope>ShaderElement</scope><name>setStatesDispatch</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

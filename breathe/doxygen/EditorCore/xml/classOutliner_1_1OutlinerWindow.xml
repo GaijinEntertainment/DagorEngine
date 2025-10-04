@@ -1,0 +1,1340 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classOutliner_1_1OutlinerWindow" kind="class" language="C++" prot="public">
+    <compoundname>Outliner::OutlinerWindow</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::IMenuEventHandler</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::IDelayedCallbackHandler</basecompoundref>
+    <includes refid="ec__outliner_8h" local="no">ec_outliner.h</includes>
+    <innerclass refid="structOutliner_1_1OutlinerWindow_1_1DragData" prot="private">Outliner::OutlinerWindow::DragData</innerclass>
+    <innerclass refid="structOutliner_1_1OutlinerWindow_1_1Icons" prot="private">Outliner::OutlinerWindow::Icons</innerclass>
+      <sectiondef kind="private-type">
+      <memberdef kind="enum" id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383" prot="private" static="no" strong="yes">
+        <type></type>
+        <name>MenuItemId</name>
+        <qualifiedname>Outliner::OutlinerWindow::MenuItemId</qualifiedname>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383ad382264998fddc265b5dfdf59a1742f5" prot="private">
+          <name>SelectAllTypeObjects</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a58c556d1ae5c3540b7cc4c7504c47d54" prot="private">
+          <name>DeselectAllTypeObjects</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a26f85e7f44d8724df88c62eee4a9fb9a" prot="private">
+          <name>MoveToThisLayer</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a457f7687eb47dc348e4b38832973b514" prot="private">
+          <name>SelectAllLayerObjects</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383ad6fa34e7bcacfd090c5206ff0c3a9070" prot="private">
+          <name>DeselectAllLayerObjects</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383ad07ad715647379758d22e1fd237b4c08" prot="private">
+          <name>ExpandLayerChildren</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a982e0c473df6ad42ab993b8210eb6def" prot="private">
+          <name>CollapseLayerChildren</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a205eb73000f9b60baee7c23bbd90cbde" prot="private">
+          <name>AddNewLayer</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a36f777d2a7ce9b1e17115a6432e35b22" prot="private">
+          <name>RenameLayer</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383af65ade0d2289085d367b2462a1cbc8de" prot="private">
+          <name>MoveObjectToLayerSubMenu</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a9d88a6d3f552b88426e45457d25b8b21" prot="private">
+          <name>MoveObjectToLayerStart</name>
+          <initializer>= MoveObjectToLayerSubMenu + 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a119162186ed084acbf3784d415a7ca01" prot="private">
+          <name>MoveObjectToLayerEnd</name>
+          <initializer>= MoveObjectToLayerStart + 64</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a065efc3470510a00a102d71b2512eb6d" prot="private">
+          <name>RenameObject</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a19d654d07bb9b5c046405ca9aba3f204" prot="private">
+          <name>ChangeObjectAsset</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383a5dd67d171e3a2d8c0e5a7e24a1240e63" prot="private">
+          <name>DeleteObject</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="108" column="3" bodyfile="ec_outliner.h" bodystart="109" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="enum" id="classOutliner_1_1OutlinerWindow_1ae03956585136db37d9909ef3e414a49b" prot="private" static="no" strong="yes">
+        <type></type>
+        <name>EnsureVisibleRequestState</name>
+        <qualifiedname>Outliner::OutlinerWindow::EnsureVisibleRequestState</qualifiedname>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ae03956585136db37d9909ef3e414a49ba74e327c40abd5945a491e5da73b93550" prot="private">
+          <name>NoRequest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ae03956585136db37d9909ef3e414a49bab43972d10743e74b10b0d3449d8a0ac4" prot="private">
+          <name>FoundSelection</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOutliner_1_1OutlinerWindow_1ae03956585136db37d9909ef3e414a49bafcdf8a82eba24e303b63b2e49a507ecb" prot="private">
+          <name>Requested</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="127" column="3" bodyfile="ec_outliner.h" bodystart="128" bodyend="132"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a09dab9d5a6306df8107eeb6ebf02b312" prot="private" static="no" mutable="no">
+        <type><ref refid="classOutliner_1_1IOutliner" kindref="compound">IOutliner</ref> *</type>
+        <definition>IOutliner* Outliner::OutlinerWindow::treeInterface</definition>
+        <argsstring></argsstring>
+        <name>treeInterface</name>
+        <qualifiedname>Outliner::OutlinerWindow::treeInterface</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="162" column="13" bodyfile="ec_outliner.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1af0690ca34968e3e66750467a7e9cdb38" prot="private" static="no" mutable="no">
+        <type>Icons</type>
+        <definition>Icons Outliner::OutlinerWindow::icons</definition>
+        <argsstring></argsstring>
+        <name>icons</name>
+        <qualifiedname>Outliner::OutlinerWindow::icons</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="163" column="9" bodyfile="ec_outliner.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a741e3fed33aab6317b30196254deb098" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::addingLayerToType</definition>
+        <argsstring></argsstring>
+        <name>addingLayerToType</name>
+        <qualifiedname>Outliner::OutlinerWindow::addingLayerToType</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="166" column="7" bodyfile="ec_outliner.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a70fdb21be838c904e58ee832a6917c66" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String Outliner::OutlinerWindow::addLayerName</definition>
+        <argsstring></argsstring>
+        <name>addLayerName</name>
+        <qualifiedname>Outliner::OutlinerWindow::addLayerName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="167" column="10" bodyfile="ec_outliner.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a1ad75a87382c807608cb60b59309cd36" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String Outliner::OutlinerWindow::addLayerErrorMessage</definition>
+        <argsstring></argsstring>
+        <name>addLayerErrorMessage</name>
+        <qualifiedname>Outliner::OutlinerWindow::addLayerErrorMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="168" column="10" bodyfile="ec_outliner.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a37d5eb3f84290f11fd88450f938191a1" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::settingsPanelOpen</definition>
+        <argsstring></argsstring>
+        <name>settingsPanelOpen</name>
+        <qualifiedname>Outliner::OutlinerWindow::settingsPanelOpen</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="171" column="8" bodyfile="ec_outliner.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a06e0fb8e763aadab7fbe40121af5825f" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showActionButtonVisibility</definition>
+        <argsstring></argsstring>
+        <name>showActionButtonVisibility</name>
+        <qualifiedname>Outliner::OutlinerWindow::showActionButtonVisibility</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="172" column="8" bodyfile="ec_outliner.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1addc21937ef1b9cf30b6614a4f3280970" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showActionButtonLock</definition>
+        <argsstring></argsstring>
+        <name>showActionButtonLock</name>
+        <qualifiedname>Outliner::OutlinerWindow::showActionButtonLock</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="173" column="8" bodyfile="ec_outliner.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a233b45afab1085d3e61276b2d2e5a935" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showActionButtonApplyToMask</definition>
+        <argsstring></argsstring>
+        <name>showActionButtonApplyToMask</name>
+        <qualifiedname>Outliner::OutlinerWindow::showActionButtonApplyToMask</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="174" column="8" bodyfile="ec_outliner.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a2164a7673c7335de40fc72bdc6ba9987" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showActionButtonExportLayer</definition>
+        <argsstring></argsstring>
+        <name>showActionButtonExportLayer</name>
+        <qualifiedname>Outliner::OutlinerWindow::showActionButtonExportLayer</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="175" column="8" bodyfile="ec_outliner.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a6ea13dcc060255f39cd3c857685ee906" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; PropPanel::IMenu &gt;</type>
+        <definition>eastl::unique_ptr&lt;PropPanel::IMenu&gt; Outliner::OutlinerWindow::contextMenu</definition>
+        <argsstring></argsstring>
+        <name>contextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::contextMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="178" column="21" bodyfile="ec_outliner.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1ab52181876134ab22c77bbb3dc679ad2b" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::contextMenuType</definition>
+        <argsstring></argsstring>
+        <name>contextMenuType</name>
+        <qualifiedname>Outliner::OutlinerWindow::contextMenuType</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="179" column="7" bodyfile="ec_outliner.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a888f5176e3e16ec1507858b79d3ff4f2" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::contextMenuPerTypeLayerIndex</definition>
+        <argsstring></argsstring>
+        <name>contextMenuPerTypeLayerIndex</name>
+        <qualifiedname>Outliner::OutlinerWindow::contextMenuPerTypeLayerIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="180" column="7" bodyfile="ec_outliner.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a78efebb2ebea6a16032436946ae7bc2a" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; OutlinerModel &gt;</type>
+        <definition>eastl::unique_ptr&lt;OutlinerModel&gt; Outliner::OutlinerWindow::outlinerModel</definition>
+        <argsstring></argsstring>
+        <name>outlinerModel</name>
+        <qualifiedname>Outliner::OutlinerWindow::outlinerModel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="182" column="21" bodyfile="ec_outliner.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a950a042b36e2a81dd44edf9d35ac3ecd" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; TreeItemInlineRenamerControl &gt;</type>
+        <definition>eastl::unique_ptr&lt;TreeItemInlineRenamerControl&gt; Outliner::OutlinerWindow::layerRenamer</definition>
+        <argsstring></argsstring>
+        <name>layerRenamer</name>
+        <qualifiedname>Outliner::OutlinerWindow::layerRenamer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="183" column="21" bodyfile="ec_outliner.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a856b07c826435799c34372f8a5e07027" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; TreeItemInlineRenamerControl &gt;</type>
+        <definition>eastl::unique_ptr&lt;TreeItemInlineRenamerControl&gt; Outliner::OutlinerWindow::objectRenamer</definition>
+        <argsstring></argsstring>
+        <name>objectRenamer</name>
+        <qualifiedname>Outliner::OutlinerWindow::objectRenamer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="184" column="21" bodyfile="ec_outliner.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a2dde496b15c868235c1018ba89908ee6" prot="private" static="no" mutable="no">
+        <type>dag::Vector&lt; eastl::optional&lt; PropPanel::IconId &gt; &gt;</type>
+        <definition>dag::Vector&lt;eastl::optional&lt;PropPanel::IconId&gt; &gt; Outliner::OutlinerWindow::assetTypeIcons</definition>
+        <argsstring></argsstring>
+        <name>assetTypeIcons</name>
+        <qualifiedname>Outliner::OutlinerWindow::assetTypeIcons</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="185" column="15" bodyfile="ec_outliner.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a73204a739c29a5c2306eb334caac4df3" prot="private" static="no" mutable="no">
+        <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+        <definition>RenderableEditableObject* Outliner::OutlinerWindow::changeAssetRequested</definition>
+        <argsstring></argsstring>
+        <name>changeAssetRequested</name>
+        <qualifiedname>Outliner::OutlinerWindow::changeAssetRequested</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="186" column="28" bodyfile="ec_outliner.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1a7499539a5394c5ef7f13e32942939fdf" prot="private" static="no" mutable="no">
+        <type>EnsureVisibleRequestState</type>
+        <definition>EnsureVisibleRequestState Outliner::OutlinerWindow::ensureVisibleRequested</definition>
+        <argsstring></argsstring>
+        <name>ensureVisibleRequested</name>
+        <qualifiedname>Outliner::OutlinerWindow::ensureVisibleRequested</qualifiedname>
+        <initializer>= EnsureVisibleRequestState::NoRequest</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="187" column="29" bodyfile="ec_outliner.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classOutliner_1_1OutlinerWindow_1ae069e3cfc02155ac8c9413b996fe35ea" prot="private" static="no" mutable="no">
+        <type>const bool</type>
+        <definition>const bool Outliner::OutlinerWindow::searchInputFocusId</definition>
+        <argsstring></argsstring>
+        <name>searchInputFocusId</name>
+        <qualifiedname>Outliner::OutlinerWindow::searchInputFocusId</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="188" column="14" bodyfile="ec_outliner.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ac9ab0858633e8383590e86ad45073721" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Outliner::OutlinerWindow::OutlinerWindow</definition>
+        <argsstring>()</argsstring>
+        <name>OutlinerWindow</name>
+        <qualifiedname>Outliner::OutlinerWindow::OutlinerWindow</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a308623f615e529656d6d4ac9f913b17e" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual Outliner::OutlinerWindow::~OutlinerWindow</definition>
+        <argsstring>()</argsstring>
+        <name>~OutlinerWindow</name>
+        <qualifiedname>Outliner::OutlinerWindow::~OutlinerWindow</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="43" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a352adae1e0d35bad5351114498d09ca4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::setTreeInterface</definition>
+        <argsstring>(IOutliner *tree_interface)</argsstring>
+        <name>setTreeInterface</name>
+        <qualifiedname>Outliner::OutlinerWindow::setTreeInterface</qualifiedname>
+        <param>
+          <type><ref refid="classOutliner_1_1IOutliner" kindref="compound">IOutliner</ref> *</type>
+          <declname>tree_interface</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="45" column="8" bodyfile="ec_outliner.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a499393961f6efb6b7e4f694d059ce1b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::fillTypesAndLayers</definition>
+        <argsstring>()</argsstring>
+        <name>fillTypesAndLayers</name>
+        <qualifiedname>Outliner::OutlinerWindow::fillTypesAndLayers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a8338344e2716fe5566d9114373d71975" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::loadOutlinerSettings</definition>
+        <argsstring>(const DataBlock &amp;settings)</argsstring>
+        <name>loadOutlinerSettings</name>
+        <qualifiedname>Outliner::OutlinerWindow::loadOutlinerSettings</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>settings</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ab6754b44669d75e55e31a9dde0962eee" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::saveOutlinerSettings</definition>
+        <argsstring>(DataBlock &amp;settings) const</argsstring>
+        <name>saveOutlinerSettings</name>
+        <qualifiedname>Outliner::OutlinerWindow::saveOutlinerSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>settings</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="51" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1aae48ccd3520773340e1b709474f618f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::loadOutlinerState</definition>
+        <argsstring>(const DataBlock &amp;state)</argsstring>
+        <name>loadOutlinerState</name>
+        <qualifiedname>Outliner::OutlinerWindow::loadOutlinerState</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="55" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1afe05fd9b3b82e1f5537d0c1d44aad9c7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::saveOutlinerState</definition>
+        <argsstring>(DataBlock &amp;state) const</argsstring>
+        <name>saveOutlinerState</name>
+        <qualifiedname>Outliner::OutlinerWindow::saveOutlinerState</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="56" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a7d9c9a81d356291d17ba74b6a363ce79" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onAddObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onAddObject</name>
+        <qualifiedname>Outliner::OutlinerWindow::onAddObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="58" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a83104ea89bde5ec200eab664c060411b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onRemoveObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onRemoveObject</name>
+        <qualifiedname>Outliner::OutlinerWindow::onRemoveObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="59" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ad26488a02717956095b0a2ea8522dca5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onRenameObject</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onRenameObject</name>
+        <qualifiedname>Outliner::OutlinerWindow::onRenameObject</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="60" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a7d9d9b9323ce8b3825a79c8c32fa755d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onObjectSelectionChanged</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onObjectSelectionChanged</name>
+        <qualifiedname>Outliner::OutlinerWindow::onObjectSelectionChanged</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="61" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a07e4215bdd9174af9c09d6134c5c2d3a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onObjectAssetNameChanged</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onObjectAssetNameChanged</name>
+        <qualifiedname>Outliner::OutlinerWindow::onObjectAssetNameChanged</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="62" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a4133048e7662b2957db05446ae73e5e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::onObjectEditLayerChanged</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>onObjectEditLayerChanged</name>
+        <qualifiedname>Outliner::OutlinerWindow::onObjectEditLayerChanged</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="63" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ab846899425361faeff208e74516a8f50" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Outliner::OutlinerWindow::updateImgui</definition>
+        <argsstring>()</argsstring>
+        <name>updateImgui</name>
+        <qualifiedname>Outliner::OutlinerWindow::updateImgui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="65" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a8a1ce9990068d1f46e0828bc74f97b71" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::onMenuItemClick</definition>
+        <argsstring>(unsigned id) override</argsstring>
+        <name>onMenuItemClick</name>
+        <qualifiedname>Outliner::OutlinerWindow::onMenuItemClick</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="134" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a597fc4483f2d6ec3e87ad70fe0de4c68" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::onImguiDelayedCallback</definition>
+        <argsstring>(void *user_data) override</argsstring>
+        <name>onImguiDelayedCallback</name>
+        <qualifiedname>Outliner::OutlinerWindow::onImguiDelayedCallback</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>user_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="135" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1acd5b9280ec5d32b48eb5ab9f1fcad120" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::getObjectAssetTypeIcon</definition>
+        <argsstring>(RenderableEditableObject &amp;object)</argsstring>
+        <name>getObjectAssetTypeIcon</name>
+        <qualifiedname>Outliner::OutlinerWindow::getObjectAssetTypeIcon</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="137" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a8bbc11d1b06d680b77d631a3adf084b7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::handleDragAndDropDropping</definition>
+        <argsstring>(int type, int per_type_layer_index)</argsstring>
+        <name>handleDragAndDropDropping</name>
+        <qualifiedname>Outliner::OutlinerWindow::handleDragAndDropDropping</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="138" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a6e1a782d094e9b89c1ce1dc845fc0bdf" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showTypeControls</definition>
+        <argsstring>(ObjectTypeTreeItem &amp;tree_item, int type, bool type_visible, bool type_locked, bool dim_type_color, const ImVec4 &amp;dimmed_text_color, float action_buttons_total_width)</argsstring>
+        <name>showTypeControls</name>
+        <qualifiedname>Outliner::OutlinerWindow::showTypeControls</qualifiedname>
+        <param>
+          <type>ObjectTypeTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>type_visible</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>type_locked</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>dim_type_color</declname>
+        </param>
+        <param>
+          <type>const ImVec4 &amp;</type>
+          <declname>dimmed_text_color</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>action_buttons_total_width</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="139" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a1e51d01a4770624da8da54879b82e768" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showLayerControls</definition>
+        <argsstring>(LayerTreeItem &amp;tree_item, int type, int per_type_layer_index, bool layer_visible, bool layer_locked, bool dim_layer_color, const ImVec4 &amp;dimmed_text_color, float action_buttons_total_width, ImGuiMultiSelectIO *multiSelectIo)</argsstring>
+        <name>showLayerControls</name>
+        <qualifiedname>Outliner::OutlinerWindow::showLayerControls</qualifiedname>
+        <param>
+          <type>LayerTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>layer_visible</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>layer_locked</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>dim_layer_color</declname>
+        </param>
+        <param>
+          <type>const ImVec4 &amp;</type>
+          <declname>dimmed_text_color</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>action_buttons_total_width</declname>
+        </param>
+        <param>
+          <type>ImGuiMultiSelectIO *</type>
+          <declname>multiSelectIo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="141" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1affdc93ebe6b66391145d92a9916a8d4c" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * Outliner::OutlinerWindow::getObjectNoun</definition>
+        <argsstring>(int type, int count) const</argsstring>
+        <name>getObjectNoun</name>
+        <qualifiedname>Outliner::OutlinerWindow::getObjectNoun</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="143" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a2f1645e42476146ae385a81d68968b7b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showObjectControls</definition>
+        <argsstring>(ObjectTreeItem &amp;tree_item, int type, int per_type_layer_index, bool has_child)</argsstring>
+        <name>showObjectControls</name>
+        <qualifiedname>Outliner::OutlinerWindow::showObjectControls</qualifiedname>
+        <param>
+          <type>ObjectTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>has_child</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="144" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1aa207387d9cb96d6adbe84d24760a4fa5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::showObjectAssetNameControls</definition>
+        <argsstring>(ObjectAssetNameTreeItem &amp;tree_item, RenderableEditableObject &amp;object)</argsstring>
+        <name>showObjectAssetNameControls</name>
+        <qualifiedname>Outliner::OutlinerWindow::showObjectAssetNameControls</qualifiedname>
+        <param>
+          <type>ObjectAssetNameTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &amp;</type>
+          <declname>object</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="145" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a3bcee8ea7c554d5d89c45b7d854fb9dd" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::fillTypeContextMenu</definition>
+        <argsstring>(int type)</argsstring>
+        <name>fillTypeContextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::fillTypeContextMenu</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="147" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1aa55be92d69ffa1b31a5362398a2ad7d9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::fillLayerContextMenu</definition>
+        <argsstring>(int type, int per_type_layer_index)</argsstring>
+        <name>fillLayerContextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::fillLayerContextMenu</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="148" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a17378711b4282879f80c4fdd142393d2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::fillObjectContextMenu</definition>
+        <argsstring>(int type, int per_type_layer_index)</argsstring>
+        <name>fillObjectContextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::fillObjectContextMenu</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="149" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a6d3f5ce530dd74956a20854ab36039ce" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::createContextMenu</definition>
+        <argsstring>(int type, int per_type_layer_index=-1, bool object_menu=false)</argsstring>
+        <name>createContextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::createContextMenu</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>object_menu</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="150" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ad902813c88221654e60a9dc69173a1a4" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::createContextMenuByKeyboard</definition>
+        <argsstring>()</argsstring>
+        <name>createContextMenuByKeyboard</name>
+        <qualifiedname>Outliner::OutlinerWindow::createContextMenuByKeyboard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="151" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a60f4b63e9dcc1ac7900c23126eadc139" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>LayerTreeItem *</type>
+        <definition>LayerTreeItem * Outliner::OutlinerWindow::getContextMenuTargetLayer</definition>
+        <argsstring>() const</argsstring>
+        <name>getContextMenuTargetLayer</name>
+        <qualifiedname>Outliner::OutlinerWindow::getContextMenuTargetLayer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="152" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1aeb2ff944f6349377a4c8bafbe282c063" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::resetContextMenu</definition>
+        <argsstring>(PropPanel::IMenu *context_menu=nullptr, int type=-1, int per_type_layer_index=-1)</argsstring>
+        <name>resetContextMenu</name>
+        <qualifiedname>Outliner::OutlinerWindow::resetContextMenu</qualifiedname>
+        <param>
+          <type>PropPanel::IMenu *</type>
+          <declname>context_menu</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>per_type_layer_index</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="153" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a02c9a982eb4c61d5a6a8e3a743eb9339" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::updateSelectionHead</definition>
+        <argsstring>(OutlinerTreeItem &amp;tree_item)</argsstring>
+        <name>updateSelectionHead</name>
+        <qualifiedname>Outliner::OutlinerWindow::updateSelectionHead</qualifiedname>
+        <param>
+          <type>OutlinerTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="154" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a003ac1b628a94721cf11217a058bb895" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::fillTree</definition>
+        <argsstring>(ImGuiMultiSelectIO *multiSelectIo)</argsstring>
+        <name>fillTree</name>
+        <qualifiedname>Outliner::OutlinerWindow::fillTree</qualifiedname>
+        <param>
+          <type>ImGuiMultiSelectIO *</type>
+          <declname>multiSelectIo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="155" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a3967c2f8e7a87976e7e95f4e0a2d559f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Outliner::OutlinerWindow::applyRangeSelectionRequestInternal</definition>
+        <argsstring>(const ImGuiSelectionRequest &amp;request, OutlinerTreeItem &amp;tree_item, bool &amp;found_first)</argsstring>
+        <name>applyRangeSelectionRequestInternal</name>
+        <qualifiedname>Outliner::OutlinerWindow::applyRangeSelectionRequestInternal</qualifiedname>
+        <param>
+          <type>const ImGuiSelectionRequest &amp;</type>
+          <declname>request</declname>
+        </param>
+        <param>
+          <type>OutlinerTreeItem &amp;</type>
+          <declname>tree_item</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>found_first</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="156" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ac8fe251d77a4b7390ff69f8205c88023" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::applyRangeSelectionRequest</definition>
+        <argsstring>(const ImGuiSelectionRequest &amp;request)</argsstring>
+        <name>applyRangeSelectionRequest</name>
+        <qualifiedname>Outliner::OutlinerWindow::applyRangeSelectionRequest</qualifiedname>
+        <param>
+          <type>const ImGuiSelectionRequest &amp;</type>
+          <declname>request</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="157" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a550151f61812113e0724e1909a160ccf" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::applySelectionRequests</definition>
+        <argsstring>(const ImGuiMultiSelectIO &amp;multi_select_io, bool &amp;started_selecting)</argsstring>
+        <name>applySelectionRequests</name>
+        <qualifiedname>Outliner::OutlinerWindow::applySelectionRequests</qualifiedname>
+        <param>
+          <type>const ImGuiMultiSelectIO &amp;</type>
+          <declname>multi_select_io</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>started_selecting</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="158" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1a4b54f795fdbd487622611acb6fcb1333" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::showAddLayerControls</definition>
+        <argsstring>()</argsstring>
+        <name>showAddLayerControls</name>
+        <qualifiedname>Outliner::OutlinerWindow::showAddLayerControls</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="159" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classOutliner_1_1OutlinerWindow_1ac5eebed69f4bd39191975814ed4642f1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Outliner::OutlinerWindow::showSettingsPanel</definition>
+        <argsstring>(const char *popup_id)</argsstring>
+        <name>showSettingsPanel</name>
+        <qualifiedname>Outliner::OutlinerWindow::showSettingsPanel</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>popup_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="160" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Outliner::OutlinerWindow</label>
+        <link refid="classOutliner_1_1OutlinerWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>PropPanel::IDelayedCallbackHandler</label>
+      </node>
+      <node id="2">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Outliner::OutlinerWindow</label>
+        <link refid="classOutliner_1_1OutlinerWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>PropPanel::IDelayedCallbackHandler</label>
+      </node>
+      <node id="2">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_outliner.h" line="39" column="1" bodyfile="ec_outliner.h" bodystart="40" bodyend="189"/>
+    <listofallmembers>
+      <member refid="classOutliner_1_1OutlinerWindow_1a741e3fed33aab6317b30196254deb098" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>addingLayerToType</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a1ad75a87382c807608cb60b59309cd36" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>addLayerErrorMessage</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a70fdb21be838c904e58ee832a6917c66" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>addLayerName</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ac8fe251d77a4b7390ff69f8205c88023" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>applyRangeSelectionRequest</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a3967c2f8e7a87976e7e95f4e0a2d559f" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>applyRangeSelectionRequestInternal</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a550151f61812113e0724e1909a160ccf" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>applySelectionRequests</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a2dde496b15c868235c1018ba89908ee6" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>assetTypeIcons</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a73204a739c29a5c2306eb334caac4df3" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>changeAssetRequested</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a6ea13dcc060255f39cd3c857685ee906" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>contextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a888f5176e3e16ec1507858b79d3ff4f2" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>contextMenuPerTypeLayerIndex</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ab52181876134ab22c77bbb3dc679ad2b" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>contextMenuType</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a6d3f5ce530dd74956a20854ab36039ce" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>createContextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ad902813c88221654e60a9dc69173a1a4" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>createContextMenuByKeyboard</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a7499539a5394c5ef7f13e32942939fdf" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>ensureVisibleRequested</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ae03956585136db37d9909ef3e414a49b" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>EnsureVisibleRequestState</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1aa55be92d69ffa1b31a5362398a2ad7d9" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>fillLayerContextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a17378711b4282879f80c4fdd142393d2" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>fillObjectContextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a003ac1b628a94721cf11217a058bb895" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>fillTree</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a3bcee8ea7c554d5d89c45b7d854fb9dd" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>fillTypeContextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a499393961f6efb6b7e4f694d059ce1b5" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>fillTypesAndLayers</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a60f4b63e9dcc1ac7900c23126eadc139" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>getContextMenuTargetLayer</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1acd5b9280ec5d32b48eb5ab9f1fcad120" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>getObjectAssetTypeIcon</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1affdc93ebe6b66391145d92a9916a8d4c" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>getObjectNoun</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a8bbc11d1b06d680b77d631a3adf084b7" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>handleDragAndDropDropping</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1af0690ca34968e3e66750467a7e9cdb38" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>icons</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a950a042b36e2a81dd44edf9d35ac3ecd" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>layerRenamer</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a8338344e2716fe5566d9114373d71975" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>loadOutlinerSettings</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1aae48ccd3520773340e1b709474f618f0" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>loadOutlinerState</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ada536a452cd2c119c86b610fca7e0383" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>MenuItemId</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a856b07c826435799c34372f8a5e07027" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>objectRenamer</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a7d9c9a81d356291d17ba74b6a363ce79" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onAddObject</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a597fc4483f2d6ec3e87ad70fe0de4c68" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>onImguiDelayedCallback</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a8a1ce9990068d1f46e0828bc74f97b71" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>onMenuItemClick</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a07e4215bdd9174af9c09d6134c5c2d3a" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onObjectAssetNameChanged</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a4133048e7662b2957db05446ae73e5e8" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onObjectEditLayerChanged</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a7d9d9b9323ce8b3825a79c8c32fa755d" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onObjectSelectionChanged</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a83104ea89bde5ec200eab664c060411b" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onRemoveObject</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ad26488a02717956095b0a2ea8522dca5" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>onRenameObject</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a78efebb2ebea6a16032436946ae7bc2a" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>outlinerModel</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ac9ab0858633e8383590e86ad45073721" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>OutlinerWindow</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1aeb2ff944f6349377a4c8bafbe282c063" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>resetContextMenu</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ab6754b44669d75e55e31a9dde0962eee" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>saveOutlinerSettings</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1afe05fd9b3b82e1f5537d0c1d44aad9c7" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>saveOutlinerState</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ae069e3cfc02155ac8c9413b996fe35ea" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>searchInputFocusId</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a37d5eb3f84290f11fd88450f938191a1" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>settingsPanelOpen</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a352adae1e0d35bad5351114498d09ca4" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>setTreeInterface</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a233b45afab1085d3e61276b2d2e5a935" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showActionButtonApplyToMask</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a2164a7673c7335de40fc72bdc6ba9987" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showActionButtonExportLayer</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1addc21937ef1b9cf30b6614a4f3280970" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showActionButtonLock</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a06e0fb8e763aadab7fbe40121af5825f" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showActionButtonVisibility</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a4b54f795fdbd487622611acb6fcb1333" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showAddLayerControls</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a1e51d01a4770624da8da54879b82e768" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showLayerControls</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1aa207387d9cb96d6adbe84d24760a4fa5" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showObjectAssetNameControls</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a2f1645e42476146ae385a81d68968b7b" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showObjectControls</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ac5eebed69f4bd39191975814ed4642f1" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showSettingsPanel</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a6e1a782d094e9b89c1ce1dc845fc0bdf" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>showTypeControls</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a09dab9d5a6306df8107eeb6ebf02b312" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>treeInterface</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1ab846899425361faeff208e74516a8f50" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>updateImgui</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a02c9a982eb4c61d5a6a8e3a743eb9339" prot="private" virt="non-virtual"><scope>Outliner::OutlinerWindow</scope><name>updateSelectionHead</name></member>
+      <member refid="classOutliner_1_1OutlinerWindow_1a308623f615e529656d6d4ac9f913b17e" prot="public" virt="virtual"><scope>Outliner::OutlinerWindow</scope><name>~OutlinerWindow</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

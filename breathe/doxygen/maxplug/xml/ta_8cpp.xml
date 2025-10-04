@@ -1,0 +1,301 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ta_8cpp" kind="file" language="C++">
+    <compoundname>ta.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">bmmlib.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="ta_8h" local="yes">ta.h</includes>
+    <includes refid="loadta_8h" local="yes">loadta.h</includes>
+    <includes local="no">string</includes>
+    <incdepgraph>
+      <node id="4">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="6">
+        <label>loadta.h</label>
+        <link refid="loadta_8h"/>
+      </node>
+      <node id="1">
+        <label>ta.cpp</label>
+        <link refid="ta_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ta.h</label>
+        <link refid="ta_8h"/>
+      </node>
+      <node id="3">
+        <label>bmmlib.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="7">
+        <label>string</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classTAClassDesc" prot="public">TAClassDesc</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ta_8cpp_1af4d0a170559f6a19bb41f9ec4e28b791" prot="public" static="yes" mutable="no">
+        <type><ref refid="classTAClassDesc" kindref="compound">TAClassDesc</ref></type>
+        <definition>TAClassDesc TADesc</definition>
+        <argsstring></argsstring>
+        <name>TADesc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="29" column="20" bodyfile="ta.cpp" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ta_8cpp_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="10" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129" declfile="ta.cpp" declline="10" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="ta_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="11" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112" declfile="ta.cpp" declline="11" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="ta_8cpp_1ad31546814d0958bee1a1042b7a2fb582" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetTexAnimIOCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetTexAnimIOCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="30" column="11" bodyfile="ta.cpp" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="ta_8cpp_1a086afcb79d896c964ab3ca6ec16280da" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void check_image_file</definition>
+        <argsstring>(TCHAR *fn)</argsstring>
+        <name>check_image_file</name>
+        <param>
+          <type>TCHAR *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="40" column="13" bodyfile="ta.cpp" bodystart="40" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bmmlib.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ta_8h" kindref="compound">ta.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="loadta_8h" kindref="compound">loadta.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">std::string<sp/><ref refid="ta_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="ta_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="classTAClassDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTAClassDesc" kindref="compound">TAClassDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTAClassDesc_1a5d9fed5baa614bd7b0c8e87db1a6b97d" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classTAClassDesc_1a7aa4da1fbf44330ef9495b5c19e2b8a1" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA" kindref="compound">BitmapIO_TA</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classTAClassDesc_1a7e8256c224e5576baca9916d04ae0237" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Dagor<sp/>TexAnim&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classTAClassDesc_1a46d510babf6093200ceb7cc17edeb3b1" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTAClassDesc_1a7e8256c224e5576baca9916d04ae0237" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classTAClassDesc_1a46d510babf6093200ceb7cc17edeb3b1" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTAClassDesc_1a7e8256c224e5576baca9916d04ae0237" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classTAClassDesc_1aac99b5675b69dcf5561f478b200d3417" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMM_IO_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classTAClassDesc_1a2a75aaf9445dd2c08d9b0f8e01befe88" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a57ff26a5ba080bf1d7ed56b79bde96d6" kindref="member">TexAnimIO_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classTAClassDesc_1a5d6c69ed9f2b5024afe2f476780aa1b9" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Bitmap<sp/>I/O&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classTAClassDesc" kindref="compound">TAClassDesc</ref><sp/>TADesc;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">ClassDesc<sp/>*<ref refid="ta_8cpp_1ad31546814d0958bee1a1042b7a2fb582" kindref="member">GetTexAnimIOCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;TADesc;<sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><ref refid="classBitmapIO__TA_1af9d6a097595f4a748cad375711b8797c" kindref="member">BitmapIO_TA::BitmapIO_TA</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><ref refid="classBitmapIO__TA_1a661511274b5eae27afa095682364bb95" kindref="member">BitmapIO_TA::~BitmapIO_TA</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1a29d7d07d650b0cc7a78b8e11064ef070" kindref="member">BitmapIO_TA::ShowAbout</ref>(HWND<sp/>hWnd)<sp/>{}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">BOOL<sp/><ref refid="classBitmapIO__TA_1a1d69ad723c73e117a7a517e8e31168f2" kindref="member">BitmapIO_TA::ShowControl</ref>(HWND<sp/>hWnd,<sp/>DWORD<sp/>flag)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(FALSE);<sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>check_image_file(TCHAR<sp/>*fn)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>e;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(e<sp/>=<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)_tcslen(fn)<sp/>-<sp/>1;<sp/>e<sp/>&gt;=<sp/>0;<sp/>--e)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fn[e]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\\&apos;</highlight><highlight class="normal"><sp/>||<sp/>fn[e]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;/&apos;</highlight><highlight class="normal"><sp/>||<sp/>fn[e]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;:&apos;</highlight><highlight class="normal"><sp/>||<sp/>fn[e]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;.&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fn[e]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;.&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>e<sp/>=<sp/>(int)_tcslen(fn);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>_tcscpy(fn<sp/>+<sp/>e,<sp/>_T(</highlight><highlight class="stringliteral">&quot;.tga&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DoesFileExist(fn))</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>_tcscpy(fn<sp/>+<sp/>e,<sp/>_T(</highlight><highlight class="stringliteral">&quot;.jpg&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DoesFileExist(fn))</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>fn[e]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal">BMMRES<sp/><ref refid="classBitmapIO__TA_1a0b5301ad9fdfe8f471aa7f5d56354e82" kindref="member">BitmapIO_TA::GetImageInfo</ref>(BitmapInfo<sp/>*fbi)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Define<sp/>Number<sp/>of<sp/>Frames</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="structTexAnimFile" kindref="compound">TexAnimFile</ref><sp/>file;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>std::string<sp/>s<sp/>=<sp/><ref refid="common_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(fbi-&gt;Name());</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!file.<ref refid="structTexAnimFile_1ac6068bf539867162fd8e93f8e5140aa0" kindref="member">load</ref>(s.c_str()))</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ProcessImageIOError(fbi,<sp/>(TCHAR<sp/>*)<ref refid="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(file.<ref refid="structTexAnimFile_1a2b865b6349e7dcafef2ce19b0fd38b6c" kindref="member">getlasterr</ref>()).c_str()));</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frameCount<sp/>=<sp/>file.<ref refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" kindref="member">frm</ref>.Count();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!frameCount)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ProcessImageIOError(fbi,<sp/>_T(</highlight><highlight class="stringliteral">&quot;no<sp/>frames<sp/>in<sp/>.TA<sp/>file&quot;</highlight><highlight class="normal">)));</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Get<sp/>First<sp/>Image<sp/>from<sp/>List</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>TCHAR<sp/>filenameOut[MAX_PATH];</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>BitmapInfo<sp/>tbi;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>_tcscpy(filenameOut,<sp/><ref refid="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(file.<ref refid="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" kindref="member">tex</ref>[0]).c_str());</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>check_image_file(filenameOut);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>tbi.SetName(filenameOut);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>BMMRES<sp/>res<sp/>=<sp/>TheManager-&gt;GetImageInfo(&amp;tbi,<sp/>filenameOut);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>!=<sp/>BMMRES_SUCCESS)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(res);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Set<sp/>Image<sp/>Info</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>fbi-&gt;SetWidth(tbi.Width());</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>fbi-&gt;SetHeight(tbi.Height());</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>fbi-&gt;SetGamma(tbi.Gamma());</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>fbi-&gt;SetAspect(tbi.Aspect());</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>fbi-&gt;SetType(tbi.Type());</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>fbi-&gt;SetFirstFrame(0);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>fbi-&gt;SetLastFrame(frameCount<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMMRES_SUCCESS;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>We<sp/>don&apos;t<sp/>load<sp/>anything...</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal">BitmapStorage<sp/>*<ref refid="classBitmapIO__TA_1a44d13077a586f438801bc34359a981eb" kindref="member">BitmapIO_TA::Load</ref>(BitmapInfo<sp/>*fbi,<sp/>Bitmap<sp/>*map,<sp/>BMMRES<sp/>*status)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>*status<sp/>=<sp/>ProcessImageIOError(fbi,<sp/>BMMRES_INTERNALERROR);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal">BMMRES<sp/><ref refid="classBitmapIO__TA_1aae77441b9365cf6ed7a3b184802b4303" kindref="member">BitmapIO_TA::GetImageName</ref>(BitmapInfo<sp/>*fbi,<sp/>TCHAR<sp/>*filename)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Define<sp/>Number<sp/>of<sp/>Frames</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><ref refid="structTexAnimFile" kindref="compound">TexAnimFile</ref><sp/>file;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>std::string<sp/>s<sp/>=<sp/><ref refid="common_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(fbi-&gt;Name());</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!file.<ref refid="structTexAnimFile_1ac6068bf539867162fd8e93f8e5140aa0" kindref="member">load</ref>(s.c_str()))</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ProcessImageIOError(fbi,<sp/>(TCHAR<sp/>*)<ref refid="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(file.<ref refid="structTexAnimFile_1a2b865b6349e7dcafef2ce19b0fd38b6c" kindref="member">getlasterr</ref>()).c_str()));</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frameCount<sp/>=<sp/>file.<ref refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" kindref="member">frm</ref>.Count();</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!frameCount)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//--<sp/>Check<sp/>for<sp/>silent<sp/>mode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//--<sp/>Display<sp/>Error<sp/>Dialog<sp/>Box</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//--<sp/>Log<sp/>Error</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(BMMRES_ERRORTAKENCARE);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Handle<sp/>Given<sp/>Frame<sp/>Number</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frame<sp/>=<sp/>fbi-&gt;CurrentFrame();</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(frame<sp/>&gt;=<sp/>frameCount)</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>frame<sp/>%=<sp/>frameCount;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fbi-&gt;SequenceOutBound()<sp/>==<sp/>BMM_SEQ_WRAP)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>;<sp/></highlight><highlight class="comment">//<sp/>no-op</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TheManager-&gt;Max()-&gt;Log()-&gt;LogEntry(SYSLOG_ERROR,<sp/>NO_DIALOG,<sp/>NULL,<sp/>_T(</highlight><highlight class="stringliteral">&quot;frame<sp/>out<sp/>of<sp/>bounds&quot;</highlight><highlight class="normal">),<sp/>fbi-&gt;Name());</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(BMMRES_ERRORTAKENCARE);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Update<sp/>Number<sp/>of<sp/>Frames</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>fbi-&gt;SetFirstFrame(0);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>fbi-&gt;SetLastFrame(frameCount<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Get<sp/>file<sp/>from<sp/>IFL<sp/>file</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(frame<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>frame<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>_tcscpy(filename,<sp/><ref refid="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(file.<ref refid="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" kindref="member">tex</ref>[file.<ref refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" kindref="member">frm</ref>[frame]]).c_str());</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>check_image_file(filename);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMMRES_SUCCESS;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>Not<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal">BMMRES<sp/><ref refid="classBitmapIO__TA_1acc33b5aefa5cf8867add8730e55f0bef" kindref="member">BitmapIO_TA::OpenOutput</ref>(BitmapInfo<sp/>*fbi,<sp/>Bitmap<sp/>*map)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMMRES_INTERNALERROR;<sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>Not<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal">BMMRES<sp/><ref refid="classBitmapIO__TA_1a2b209e661a8f0856581fceaaacd0c106" kindref="member">BitmapIO_TA::Write</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frame)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMMRES_INTERNALERROR;<sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1a756c124cf11d2f10bbf8dc7082a33040" kindref="member">BitmapIO_TA::Close</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flag)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="ta.cpp"/>
+  </compounddef>
+</doxygen>

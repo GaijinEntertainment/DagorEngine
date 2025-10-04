@@ -1,0 +1,316 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIRenderingService" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IRenderingService</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classIRenderingService_1a8660606b49d735f920346c90a7fcceda" prot="public" static="no" strong="no">
+        <type></type>
+        <name>Stage</name>
+        <qualifiedname>IRenderingService::Stage</qualifiedname>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaac114d5a916f374150e4551ec62f7147c" prot="public">
+          <name>STG_BEFORE_RENDER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa1a28935f3ecfb088a011bf0f9b19bb1d" prot="public">
+          <name>STG_RENDER_SHADOWS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa5d72689a80695e2df353ebdec3e32550" prot="public">
+          <name>STG_RENDER_ENVI</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa8f3ad3fd4e44db60fd86851d02771e66" prot="public">
+          <name>STG_RENDER_STATIC_OPAQUE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa889642eb0dbae02042eccfdd5501784c" prot="public">
+          <name>STG_RENDER_STATIC_DECALS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae4bdfdba74abfdc682f59c4af43e0744" prot="public">
+          <name>STG_RENDER_DYNAMIC_OPAQUE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa815b66b2c948aac4151f8b54d06bb35b" prot="public">
+          <name>STG_RENDER_DYNAMIC_DECALS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa187dfbfb00414aa9434a33cfdea21984" prot="public">
+          <name>STG_RENDER_STATIC_TRANS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa1264ec02c2d892765b8f71ace55f602e" prot="public">
+          <name>STG_RENDER_DYNAMIC_TRANS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae9a7b0485d429021b5c225a0afa4e6bf" prot="public">
+          <name>STG_RENDER_STATIC_DISTORTION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa6742f47dd9200a9eba313db262a2792b" prot="public">
+          <name>STG_RENDER_DYNAMIC_DISTORTION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae1378ffca23dd7b2626f165e6d942e5f" prot="public">
+          <name>STG_RENDER_FX_LOWRES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa68386de39a112b9e30c67efb05d1558e" prot="public">
+          <name>STG_RENDER_FX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa12e63ef67b8a145b2cb4f7ffc19f185f" prot="public">
+          <name>STG_RENDER_FX_DISTORTION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa969c896ffbca7a7fdef9b17f19579eb6" prot="public">
+          <name>STG_RENDER_SHADOWS_VSM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa96b034f0a5e0b9e2c135bd5f67b9c67b" prot="public">
+          <name>STG_RENDER_SHADOWS_FOM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaaeb397b5fca758c28d6efaf00795a671d" prot="public">
+          <name>STG_RENDER_TO_CLIPMAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa4a3edb255d809eb8eb452a261ae611aa" prot="public">
+          <name>STG_RENDER_TO_CLIPMAP_LATE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa50cfb965845a830fef965932f29f7199" prot="public">
+          <name>STG_RENDER_HEIGHT_FIELD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaad2ff7ecb9da3949071e5ae16a9bb2880" prot="public">
+          <name>STG_RENDER_GRASS_MASK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa3cb76e7b55a03b57c77f18b935fb4afd" prot="public">
+          <name>STG_RENDER_CLOUDS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaaac958467b4af0f1f9fa92810f43a817a" prot="public">
+          <name>STG_RENDER_LAND_DECALS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae5bf4b58b411a322554f3e6d63e05691" prot="public">
+          <name>STG_RENDER_WATER_PROJ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa7a898eec03fd94277117a747d81f2d46" prot="public">
+          <name>STG_RENDER_HEIGHT_PATCH</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="25" column="3" bodyfile="ec_interface_ex.h" bodystart="26" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIRenderingService_1a26de63660764a22ff25bf4fd6ee8c281" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IRenderingService::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IRenderingService::HUID</qualifiedname>
+        <initializer>= 0x80C30E29u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="24" column="29" bodyfile="ec_interface_ex.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIRenderingService_1a1cb762a11c7f50c27530375d192735eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderingService::renderGeometry</definition>
+        <argsstring>(Stage stage)=0</argsstring>
+        <name>renderGeometry</name>
+        <qualifiedname>IRenderingService::renderGeometry</qualifiedname>
+        <param>
+          <type><ref refid="classIRenderingService_1a8660606b49d735f920346c90a7fcceda" kindref="member">Stage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="56" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderingService_1a407d8771fe6cd76ae3d945f07a243184" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IRenderingService::renderUI</definition>
+        <argsstring>()</argsstring>
+        <name>renderUI</name>
+        <qualifiedname>IRenderingService::renderUI</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="57" column="16" bodyfile="ec_interface_ex.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderingService_1a3702579cbaea8b0bff8e7b17091a9bc6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int IRenderingService::setSubDiv</definition>
+        <argsstring>(int)</argsstring>
+        <name>setSubDiv</name>
+        <qualifiedname>IRenderingService::setSubDiv</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="58" column="15" bodyfile="ec_interface_ex.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderingService_1ab2a695dd7619d7a8f35a481811b42290" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IRenderingService::prepare</definition>
+        <argsstring>(const Point3 &amp;center_pos, const BBox3 &amp;box)</argsstring>
+        <name>prepare</name>
+        <qualifiedname>IRenderingService::prepare</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center_pos</declname>
+        </param>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="59" column="16" bodyfile="ec_interface_ex.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="21" column="1" bodyfile="ec_interface_ex.h" bodystart="22" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classIRenderingService_1a26de63660764a22ff25bf4fd6ee8c281" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>HUID</name></member>
+      <member refid="classIRenderingService_1ab2a695dd7619d7a8f35a481811b42290" prot="public" virt="virtual"><scope>IRenderingService</scope><name>prepare</name></member>
+      <member refid="classIRenderingService_1a1cb762a11c7f50c27530375d192735eb" prot="public" virt="pure-virtual"><scope>IRenderingService</scope><name>renderGeometry</name></member>
+      <member refid="classIRenderingService_1a407d8771fe6cd76ae3d945f07a243184" prot="public" virt="virtual"><scope>IRenderingService</scope><name>renderUI</name></member>
+      <member refid="classIRenderingService_1a3702579cbaea8b0bff8e7b17091a9bc6" prot="public" virt="virtual"><scope>IRenderingService</scope><name>setSubDiv</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fcceda" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>Stage</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaac114d5a916f374150e4551ec62f7147c" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_BEFORE_RENDER</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa3cb76e7b55a03b57c77f18b935fb4afd" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_CLOUDS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa815b66b2c948aac4151f8b54d06bb35b" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_DYNAMIC_DECALS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa6742f47dd9200a9eba313db262a2792b" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_DYNAMIC_DISTORTION</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae4bdfdba74abfdc682f59c4af43e0744" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_DYNAMIC_OPAQUE</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa1264ec02c2d892765b8f71ace55f602e" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_DYNAMIC_TRANS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa5d72689a80695e2df353ebdec3e32550" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_ENVI</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa68386de39a112b9e30c67efb05d1558e" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_FX</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa12e63ef67b8a145b2cb4f7ffc19f185f" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_FX_DISTORTION</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae1378ffca23dd7b2626f165e6d942e5f" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_FX_LOWRES</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaad2ff7ecb9da3949071e5ae16a9bb2880" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_GRASS_MASK</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa50cfb965845a830fef965932f29f7199" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_HEIGHT_FIELD</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa7a898eec03fd94277117a747d81f2d46" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_HEIGHT_PATCH</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaaac958467b4af0f1f9fa92810f43a817a" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_LAND_DECALS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa1a28935f3ecfb088a011bf0f9b19bb1d" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_SHADOWS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa96b034f0a5e0b9e2c135bd5f67b9c67b" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_SHADOWS_FOM</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa969c896ffbca7a7fdef9b17f19579eb6" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_SHADOWS_VSM</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa889642eb0dbae02042eccfdd5501784c" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_STATIC_DECALS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae9a7b0485d429021b5c225a0afa4e6bf" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_STATIC_DISTORTION</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa8f3ad3fd4e44db60fd86851d02771e66" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_STATIC_OPAQUE</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa187dfbfb00414aa9434a33cfdea21984" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_STATIC_TRANS</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaaeb397b5fca758c28d6efaf00795a671d" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_TO_CLIPMAP</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaa4a3edb255d809eb8eb452a261ae611aa" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_TO_CLIPMAP_LATE</name></member>
+      <member refid="classIRenderingService_1a8660606b49d735f920346c90a7fccedaae5bf4b58b411a322554f3e6d63e05691" prot="public" virt="non-virtual"><scope>IRenderingService</scope><name>STG_RENDER_WATER_PROJ</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

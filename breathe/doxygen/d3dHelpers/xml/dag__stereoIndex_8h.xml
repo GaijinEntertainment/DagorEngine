@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__stereoIndex_8h" kind="file" language="C++">
+    <compoundname>dag_stereoIndex.h</compoundname>
+    <includedby refid="dag__occlusionSystem_8h" local="no">dag_occlusionSystem.h</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_occlusionSystem.h</label>
+        <link refid="dag__occlusionSystem_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_stereoIndex.h</label>
+        <link refid="dag__stereoIndex_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>StereoIndex</name>
+        <enumvalue id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a5d9b47bd3b65072e0d5daf55f01da086" prot="public">
+          <name>Mono</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a945d5e233cf7d6240f6b783b36a374ff" prot="public">
+          <name>Left</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a92b09c7c48c520c3c55e497875da437c" prot="public">
+          <name>Right</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a6831e1a95a00cef405da02b99b830d91" prot="public">
+          <name>Bounding</name>
+          <initializer>= Mono</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a222a267cc5778206b253be35ee3ddab5" prot="public">
+          <name>Current</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stereoIndex.h" line="7" column="1" bodyfile="dag_stereoIndex.h" bodystart="8" bodyend="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__stereoIndex_8h_1ae96e95843b6a17360c665ad117031eb1" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t operator*</definition>
+        <argsstring>(StereoIndex index) noexcept</argsstring>
+        <name>operator*</name>
+        <param>
+          <type><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" kindref="member">StereoIndex</ref></type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stereoIndex.h" line="16" column="20" bodyfile="dag_stereoIndex.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" kindref="member">StereoIndex</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a5d9b47bd3b65072e0d5daf55f01da086" kindref="member">Mono</ref>,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a945d5e233cf7d6240f6b783b36a374ff" kindref="member">Left</ref>,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a92b09c7c48c520c3c55e497875da437c" kindref="member">Right</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a6831e1a95a00cef405da02b99b830d91" kindref="member">Bounding</ref><sp/>=<sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a5d9b47bd3b65072e0d5daf55f01da086" kindref="member">Mono</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8a222a267cc5778206b253be35ee3ddab5" kindref="member">Current</ref><sp/>=<sp/>-1,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="dag__stereoIndex_8h_1ae96e95843b6a17360c665ad117031eb1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="dag__stereoIndex_8h_1ae96e95843b6a17360c665ad117031eb1" kindref="member">operator*</ref>(<ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" kindref="member">StereoIndex</ref><sp/>index)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"><sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">uint32_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(index);<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="dag_stereoIndex.h"/>
+  </compounddef>
+</doxygen>

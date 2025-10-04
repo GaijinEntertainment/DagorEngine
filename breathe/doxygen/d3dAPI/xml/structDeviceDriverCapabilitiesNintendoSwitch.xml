@@ -1,0 +1,1118 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverCapabilitiesNintendoSwitch" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesNintendoSwitch</compoundname>
+    <basecompoundref refid="structDeviceDriverCapabilitiesBase" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1abcc856e93804e58d96163cdf41748cdb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAnisotropicFilter</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1639" column="25" bodyfile="dag_consts.h" bodystart="1639" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a73f864712bc54068de226641de977f10" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasDepthReadOnly</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1641" column="25" bodyfile="dag_consts.h" bodystart="1641" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a90ded95712876ee8e0fb7b48e49675de" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasStructuredBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1643" column="25" bodyfile="dag_consts.h" bodystart="1643" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1aaebcc7654e15533de9bb41c9b4dbcd71" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasNoOverwriteOnShaderResourceBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1645" column="25" bodyfile="dag_consts.h" bodystart="1645" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1adb12c81491114e5999a9b5f8e86e8e8f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasForcedSamplerCount</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1647" column="25" bodyfile="dag_consts.h" bodystart="1647" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a2597470b4348c3b012c8c36eeba8439b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVolMipMap</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1649" column="25" bodyfile="dag_consts.h" bodystart="1649" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ab8cc26637ffbc82fc4c4e1625949fb1a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1651" column="25" bodyfile="dag_consts.h" bodystart="1651" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a0502167afcb6d392dc731dc8708ca070" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasOcclusionQuery</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1653" column="25" bodyfile="dag_consts.h" bodystart="1653" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1aa9dfc7b6b68fcb283d4b1e7d5bef0504" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasConstBufferOffset</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1656" column="25" bodyfile="dag_consts.h" bodystart="1656" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ac4347b91422e4f7e2c6aee76cbf9a463" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasDepthBoundsTest</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1abda4bbbdebdb5c18b289e9053895e193" kindref="member">DeviceDriverCapabilitiesBase::hasDepthBoundsTest</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1658" column="25" bodyfile="dag_consts.h" bodystart="1658" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1aef8890f0804bd814fe0e5b1a188a1911" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasResourceCopyConversion</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1660" column="25" bodyfile="dag_consts.h" bodystart="1660" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1adb33dcb90a1cd5268baeb2cc2367f295" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAsyncCopy</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1662" column="25" bodyfile="dag_consts.h" bodystart="1662" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a673216799601394d35367fa281a63a46" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasReadMultisampledDepth</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1664" column="25" bodyfile="dag_consts.h" bodystart="1664" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ac90ccc26acdf89ba0dfc2ce3de6f5898" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasInstanceID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a2ca9ae722f66c5f6f0c3b76cd0424c07" kindref="member">DeviceDriverCapabilitiesBase::hasInstanceID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1666" column="25" bodyfile="dag_consts.h" bodystart="1666" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ada655a307e7bb62896a56677fa2e8d18" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasConservativeRassterization</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1668" column="25" bodyfile="dag_consts.h" bodystart="1668" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a7ed35e9baf5d98f15ed3171702d0e0cf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasQuadTessellation</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1671" column="25" bodyfile="dag_consts.h" bodystart="1671" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ae4c893ae7b4e71acafd07ed94b518e4a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasGather4</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1673" column="25" bodyfile="dag_consts.h" bodystart="1673" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ae5eb51ca01c768b1f5be77fdca413fed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAlphaCoverage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1675" column="25" bodyfile="dag_consts.h" bodystart="1675" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1afed186bc030f9266afdbccbe2985b50a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasWellSupportedIndirect</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac087fa09d2db1f17bff24b8fa09ccb64" kindref="member">DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1677" column="25" bodyfile="dag_consts.h" bodystart="1677" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a1ec6f0fa178e4712236680ce702e2b1e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasNVApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1679" column="25" bodyfile="dag_consts.h" bodystart="1679" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a21a2c63ba00b04cb9500c3be4cf0f2c0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasATIApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1681" column="25" bodyfile="dag_consts.h" bodystart="1681" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1acb9d3615d6b8de793f3454f38a38a80e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShading</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1683" column="25" bodyfile="dag_consts.h" bodystart="1683" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1afcc2882071815c274474048db1d3033f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingTexture</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1685" column="25" bodyfile="dag_consts.h" bodystart="1685" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1af08f839d86251890d8a474e51cb39664" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingShaderOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1687" column="25" bodyfile="dag_consts.h" bodystart="1687" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1af2caba7a2fe474032ef698a9829c0da4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingCombiners</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1689" column="25" bodyfile="dag_consts.h" bodystart="1689" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1af272ee92fb814459bd521ffc1e9ccf85" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasVariableRateShadingBy4</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1691" column="25" bodyfile="dag_consts.h" bodystart="1691" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1aaaa12f56670e4e9ebe6de1c55add698e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasStreamOutput</definition>
+        <argsstring></argsstring>
+        <name>hasStreamOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasStreamOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a80623316c230f4bcd411685bfa56dacd" kindref="member">DeviceDriverCapabilitiesBase::hasStreamOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1693" column="25" bodyfile="dag_consts.h" bodystart="1693" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ad0176c96dadca39cdce12b8a19b98b31" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAliasedTextures</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1696" column="25" bodyfile="dag_consts.h" bodystart="1696" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a3d2500d0819510beba750f63d1091253" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasResourceHeaps</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1699" column="25" bodyfile="dag_consts.h" bodystart="1699" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1aaf0ffc758181c251460a02d2cf526454" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1701" column="25" bodyfile="dag_consts.h" bodystart="1701" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a3ad7105cc2e9b9c6169553aed085eaa7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasBufferOverlapRegionsCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1703" column="25" bodyfile="dag_consts.h" bodystart="1703" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a624e20d8a4b0eaaa03a24cd9caa03e31" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasUAVOnlyForcedSampleCount</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1705" column="25" bodyfile="dag_consts.h" bodystart="1705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a2c792d76da9847f74a88841a48e81fa9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasShader64BitIntegerResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1707" column="25" bodyfile="dag_consts.h" bodystart="1707" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a5671cf25cf9f63de44df339482e6d895" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasNativeRenderPassSubPasses</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1709" column="25" bodyfile="dag_consts.h" bodystart="1709" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a4d8a1bd089d09a2322caf59608bbc549" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasTiled2DResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1711" column="25" bodyfile="dag_consts.h" bodystart="1711" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a5d55c07f7372ca0e6d04edcf878a41cc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasTiled3DResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1713" column="25" bodyfile="dag_consts.h" bodystart="1713" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a56d0d5ab832b142e265132674b24db48" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasTiledSafeResourcesAccess</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1715" column="25" bodyfile="dag_consts.h" bodystart="1715" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a1671234ce5aa2ab6aa89ce73a0ea2cee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasTiledMemoryAliasing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1717" column="25" bodyfile="dag_consts.h" bodystart="1717" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1afe18184be7a669e1d02ed758e4b5f66a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasDLSS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1719" column="25" bodyfile="dag_consts.h" bodystart="1719" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ace17370ede4fd32a9e08f0644af73e36" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasXESS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1721" column="25" bodyfile="dag_consts.h" bodystart="1721" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a87dc9cc71e8f189f75806ab30fd46de3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasDrawID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1723" column="25" bodyfile="dag_consts.h" bodystart="1723" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1affd0a2e587a3ef4acec431008ba8bd90" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasMeshShader</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1725" column="25" bodyfile="dag_consts.h" bodystart="1725" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a36d40a50ad138742ee2a3e7c0af2354a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasBasicViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1727" column="25" bodyfile="dag_consts.h" bodystart="1727" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1af982618e08be81abbe664323e0ff9501" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasOptimizedViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1729" column="25" bodyfile="dag_consts.h" bodystart="1729" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a54fd5923cece3fdb2c2ded977195bb1c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasAcceleratedViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1731" column="25" bodyfile="dag_consts.h" bodystart="1731" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a171306bcddf2e594e79508e9617da393" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasStereoExpansion</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1733" column="25" bodyfile="dag_consts.h" bodystart="1733" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a2763066cef54e33cb08ee0ca00e579a7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasTileBasedArchitecture</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1735" column="25" bodyfile="dag_consts.h" bodystart="1735" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a9fc02948ac41bc8f00d06dbe01a54c6c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasLazyMemory</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1737" column="25" bodyfile="dag_consts.h" bodystart="1737" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a96dfe8065daeb2f3cf62e7d8ea11635d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasIndirectSupport</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1739" column="25" bodyfile="dag_consts.h" bodystart="1739" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a0bb3f72746267e9787ed603d6601b1f2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasCompareSampler</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1741" column="25" bodyfile="dag_consts.h" bodystart="1741" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a843378f86ad80bd8298f5cfd1f07d238" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasUAVOnEveryStage</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnEveryStage</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasUAVOnEveryStage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1aa3d398f37cc15f74274507f0bf19e4a6" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnEveryStage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1743" column="25" bodyfile="dag_consts.h" bodystart="1743" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a4d2b69409f58bc45d743461ab128e00b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasRayAccelerationStructure</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" kindref="member">DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1745" column="25" bodyfile="dag_consts.h" bodystart="1745" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a89d70cb4279a17733c3783ac8e9f1ebf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasRayQuery</definition>
+        <argsstring></argsstring>
+        <name>hasRayQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasRayQuery</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" kindref="member">DeviceDriverCapabilitiesBase::hasRayQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1747" column="25" bodyfile="dag_consts.h" bodystart="1747" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a2dc0cc781761d2c0feeafcb541586ccd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" kindref="member">DeviceDriverCapabilitiesBase::hasRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1749" column="25" bodyfile="dag_consts.h" bodystart="1749" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a7d40ceddf4474f242ba80b719b30bc96" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasIndirectRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasIndirectRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1751" column="25" bodyfile="dag_consts.h" bodystart="1751" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1af0c0b09e2b0f817ea1552860bd14208d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasEmulatedRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasEmulatedRaytracing</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasEmulatedRaytracing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" kindref="member">DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1753" column="25" bodyfile="dag_consts.h" bodystart="1753" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ae057a9fe100cdc0257e617cb5e8c7a1a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasGeometryIndexInRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasGeometryIndexInRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasGeometryIndexInRayAccelerationStructure</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" kindref="member">DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1755" column="25" bodyfile="dag_consts.h" bodystart="1755" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a6093a7e28b7f959cbe9b12a3ee8bc203" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasSkipPrimitiveTypeInRayTracingShaders</definition>
+        <argsstring></argsstring>
+        <name>hasSkipPrimitiveTypeInRayTracingShaders</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasSkipPrimitiveTypeInRayTracingShaders</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" kindref="member">DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1757" column="25" bodyfile="dag_consts.h" bodystart="1757" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a9349ea21fc41866928bec7f0f1630d69" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasBaseVertexSupport</definition>
+        <argsstring></argsstring>
+        <name>hasBaseVertexSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasBaseVertexSupport</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a2ad251d9ab91c67940961cc658de268d" kindref="member">DeviceDriverCapabilitiesBase::hasBaseVertexSupport</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1759" column="25" bodyfile="dag_consts.h" bodystart="1759" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ad008f870b59f65772dee79e59a39af50" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::castingFullyTypedFormatsSupported</definition>
+        <argsstring></argsstring>
+        <name>castingFullyTypedFormatsSupported</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::castingFullyTypedFormatsSupported</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abf96cd9a616dde8f7f438bebaa99e0dc" kindref="member">DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1761" column="25" bodyfile="dag_consts.h" bodystart="1761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1ad2e3667b4a0cc3845de79b95517499db" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasNativeRayTracePipelineExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRayTracePipelineExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasNativeRayTracePipelineExpansion</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac174acf81286aa4aa23a94972a785c35" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1763" column="25" bodyfile="dag_consts.h" bodystart="1763" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a329c226c6c7ca6c88e35df8e0300f011" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasPersistentShaderHandles</definition>
+        <argsstring></argsstring>
+        <name>hasPersistentShaderHandles</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasPersistentShaderHandles</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a652988c1f8556fb13029d4e187c0bfb9" kindref="member">DeviceDriverCapabilitiesBase::hasPersistentShaderHandles</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1765" column="25" bodyfile="dag_consts.h" bodystart="1765" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesNintendoSwitch_1a26fe7a0aa31d29604245dc7eea0e8b25" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesNintendoSwitch::hasDualSourceBlending</definition>
+        <argsstring></argsstring>
+        <name>hasDualSourceBlending</name>
+        <qualifiedname>DeviceDriverCapabilitiesNintendoSwitch::hasDualSourceBlending</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a442fe87d834a1c836ba3ea5c4cc908fd" kindref="member">DeviceDriverCapabilitiesBase::hasDualSourceBlending</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1767" column="25" bodyfile="dag_consts.h" bodystart="1767" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \nswitch. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesNintendoSwitch</label>
+        <link refid="structDeviceDriverCapabilitiesNintendoSwitch"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesNintendoSwitch</label>
+        <link refid="structDeviceDriverCapabilitiesNintendoSwitch"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="1636" column="1" bodyfile="dag_consts.h" bodystart="1637" bodyend="1768"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ad008f870b59f65772dee79e59a39af50" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>castingFullyTypedFormatsSupported</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a54fd5923cece3fdb2c2ded977195bb1c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ad0176c96dadca39cdce12b8a19b98b31" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAliasedTextures</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ae5eb51ca01c768b1f5be77fdca413fed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAlphaCoverage</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1abcc856e93804e58d96163cdf41748cdb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ab8cc26637ffbc82fc4c4e1625949fb1a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAsyncCompute</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1adb33dcb90a1cd5268baeb2cc2367f295" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasAsyncCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a21a2c63ba00b04cb9500c3be4cf0f2c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasATIApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a9349ea21fc41866928bec7f0f1630d69" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBaseVertexSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a36d40a50ad138742ee2a3e7c0af2354a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBindless</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1aaf0ffc758181c251460a02d2cf526454" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a3ad7105cc2e9b9c6169553aed085eaa7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a0bb3f72746267e9787ed603d6601b1f2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasCompareSampler</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConditionalRender</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ada655a307e7bb62896a56677fa2e8d18" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConservativeRassterization</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1aa9dfc7b6b68fcb283d4b1e7d5bef0504" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasConstBufferOffset</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ac4347b91422e4f7e2c6aee76cbf9a463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a73f864712bc54068de226641de977f10" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDepthReadOnly</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1afe18184be7a669e1d02ed758e4b5f66a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDLSS</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a87dc9cc71e8f189f75806ab30fd46de3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDrawID</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a26fe7a0aa31d29604245dc7eea0e8b25" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasDualSourceBlending</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1af0c0b09e2b0f817ea1552860bd14208d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasEmulatedRaytracing</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1adb12c81491114e5999a9b5f8e86e8e8f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ae4c893ae7b4e71acafd07ed94b518e4a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasGather4</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ae057a9fe100cdc0257e617cb5e8c7a1a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasGeometryIndexInRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a7d40ceddf4474f242ba80b719b30bc96" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasIndirectRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a96dfe8065daeb2f3cf62e7d8ea11635d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasIndirectSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ac90ccc26acdf89ba0dfc2ce3de6f5898" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasInstanceID</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a9fc02948ac41bc8f00d06dbe01a54c6c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasLazyMemory</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1affd0a2e587a3ef4acec431008ba8bd90" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasMeshShader</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ad2e3667b4a0cc3845de79b95517499db" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNativeRayTracePipelineExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a5671cf25cf9f63de44df339482e6d895" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1aaebcc7654e15533de9bb41c9b4dbcd71" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a1ec6f0fa178e4712236680ce702e2b1e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasNVApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a0502167afcb6d392dc731dc8708ca070" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasOcclusionQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1af982618e08be81abbe664323e0ff9501" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a329c226c6c7ca6c88e35df8e0300f011" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasPersistentShaderHandles</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a7ed35e9baf5d98f15ed3171702d0e0cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasQuadTessellation</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a4d2b69409f58bc45d743461ab128e00b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a2dc0cc781761d2c0feeafcb541586ccd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a89d70cb4279a17733c3783ac8e9f1ebf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRayQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a673216799601394d35367fa281a63a46" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1aef8890f0804bd814fe0e5b1a188a1911" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a3d2500d0819510beba750f63d1091253" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasResourceHeaps</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a2c792d76da9847f74a88841a48e81fa9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a6093a7e28b7f959cbe9b12a3ee8bc203" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasSkipPrimitiveTypeInRayTracingShaders</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a171306bcddf2e594e79508e9617da393" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasStereoExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1aaaa12f56670e4e9ebe6de1c55add698e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasStreamOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a90ded95712876ee8e0fb7b48e49675de" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasStructuredBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a2763066cef54e33cb08ee0ca00e579a7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a4d8a1bd089d09a2322caf59608bbc549" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiled2DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a5d55c07f7372ca0e6d04edcf878a41cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiled3DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a1671234ce5aa2ab6aa89ce73a0ea2cee" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a56d0d5ab832b142e265132674b24db48" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a843378f86ad80bd8298f5cfd1f07d238" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasUAVOnEveryStage</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a624e20d8a4b0eaaa03a24cd9caa03e31" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1acb9d3615d6b8de793f3454f38a38a80e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShading</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1af272ee92fb814459bd521ffc1e9ccf85" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1af2caba7a2fe474032ef698a9829c0da4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1af08f839d86251890d8a474e51cb39664" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1afcc2882071815c274474048db1d3033f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1a2597470b4348c3b012c8c36eeba8439b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasVolMipMap</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a446ec37dfad1d989b6cc6e999fdac555" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasWaveOps</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1afed186bc030f9266afdbccbe2985b50a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="structDeviceDriverCapabilitiesNintendoSwitch_1ace17370ede4fd32a9e08f0644af73e36" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesNintendoSwitch</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

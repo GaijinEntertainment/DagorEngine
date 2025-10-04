@@ -1,0 +1,806 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__lockTexture_8h" kind="file" language="C++">
+    <compoundname>dag_lockTexture.h</compoundname>
+    <includes local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes local="no">EASTL/type_traits.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_lockTexture.h</label>
+        <link refid="dag__lockTexture_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="3">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classImage2DReadOnly" prot="public">Image2DReadOnly</innerclass>
+    <innerclass refid="classImage2D" prot="public">Image2D</innerclass>
+    <innerclass refid="classImage2DView" prot="public">Image2DView</innerclass>
+    <innerclass refid="structImage2DView_1_1ForwardIterator" prot="public">Image2DView::ForwardIterator</innerclass>
+    <innerclass refid="classLockedImage" prot="public">LockedImage</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__lockTexture_8h_1ad7298879d0bb4de4f902f987b6b1fdeb" prot="public" static="no">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref>&lt; <ref refid="classImage2DReadOnly" kindref="compound">Image2DReadOnly</ref> &gt;</type>
+        <definition>using LockedImage2DReadOnly =  LockedImage&lt;Image2DReadOnly&gt;</definition>
+        <argsstring></argsstring>
+        <name>LockedImage2DReadOnly</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="408" column="1" bodyfile="dag_lockTexture.h" bodystart="408" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__lockTexture_8h_1a7710009ae49382ff715a9fdcfbfcd461" prot="public" static="no">
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref>&lt; <ref refid="classImage2D" kindref="compound">Image2D</ref> &gt;</type>
+        <definition>using LockedImage2D =  LockedImage&lt;Image2D&gt;</definition>
+        <argsstring></argsstring>
+        <name>LockedImage2D</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="409" column="1" bodyfile="dag_lockTexture.h" bodystart="409" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__lockTexture_8h_1a3b8070462fce75296b968f3e13daf208" prot="public" static="no">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classLockedImage" kindref="compound">LockedImage</ref>&lt; <ref refid="classImage2DView" kindref="compound">Image2DView</ref>&lt; T &gt; &gt;</type>
+        <definition>using LockedImage2DView =  LockedImage&lt;Image2DView&lt;T&gt; &gt;</definition>
+        <argsstring></argsstring>
+        <name>LockedImage2DView</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="412" column="1" bodyfile="dag_lockTexture.h" bodystart="412" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="dag__lockTexture_8h_1a3b8070462fce75296b968f3e13daf208" kindref="member">LockedImage2DView</ref>&lt; T &gt;</type>
+        <definition>LockedImage2DView&lt; T &gt; lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int layer, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="417" column="19" bodyfile="dag_lockTexture.h" bodystart="417" bodyend="422"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a41bea1a18881897cbf3feb54f697d46b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="dag__lockTexture_8h_1a3b8070462fce75296b968f3e13daf208" kindref="member">LockedImage2DView</ref>&lt; T &gt;</type>
+        <definition>LockedImage2DView&lt; T &gt; lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="425" column="19" bodyfile="dag_lockTexture.h" bodystart="425" bodyend="430"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a61122e560320ad67c202c32a24565499" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__lockTexture_8h_1a7710009ae49382ff715a9fdcfbfcd461" kindref="member">LockedImage2D</ref></type>
+        <definition>LockedImage2D lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="433" column="22" bodyfile="dag_lockTexture.h" bodystart="433" bodyend="436"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a206004690a7a8a1d0da80ce1f529da82" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__lockTexture_8h_1a7710009ae49382ff715a9fdcfbfcd461" kindref="member">LockedImage2D</ref></type>
+        <definition>LockedImage2D lock_texture</definition>
+        <argsstring>(BaseTexture *tex, int layer, int level, unsigned flags)</argsstring>
+        <name>lock_texture</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="438" column="22" bodyfile="dag_lockTexture.h" bodystart="438" bodyend="441"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a8399afc9edc8dc9f24149007cfbef41a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__lockTexture_8h_1ad7298879d0bb4de4f902f987b6b1fdeb" kindref="member">LockedImage2DReadOnly</ref></type>
+        <definition>LockedImage2DReadOnly lock_texture_ro</definition>
+        <argsstring>(BaseTexture *tex, int level, unsigned flags)</argsstring>
+        <name>lock_texture_ro</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="444" column="30" bodyfile="dag_lockTexture.h" bodystart="444" bodyend="447"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a063e46b76440b0750fd85fbbac300f06" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__lockTexture_8h_1ad7298879d0bb4de4f902f987b6b1fdeb" kindref="member">LockedImage2DReadOnly</ref></type>
+        <definition>LockedImage2DReadOnly lock_texture_ro</definition>
+        <argsstring>(BaseTexture *tex, int layer, int level, unsigned flags)</argsstring>
+        <name>lock_texture_ro</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="449" column="30" bodyfile="dag_lockTexture.h" bodystart="449" bodyend="452"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a63c5be568d747e5b5296593f21e5548d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Flags</declname>
+            <defname>Flags</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void request_readback_nosyslock</definition>
+        <argsstring>(BaseTexture *tex, int level)</argsstring>
+        <name>request_readback_nosyslock</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="456" column="13" bodyfile="dag_lockTexture.h" bodystart="456" bodyend="461"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockTexture_8h_1a84e3143f72bfc65604d2777916899525" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Flags</declname>
+            <defname>Flags</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void request_readback_nosyslock</definition>
+        <argsstring>(BaseTexture *tex, int layer, int level)</argsstring>
+        <name>request_readback_nosyslock</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="465" column="13" bodyfile="dag_lockTexture.h" bodystart="465" bodyend="470"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/type_traits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>ElementType&gt;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classImage2DView" kindref="compound">Image2DView</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classImage2DReadOnly" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classImage2DReadOnly" kindref="compound">Image2DReadOnly</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="19" refid="classImage2DReadOnly_1a8f900f4198b499fc810f919c64dbd503" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1a8f900f4198b499fc810f919c64dbd503" kindref="member">getWidthInElems</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="20" refid="classImage2DReadOnly_1a8971c8ff36f048b1fb6e002d3d1ddd2d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1a8971c8ff36f048b1fb6e002d3d1ddd2d" kindref="member">getHeightInElems</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="21" refid="classImage2DReadOnly_1a6d0840a5debdf27313e42d74475ba43c" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1a6d0840a5debdf27313e42d74475ba43c" kindref="member">getByteStride</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="22" refid="classImage2DReadOnly_1a8dc33cc78f05827245294b314230c3e5" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1a8dc33cc78f05827245294b314230c3e5" kindref="member">getBytesPerElement</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classImage2DReadOnly_1adaa755a4a7a9b19b9a043410c7d29531" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*<ref refid="classImage2DReadOnly_1adaa755a4a7a9b19b9a043410c7d29531" kindref="member">get</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="27" refid="classImage2DReadOnly_1a17514973178e68b7109aae29f4c16d75" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;const T&gt;</ref><sp/><ref refid="classImage2DReadOnly_1a17514973178e68b7109aae29f4c16d75" kindref="member">cast</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="28"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;const T&gt;</ref>{<ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>,<sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>,<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>,<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>,<sp/><ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="33" refid="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" kindref="member">readElems</ref>(dag::Span&lt;T&gt;<sp/>dst,<sp/>uint32_t<sp/>row,<sp/>uint32_t<sp/>offset_in_elems,<sp/>uint32_t<sp/>elems_count)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="34"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(dst.size()<sp/>&gt;=<sp/>elems_count);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" kindref="member">readElems</ref>(dst.data(),<sp/>row,<sp/>offset_in_elems<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>elems_count<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T));</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>copies<sp/>data<sp/>from<sp/>image<sp/>to<sp/>dst.<sp/>dst<sp/>should<sp/>have<sp/>enougth<sp/>space<sp/>to<sp/>store<sp/>row_count<sp/>*<sp/>widthInElems<sp/>*<sp/>bytesPerElement<sp/>bytes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="41" refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" kindref="member">readRows</ref>(dag::Span&lt;T&gt;<sp/>dst,<sp/>uint32_t<sp/>first_row,<sp/>uint32_t<sp/>row_count)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="42"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>bytesPerRow<sp/>=<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(dst.size()<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>&gt;=<sp/>row_count<sp/>*<sp/>bytesPerRow<sp/>&amp;&amp;<sp/>bytesPerRow<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" kindref="member">readRows</ref>(dst.data(),<sp/>first_row,<sp/>row_count,<sp/>bytesPerRow);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>copies<sp/>data<sp/>from<sp/>image<sp/>to<sp/>dst.<sp/>dst<sp/>should<sp/>have<sp/>enougth<sp/>space<sp/>to<sp/>store<sp/>whole<sp/>image<sp/>contents</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="50" refid="classImage2DReadOnly_1a372ea9ae21b4282c368cb4c95aff527b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a372ea9ae21b4282c368cb4c95aff527b" kindref="member">readRows</ref>(dag::Span&lt;T&gt;<sp/>dst)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="51"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" kindref="member">readRows</ref>(dst,<sp/>0,<sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="56" refid="classImage2DReadOnly_1a9ffcd924137cd8fb9cb23b8376602952" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DReadOnly_1a9ffcd924137cd8fb9cb23b8376602952" kindref="member">Image2DReadOnly</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classImage2DReadOnly_1aa92e566c8199d89cce12c7ecc84d24b8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DReadOnly_1aa92e566c8199d89cce12c7ecc84d24b8" kindref="member">Image2DReadOnly</ref>(uint8_t<sp/>*pixels,<sp/>uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>byte_stride,<sp/>uint32_t<sp/>fmt)<sp/>:</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>{w},<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>{h},<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>{byte_stride},<sp/><ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>{pixels},<sp/><ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>{fmt}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;desc<sp/>=<sp/>get_tex_format_desc(<ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref><sp/>=<sp/>(<ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref><sp/>+<sp/>desc.elementHeight<sp/>-<sp/>1)<sp/>/<sp/>desc.elementHeight;<sp/></highlight><highlight class="comment">//<sp/>BC<sp/>texture<sp/>can&apos;t<sp/>be<sp/>less<sp/>then<sp/>2x2,<sp/>but<sp/>1x1<sp/>is<sp/>returned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>=<sp/>(<ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref><sp/>+<sp/>desc.elementWidth<sp/>-<sp/>1)<sp/>/<sp/>desc.elementWidth;<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>from<sp/>tex-&gt;getinfo</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref><sp/>=<sp/>desc.bytesPerElement;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(<ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref><sp/>&lt;=<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>,</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Image2DView<sp/>format<sp/>is<sp/>incompatible<sp/>with<sp/>stride&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;format=%s,<sp/>height=%d,<sp/>width=%d,<sp/>widthInElems=%d,<sp/>bytesPerElement=%d,<sp/>byteStride=%d&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>get_tex_format_name(<ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>),<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>,<sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>,<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref>,<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>,<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" kindref="member">checkRowAccess</ref>(uint32_t<sp/>first_row,<sp/>uint32_t<sp/>row_count,<sp/>uint32_t<sp/>bytes_offset,<sp/>uint32_t<sp/>row_size_bytes)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="72"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(first_row<sp/>+<sp/>row_count<sp/>&lt;=<sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Image2DView(widthInElems=%u,<sp/>heightInElems=%u,<sp/>bytesPerElement=%u),<sp/>access<sp/>first_row=%u,<sp/>row_count=%u<sp/>is<sp/>out<sp/>of<sp/>range&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref>,<sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>,<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>,<sp/>first_row,<sp/>row_count);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(bytes_offset<sp/>+<sp/>row_size_bytes<sp/>&lt;=<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>,</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Image2DView(widthInElems=%u,<sp/>heightInElems=%u,<sp/>bytesPerElement=%u),<sp/>access<sp/>bytes_offset=%u,<sp/>row_size_bytes=%u<sp/>is<sp/>out<sp/>of<sp/>range&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(first_row);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(row_count);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(bytes_offset);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(row_size_bytes);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>{0u},<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>{0u},<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>{0u},<sp/><ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>{TEXFMT_DEFAULT};</highlight></codeline>
+<codeline lineno="87" refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref>{0u},<sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>{0u};</highlight></codeline>
+<codeline lineno="88" refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>{0u};</highlight></codeline>
+<codeline lineno="89" refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/>*<ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>{</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="classImage2DReadOnly_1a317a6a49ce6aacde120b61b54539a4b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a317a6a49ce6aacde120b61b54539a4b9" kindref="member">isReadOnly</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a4f2d11ce0ef68e11fc8a456f4005f6c2" kindref="member">readElems</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dst,<sp/>uint32_t<sp/>row,<sp/>uint32_t<sp/>offset_in_bytes,<sp/>uint32_t<sp/>size_in_bytes)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="95"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" kindref="member">checkRowAccess</ref>(row,<sp/>1,<sp/>offset_in_bytes,<sp/>size_in_bytes);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>memcpy(dst,<sp/><ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref><sp/>+<sp/>row<sp/>*<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref><sp/>+<sp/>offset_in_bytes,<sp/>size_in_bytes);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a58fd8ff73a02cc1c0246cdbb25dbb280" kindref="member">readRows</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dst,<sp/>uint32_t<sp/>first_row,<sp/>uint32_t<sp/>rows_count,<sp/>uint32_t<sp/>row_size_bytes)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="101"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>bytesPerRow<sp/>=<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" kindref="member">checkRowAccess</ref>(first_row,<sp/>rows_count,<sp/>0,<sp/>row_size_bytes);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*dstPtr<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">uint8_t<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(dst);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*srcPtr<sp/>=<sp/><ref refid="classImage2DReadOnly_1adaa755a4a7a9b19b9a043410c7d29531" kindref="member">get</ref>()<sp/>+<sp/>first_row<sp/>*<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(bytesPerRow<sp/>==<sp/>row_size_bytes<sp/>&amp;&amp;<sp/>bytesPerRow<sp/>==<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>)</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(dstPtr,<sp/>srcPtr,<sp/>bytesPerRow<sp/>*<sp/>rows_count);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>rows_count;<sp/>i++,<sp/>dstPtr<sp/>+=<sp/>row_size_bytes,<sp/>srcPtr<sp/>+=<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(dstPtr,<sp/>srcPtr,<sp/>row_size_bytes);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="119" refid="classImage2D" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classImage2D" kindref="compound">Image2D</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly" kindref="compound">Image2DReadOnly</ref></highlight></codeline>
+<codeline lineno="120"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="122" refid="classImage2D_1a729bc68205dc15360bda68501d04e38d" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/>*<ref refid="classImage2D_1a729bc68205dc15360bda68501d04e38d" kindref="member">get</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="125" refid="classImage2D_1aca657efd28e41f1096b6efdae41c94cc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;T&gt;</ref><sp/><ref refid="classImage2D_1aca657efd28e41f1096b6efdae41c94cc" kindref="member">cast</ref>()</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;T&gt;</ref>{<ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>,<sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>,<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>,<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>,<sp/><ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>};</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="131" refid="classImage2D_1af68f16f4d453db45db151c436dff0e74" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;const T&gt;</ref><sp/><ref refid="classImage2D_1af68f16f4d453db45db151c436dff0e74" kindref="member">cast</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="132"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView" kindref="compound">Image2DView&lt;const T&gt;</ref>{<ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref>,<sp/><ref refid="classImage2DReadOnly_1ad0e878b6907fb9111544bc10f9e744c6" kindref="member">width</ref>,<sp/><ref refid="classImage2DReadOnly_1a224789cab4eca71ef842938fe51ac5b5" kindref="member">height</ref>,<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>,<sp/><ref refid="classImage2DReadOnly_1a1f94d16cb712e0928a9346779848ee11" kindref="member">format</ref>};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="137" refid="classImage2D_1ab70f3b7162b19b2d01dd12dbd401c48c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1ab70f3b7162b19b2d01dd12dbd401c48c" kindref="member">writeElems</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>dag::Span&lt;T&gt;<sp/>&amp;src,<sp/>uint32_t<sp/>row,<sp/>uint32_t<sp/>offset_in_elems,<sp/>uint32_t<sp/>elems_count)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(src.size()<sp/>&gt;=<sp/>elems_count);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2D_1ab70f3b7162b19b2d01dd12dbd401c48c" kindref="member">writeElems</ref>(src.data(),<sp/>row,<sp/>offset_in_elems<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>elems_count<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T));</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>copies<sp/>data<sp/>from<sp/>src<sp/>to<sp/>image.<sp/>src<sp/>should<sp/>have<sp/>enougth<sp/>space<sp/>to<sp/>store<sp/>row_count<sp/>*<sp/>widthInElems<sp/>*<sp/>bytesPerElement</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="145" refid="classImage2D_1a5a4780628c96f141473a694a5552ec26" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1a5a4780628c96f141473a694a5552ec26" kindref="member">writeRows</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>dag::Span&lt;T&gt;<sp/>&amp;src,<sp/>uint32_t<sp/>first_row,<sp/>uint32_t<sp/>row_count)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>bytesPerRow<sp/>=<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(src.size()<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>&gt;=<sp/>row_count<sp/>*<sp/>bytesPerRow<sp/>&amp;&amp;<sp/>bytesPerRow<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2D_1a5a4780628c96f141473a694a5552ec26" kindref="member">writeRows</ref>(src.data(),<sp/>first_row,<sp/>row_count,<sp/>bytesPerRow);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>copies<sp/>data<sp/>from<sp/>src<sp/>to<sp/>image.<sp/>src<sp/>should<sp/>have<sp/>enougth<sp/>space<sp/>to<sp/>store<sp/>whole<sp/>image<sp/>content</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="154" refid="classImage2D_1af3c054412da67a1051dd11d1a730d01f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1af3c054412da67a1051dd11d1a730d01f" kindref="member">writeRows</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>dag::Span&lt;T&gt;<sp/>&amp;src)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2D_1a5a4780628c96f141473a694a5552ec26" kindref="member">writeRows</ref>(src,<sp/>0,<sp/><ref refid="classImage2DReadOnly_1abe2162c002c035babf73fe93ba1949e0" kindref="member">heightInElems</ref>);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="160" refid="classImage2D_1a2eeb2d056386e7595143e542a545a6c5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2D_1a2eeb2d056386e7595143e542a545a6c5" kindref="member">Image2D</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162" refid="classImage2D_1a61dc9d42638de9a48f4905f8c81a51ed" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2D_1a61dc9d42638de9a48f4905f8c81a51ed" kindref="member">Image2D</ref>(uint8_t<sp/>*pixels,<sp/>uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>byte_stride,<sp/>uint32_t<sp/>fmt)<sp/>:</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly" kindref="compound">Image2DReadOnly</ref>{pixels,<sp/>w,<sp/>h,<sp/>byte_stride,<sp/>fmt}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166" refid="classImage2D_1aa635848fe157ffc231d3ff6995f4af2e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1aa635848fe157ffc231d3ff6995f4af2e" kindref="member">isReadOnly</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1ab70f3b7162b19b2d01dd12dbd401c48c" kindref="member">writeElems</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*src,<sp/>uint32_t<sp/>row,<sp/>uint32_t<sp/>offset_in_bytes,<sp/>uint32_t<sp/>size_in_bytes)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" kindref="member">checkRowAccess</ref>(row,<sp/>1,<sp/>offset_in_bytes,<sp/>size_in_bytes);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/>memcpy(<ref refid="classImage2DReadOnly_1a70e9c7acfd161d0c2be75d5be44ca533" kindref="member">data</ref><sp/>+<sp/>row<sp/>*<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref><sp/>+<sp/>offset_in_bytes,<sp/>src,<sp/>size_in_bytes);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classImage2D_1a5a4780628c96f141473a694a5552ec26" kindref="member">writeRows</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*src,<sp/>uint32_t<sp/>first_row,<sp/>uint32_t<sp/>rows_count,<sp/>uint32_t<sp/>row_size_bytes)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>bytesPerRow<sp/>=<sp/><ref refid="classImage2DReadOnly_1ac79e2acbde885b8b7ad8caccb2f8873f" kindref="member">widthInElems</ref><sp/>*<sp/><ref refid="classImage2DReadOnly_1ace65954a84c521699aeb8b54b7f98070" kindref="member">bytesPerElement</ref>;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classImage2DReadOnly_1a9f826e242a238d5a6ecf6d7dfc017738" kindref="member">checkRowAccess</ref>(first_row,<sp/>rows_count,<sp/>0,<sp/>row_size_bytes);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*dstPtr<sp/>=<sp/><ref refid="classImage2D_1a729bc68205dc15360bda68501d04e38d" kindref="member">get</ref>()<sp/>+<sp/>first_row<sp/>*<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*srcPtr<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">uint8_t<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(src);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(bytesPerRow<sp/>==<sp/>row_size_bytes<sp/>&amp;&amp;<sp/>bytesPerRow<sp/>==<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>)</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(dstPtr,<sp/>src,<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref><sp/>*<sp/>rows_count);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>rows_count;<sp/>i++,<sp/>dstPtr<sp/>+=<sp/><ref refid="classImage2DReadOnly_1a7855878c9ab87402ac36dd2dc035a758" kindref="member">byteStride</ref>,<sp/>srcPtr<sp/>+=<sp/>row_size_bytes)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(dstPtr,<sp/>srcPtr,<sp/>row_size_bytes);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight><highlight class="comment">//<sp/>provides<sp/>per-elemen<sp/>access<sp/>to<sp/>image.<sp/>ElementType<sp/>size<sp/>should<sp/>be<sp/>equal<sp/>to<sp/>image<sp/>element<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>ElementType&gt;</highlight></codeline>
+<codeline lineno="197" refid="classImage2DView" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classImage2DView" kindref="compound">Image2DView</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>eastl::conditional_t&lt;eastl::is_const_v&lt;ElementType&gt;,<sp/>Image2DReadOnly,<sp/>Image2D&gt;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="200" refid="classImage2DView_1a65ba8b6d0bd9ad3664ea8237ed2eff2a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DView_1a65ba8b6d0bd9ad3664ea8237ed2eff2a" kindref="member">Image2DView</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202" refid="classImage2DView_1af07cf7916dd2613194ab4f7d3cb0ea47" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classImage2DView_1af07cf7916dd2613194ab4f7d3cb0ea47" kindref="member">Image2DView</ref>(uint8_t<sp/>*pixels,<sp/>uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>byte_stride,<sp/>uint32_t<sp/>fmt)<sp/>:<sp/>BaseType{pixels,<sp/>w,<sp/>h,<sp/>byte_stride,<sp/>fmt}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(pixels<sp/>&amp;&amp;<sp/>BaseType::bytesPerElement<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ElementType),</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Image2DView<sp/>template<sp/>parameter<sp/>is<sp/>inscompatible<sp/>with<sp/>underlying<sp/>format<sp/>(%d<sp/>!=<sp/>%d)&quot;</highlight><highlight class="normal">,<sp/>BaseType::bytesPerElement,</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ElementType));</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209" refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" kindref="member">at</ref>(uint32_t<sp/>x,<sp/>uint32_t<sp/>y)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="210"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/>checkAccess(x,<sp/>y);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>row(y)[x];</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215" refid="classImage2DView_1a97bebf8587e4255f3e0e1dd3aa3c536e" refkind="member"><highlight class="normal"><sp/><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1a97bebf8587e4255f3e0e1dd3aa3c536e" kindref="member">at</ref>(uint32_t<sp/>x,<sp/>uint32_t<sp/>y)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/>checkAccess(x,<sp/>y);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>row(y)[x];</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="classImage2DView_1ac98c6e577190b675f6ac0db18ffb991d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1ac98c6e577190b675f6ac0db18ffb991d" kindref="member">at</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint2<sp/>p)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="222"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(p.x<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>p.y<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" kindref="member">at</ref>(p.x,<sp/>p.y);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227" refid="classImage2DView_1aa1d2f0de88c8f0f01bb2c58623a478e3" refkind="member"><highlight class="normal"><sp/><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1aa1d2f0de88c8f0f01bb2c58623a478e3" kindref="member">at</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint2<sp/>p)</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(p.x<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>p.y<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" kindref="member">at</ref>(p.x,<sp/>p.y);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233" refid="classImage2DView_1af88352aa0b72c5e3d31694af41b1e8d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1af88352aa0b72c5e3d31694af41b1e8d6" kindref="member">operator[]</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint2<sp/>p)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" kindref="member">at</ref>(p);<sp/>}</highlight></codeline>
+<codeline lineno="234" refid="classImage2DView_1a50ae5813f32594994b45180052fd2ad1" refkind="member"><highlight class="normal"><sp/><sp/>ElementType<sp/>&amp;<ref refid="classImage2DView_1a50ae5813f32594994b45180052fd2ad1" kindref="member">operator[]</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint2<sp/>p)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" kindref="member">at</ref>(p);<sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236" refid="structImage2DView_1_1ForwardIterator" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="238" refid="structImage2DView_1_1ForwardIterator_1a495c1263c164731d90ef8e01081c6498" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator_1a495c1263c164731d90ef8e01081c6498" kindref="member">iterator_category</ref><sp/>=<sp/>eastl::forward_iterator_tag;</highlight></codeline>
+<codeline lineno="239" refid="structImage2DView_1_1ForwardIterator_1aa70368f8f0cc7b31a243bd8ea8007203" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator_1aa70368f8f0cc7b31a243bd8ea8007203" kindref="member">difference_type</ref><sp/>=<sp/>int;</highlight></codeline>
+<codeline lineno="240" refid="structImage2DView_1_1ForwardIterator_1a7d3295bf48c4f2ba154f7617626728f1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator_1a7d3295bf48c4f2ba154f7617626728f1" kindref="member">value_type</ref><sp/>=<sp/>eastl::remove_const_t&lt;ElementType&gt;;</highlight></codeline>
+<codeline lineno="241" refid="structImage2DView_1_1ForwardIterator_1a863101ea551afc870cb39c4f10014d63" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator_1a863101ea551afc870cb39c4f10014d63" kindref="member">pointer</ref><sp/>=<sp/>ElementType<sp/>*;</highlight></codeline>
+<codeline lineno="242" refid="structImage2DView_1_1ForwardIterator_1ae49f6ff729cd8653a8a35cf9044718eb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structImage2DView_1_1ForwardIterator_1ae49f6ff729cd8653a8a35cf9044718eb" kindref="member">reference</ref><sp/>=<sp/>ElementType<sp/>&amp;;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244" refid="structImage2DView_1_1ForwardIterator_1a2ce2cb454e1c9c04574e201ad93ed11d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a2ce2cb454e1c9c04574e201ad93ed11d" kindref="member">ForwardIterator</ref>(<ref refid="structImage2DView_1_1ForwardIterator_1a863101ea551afc870cb39c4f10014d63" kindref="member">pointer</ref><sp/>pixels,<sp/>uint32_t<sp/>width_in_elements,<sp/>uint32_t<sp/>elements_stride)<sp/>:</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>widthInElems(width_in_elements),<sp/>stridePad(elements_stride<sp/>-<sp/>width_in_elements),<sp/>itPtr(pixels)</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(widthInElems<sp/>&lt;=<sp/>elements_stride);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="249" refid="structImage2DView_1_1ForwardIterator_1a10ea5912141436815ef68423269bc8d7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a10ea5912141436815ef68423269bc8d7" kindref="member">jumpRows</ref>(uint32_t<sp/>count)<sp/>{<sp/>itPtr<sp/>+=<sp/>count<sp/>*<sp/>(widthInElems<sp/>+<sp/>stridePad);<sp/>}</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="251" refid="structImage2DView_1_1ForwardIterator_1a9a2cba7a69d3853e700f87e20412eae3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>[[nodiscard]]<sp/><ref refid="structImage2DView_1_1ForwardIterator_1ae49f6ff729cd8653a8a35cf9044718eb" kindref="member">reference</ref><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a9a2cba7a69d3853e700f87e20412eae3" kindref="member">operator*</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*itPtr;<sp/>}</highlight></codeline>
+<codeline lineno="252" refid="structImage2DView_1_1ForwardIterator_1a90218e838741653021ec10c440971d44" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>[[nodiscard]]<sp/><ref refid="structImage2DView_1_1ForwardIterator_1a863101ea551afc870cb39c4f10014d63" kindref="member">pointer</ref><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a90218e838741653021ec10c440971d44" kindref="member">operator-&gt;</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>itPtr;<sp/>}</highlight></codeline>
+<codeline lineno="253" refid="structImage2DView_1_1ForwardIterator_1ac08a296b945498fe11172cdad8e159cc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/>&amp;<ref refid="structImage2DView_1_1ForwardIterator_1ac08a296b945498fe11172cdad8e159cc" kindref="member">operator++</ref>()</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++itPtr;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++xIdx;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>considerStridePad();</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="260" refid="structImage2DView_1_1ForwardIterator_1aaf4d3b7d488bf5f3f87fb22e4ecd436c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/><ref refid="structImage2DView_1_1ForwardIterator_1aaf4d3b7d488bf5f3f87fb22e4ecd436c" kindref="member">operator++</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/>prevIt<sp/>=<sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++(*this);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>prevIt;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="266" refid="structImage2DView_1_1ForwardIterator_1a545bb970615159fc9e1ab2196e923670" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a545bb970615159fc9e1ab2196e923670" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/>&amp;other)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>itPtr<sp/>==<sp/>other.itPtr;<sp/>};</highlight></codeline>
+<codeline lineno="267" refid="structImage2DView_1_1ForwardIterator_1a9cf711dcb9aa65ba0c119dbf8b5f7c41" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a9cf711dcb9aa65ba0c119dbf8b5f7c41" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/>&amp;other)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(*</highlight><highlight class="keyword">this</highlight><highlight class="normal"><sp/>==<sp/>other);<sp/>};</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>widthInElems,<sp/>stridePad;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator_1a863101ea551afc870cb39c4f10014d63" kindref="member">pointer</ref><sp/>itPtr;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>xIdx<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>considerStridePad()</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_FAST_ASSERT(xIdx<sp/>&lt;=<sp/>widthInElems);</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(xIdx<sp/>==<sp/>widthInElems))</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>itPtr<sp/>+=<sp/>stridePad;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>xIdx<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285" refid="classImage2DView_1a12d04e00ed3dac73aeffe7ee0b054384" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/><ref refid="classImage2DView_1a12d04e00ed3dac73aeffe7ee0b054384" kindref="member">begin</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="286"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(BaseType::getByteStride()<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ElementType)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref>(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">ElementType<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(BaseType::data),<sp/>BaseType::getWidthInElems(),</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>BaseType::getByteStride()<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ElementType));</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="291" refid="classImage2DView_1a8f2d6613fc5d5caf960c23278f2f4213" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/><ref refid="classImage2DView_1a8f2d6613fc5d5caf960c23278f2f4213" kindref="member">end</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="292"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref><sp/>it<sp/>=<sp/><ref refid="classImage2DView_1a12d04e00ed3dac73aeffe7ee0b054384" kindref="member">begin</ref>();</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/>it.<ref refid="structImage2DView_1_1ForwardIterator_1a10ea5912141436815ef68423269bc8d7" kindref="member">jumpRows</ref>(BaseType::getHeightInElems());</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it;</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">BaseType<sp/>=<sp/>eastl::conditional_t&lt;eastl::is_const_v&lt;ElementType&gt;,<sp/><ref refid="classImage2DView_1ae27a095a7f7a34481d2c261ae293eea0" kindref="member">Image2DReadOnly</ref>,<sp/><ref refid="classImage2D" kindref="compound">Image2D</ref>&gt;;</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/>ElementType<sp/>*row(uint32_t<sp/>y)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">ElementType<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(BaseType::data<sp/>+<sp/>y<sp/>*<sp/>BaseType::getByteStride());<sp/>}</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ElementType<sp/>*row(uint32_t<sp/>y)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="304"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">ElementType<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(BaseType::data<sp/>+<sp/>y<sp/>*<sp/>BaseType::getByteStride());</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>checkAccess(uint32_t<sp/>x,<sp/>uint32_t<sp/>y)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="309"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(y<sp/>&lt;<sp/>BaseType::getHeightInElems()<sp/>&amp;&amp;<sp/>x<sp/>&lt;<sp/>BaseType::getWidthInElems(),</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>access<sp/>of<sp/>element=(%u,<sp/>%u);<sp/>widthInElems=%d,<sp/>heightInElems=%d&quot;</highlight><highlight class="normal">,<sp/>x,<sp/>y,<sp/>BaseType::getWidthInElems(),</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>BaseType::getHeightInElems());</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(x);</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(y);</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"></highlight></codeline>
+<codeline lineno="317"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="318" refid="classImage2DView_1a1803631ceb5c63599f4187073f4d3b88" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1a1803631ceb5c63599f4187073f4d3b88" kindref="member">isReadOnly</ref><sp/>=<sp/>eastl::is_const_v&lt;ElementType&gt;;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>cast&lt;T&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="321" refid="classImage2DView_1ae27a095a7f7a34481d2c261ae293eea0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1ae27a095a7f7a34481d2c261ae293eea0" kindref="member">Image2DReadOnly</ref>;</highlight></codeline>
+<codeline lineno="322" refid="classImage2DView_1afb84b9f627669de7c70f85cd357c302c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/><ref refid="classImage2DView_1afb84b9f627669de7c70f85cd357c302c" kindref="member">Image2D</ref>;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"></highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>ImageView&gt;</highlight></codeline>
+<codeline lineno="326" refid="classLockedImage" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ImageView</highlight></codeline>
+<codeline lineno="327"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage_1ad06753dded69044e3b589b45fef0e859" kindref="member">LockedImage</ref>(uint8_t<sp/>*pixels,<sp/>uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>byte_stride,<sp/>uint32_t<sp/>fmt,<sp/>BaseTexture<sp/>*owner)<sp/>:</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/>ImageView{pixels,<sp/>w,<sp/>h,<sp/>byte_stride,<sp/>fmt},<sp/>lockedTexture{owner}</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"></highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>lock_texture(BaseTexture<sp/>*tex,<sp/>eastl::optional&lt;int&gt;<sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(!ImageView::isReadOnly<sp/>||<sp/>(flags<sp/>&amp;<sp/>TEXLOCK_READWRITE)<sp/>==<sp/>TEXLOCK_READ,</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Attempt<sp/>to<sp/>create<sp/>read-only<sp/>texture<sp/>wrapper<sp/>with<sp/>TEXLOCK_WRITE<sp/>flag&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(ImageView::isReadOnly<sp/>||<sp/>(flags<sp/>&amp;<sp/>TEXLOCK_READWRITE)<sp/>!=<sp/>TEXLOCK_READ,</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Attempt<sp/>to<sp/>create<sp/>read-write<sp/>texture<sp/>wrapper<sp/>with<sp/>readonly<sp/>lock<sp/>flag&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(tex,<sp/><ref refid="classLockedImage_1ad06753dded69044e3b589b45fef0e859" kindref="member">LockedImage</ref>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">););</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*pixels<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>strideBytes<sp/>=<sp/>0u;</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ret<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(layer.has_value())</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF(<ref refid="classLockedImage_1a341be565937730d52b53f90c9e712d22" kindref="member">has_layers</ref>(tex),<sp/></highlight><highlight class="stringliteral">&quot;Attempt<sp/>to<sp/>lock<sp/>layer<sp/>%d<sp/>of<sp/>texture<sp/>that<sp/>has<sp/>no<sp/>layers&quot;</highlight><highlight class="normal">,<sp/>*layer);</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ret<sp/>=<sp/>tex-&gt;lockimg((</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**)&amp;pixels,<sp/>strideBytes,<sp/>*layer,<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ret<sp/>=<sp/>tex-&gt;lockimg((</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**)&amp;pixels,<sp/>strideBytes,<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ret<sp/>&amp;&amp;<sp/>pixels)</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TextureInfo<sp/>texInfo{};</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tex-&gt;getinfo(texInfo,<sp/>level);</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref>{pixels,<sp/>texInfo.w,<sp/>texInfo.h,<sp/>uint32_t(strideBytes),<sp/>texInfo.cflg<sp/>&amp;<sp/>TEXFMT_MASK,<sp/>tex};</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref>{};</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"></highlight></codeline>
+<codeline lineno="361"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="362" refid="classLockedImage_1ad06753dded69044e3b589b45fef0e859" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage_1ad06753dded69044e3b589b45fef0e859" kindref="member">LockedImage</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"></highlight></codeline>
+<codeline lineno="364" refid="classLockedImage_1a1dcb51b211cf7b12e060e38f59b091d1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/><ref refid="classLockedImage_1a1dcb51b211cf7b12e060e38f59b091d1" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lock_texture(tex,<sp/>eastl::nullopt,<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight></codeline>
+<codeline lineno="369" refid="classLockedImage_1a341be565937730d52b53f90c9e712d22" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classLockedImage_1a341be565937730d52b53f90c9e712d22" kindref="member">has_layers</ref>(BaseTexture<sp/>*tex)</highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex<sp/>==<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/><sp/><sp/>D3DResourceType<sp/>type<sp/>=<sp/>tex-&gt;getType();</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3DResourceType::CUBETEX<sp/>==<sp/>type<sp/>||<sp/>D3DResourceType::ARRTEX<sp/>==<sp/>type<sp/>||<sp/>D3DResourceType::CUBEARRTEX<sp/>==<sp/>type;</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"></highlight></codeline>
+<codeline lineno="377" refid="classLockedImage_1a400b365b19744419c7d76addcb9b4d5d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/><ref refid="classLockedImage_1a400b365b19744419c7d76addcb9b4d5d" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lock_texture(tex,<sp/>eastl::optional&lt;int&gt;{layer},<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"></highlight></codeline>
+<codeline lineno="382" refid="classLockedImage_1a5a8fced74f879b615966aee1401a9f79" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage_1a5a8fced74f879b615966aee1401a9f79" kindref="member">~LockedImage</ref>()</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lockedTexture)</highlight></codeline>
+<codeline lineno="385"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lockedTexture-&gt;unlock();</highlight></codeline>
+<codeline lineno="386"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="387"><highlight class="normal"></highlight></codeline>
+<codeline lineno="388" refid="classLockedImage_1ae4bc057ca70b9988f4caa7ad10638cb2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage_1ae4bc057ca70b9988f4caa7ad10638cb2" kindref="member">LockedImage</ref>(<ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;&amp;rhs)<sp/>noexcept<sp/>:<sp/>ImageView{rhs}<sp/>{<sp/>eastl::swap(lockedTexture,<sp/>rhs.lockedTexture);<sp/>}</highlight></codeline>
+<codeline lineno="389"><highlight class="normal"></highlight></codeline>
+<codeline lineno="390" refid="classLockedImage_1a446b7c5c28fc6a80d83100a2fd231fca" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;<ref refid="classLockedImage_1a446b7c5c28fc6a80d83100a2fd231fca" kindref="member">operator=</ref>(<ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(lockedTexture,<sp/>rhs.lockedTexture);</highlight></codeline>
+<codeline lineno="393"><highlight class="normal"><sp/><sp/><sp/><sp/>ImageView::operator=(rhs);</highlight></codeline>
+<codeline lineno="394"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="395"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="396"><highlight class="normal"></highlight></codeline>
+<codeline lineno="397" refid="classLockedImage_1a3afea4dce0a8b994473ac4871c66c8a4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage_1a3afea4dce0a8b994473ac4871c66c8a4" kindref="member">LockedImage</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="398" refid="classLockedImage_1a3da34dad5464b71196f391246fd13cd9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;<ref refid="classLockedImage_1a3da34dad5464b71196f391246fd13cd9" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"></highlight></codeline>
+<codeline lineno="400" refid="classLockedImage_1aeeff6a6ded5823aee19f748a81b43da1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lockedTexture<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="401"><highlight class="normal"></highlight></codeline>
+<codeline lineno="402" refid="classLockedImage_1a08cf0434ffd9020ec3b124582456bf40" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classLockedImage_1a08cf0434ffd9020ec3b124582456bf40" kindref="member">close</ref>()<sp/>{<sp/><ref refid="classLockedImage" kindref="compound">LockedImage</ref><sp/>tmp(eastl::move(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="403"><highlight class="normal"></highlight></codeline>
+<codeline lineno="404"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="405"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*lockedTexture{</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="406"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="407"><highlight class="normal"></highlight></codeline>
+<codeline lineno="408" refid="dag__lockTexture_8h_1ad7298879d0bb4de4f902f987b6b1fdeb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage2DReadOnly</ref><sp/>=<sp/><ref refid="classLockedImage" kindref="compound">LockedImage&lt;Image2DReadOnly&gt;</ref>;</highlight></codeline>
+<codeline lineno="409" refid="dag__lockTexture_8h_1a7710009ae49382ff715a9fdcfbfcd461" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage2D</ref><sp/>=<sp/><ref refid="classLockedImage" kindref="compound">LockedImage&lt;Image2D&gt;</ref>;</highlight></codeline>
+<codeline lineno="410"><highlight class="normal"></highlight></codeline>
+<codeline lineno="411"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="412" refid="dag__lockTexture_8h_1a3b8070462fce75296b968f3e13daf208" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage2DView</ref><sp/>=<sp/><ref refid="classLockedImage" kindref="compound">LockedImage&lt;Image2DView&lt;T&gt;</ref>&gt;;</highlight></codeline>
+<codeline lineno="413"><highlight class="normal"></highlight></codeline>
+<codeline lineno="414"><highlight class="normal"></highlight><highlight class="comment">//<sp/>per-element<sp/>access<sp/>wrapper.<sp/>sizeof(T)<sp/>should<sp/>match<sp/>Texture<sp/>element<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="415"><highlight class="normal"></highlight><highlight class="comment">//<sp/>use<sp/>const<sp/>T<sp/>with<sp/>readonly<sp/>flags</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="416"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="417" refid="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" refkind="member"><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage2DView&lt;T&gt;</ref><sp/><ref refid="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="418"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="419"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(eastl::is_const_v&lt;T&gt;)</highlight></codeline>
+<codeline lineno="420"><highlight class="normal"><sp/><sp/><sp/><sp/>flags<sp/>|=<sp/>TEXLOCK_READ;</highlight></codeline>
+<codeline lineno="421"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2DView&lt;T&gt;::lock_texture</ref>(tex,<sp/>layer,<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="422"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="423"><highlight class="normal"></highlight></codeline>
+<codeline lineno="424"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="425" refid="dag__lockTexture_8h_1a41bea1a18881897cbf3feb54f697d46b" refkind="member"><highlight class="normal"><ref refid="classLockedImage" kindref="compound">LockedImage2DView&lt;T&gt;</ref><sp/><ref refid="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="426"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="427"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(eastl::is_const_v&lt;T&gt;)</highlight></codeline>
+<codeline lineno="428"><highlight class="normal"><sp/><sp/><sp/><sp/>flags<sp/>|=<sp/>TEXLOCK_READ;</highlight></codeline>
+<codeline lineno="429"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2DView&lt;T&gt;::lock_texture</ref>(tex,<sp/>level,<sp/>flags);</highlight></codeline>
+<codeline lineno="430"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="431"><highlight class="normal"></highlight></codeline>
+<codeline lineno="432"><highlight class="normal"></highlight><highlight class="comment">//<sp/>read-write<sp/>access<sp/>to<sp/>image,<sp/>no<sp/>per-element<sp/>access</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="433" refid="dag__lockTexture_8h_1a61122e560320ad67c202c32a24565499" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2D</ref><sp/><ref refid="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="434"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="435"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LockedImage2D::lock_texture(tex,<sp/>level,<sp/>flags<sp/>|<sp/>TEXLOCK_WRITE);</highlight></codeline>
+<codeline lineno="436"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="437"><highlight class="normal"></highlight></codeline>
+<codeline lineno="438" refid="dag__lockTexture_8h_1a206004690a7a8a1d0da80ce1f529da82" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2D</ref><sp/><ref refid="dag__lockTexture_8h_1a42483ca2d89ae0356eb3850b62e8c918" kindref="member">lock_texture</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="439"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="440"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LockedImage2D::lock_texture(tex,<sp/>layer,<sp/>level,<sp/>flags<sp/>|<sp/>TEXLOCK_WRITE);</highlight></codeline>
+<codeline lineno="441"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="442"><highlight class="normal"></highlight></codeline>
+<codeline lineno="443"><highlight class="normal"></highlight><highlight class="comment">//<sp/>read<sp/>only<sp/>access<sp/>to<sp/>image,<sp/>no<sp/>per-element<sp/>access</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="444" refid="dag__lockTexture_8h_1a8399afc9edc8dc9f24149007cfbef41a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2DReadOnly</ref><sp/><ref refid="dag__lockTexture_8h_1a8399afc9edc8dc9f24149007cfbef41a" kindref="member">lock_texture_ro</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="445"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="446"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LockedImage2DReadOnly::lock_texture(tex,<sp/>level,<sp/>flags<sp/>|<sp/>TEXLOCK_READ);</highlight></codeline>
+<codeline lineno="447"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="448"><highlight class="normal"></highlight></codeline>
+<codeline lineno="449" refid="dag__lockTexture_8h_1a063e46b76440b0750fd85fbbac300f06" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classLockedImage" kindref="compound">LockedImage2DReadOnly</ref><sp/><ref refid="dag__lockTexture_8h_1a8399afc9edc8dc9f24149007cfbef41a" kindref="member">lock_texture_ro</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="450"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="451"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LockedImage2DReadOnly::lock_texture(tex,<sp/>layer,<sp/>level,<sp/>flags<sp/>|<sp/>TEXLOCK_READ);</highlight></codeline>
+<codeline lineno="452"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="453"><highlight class="normal"></highlight></codeline>
+<codeline lineno="454"><highlight class="normal"></highlight></codeline>
+<codeline lineno="455"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>Flags<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="456" refid="dag__lockTexture_8h_1a63c5be568d747e5b5296593f21e5548d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__lockTexture_8h_1a63c5be568d747e5b5296593f21e5548d" kindref="member">request_readback_nosyslock</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level)</highlight></codeline>
+<codeline lineno="457"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="458"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride_bytes;</highlight></codeline>
+<codeline lineno="459"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex-&gt;lockimg(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>stride_bytes,<sp/>level,<sp/>TEXLOCK_READ<sp/>|<sp/>TEXLOCK_NOSYSLOCK<sp/>|<sp/>Flags))</highlight></codeline>
+<codeline lineno="460"><highlight class="normal"><sp/><sp/><sp/><sp/>tex-&gt;unlockimg();</highlight></codeline>
+<codeline lineno="461"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="462"><highlight class="normal"></highlight></codeline>
+<codeline lineno="463"><highlight class="normal"></highlight></codeline>
+<codeline lineno="464"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>Flags<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="465" refid="dag__lockTexture_8h_1a84e3143f72bfc65604d2777916899525" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__lockTexture_8h_1a63c5be568d747e5b5296593f21e5548d" kindref="member">request_readback_nosyslock</ref>(BaseTexture<sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level)</highlight></codeline>
+<codeline lineno="466"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="467"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stride_bytes;</highlight></codeline>
+<codeline lineno="468"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex-&gt;lockimg(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>stride_bytes,<sp/>layer,<sp/>level,<sp/>TEXLOCK_READ<sp/>|<sp/>TEXLOCK_NOSYSLOCK<sp/>|<sp/>Flags))</highlight></codeline>
+<codeline lineno="469"><highlight class="normal"><sp/><sp/><sp/><sp/>tex-&gt;unlockimg();</highlight></codeline>
+<codeline lineno="470"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="dag_lockTexture.h"/>
+  </compounddef>
+</doxygen>

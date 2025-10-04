@@ -1,0 +1,595 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynShaderMeshBuf" kind="class" language="C++" prot="public">
+    <compoundname>DynShaderMeshBuf</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a4be04d963ca72f9b62b56e392f6226d8" prot="private" static="no" mutable="no">
+        <type>SmallTab&lt; uint8_t, InimemAlloc &gt;</type>
+        <definition>SmallTab&lt;uint8_t, InimemAlloc&gt; DynShaderMeshBuf::vBuf</definition>
+        <argsstring></argsstring>
+        <name>vBuf</name>
+        <qualifiedname>DynShaderMeshBuf::vBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="76" column="12" bodyfile="dag_dynShaderBuf.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a3d2c0336984a05b0763d585d03eb43bc" prot="private" static="no" mutable="no">
+        <type>SmallTab&lt; uint16_t, InimemAlloc &gt;</type>
+        <definition>SmallTab&lt;uint16_t, InimemAlloc&gt; DynShaderMeshBuf::iBuf</definition>
+        <argsstring></argsstring>
+        <name>iBuf</name>
+        <qualifiedname>DynShaderMeshBuf::iBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="77" column="12" bodyfile="dag_dynShaderBuf.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1ae6375789feea2b707a9ae0e00904be47" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DynShaderMeshBuf::currentShader</definition>
+        <argsstring></argsstring>
+        <name>currentShader</name>
+        <qualifiedname>DynShaderMeshBuf::currentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="78" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a0dc28c3e2cca3a2f90c5650a6d6bb040" prot="private" static="no" mutable="no">
+        <type>VDECL</type>
+        <definition>VDECL DynShaderMeshBuf::vdecl</definition>
+        <argsstring></argsstring>
+        <name>vdecl</name>
+        <qualifiedname>DynShaderMeshBuf::vdecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="79" column="9" bodyfile="dag_dynShaderBuf.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1ab57d48ab0ec43662b35787b87f412f13" prot="private" static="no" mutable="no">
+        <type>RingDynamicVB *</type>
+        <definition>RingDynamicVB* DynShaderMeshBuf::vb</definition>
+        <argsstring></argsstring>
+        <name>vb</name>
+        <qualifiedname>DynShaderMeshBuf::vb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="80" column="17" bodyfile="dag_dynShaderBuf.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a9a9478e10d37de219db3849d134765a1" prot="private" static="no" mutable="no">
+        <type>RingDynamicIB *</type>
+        <definition>RingDynamicIB* DynShaderMeshBuf::ib</definition>
+        <argsstring></argsstring>
+        <name>ib</name>
+        <qualifiedname>DynShaderMeshBuf::ib</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="81" column="17" bodyfile="dag_dynShaderBuf.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1ae3a930d811e7e6e563dc3e479657d446" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::last_start_v</definition>
+        <argsstring></argsstring>
+        <name>last_start_v</name>
+        <qualifiedname>DynShaderMeshBuf::last_start_v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="82" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a343a852260929f7b2479f3f629b3966e" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::last_start_i</definition>
+        <argsstring></argsstring>
+        <name>last_start_i</name>
+        <qualifiedname>DynShaderMeshBuf::last_start_i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="82" column="20" bodyfile="dag_dynShaderBuf.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a86f31e4a9e86862d9211141c107d23d1" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::stride</definition>
+        <argsstring></argsstring>
+        <name>stride</name>
+        <qualifiedname>DynShaderMeshBuf::stride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="83" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1ac68a47f8f43c89a4352609a7827398bc" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::vUsed</definition>
+        <argsstring></argsstring>
+        <name>vUsed</name>
+        <qualifiedname>DynShaderMeshBuf::vUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="84" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderMeshBuf_1a14b214f95bb43eeb66ce9b2d4661fec2" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::iUsed</definition>
+        <argsstring></argsstring>
+        <name>iUsed</name>
+        <qualifiedname>DynShaderMeshBuf::iUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="84" column="13" bodyfile="dag_dynShaderBuf.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynShaderMeshBuf_1ac75a07741817f34898aee33f6ae0fc62" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderMeshBuf::DynShaderMeshBuf</definition>
+        <argsstring>()</argsstring>
+        <name>DynShaderMeshBuf</name>
+        <qualifiedname>DynShaderMeshBuf::DynShaderMeshBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="18" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1adfb028bc6b2ad714dfd26ce1b8905458" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderMeshBuf::~DynShaderMeshBuf</definition>
+        <argsstring>()</argsstring>
+        <name>~DynShaderMeshBuf</name>
+        <qualifiedname>DynShaderMeshBuf::~DynShaderMeshBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="19" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1aef3e6081a65855c378863417bbd5f052" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::setRingBuf</definition>
+        <argsstring>(RingDynamicVB *_vb, RingDynamicIB *_ib)</argsstring>
+        <name>setRingBuf</name>
+        <qualifiedname>DynShaderMeshBuf::setRingBuf</qualifiedname>
+        <param>
+          <type>RingDynamicVB *</type>
+          <declname>_vb</declname>
+        </param>
+        <param>
+          <type>RingDynamicIB *</type>
+          <declname>_ib</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="21" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1aeb0eb699d8f86b0618809eb1e27ec1ed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::init</definition>
+        <argsstring>(dag::ConstSpan&lt; CompiledShaderChannelId &gt; ch, int max_v, int max_f)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynShaderMeshBuf::init</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> &gt;</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="23" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1aede3e9493236b303a993b5ce4f22563b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::initCopy</definition>
+        <argsstring>(const DynShaderMeshBuf &amp;b)</argsstring>
+        <name>initCopy</name>
+        <qualifiedname>DynShaderMeshBuf::initCopy</qualifiedname>
+        <param>
+          <type>const <ref refid="classDynShaderMeshBuf" kindref="compound">DynShaderMeshBuf</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="24" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a18644d385b42d6ccf972d5a810aefa25" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>DynShaderMeshBuf::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="25" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a54e035b76bb85e450876a62e084ae8c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * DynShaderMeshBuf::getCurrentShader</definition>
+        <argsstring>()</argsstring>
+        <name>getCurrentShader</name>
+        <qualifiedname>DynShaderMeshBuf::getCurrentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="27" column="24" bodyfile="dag_dynShaderBuf.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1ab7f49ff5ce86e8431f15c9d8c792e413" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::setCurrentShader</definition>
+        <argsstring>(ShaderElement *shader)</argsstring>
+        <name>setCurrentShader</name>
+        <qualifiedname>DynShaderMeshBuf::setCurrentShader</qualifiedname>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="28" column="15" bodyfile="dag_dynShaderBuf.h" bodystart="28" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a7c4d6bf6de51f08ae0fb369c747fc43c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderMeshBuf::fillRawFaces</definition>
+        <argsstring>(void **__restrict out_vdata, int num_v, uint16_t **__restrict out_ind, int num_f, int &amp;v_base)</argsstring>
+        <name>fillRawFaces</name>
+        <qualifiedname>DynShaderMeshBuf::fillRawFaces</qualifiedname>
+        <param>
+          <type>void **__restrict</type>
+          <declname>out_vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_v</declname>
+        </param>
+        <param>
+          <type>uint16_t **__restrict</type>
+          <declname>out_ind</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_f</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>v_base</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="38" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1aa92564d33795ed42baf470cfeaee862f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool DynShaderMeshBuf::fillRawFacesEx</definition>
+        <argsstring>(T **__restrict ov, int nv, uint16_t **__restrict oi, int nf, int &amp;v_base)</argsstring>
+        <name>fillRawFacesEx</name>
+        <qualifiedname>DynShaderMeshBuf::fillRawFacesEx</qualifiedname>
+        <param>
+          <type>T **__restrict</type>
+          <declname>ov</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nv</declname>
+        </param>
+        <param>
+          <type>uint16_t **__restrict</type>
+          <declname>oi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nf</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>v_base</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="40" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="40" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a9c3139a7fbd4978acf818427dfa5d134" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::addFaces</definition>
+        <argsstring>(const void *__restrict vdata, int num_v, const uint16_t *ind, int num_f)</argsstring>
+        <name>addFaces</name>
+        <qualifiedname>DynShaderMeshBuf::addFaces</qualifiedname>
+        <param>
+          <type>const void *__restrict</type>
+          <declname>vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_v</declname>
+        </param>
+        <param>
+          <type>const uint16_t *</type>
+          <declname>ind</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="52" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a87b11bcf227110b00ad4a517a513689d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::addFacesI32</definition>
+        <argsstring>(const void *__restrict vdata, int num_v, const int *i_data, int num_f)</argsstring>
+        <name>addFacesI32</name>
+        <qualifiedname>DynShaderMeshBuf::addFacesI32</qualifiedname>
+        <param>
+          <type>const void *__restrict</type>
+          <declname>vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_v</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>i_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="53" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="53" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a95748f29d0af2d2f22283c93f38d0f18" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::flush</definition>
+        <argsstring>(bool clear_used=true)</argsstring>
+        <name>flush</name>
+        <qualifiedname>DynShaderMeshBuf::flush</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>clear_used</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="67" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a8024635027cc8771dddc4397229f2da9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>DynShaderMeshBuf::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="68" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a1a277652b509ec09c023a12f488c6fdc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::render</definition>
+        <argsstring>(int vertices, int indices)</argsstring>
+        <name>render</name>
+        <qualifiedname>DynShaderMeshBuf::render</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>vertices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>indices</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="69" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a48e5b4269f977c16da05b2dd74991aa8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::getVertices</definition>
+        <argsstring>() const</argsstring>
+        <name>getVertices</name>
+        <qualifiedname>DynShaderMeshBuf::getVertices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="70" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1a56e61f09a84cd3d22e024de5372fc880" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynShaderMeshBuf::getIndices</definition>
+        <argsstring>() const</argsstring>
+        <name>getIndices</name>
+        <qualifiedname>DynShaderMeshBuf::getIndices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="71" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderMeshBuf_1ab78458dd096347edcd7f30ad1af22bbd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderMeshBuf::hasEnoughBufFor</definition>
+        <argsstring>(int v, int f) const</argsstring>
+        <name>hasEnoughBufFor</name>
+        <qualifiedname>DynShaderMeshBuf::hasEnoughBufFor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="73" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDynShaderMeshBuf_1acf7894c9547f2b3594d0ea0f5f383893" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderMeshBuf::ctorInit</definition>
+        <argsstring>()</argsstring>
+        <name>ctorInit</name>
+        <qualifiedname>DynShaderMeshBuf::ctorInit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="86" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="86" bodyend="94"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynShaderBuf.h" line="15" column="1" bodyfile="dag_dynShaderBuf.h" bodystart="16" bodyend="95"/>
+    <listofallmembers>
+      <member refid="classDynShaderMeshBuf_1a9c3139a7fbd4978acf818427dfa5d134" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>addFaces</name></member>
+      <member refid="classDynShaderMeshBuf_1a87b11bcf227110b00ad4a517a513689d" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>addFacesI32</name></member>
+      <member refid="classDynShaderMeshBuf_1a8024635027cc8771dddc4397229f2da9" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>clear</name></member>
+      <member refid="classDynShaderMeshBuf_1a18644d385b42d6ccf972d5a810aefa25" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>close</name></member>
+      <member refid="classDynShaderMeshBuf_1acf7894c9547f2b3594d0ea0f5f383893" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>ctorInit</name></member>
+      <member refid="classDynShaderMeshBuf_1ae6375789feea2b707a9ae0e00904be47" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>currentShader</name></member>
+      <member refid="classDynShaderMeshBuf_1ac75a07741817f34898aee33f6ae0fc62" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>DynShaderMeshBuf</name></member>
+      <member refid="classDynShaderMeshBuf_1a7c4d6bf6de51f08ae0fb369c747fc43c" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>fillRawFaces</name></member>
+      <member refid="classDynShaderMeshBuf_1aa92564d33795ed42baf470cfeaee862f" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>fillRawFacesEx</name></member>
+      <member refid="classDynShaderMeshBuf_1a95748f29d0af2d2f22283c93f38d0f18" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>flush</name></member>
+      <member refid="classDynShaderMeshBuf_1a54e035b76bb85e450876a62e084ae8c8" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>getCurrentShader</name></member>
+      <member refid="classDynShaderMeshBuf_1a56e61f09a84cd3d22e024de5372fc880" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>getIndices</name></member>
+      <member refid="classDynShaderMeshBuf_1a48e5b4269f977c16da05b2dd74991aa8" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>getVertices</name></member>
+      <member refid="classDynShaderMeshBuf_1ab78458dd096347edcd7f30ad1af22bbd" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>hasEnoughBufFor</name></member>
+      <member refid="classDynShaderMeshBuf_1a9a9478e10d37de219db3849d134765a1" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>ib</name></member>
+      <member refid="classDynShaderMeshBuf_1a3d2c0336984a05b0763d585d03eb43bc" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>iBuf</name></member>
+      <member refid="classDynShaderMeshBuf_1aeb0eb699d8f86b0618809eb1e27ec1ed" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>init</name></member>
+      <member refid="classDynShaderMeshBuf_1aede3e9493236b303a993b5ce4f22563b" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>initCopy</name></member>
+      <member refid="classDynShaderMeshBuf_1a14b214f95bb43eeb66ce9b2d4661fec2" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>iUsed</name></member>
+      <member refid="classDynShaderMeshBuf_1a343a852260929f7b2479f3f629b3966e" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>last_start_i</name></member>
+      <member refid="classDynShaderMeshBuf_1ae3a930d811e7e6e563dc3e479657d446" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>last_start_v</name></member>
+      <member refid="classDynShaderMeshBuf_1a1a277652b509ec09c023a12f488c6fdc" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>render</name></member>
+      <member refid="classDynShaderMeshBuf_1ab7f49ff5ce86e8431f15c9d8c792e413" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>setCurrentShader</name></member>
+      <member refid="classDynShaderMeshBuf_1aef3e6081a65855c378863417bbd5f052" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>setRingBuf</name></member>
+      <member refid="classDynShaderMeshBuf_1a86f31e4a9e86862d9211141c107d23d1" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>stride</name></member>
+      <member refid="classDynShaderMeshBuf_1ab57d48ab0ec43662b35787b87f412f13" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>vb</name></member>
+      <member refid="classDynShaderMeshBuf_1a4be04d963ca72f9b62b56e392f6226d8" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>vBuf</name></member>
+      <member refid="classDynShaderMeshBuf_1a0dc28c3e2cca3a2f90c5650a6d6bb040" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>vdecl</name></member>
+      <member refid="classDynShaderMeshBuf_1ac68a47f8f43c89a4352609a7827398bc" prot="private" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>vUsed</name></member>
+      <member refid="classDynShaderMeshBuf_1adfb028bc6b2ad714dfd26ce1b8905458" prot="public" virt="non-virtual"><scope>DynShaderMeshBuf</scope><name>~DynShaderMeshBuf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

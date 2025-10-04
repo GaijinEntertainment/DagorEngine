@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeRegisters" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeRegisters</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+    <innerclass refid="structStcodeRegisters_1_1VarLocation" prot="public">StcodeRegisters::VarLocation</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeRegisters_1ad8e02d5f66c905e50347f095de4d32fa" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; <ref refid="structStcodeRegisters_1_1VarLocation" kindref="compound">VarLocation</ref> &gt;</type>
+        <definition>dag::Vector&lt;VarLocation&gt; StcodeRegisters::content</definition>
+        <argsstring></argsstring>
+        <name>content</name>
+        <qualifiedname>StcodeRegisters::content</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="92" column="15" bodyfile="cppStcodeAssembly.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeRegisters_1a9f00c01ee0f139bad8b2f7a0c550f6a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRegisters::add</definition>
+        <argsstring>(const char *name, int reg, bool is_numeric=false, int reg_size=1)</argsstring>
+        <name>add</name>
+        <qualifiedname>StcodeRegisters::add</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_numeric</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>reg_size</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="94" column="8" bodyfile="cppStcodeAssembly.h" bodystart="94" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRegisters_1acec71aa1ce407a2b893bd2adb471cad6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRegisters::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>StcodeRegisters::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="99" column="8" bodyfile="cppStcodeAssembly.h" bodystart="99" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRegisters_1a9ad6a226e5110b48b0b25b6d8336f67a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRegisters::merge</definition>
+        <argsstring>(StcodeRegisters &amp;&amp;other)</argsstring>
+        <name>merge</name>
+        <qualifiedname>StcodeRegisters::merge</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeRegisters" kindref="compound">StcodeRegisters</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="101" column="8" bodyfile="cppStcodeAssembly.h" bodystart="101" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="82" column="1" bodyfile="cppStcodeAssembly.h" bodystart="83" bodyend="105"/>
+    <listofallmembers>
+      <member refid="structStcodeRegisters_1a9f00c01ee0f139bad8b2f7a0c550f6a7" prot="public" virt="non-virtual"><scope>StcodeRegisters</scope><name>add</name></member>
+      <member refid="structStcodeRegisters_1acec71aa1ce407a2b893bd2adb471cad6" prot="public" virt="non-virtual"><scope>StcodeRegisters</scope><name>clear</name></member>
+      <member refid="structStcodeRegisters_1ad8e02d5f66c905e50347f095de4d32fa" prot="public" virt="non-virtual"><scope>StcodeRegisters</scope><name>content</name></member>
+      <member refid="structStcodeRegisters_1a9ad6a226e5110b48b0b25b6d8336f67a" prot="public" virt="non-virtual"><scope>StcodeRegisters</scope><name>merge</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

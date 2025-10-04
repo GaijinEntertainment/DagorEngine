@@ -1,0 +1,758 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ComplexExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ComplexExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1ColorValueExpression" prot="public" virt="non-virtual">ShaderParser::ColorValueExpression</derivedcompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1FunctionExpression" prot="public" virt="non-virtual">ShaderParser::FunctionExpression</derivedcompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1a32b786e29a5028ad4492e0015e421a09" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> * &gt;</type>
+        <definition>Tab&lt;Expression *&gt; ShaderParser::ComplexExpression::operands</definition>
+        <argsstring></argsstring>
+        <name>operands</name>
+        <qualifiedname>ShaderParser::ComplexExpression::operands</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="197" column="7" bodyfile="shExpr.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1a960fbf2a7a6955fb8b7cac261d1c9753" prot="private" static="no" mutable="no">
+        <type>Tab&lt; shexpr::BinaryOperator &gt;</type>
+        <definition>Tab&lt;shexpr::BinaryOperator&gt; ShaderParser::ComplexExpression::binOp</definition>
+        <argsstring></argsstring>
+        <name>binOp</name>
+        <qualifiedname>ShaderParser::ComplexExpression::binOp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="198" column="7" bodyfile="shExpr.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1a96709daa56271aad4e0ae320a5fc06ec" prot="private" static="no" mutable="no">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::ComplexExpression::baseValueType</definition>
+        <argsstring></argsstring>
+        <name>baseValueType</name>
+        <qualifiedname>ShaderParser::ComplexExpression::baseValueType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="199" column="21" bodyfile="shExpr.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1aa7d5e27feb464a38d82ca850e44dfa98" prot="private" static="no" mutable="no">
+        <type>shexpr::BinaryOperator</type>
+        <definition>shexpr::BinaryOperator ShaderParser::ComplexExpression::lastBinOp</definition>
+        <argsstring></argsstring>
+        <name>lastBinOp</name>
+        <qualifiedname>ShaderParser::ComplexExpression::lastBinOp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="200" column="26" bodyfile="shExpr.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1a25799e39673aef1e27ccf05e26d00f72" prot="private" static="no" mutable="no">
+        <type>const int</type>
+        <definition>const int ShaderParser::ComplexExpression::currentChannel</definition>
+        <argsstring></argsstring>
+        <name>currentChannel</name>
+        <qualifiedname>ShaderParser::ComplexExpression::currentChannel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="201" column="13" bodyfile="shExpr.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ComplexExpression_1ad1a7351366e36e46d2d2dbe4f7eaba93" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::ComplexExpression::channels</definition>
+        <argsstring></argsstring>
+        <name>channels</name>
+        <qualifiedname>ShaderParser::ComplexExpression::channels</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="202" column="7" bodyfile="shExpr.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a79c0cc4e14d090a32ba465f694dbfa64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ComplexExpression::ComplexExpression</definition>
+        <argsstring>(Symbol *parser_sym, shexpr::ValueType vt, int channel=-1)</argsstring>
+        <name>ComplexExpression</name>
+        <qualifiedname>ShaderParser::ComplexExpression::ComplexExpression</qualifiedname>
+        <param>
+          <type>Symbol *</type>
+          <declname>parser_sym</declname>
+        </param>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="125" column="3" bodyfile="shExpr.cpp" bodystart="203" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a793b5ef8b46b2d5c032d111d5a57b2bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ComplexExpression::~ComplexExpression</definition>
+        <argsstring>() override</argsstring>
+        <name>~ComplexExpression</name>
+        <qualifiedname>ShaderParser::ComplexExpression::~ComplexExpression</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="126" column="3" bodyfile="shExpr.cpp" bodystart="210" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a4daa1ff85fc33616df59dfa334f2d285" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderParser::ComplexExpression::ComplexExpression</definition>
+        <argsstring>(ComplexExpression &amp;&amp;other)=default</argsstring>
+        <name>ComplexExpression</name>
+        <qualifiedname>ShaderParser::ComplexExpression::ComplexExpression</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ComplexExpression</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="128" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1abaeea49f74548b46fcc38a0d09b146bb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::ComplexExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1aa41f7dc5faf4a8bb2a5b9389fac62c60">getType</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="131" column="23" bodyfile="shExpr.h" bodystart="131" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a7f8f55c1b66662f2dd471784d111309a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ComplexExpression::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a1622d2723f187b292cfdfb2b4138bb97">getValueType</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="134" column="21" bodyfile="shExpr.cpp" bodystart="331" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a1cfcdaf2ee0204346bde3a7961720734" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::setOperand</definition>
+        <argsstring>(shexpr::OperandType op, Expression *child)</argsstring>
+        <name>setOperand</name>
+        <qualifiedname>ShaderParser::ComplexExpression::setOperand</qualifiedname>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>op</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+          <declname>child</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="137" column="8" bodyfile="shExpr.cpp" bodystart="308" bodyend="327"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a493d9259f604e81c3545d2c8e88b0727" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::addOperand</definition>
+        <argsstring>(Expression *child, shexpr::BinaryOperator t)</argsstring>
+        <name>addOperand</name>
+        <qualifiedname>ShaderParser::ComplexExpression::addOperand</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+          <declname>child</declname>
+        </param>
+        <param>
+          <type>shexpr::BinaryOperator</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="140" column="8" bodyfile="shExpr.cpp" bodystart="516" bodyend="525"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a6ea797735f195ab719d1df1e22f4d562" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::ComplexExpression::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1ad3c04213cfb60f770eab5a25e585a9f2">assembleBytecode</reimplementedby>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="143" column="8" bodyfile="shExpr.cpp" bodystart="214" bodyend="285"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a01dc2bc138b372bde6ed31372e4d6cbf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::ComplexExpression::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a5f41ffb739d74300e4da96ff6b4ef28f">assembleCpp</reimplementedby>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="144" column="8" bodyfile="shExpr.cpp" bodystart="287" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a1f6ee737b43f1de2ecbb05f5bbe49ec5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::canConvert</definition>
+        <argsstring>(shexpr::ValueType vt) const override</argsstring>
+        <name>canConvert</name>
+        <qualifiedname>ShaderParser::ComplexExpression::canConvert</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d">canConvert</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a087cca97677a843023cd102267bc741b">canConvert</reimplementedby>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="147" column="8" bodyfile="shExpr.cpp" bodystart="358" bodyend="371"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1af8b4d5be02c293d55ebf28f396ef582d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::setBinOperator</definition>
+        <argsstring>(shexpr::OperandType op, shexpr::BinaryOperator t)</argsstring>
+        <name>setBinOperator</name>
+        <qualifiedname>ShaderParser::ComplexExpression::setBinOperator</qualifiedname>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>op</declname>
+        </param>
+        <param>
+          <type>shexpr::BinaryOperator</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="150" column="8" bodyfile="shExpr.cpp" bodystart="528" bodyend="533"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a1d01b970349ba568a83f6bfac7abf2ae" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>shexpr::BinaryOperator</type>
+        <definition>shexpr::BinaryOperator ComplexExpression::getBinOperator</definition>
+        <argsstring>(shexpr::OperandType op) const</argsstring>
+        <name>getBinOperator</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getBinOperator</qualifiedname>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>op</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="151" column="26" bodyfile="shExpr.cpp" bodystart="536" bodyend="541"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1aa47d915c83255c627dcaee961085fef7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>shexpr::BinaryOperator</type>
+        <definition>shexpr::BinaryOperator ComplexExpression::getBinOperator</definition>
+        <argsstring>(const Expression *e) const</argsstring>
+        <name>getBinOperator</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getBinOperator</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="154" column="26" bodyfile="shExpr.cpp" bodystart="545" bodyend="556"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a09025279d6667970b8562d9b5f35cabf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+        <definition>Expression * ShaderParser::ComplexExpression::getOperand</definition>
+        <argsstring>(shexpr::OperandType t)</argsstring>
+        <name>getOperand</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getOperand</qualifiedname>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="157" column="21" bodyfile="shExpr.h" bodystart="157" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a5b6822895ad0240bfade8d320d455e0f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+        <definition>const Expression * ShaderParser::ComplexExpression::getOperand</definition>
+        <argsstring>(shexpr::OperandType t) const</argsstring>
+        <name>getOperand</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getOperand</qualifiedname>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="158" column="27" bodyfile="shExpr.h" bodystart="158" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a7194e5c6d1440272d923f2a43f91b323" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::ComplexExpression::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a549eb3d23dffc63e274162806bfcfb8e">isConst</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="161" column="8" bodyfile="shExpr.cpp" bodystart="374" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a16bdebae479907f7361ce4fbfaa6f05e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::ComplexExpression::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a7b71c9d3661f883523f9db8167959ed3">isDynamic</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="164" column="8" bodyfile="shExpr.cpp" bodystart="622" bodyend="631"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a17a106337e194f2f9768a8e2a45abb8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ComplexExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a79b6ac1aeae30ee663e736910c5f0871">evaluate</reimplementedby>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="167" column="8" bodyfile="shExpr.cpp" bodystart="387" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1ad680203c116d37d80cef50b2b7fe4a2d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ComplexExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a51cde9f4f336f129343d1332232c7321">evaluate</reimplementedby>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="170" column="8" bodyfile="shExpr.cpp" bodystart="438" bodyend="503"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a4e909ce00fe124c5200e02e48e2bd41c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::ComplexExpression::setLastBinOp</definition>
+        <argsstring>(shexpr::BinaryOperator bop)</argsstring>
+        <name>setLastBinOp</name>
+        <qualifiedname>ShaderParser::ComplexExpression::setLastBinOp</qualifiedname>
+        <param>
+          <type>shexpr::BinaryOperator</type>
+          <declname>bop</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="173" column="8" bodyfile="shExpr.h" bodystart="173" bodyend="173"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a30afe78dd5ce4f77ff127d91ca0fa9e4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderParser::ComplexExpression::getOperandCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getOperandCount</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getOperandCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="176" column="14" bodyfile="shExpr.h" bodystart="176" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a7d82b28b4591cd98358adaf95cb62164" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>Symbol *</type>
+        <definition>Symbol * ComplexExpression::hasDynamicAndMaterialTermsAt</definition>
+        <argsstring>() const override</argsstring>
+        <name>hasDynamicAndMaterialTermsAt</name>
+        <qualifiedname>ShaderParser::ComplexExpression::hasDynamicAndMaterialTermsAt</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67">hasDynamicAndMaterialTermsAt</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="178" column="10" bodyfile="shExpr.cpp" bodystart="652" bodyend="672"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a16fa3be80484ab01a7e1bbc713c53b68" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::ComplexExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a2d8cf9662e55e5ab14fc506ee8887432">collapseNumbers</reimplementedby>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="181" column="8" bodyfile="shExpr.cpp" bodystart="576" bodyend="619"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a64324bc6708bb2c23085c7e26439e940" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderParser::ComplexExpression::getCurrentChannel</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurrentChannel</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getCurrentChannel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="183" column="7" bodyfile="shExpr.h" bodystart="183" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1ac2d7c6dc761850ca65206441da5b880e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::ComplexExpression::setChannels</definition>
+        <argsstring>(int count)</argsstring>
+        <name>setChannels</name>
+        <qualifiedname>ShaderParser::ComplexExpression::setChannels</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="184" column="8" bodyfile="shExpr.h" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1ac2fe7fc73b1e22177129c4465a6609eb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int ComplexExpression::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::ComplexExpression::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536">getChannels</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a4969d3a58c0d567357c230dae020e979">getChannels</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="185" column="7" bodyfile="shExpr.cpp" bodystart="348" bodyend="354"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a695de7886520cd4b45f36355857a6674" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ComplexExpression::validate</definition>
+        <argsstring>(Parser &amp;parser) const</argsstring>
+        <name>validate</name>
+        <qualifiedname>ShaderParser::ComplexExpression::validate</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1ColorValueExpression_1a221bbe17d5ce1b8455968837923f8c8b">validate</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a3d4cfd107ee053faec5ed52af60240e5">validate</reimplementedby>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="187" column="16" bodyfile="shExpr.cpp" bodystart="633" bodyend="650"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a60faa0e90cdf70dbe209bdaf52089424" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::resizeOperands</definition>
+        <argsstring>(int count)</argsstring>
+        <name>resizeOperands</name>
+        <qualifiedname>ShaderParser::ComplexExpression::resizeOperands</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="191" column="8" bodyfile="shExpr.cpp" bodystart="507" bodyend="512"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ComplexExpression_1a297558e23345f9282e9d9b75ac44ecf2" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ComplexExpression::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::ComplexExpression::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <reimplementedby refid="classShaderParser_1_1FunctionExpression_1a4daace2187e4e109925beec6295d90a2">dump_internal</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="194" column="8" bodyfile="shExpr.cpp" bodystart="560" bodyend="572"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>ShaderParser::ColorValueExpression</label>
+        <link refid="classShaderParser_1_1ColorValueExpression"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="4">
+        <label>ShaderParser::FunctionExpression</label>
+        <link refid="classShaderParser_1_1FunctionExpression"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="121" column="1" bodyfile="shExpr.h" bodystart="122" bodyend="203"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a493d9259f604e81c3545d2c8e88b0727" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>addOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a6ea797735f195ab719d1df1e22f4d562" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a01dc2bc138b372bde6ed31372e4d6cbf" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a96709daa56271aad4e0ae320a5fc06ec" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>baseValueType</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a960fbf2a7a6955fb8b7cac261d1c9753" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>binOp</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1f6ee737b43f1de2ecbb05f5bbe49ec5" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ad1a7351366e36e46d2d2dbe4f7eaba93" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>channels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a16fa3be80484ab01a7e1bbc713c53b68" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a79c0cc4e14d090a32ba465f694dbfa64" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4daa1ff85fc33616df59dfa334f2d285" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a25799e39673aef1e27ccf05e26d00f72" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>currentChannel</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a297558e23345f9282e9d9b75ac44ecf2" prot="protected" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a17a106337e194f2f9768a8e2a45abb8d" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ad680203c116d37d80cef50b2b7fe4a2d" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1d01b970349ba568a83f6bfac7abf2ae" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1aa47d915c83255c627dcaee961085fef7" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ac2fe7fc73b1e22177129c4465a6609eb" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a64324bc6708bb2c23085c7e26439e940" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getCurrentChannel</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a09025279d6667970b8562d9b5f35cabf" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a5b6822895ad0240bfade8d320d455e0f" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a30afe78dd5ce4f77ff127d91ca0fa9e4" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getOperandCount</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1abaeea49f74548b46fcc38a0d09b146bb" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7f8f55c1b66662f2dd471784d111309a" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7d82b28b4591cd98358adaf95cb62164" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7194e5c6d1440272d923f2a43f91b323" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a16bdebae479907f7361ce4fbfaa6f05e" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1aa7d5e27feb464a38d82ca850e44dfa98" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>lastBinOp</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a32b786e29a5028ad4492e0015e421a09" prot="private" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>operands</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a60faa0e90cdf70dbe209bdaf52089424" prot="protected" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>resizeOperands</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1af8b4d5be02c293d55ebf28f396ef582d" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>setBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ac2d7c6dc761850ca65206441da5b880e" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>setChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4e909ce00fe124c5200e02e48e2bd41c" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>setLastBinOp</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1cfcdaf2ee0204346bde3a7961720734" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>setOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a695de7886520cd4b45f36355857a6674" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>validate</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a793b5ef8b46b2d5c032d111d5a57b2bc" prot="public" virt="non-virtual"><scope>ShaderParser::ComplexExpression</scope><name>~ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::ComplexExpression</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

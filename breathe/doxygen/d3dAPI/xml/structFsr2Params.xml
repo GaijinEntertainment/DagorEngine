@@ -1,0 +1,263 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFsr2Params" kind="struct" language="C++" prot="public">
+    <compoundname>Fsr2Params</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFsr2Params_1aa2442fa7f877a3574b8d4343cf0b2321" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>Fsr2Params::color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="325" column="15" bodyfile="dag_decl.h" bodystart="325" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1abde74094c13820aee7d7426e46f89417" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>Fsr2Params::depth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="326" column="15" bodyfile="dag_decl.h" bodystart="326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::motionVectors</definition>
+        <argsstring></argsstring>
+        <name>motionVectors</name>
+        <qualifiedname>Fsr2Params::motionVectors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="327" column="15" bodyfile="dag_decl.h" bodystart="327" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a856a62ea056dd84acf2286d57333d0dc" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <qualifiedname>Fsr2Params::output</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="328" column="15" bodyfile="dag_decl.h" bodystart="328" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1aacc972c82e6d052a7186f7a17baf7690" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::frameTimeDelta</definition>
+        <argsstring></argsstring>
+        <name>frameTimeDelta</name>
+        <qualifiedname>Fsr2Params::frameTimeDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="329" column="9" bodyfile="dag_decl.h" bodystart="329" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1ac1d4735850cbe23d7f4cfe8781fdd982" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::sharpness</definition>
+        <argsstring></argsstring>
+        <name>sharpness</name>
+        <qualifiedname>Fsr2Params::sharpness</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="330" column="9" bodyfile="dag_decl.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a7c224db67c735ee857da33bb0c686aca" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::jitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>jitterOffsetX</name>
+        <qualifiedname>Fsr2Params::jitterOffsetX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="331" column="9" bodyfile="dag_decl.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::jitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>jitterOffsetY</name>
+        <qualifiedname>Fsr2Params::jitterOffsetY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="332" column="9" bodyfile="dag_decl.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1ad47087b0f16838060acf75fb8f5b3a15" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::motionVectorScaleX</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScaleX</name>
+        <qualifiedname>Fsr2Params::motionVectorScaleX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="333" column="9" bodyfile="dag_decl.h" bodystart="333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a1a987452758e0d536288155ddabb7e69" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::motionVectorScaleY</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScaleY</name>
+        <qualifiedname>Fsr2Params::motionVectorScaleY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="334" column="9" bodyfile="dag_decl.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1aa938ec3e39154db716c7600d0d025925" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraNear</definition>
+        <argsstring></argsstring>
+        <name>cameraNear</name>
+        <qualifiedname>Fsr2Params::cameraNear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="335" column="9" bodyfile="dag_decl.h" bodystart="335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a789236218e7a2fddd65c479ebb9b0e89" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraFar</definition>
+        <argsstring></argsstring>
+        <name>cameraFar</name>
+        <qualifiedname>Fsr2Params::cameraFar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="336" column="9" bodyfile="dag_decl.h" bodystart="336" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1ae4511b687e7050e87b32f4b906f9bd78" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraFovAngleVertical</definition>
+        <argsstring></argsstring>
+        <name>cameraFovAngleVertical</name>
+        <qualifiedname>Fsr2Params::cameraFovAngleVertical</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="337" column="9" bodyfile="dag_decl.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1a361e8d83e9aa6694e95440621ce933aa" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Fsr2Params::renderSizeX</definition>
+        <argsstring></argsstring>
+        <name>renderSizeX</name>
+        <qualifiedname>Fsr2Params::renderSizeX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="338" column="12" bodyfile="dag_decl.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFsr2Params_1aac32e2a428d72268533f71596ce4071d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Fsr2Params::renderSizeY</definition>
+        <argsstring></argsstring>
+        <name>renderSizeY</name>
+        <qualifiedname>Fsr2Params::renderSizeY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="339" column="12" bodyfile="dag_decl.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>Fsr2Params</label>
+        <link refid="structFsr2Params"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+          <edgelabel>motionVectors</edgelabel>
+          <edgelabel>output</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="323" column="1" bodyfile="dag_decl.h" bodystart="324" bodyend="340"/>
+    <listofallmembers>
+      <member refid="structFsr2Params_1a789236218e7a2fddd65c479ebb9b0e89" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraFar</name></member>
+      <member refid="structFsr2Params_1ae4511b687e7050e87b32f4b906f9bd78" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraFovAngleVertical</name></member>
+      <member refid="structFsr2Params_1aa938ec3e39154db716c7600d0d025925" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraNear</name></member>
+      <member refid="structFsr2Params_1aa2442fa7f877a3574b8d4343cf0b2321" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>color</name></member>
+      <member refid="structFsr2Params_1abde74094c13820aee7d7426e46f89417" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>depth</name></member>
+      <member refid="structFsr2Params_1aacc972c82e6d052a7186f7a17baf7690" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>frameTimeDelta</name></member>
+      <member refid="structFsr2Params_1a7c224db67c735ee857da33bb0c686aca" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>jitterOffsetX</name></member>
+      <member refid="structFsr2Params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>jitterOffsetY</name></member>
+      <member refid="structFsr2Params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectors</name></member>
+      <member refid="structFsr2Params_1ad47087b0f16838060acf75fb8f5b3a15" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectorScaleX</name></member>
+      <member refid="structFsr2Params_1a1a987452758e0d536288155ddabb7e69" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectorScaleY</name></member>
+      <member refid="structFsr2Params_1a856a62ea056dd84acf2286d57333d0dc" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>output</name></member>
+      <member refid="structFsr2Params_1a361e8d83e9aa6694e95440621ce933aa" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>renderSizeX</name></member>
+      <member refid="structFsr2Params_1aac32e2a428d72268533f71596ce4071d" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>renderSizeY</name></member>
+      <member refid="structFsr2Params_1ac1d4735850cbe23d7f4cfe8781fdd982" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>sharpness</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

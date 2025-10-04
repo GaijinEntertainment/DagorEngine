@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::BatchedBottomAccelerationStructureBuildInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a717b43c91ece316eacc885e4c748706b" prot="public" static="no" mutable="no">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>RaytraceBottomAccelerationStructure* raytrace::BatchedBottomAccelerationStructureBuildInfo::as</definition>
+        <argsstring></argsstring>
+        <name>as</name>
+        <qualifiedname>raytrace::BatchedBottomAccelerationStructureBuildInfo::as</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The BLAS for an element of a batched BLAS build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="217" column="39" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a12cbb09372af55ebe14c353db3ad3064" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" kindref="compound">BottomAccelerationStructureBuildInfo</ref></type>
+        <definition>BottomAccelerationStructureBuildInfo raytrace::BatchedBottomAccelerationStructureBuildInfo::basbi</definition>
+        <argsstring></argsstring>
+        <name>basbi</name>
+        <qualifiedname>raytrace::BatchedBottomAccelerationStructureBuildInfo::basbi</qualifiedname>
+        <briefdescription>
+<para>The descriptor for an element of a batched BLAS build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="219" column="40" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="8">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>RaytraceGeometryDescription</label>
+        <link refid="structRaytraceGeometryDescription"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>RaytraceGeometryDescription::AnyInfo</label>
+        <link refid="unionRaytraceGeometryDescription_1_1AnyInfo"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>aabbs</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>triangles</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="7">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::BatchedBottomAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>basbi</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>raytrace::BottomAccelerationCreateInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationCreateInfo"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>geometryDesc</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::BottomAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationStructureBuildInfo"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>compactedSizeOutputBuffer</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="214" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="215" bodyend="220"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a717b43c91ece316eacc885e4c748706b" prot="public" virt="non-virtual"><scope>raytrace::BatchedBottomAccelerationStructureBuildInfo</scope><name>as</name></member>
+      <member refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a12cbb09372af55ebe14c353db3ad3064" prot="public" virt="non-virtual"><scope>raytrace::BatchedBottomAccelerationStructureBuildInfo</scope><name>basbi</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

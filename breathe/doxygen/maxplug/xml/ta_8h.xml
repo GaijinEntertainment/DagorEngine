@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ta_8h" kind="file" language="C++">
+    <compoundname>ta.h</compoundname>
+    <includedby refid="ta_8cpp" local="yes">ta.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>ta.cpp</label>
+        <link refid="ta_8cpp"/>
+      </node>
+      <node id="1">
+        <label>ta.h</label>
+        <link refid="ta_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classBitmapIO__TA" prot="public">BitmapIO_TA</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//-----------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//--<sp/>Class<sp/>Definition<sp/>---------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="classBitmapIO__TA" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBitmapIO__TA" kindref="compound">BitmapIO_TA</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>BitmapIO</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Constructors/Destructors</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="classBitmapIO__TA_1af9d6a097595f4a748cad375711b8797c" kindref="member">BitmapIO_TA</ref>();</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>BitmapIO_IFL<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(<sp/>BitmapStorage<sp/>*s,BitmapIO<sp/>*previous,int<sp/>frame<sp/>);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="classBitmapIO__TA_1a661511274b5eae27afa095682364bb95" kindref="member">~BitmapIO_TA</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Number<sp/>of<sp/>extemsions<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classBitmapIO__TA_1ad5f4726ee938adc0de8f8d5e7729b447" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1ad5f4726ee938adc0de8f8d5e7729b447" kindref="member">ExtCount</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Extension<sp/>#n<sp/>(i.e.<sp/>&quot;3DS&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classBitmapIO__TA_1a62f751d22e10900b17493c278a8cf673" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1a62f751d22e10900b17493c278a8cf673" kindref="member">Ext</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;ta&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Descriptions</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="classBitmapIO__TA_1a53b2c392defeadeecf26ed8d023f2dfa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1a53b2c392defeadeecf26ed8d023f2dfa" kindref="member">LongDesc</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Dagor<sp/>Texture<sp/>Animation&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="28" refid="classBitmapIO__TA_1a45147205ce7a741eea8af909c882c1b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1a45147205ce7a741eea8af909c882c1b0" kindref="member">ShortDesc</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;TexAnim&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Miscelaneous<sp/>Messages</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="classBitmapIO__TA_1aac4fab1dc5d613502b4fdb9f88bff33e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1aac4fab1dc5d613502b4fdb9f88bff33e" kindref="member">AuthorName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Aleksey<sp/>Volynskov&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="33" refid="classBitmapIO__TA_1aee7f18705835bd6e93b842d99d55443c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1aee7f18705835bd6e93b842d99d55443c" kindref="member">CopyrightMessage</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;(c)<sp/>2002<sp/>Aleksey<sp/>Volynskov&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="34" refid="classBitmapIO__TA_1a0f374401a4f2d355cc7627b0e57e3a0e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1a0f374401a4f2d355cc7627b0e57e3a0e" kindref="member">OtherMessage1</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="35" refid="classBitmapIO__TA_1a03f6ba9f94d857ab645bc6e0f47a05d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classBitmapIO__TA_1a03f6ba9f94d857ab645bc6e0f47a05d6" kindref="member">OtherMessage2</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classBitmapIO__TA_1a124a23377f4f7e234f12613fafb66739" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1a124a23377f4f7e234f12613fafb66739" kindref="member">Version</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(1);<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Driver<sp/>capabilities</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="classBitmapIO__TA_1ad9fcc9e8fafc9a9ee89d4b7d665c7a7e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1ad9fcc9e8fafc9a9ee89d4b7d665c7a7e" kindref="member">Capability</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="42"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMMIO_READER<sp/>|<sp/>BMMIO_EXTENSION<sp/>|</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>BMMIO_INFODLG<sp/><sp/><sp/><sp/>|</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>BMMIO_OWN_VIEWER<sp/>|</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>BMMIO_CONTROLREAD<sp/>|</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BMMIO_IFL;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Driver<sp/>Configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R15)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classBitmapIO__TA_1ab75230e398aa2a5fc1e31482c58a1e2f" kindref="member">LoadConfigure</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>,<sp/>DWORD<sp/>piDataSize)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classBitmapIO__TA_1ab75230e398aa2a5fc1e31482c58a1e2f" refkind="member"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classBitmapIO__TA_1ab75230e398aa2a5fc1e31482c58a1e2f" kindref="member">LoadConfigure</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classBitmapIO__TA_1a4bbcb2238481c6b327edea8427a14ab3" refkind="member"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classBitmapIO__TA_1a4bbcb2238481c6b327edea8427a14ab3" kindref="member">SaveConfigure</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="58" refid="classBitmapIO__TA_1a439935b0ce231d4d1899eb187af61f00" refkind="member"><highlight class="normal"><sp/><sp/>DWORD<sp/><ref refid="classBitmapIO__TA_1a439935b0ce231d4d1899eb187af61f00" kindref="member">EvaluateConfigure</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Show<sp/>DLL&apos;s<sp/>&quot;About...&quot;<sp/>box</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1a29d7d07d650b0cc7a78b8e11064ef070" kindref="member">ShowAbout</ref>(HWND<sp/>hWnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Show<sp/>DLL&apos;s<sp/>Control<sp/>Panel</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classBitmapIO__TA_1a1d69ad723c73e117a7a517e8e31168f2" kindref="member">ShowControl</ref>(HWND<sp/>hWnd,<sp/>DWORD<sp/>flag)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>Return<sp/>info<sp/>about<sp/>image</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>BMMRES<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>GetImageInfoDlg<sp/><sp/><sp/><sp/>(<sp/>HWND<sp/>hWnd,<sp/>BitmapInfo<sp/>*fbi,<sp/>const<sp/>TCHAR<sp/>*filename);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>BMMRES<sp/><ref refid="classBitmapIO__TA_1a0b5301ad9fdfe8f471aa7f5d56354e82" kindref="member">GetImageInfo</ref>(BitmapInfo<sp/>*bi)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//--<sp/>I/O<sp/>Interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>BMMRES<sp/><ref refid="classBitmapIO__TA_1aae77441b9365cf6ed7a3b184802b4303" kindref="member">GetImageName</ref>(BitmapInfo<sp/>*fbi,<sp/>TCHAR<sp/>*filename)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>BitmapStorage<sp/>*<ref refid="classBitmapIO__TA_1a44d13077a586f438801bc34359a981eb" kindref="member">Load</ref>(BitmapInfo<sp/>*fbi,<sp/>Bitmap<sp/>*map,<sp/>BMMRES<sp/>*status)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>BMMRES<sp/><ref refid="classBitmapIO__TA_1acc33b5aefa5cf8867add8730e55f0bef" kindref="member">OpenOutput</ref>(BitmapInfo<sp/>*bi,<sp/>Bitmap<sp/>*map)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>BMMRES<sp/><ref refid="classBitmapIO__TA_1a2b209e661a8f0856581fceaaacd0c106" kindref="member">Write</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frame)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBitmapIO__TA_1a756c124cf11d2f10bbf8dc7082a33040" kindref="member">Close</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flag)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="classBitmapIO__TA_1ac958d37e7c70b90ad1d4ea6112f8ac95" refkind="member"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classBitmapIO__TA_1ac958d37e7c70b90ad1d4ea6112f8ac95" kindref="member">Control</ref>(HWND,<sp/>UINT,<sp/>WPARAM,<sp/>LPARAM);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ta.h"/>
+  </compounddef>
+</doxygen>

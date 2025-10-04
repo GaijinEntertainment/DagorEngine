@@ -1,0 +1,258 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classObjectEditor_1_1UndoRemoveObjects" kind="class" language="C++" prot="protected">
+    <compoundname>ObjectEditor::UndoRemoveObjects</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UndoRedoObject</basecompoundref>
+    <includes refid="ec__ObjectEditor_8h" local="no">ec_ObjectEditor.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classObjectEditor_1_1UndoRemoveObjects_1ac8e0fb7dddfa2018376cd88277d6f85f" prot="public" static="no" mutable="no">
+        <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+        <definition>ObjectEditor* ObjectEditor::UndoRemoveObjects::objEd</definition>
+        <argsstring></argsstring>
+        <name>objEd</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::objEd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="472" column="18" bodyfile="ec_ObjectEditor.h" bodystart="472" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectEditor_1_1UndoRemoveObjects_1a7637e8209ff2b480df367f6b924b02d3" prot="public" static="no" mutable="no">
+        <type>PtrTab&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &gt;</type>
+        <definition>PtrTab&lt;RenderableEditableObject&gt; ObjectEditor::UndoRemoveObjects::objects</definition>
+        <argsstring></argsstring>
+        <name>objects</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::objects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="473" column="12" bodyfile="ec_ObjectEditor.h" bodystart="473" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1ac6e0f66c4ef97f8ec2f6227baa07f1e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ObjectEditor::UndoRemoveObjects::UndoRemoveObjects</definition>
+        <argsstring>(ObjectEditor *oe, int num)</argsstring>
+        <name>UndoRemoveObjects</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::UndoRemoveObjects</qualifiedname>
+        <param>
+          <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+          <declname>oe</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="475" column="5" bodyfile="ec_ObjectEditor.h" bodystart="475" bodyend="475"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1a5860e9095cefca0fc8a58e995d3f4824" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditor::UndoRemoveObjects::restore</definition>
+        <argsstring>(bool save_redo) override</argsstring>
+        <name>restore</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::restore</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>save_redo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="477" column="10" bodyfile="ec_ObjectEditor.h" bodystart="477" bodyend="477"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1ad606806c616c4d5dd37a88c559ed80e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditor::UndoRemoveObjects::redo</definition>
+        <argsstring>() override</argsstring>
+        <name>redo</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="479" column="10" bodyfile="ec_ObjectEditor.h" bodystart="479" bodyend="479"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1a1b5c594e177614ced6248730fc8f431b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t ObjectEditor::UndoRemoveObjects::size</definition>
+        <argsstring>() override</argsstring>
+        <name>size</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="481" column="12" bodyfile="ec_ObjectEditor.h" bodystart="481" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1a4dbf3992ccd6e9cb61ed60bb26d27c3b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditor::UndoRemoveObjects::accepted</definition>
+        <argsstring>() override</argsstring>
+        <name>accepted</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::accepted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="483" column="10" bodyfile="ec_ObjectEditor.h" bodystart="483" bodyend="483"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditor_1_1UndoRemoveObjects_1a68cbb9d1bc1162e11209e999289dfe40" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditor::UndoRemoveObjects::get_description</definition>
+        <argsstring>(String &amp;s) override</argsstring>
+        <name>get_description</name>
+        <qualifiedname>ObjectEditor::UndoRemoveObjects::get_description</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="484" column="10" bodyfile="ec_ObjectEditor.h" bodystart="484" bodyend="484"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ObjectEditor::UndoRemoveObjects</label>
+        <link refid="classObjectEditor_1_1UndoRemoveObjects"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="12">
+        <label>DObject</label>
+      </node>
+      <node id="11">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="4">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="13">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="6">
+        <label>IObjectsList</label>
+        <link refid="classIObjectsList"/>
+      </node>
+      <node id="7">
+        <label>IWndManagerWindowHandler</label>
+        <link refid="classIWndManagerWindowHandler"/>
+      </node>
+      <node id="3">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>sample</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>creator</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>objectPropBar</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ObjectEditor::UndoRemoveObjects</label>
+        <link refid="classObjectEditor_1_1UndoRemoveObjects"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>objEd</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>ObjectEditorPropPanelBar</label>
+        <link refid="classObjectEditorPropPanelBar"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>objEd</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>PropPanel::ControlEventHandler</label>
+      </node>
+      <node id="8">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+      <node id="10">
+        <label>RenderableEditableObject</label>
+        <link refid="classRenderableEditableObject"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>objEditor</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectEditor.h" line="469" column="3" bodyfile="ec_ObjectEditor.h" bodystart="470" bodyend="485"/>
+    <listofallmembers>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1a4dbf3992ccd6e9cb61ed60bb26d27c3b" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>accepted</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1a68cbb9d1bc1162e11209e999289dfe40" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>get_description</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1a7637e8209ff2b480df367f6b924b02d3" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>objects</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1ac8e0fb7dddfa2018376cd88277d6f85f" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>objEd</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1ad606806c616c4d5dd37a88c559ed80e4" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>redo</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1a5860e9095cefca0fc8a58e995d3f4824" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>restore</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1a1b5c594e177614ced6248730fc8f431b" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>size</name></member>
+      <member refid="classObjectEditor_1_1UndoRemoveObjects_1ac6e0f66c4ef97f8ec2f6227baa07f1e4" prot="public" virt="non-virtual"><scope>ObjectEditor::UndoRemoveObjects</scope><name>UndoRemoveObjects</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

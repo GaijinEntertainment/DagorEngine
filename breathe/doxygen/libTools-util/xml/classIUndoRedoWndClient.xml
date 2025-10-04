@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIUndoRedoWndClient" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IUndoRedoWndClient</compoundname>
+    <includes refid="undo_8h" local="no">undo.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIUndoRedoWndClient_1a94acc7c893cf3792941c96ded5887772" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IUndoRedoWndClient::updateUndoRedoMenu</definition>
+        <argsstring>()=0</argsstring>
+        <name>updateUndoRedoMenu</name>
+        <qualifiedname>IUndoRedoWndClient::updateUndoRedoMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="114" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="undo.h" line="111" column="1" bodyfile="undo.h" bodystart="112" bodyend="115"/>
+    <listofallmembers>
+      <member refid="classIUndoRedoWndClient_1a94acc7c893cf3792941c96ded5887772" prot="public" virt="pure-virtual"><scope>IUndoRedoWndClient</scope><name>updateUndoRedoMenu</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

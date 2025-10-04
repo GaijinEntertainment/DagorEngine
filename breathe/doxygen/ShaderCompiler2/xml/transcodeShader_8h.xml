@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="transcodeShader_8h" kind="file" language="C++">
+    <compoundname>transcodeShader.h</compoundname>
+    <includes local="no">generic/dag_span.h</includes>
+    <includes refid="const3d_8h" local="yes">const3d.h</includes>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <includedby refid="transcodeShader_8cpp" local="yes">transcodeShader.cpp</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>transcodeShader.h</label>
+        <link refid="transcodeShader_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_span.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="3">
+        <label>transcodeShader.cpp</label>
+        <link refid="transcodeShader_8cpp"/>
+      </node>
+      <node id="1">
+        <label>transcodeShader.h</label>
+        <link refid="transcodeShader_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="transcodeShader_8h_1a9ac3fb74a20f910c49c481260f200e40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+        <definition>dag::ConstSpan&lt; uint32_t &gt; transcode_vertex_shader</definition>
+        <argsstring>(dag::ConstSpan&lt; uint32_t &gt; vpr)</argsstring>
+        <name>transcode_vertex_shader</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+          <declname>vpr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.h" line="7" column="16" bodyfile="transcodeShader.cpp" bodystart="22" bodyend="32" declfile="transcodeShader.h" declline="7" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeShader_8h_1a0973956bfd1c50e1264f57992fc58a81" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+        <definition>dag::ConstSpan&lt; uint32_t &gt; transcode_pixel_shader</definition>
+        <argsstring>(dag::ConstSpan&lt; uint32_t &gt; fsh)</argsstring>
+        <name>transcode_pixel_shader</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+          <declname>fsh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.h" line="8" column="16" bodyfile="transcodeShader.cpp" bodystart="34" bodyend="45" declfile="transcodeShader.h" declline="8" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeShader_8h_1a3209d13a01cc472bb4b486220d94d60b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int32_t &gt;</type>
+        <definition>dag::ConstSpan&lt; int32_t &gt; transcode_stcode</definition>
+        <argsstring>(dag::ConstSpan&lt; int32_t &gt; stcode)</argsstring>
+        <name>transcode_stcode</name>
+        <param>
+          <type>dag::ConstSpan&lt; int32_t &gt;</type>
+          <declname>stcode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.h" line="9" column="16" declfile="transcodeShader.h" declline="9" declcolumn="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="const3d_8h" kindref="compound">const3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">dag::ConstSpan&lt;uint32_t&gt;<sp/><ref refid="transcodeShader_8h_1a9ac3fb74a20f910c49c481260f200e40" kindref="member">transcode_vertex_shader</ref>(dag::ConstSpan&lt;uint32_t&gt;<sp/>vpr);</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">dag::ConstSpan&lt;uint32_t&gt;<sp/><ref refid="transcodeShader_8h_1a0973956bfd1c50e1264f57992fc58a81" kindref="member">transcode_pixel_shader</ref>(dag::ConstSpan&lt;uint32_t&gt;<sp/>fsh);</highlight></codeline>
+<codeline lineno="9" refid="transcodeShader_8h_1a3209d13a01cc472bb4b486220d94d60b" refkind="member"><highlight class="normal">dag::ConstSpan&lt;int32_t&gt;<sp/><ref refid="transcodeShader_8h_1a3209d13a01cc472bb4b486220d94d60b" kindref="member">transcode_stcode</ref>(dag::ConstSpan&lt;int32_t&gt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>);</highlight></codeline>
+    </programlisting>
+    <location file="transcodeShader.h"/>
+  </compounddef>
+</doxygen>

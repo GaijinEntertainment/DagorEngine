@@ -1,0 +1,271 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDataBlockParser" kind="class" language="C++" prot="public">
+    <compoundname>DataBlockParser</compoundname>
+    <innerclass refid="structDataBlockParser_1_1SyntaxErrorException" prot="public">DataBlockParser::SyntaxErrorException</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDataBlockParser_1a6b76234037ee7390f850b7d797f5c44a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; char &gt; &amp;</type>
+        <definition>Tab&lt;char&gt;&amp; DataBlockParser::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>DataBlockParser::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="46" column="7" bodyfile="datablk.cpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1af63b9f73d60efb74d811f6f96ee4a596" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* DataBlockParser::text</definition>
+        <argsstring></argsstring>
+        <name>text</name>
+        <qualifiedname>DataBlockParser::text</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="48" column="14" bodyfile="datablk.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1abcc5c802db74fc90b1267b25b64a6812" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char * DataBlockParser::curp</definition>
+        <argsstring></argsstring>
+        <name>curp</name>
+        <qualifiedname>DataBlockParser::curp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="48" column="19" bodyfile="datablk.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1a183ba82a3b68c8dfae8d253b4b4cf4df" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char * DataBlockParser::textend</definition>
+        <argsstring></argsstring>
+        <name>textend</name>
+        <qualifiedname>DataBlockParser::textend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="48" column="24" bodyfile="datablk.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1ac30bf013757130f8a4d7eaece2dd250a" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* DataBlockParser::fileName</definition>
+        <argsstring></argsstring>
+        <name>fileName</name>
+        <qualifiedname>DataBlockParser::fileName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="49" column="14" bodyfile="datablk.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1a6482f1c9e5909b7226c8598464314960" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DataBlockParser::curLine</definition>
+        <argsstring></argsstring>
+        <name>curLine</name>
+        <qualifiedname>DataBlockParser::curLine</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="50" column="7" bodyfile="datablk.cpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDataBlockParser_1a3ffa8c2a1e9b07d77878b3d6a30dde8c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; DataBlockParser::includeStack</definition>
+        <argsstring></argsstring>
+        <name>includeStack</name>
+        <qualifiedname>DataBlockParser::includeStack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="52" column="8" bodyfile="datablk.cpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDataBlockParser_1af1ce44acfb64e08c4b683786085d8d53" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DataBlockParser::DataBlockParser</definition>
+        <argsstring>(Tab&lt; char &gt; &amp;buf, const char *fn)</argsstring>
+        <name>DataBlockParser</name>
+        <qualifiedname>DataBlockParser::DataBlockParser</qualifiedname>
+        <param>
+          <type>Tab&lt; char &gt; &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="54" column="3" bodyfile="datablk.cpp" bodystart="54" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a36e79e66df1d45a48ab7c16f776a8ca4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlockParser::updatePointers</definition>
+        <argsstring>()</argsstring>
+        <name>updatePointers</name>
+        <qualifiedname>DataBlockParser::updatePointers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="64" column="8" bodyfile="datablk.cpp" bodystart="64" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a490bebf9bf1295f7153ebc25752c3a28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>__forceinline void</type>
+        <definition>__forceinline void DataBlockParser::syntaxError</definition>
+        <argsstring>(const char *msg)</argsstring>
+        <name>syntaxError</name>
+        <qualifiedname>DataBlockParser::syntaxError</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="73" column="22" bodyfile="datablk.cpp" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1af6670770024a9983e011ac457f3075d4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>__forceinline bool</type>
+        <definition>__forceinline bool DataBlockParser::endOfText</definition>
+        <argsstring>()</argsstring>
+        <name>endOfText</name>
+        <qualifiedname>DataBlockParser::endOfText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="75" column="22" bodyfile="datablk.cpp" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a6f05c96e9629df39b523f81b44346b05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlockParser::skipWhite</definition>
+        <argsstring>()</argsstring>
+        <name>skipWhite</name>
+        <qualifiedname>DataBlockParser::skipWhite</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="77" column="8" bodyfile="datablk.cpp" bodystart="84" bodyend="170"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a055039ad8ec980e95e235cfdea3158c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlockParser::getIdent</definition>
+        <argsstring>(String &amp;)</argsstring>
+        <name>getIdent</name>
+        <qualifiedname>DataBlockParser::getIdent</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <defname>name</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="78" column="8" bodyfile="datablk.cpp" bodystart="173" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a02bb24b9f8f7e42dbd7f12657e61cda2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlockParser::getValue</definition>
+        <argsstring>(String &amp;)</argsstring>
+        <name>getValue</name>
+        <qualifiedname>DataBlockParser::getValue</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <defname>value</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="79" column="8" bodyfile="datablk.cpp" bodystart="205" bodyend="279"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlockParser_1a99b14fda8ce4f98f556ba0dff6869a6a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlockParser::parse</definition>
+        <argsstring>(DataBlock &amp;, bool isTop)</argsstring>
+        <name>parse</name>
+        <qualifiedname>DataBlockParser::parse</qualifiedname>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <defname>blk</defname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>isTop</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="80" column="8" bodyfile="datablk.cpp" bodystart="282" bodyend="462"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="datablk.cpp" line="36" column="1" bodyfile="datablk.cpp" bodystart="37" bodyend="81"/>
+    <listofallmembers>
+      <member refid="classDataBlockParser_1a6b76234037ee7390f850b7d797f5c44a" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>buffer</name></member>
+      <member refid="classDataBlockParser_1a6482f1c9e5909b7226c8598464314960" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>curLine</name></member>
+      <member refid="classDataBlockParser_1abcc5c802db74fc90b1267b25b64a6812" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>curp</name></member>
+      <member refid="classDataBlockParser_1af1ce44acfb64e08c4b683786085d8d53" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>DataBlockParser</name></member>
+      <member refid="classDataBlockParser_1af6670770024a9983e011ac457f3075d4" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>endOfText</name></member>
+      <member refid="classDataBlockParser_1ac30bf013757130f8a4d7eaece2dd250a" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>fileName</name></member>
+      <member refid="classDataBlockParser_1a055039ad8ec980e95e235cfdea3158c6" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>getIdent</name></member>
+      <member refid="classDataBlockParser_1a02bb24b9f8f7e42dbd7f12657e61cda2" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>getValue</name></member>
+      <member refid="classDataBlockParser_1a3ffa8c2a1e9b07d77878b3d6a30dde8c" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>includeStack</name></member>
+      <member refid="classDataBlockParser_1a99b14fda8ce4f98f556ba0dff6869a6a" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>parse</name></member>
+      <member refid="classDataBlockParser_1a6f05c96e9629df39b523f81b44346b05" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>skipWhite</name></member>
+      <member refid="classDataBlockParser_1a490bebf9bf1295f7153ebc25752c3a28" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>syntaxError</name></member>
+      <member refid="classDataBlockParser_1af63b9f73d60efb74d811f6f96ee4a596" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>text</name></member>
+      <member refid="classDataBlockParser_1a183ba82a3b68c8dfae8d253b4b4cf4df" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>textend</name></member>
+      <member refid="classDataBlockParser_1a36e79e66df1d45a48ab7c16f776a8ca4" prot="public" virt="non-virtual"><scope>DataBlockParser</scope><name>updatePointers</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

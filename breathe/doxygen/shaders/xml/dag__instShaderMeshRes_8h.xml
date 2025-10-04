@@ -1,0 +1,514 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__instShaderMeshRes_8h" kind="file" language="C++">
+    <compoundname>dag_instShaderMeshRes.h</compoundname>
+    <includes refid="dag__shaderMesh_8h" local="no">shaders/dag_shaderMesh.h</includes>
+    <includes local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includedby refid="dag__rendInstRes_8h" local="no">dag_rendInstRes.h</includedby>
+    <incdepgraph>
+      <node id="20">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="19">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="12">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="32">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="30">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="31">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="29">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_draw.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="33">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_patchTab.h</label>
+      </node>
+      <node id="9">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="25">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="22">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="26">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="24">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="10">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="21">
+        <label>stdint.h</label>
+      </node>
+      <node id="34">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="35">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="27">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="23">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classInstShaderMesh" prot="public">InstShaderMesh</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__instShaderMeshRes_8h_1a3762049c9e3572f105981c4648c2d8a7" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resSize</definition>
+        <argsstring></argsstring>
+        <name>resSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="69" column="7" bodyfile="dag_instShaderMeshRes.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__instShaderMeshRes_8h_1a06e7c88e1d352832580fab561fe4f37d" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt;</type>
+        <definition>Ptr&lt; ShaderMatVdata &gt; smvdRef</definition>
+        <argsstring></argsstring>
+        <name>smvdRef</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="71" column="7" bodyfile="dag_instShaderMeshRes.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__instShaderMeshRes_8h_1aa9a03389f8a6e660dc6f1bfefbfc803e" prot="protected" static="no" mutable="no">
+        <type><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref></type>
+        <definition>ShaderSkinnedMesh mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="73" column="18" bodyfile="dag_instShaderMeshRes.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a9462b0734bff5d04a1806c8950e153a1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>decl_dclass_and_id(InstShaderMeshResource, DObject, 0x68808EB7u) public InstShaderMeshResource *</type>
+        <definition>virtual decl_dclass_and_id(InstShaderMeshResource, DObject, 0x68808EB7u) public InstShaderMeshResource * clone</definition>
+        <argsstring>() const</argsstring>
+        <name>clone</name>
+        <briefdescription>
+<para>clones resource </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="59" column="34" declfile="dag_instShaderMeshRes.h" declline="59" declcolumn="34"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a2ca9c44ce010ad3bd0dbfb6452350475" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool replaceTexture</definition>
+        <argsstring>(TEXTUREID tex_id_old, TEXTUREID tex_id_new)</argsstring>
+        <name>replaceTexture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_old</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_new</declname>
+        </param>
+        <briefdescription>
+<para>replaces texture id in materials used by mesh </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="62" column="8" declfile="dag_instShaderMeshRes.h" declline="62" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1acb93524eb7993d8f1e7a46d4cbce1d8c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref> *</type>
+        <definition>const ShaderSkinnedMesh * getMesh</definition>
+        <argsstring>()</argsstring>
+        <name>getMesh</name>
+        <briefdescription>
+<para>return mesh </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="65" column="25" bodyfile="dag_instShaderMeshRes.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a2a2895152656f9e04cb3adab367fb0d7" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PATCHABLE_64BIT_PAD32</definition>
+        <argsstring>(_resv)</argsstring>
+        <name>PATCHABLE_64BIT_PAD32</name>
+        <param>
+          <type>_resv</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="70" column="3" declfile="dag_instShaderMeshRes.h" declline="70" declcolumn="3"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a2683c348fb53cf9854e8e82f22a702ff" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>InstShaderMeshResource</definition>
+        <argsstring>()</argsstring>
+        <name>InstShaderMeshResource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="76" column="3" bodyfile="dag_instShaderMeshRes.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a32628024ef902050a68cac970c917b01" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>InstShaderMeshResource</definition>
+        <argsstring>(const InstShaderMeshResource &amp;from)</argsstring>
+        <name>InstShaderMeshResource</name>
+        <param>
+          <type>const InstShaderMeshResource &amp;</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="77" column="3" declfile="dag_instShaderMeshRes.h" declline="77" declcolumn="3"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a52a162db21a2ea005577f304d91f9acd" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void patchData</definition>
+        <argsstring>(int res_sz, ShaderMatVdata &amp;smvd)</argsstring>
+        <name>patchData</name>
+        <param>
+          <type>int</type>
+          <declname>res_sz</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>smvd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="80" column="8" declfile="dag_instShaderMeshRes.h" declline="80" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a591164ae8a0aa3ba556554aa644419eb" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int dumpStartOfs</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartOfs</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="82" column="21" bodyfile="dag_instShaderMeshRes.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1a718ff2c40226132f5e7736eaa6d10b82" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * dumpStartPtr</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartPtr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="83" column="8" bodyfile="dag_instShaderMeshRes.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__instShaderMeshRes_8h_1ad8c59d3509ba55387fa5389afda47beb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>end_dclass_decl</definition>
+        <argsstring>()</argsstring>
+        <name>end_dclass_decl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_instShaderMeshRes.h" line="85" column="1" declfile="dag_instShaderMeshRes.h" declline="85" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderMesh.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_texMgr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TMatrix;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenLoad;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>shader<sp/>mesh<sp/>that<sp/>will<sp/>be<sp/>able<sp/>to<sp/>instantiate<sp/>(for<sp/>now,<sp/>just<sp/>wrapper<sp/>for<sp/>ShaderMesh)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="classInstShaderMesh" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classInstShaderMesh" kindref="compound">~InstShaderMesh</ref>()<sp/>{<sp/>clearData();<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>patch<sp/>mesh<sp/>data<sp/>after<sp/>loading<sp/>from<sp/>dump</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patchData(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*base,<sp/><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref><sp/>&amp;smvd)<sp/>{<sp/>mesh.patchData(base,<sp/>smvd);<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>rebase<sp/>and<sp/>clone<sp/>data<sp/>(useful<sp/>for<sp/>data<sp/>copies)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rebaseAndClone(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*new_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*old_base)<sp/>{<sp/>mesh.rebaseAndClone(new_base,<sp/>old_base);<sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>explicit<sp/>destructor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clearData()<sp/>{<sp/>mesh.clearData();<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>render()<sp/>{<sp/>mesh.render();<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>renderTrans()<sp/>{<sp/>mesh.render_trans();<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedTex(TextureIdSet<sp/>&amp;tex_id_list)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/>mesh.gatherUsedTex(tex_id_list);<sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedMat(Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;mat_list)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/>mesh.gatherUsedMat(mat_list);<sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_old,<sp/>TEXTUREID<sp/>tex_id_new)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mesh.replaceTexture(tex_id_old,<sp/>tex_id_new);<sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>calcTotalFaces()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mesh.calcTotalFaces();<sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref><sp/>*getMesh()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;mesh;<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref><sp/>*getMesh()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;mesh;<sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref><sp/>mesh;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">decl_dclass_and_id(InstShaderMeshResource,<sp/>DObject,<sp/>0x68808EB7u)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">public:</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>static<sp/>InstShaderMeshResource<sp/>*loadResource(IGenLoad<sp/>&amp;<sp/>crd,<sp/><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref><sp/>&amp;<sp/>smvd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res_sz<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>virtual<sp/>InstShaderMeshResource<sp/>*clone()<sp/>const;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_old,<sp/>TEXTUREID<sp/>tex_id_new);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>inline<sp/><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref><sp/>*getMesh()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;mesh;<sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref><sp/>*getMesh()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;mesh;<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>resSize;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>PATCHABLE_64BIT_PAD32(_resv);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderMatVdata&gt;<sp/>smvdRef;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><ref refid="classInstShaderMesh" kindref="compound">InstShaderMesh</ref><sp/>mesh;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ctor/dtor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>InstShaderMeshResource()<sp/>{}<sp/></highlight><highlight class="comment">//-V730</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>InstShaderMeshResource(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>InstShaderMeshResource<sp/>&amp;from);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>patches<sp/>data<sp/>after<sp/>resource<sp/>dump<sp/>loading</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patchData(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res_sz,<sp/><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref><sp/>&amp;smvd);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dumpStartOfs()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offsetof(InstShaderMeshResource,<sp/>mesh);<sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dumpStartPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;mesh;<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal">end_dclass_decl();</highlight></codeline>
+    </programlisting>
+    <location file="dag_instShaderMeshRes.h"/>
+  </compounddef>
+</doxygen>

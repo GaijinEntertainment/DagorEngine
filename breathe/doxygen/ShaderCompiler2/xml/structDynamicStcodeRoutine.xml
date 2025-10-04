@@ -1,0 +1,484 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicStcodeRoutine" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicStcodeRoutine</compoundname>
+    <basecompoundref refid="structStcodeRoutine" prot="public" virt="non-virtual">StcodeRoutine</basecompoundref>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicStcodeRoutine_1ad445bbe14daa249ee8c2422643325aa2" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DynamicStcodeRoutine::isCompute</definition>
+        <argsstring></argsstring>
+        <name>isCompute</name>
+        <qualifiedname>DynamicStcodeRoutine::isCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="241" column="8" bodyfile="cppStcodeAssembly.h" bodystart="241" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicStcodeRoutine_1a98109234eabf6edafeb4fc0c4d0a68c9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DynamicStcodeRoutine::usesDynamicBranching</definition>
+        <argsstring></argsstring>
+        <name>usesDynamicBranching</name>
+        <qualifiedname>DynamicStcodeRoutine::usesDynamicBranching</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="242" column="8" bodyfile="cppStcodeAssembly.h" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1ab87a84691b951182c33aea3a3fe8dfa6" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynamicStcodeRoutine::DynamicStcodeRoutine</definition>
+        <argsstring>(bool uses_dynamic_branching=false)</argsstring>
+        <name>DynamicStcodeRoutine</name>
+        <qualifiedname>DynamicStcodeRoutine::DynamicStcodeRoutine</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>uses_dynamic_branching</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="244" column="12" bodyfile="cppStcodeAssembly.h" bodystart="244" bodyend="244"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a554baae416302d8c2a8efe3bc2ce416a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addGlobalShaderResource</definition>
+        <argsstring>(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id)</argsstring>
+        <name>addGlobalShaderResource</name>
+        <qualifiedname>DynamicStcodeRoutine::addGlobalShaderResource</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9" kindref="member">ResourceType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>var_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="246" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="512" bodyend="522"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a42f63f12511ebc50d12eeba245b76c8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addDynamicShaderResource</definition>
+        <argsstring>(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id)</argsstring>
+        <name>addDynamicShaderResource</name>
+        <qualifiedname>DynamicStcodeRoutine::addDynamicShaderResource</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9" kindref="member">ResourceType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>var_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="247" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="524" bodyend="543"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1ae3f113f042917068e579c4975d99148b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addShaderGlobMatrix</definition>
+        <argsstring>(ShaderStage stage, GlobMatrixType type, const char *name, int id)</argsstring>
+        <name>addShaderGlobMatrix</name>
+        <qualifiedname>DynamicStcodeRoutine::addShaderGlobMatrix</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52c" kindref="member">GlobMatrixType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="248" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="460" bodyend="472"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a6c6314cfdbda35c448f02c4bfe49f099" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addShaderGlobVec</definition>
+        <argsstring>(ShaderStage stage, GlobVecType type, const char *name, int id, int comp_id)</argsstring>
+        <name>addShaderGlobVec</name>
+        <qualifiedname>DynamicStcodeRoutine::addShaderGlobVec</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3" kindref="member">GlobVecType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>comp_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="249" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="474" bodyend="495"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1ab06ec5869d901baecd80bf249d8e9fb7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addShaderConst</definition>
+        <argsstring>(ShaderStage stage, ShaderVarType shvt, semantic::VariableType vt, const char *name, int id, const char *val, int array_index=0)</argsstring>
+        <name>addShaderConst</name>
+        <qualifiedname>DynamicStcodeRoutine::addShaderConst</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderVarType</type>
+          <declname>shvt</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>array_index</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="251" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="569" bodyend="595"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a5a227fa3be4ea1567aee5e0ed26e6230" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addShaderConst</definition>
+        <argsstring>(ShaderStage stage, ShaderVarType shvt, semantic::VariableType vt, const char *name, int id, StcodeExpression &amp;&amp;expr, int array_index=0)</argsstring>
+        <name>addShaderConst</name>
+        <qualifiedname>DynamicStcodeRoutine::addShaderConst</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderVarType</type>
+          <declname>shvt</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref></type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;&amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>array_index</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="253" column="8" bodyfile="cppStcodeAssembly.h" bodystart="253" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1ab2b220cb56690e8cac1fa3d07c33c85d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addIfClause</definition>
+        <argsstring>(const char *cond_text)</argsstring>
+        <name>addIfClause</name>
+        <qualifiedname>DynamicStcodeRoutine::addIfClause</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>cond_text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="261" column="8" bodyfile="cppStcodeAssembly.h" bodystart="261" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a23cb88f9a61a246c76b452516feae406" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addElseClause</definition>
+        <argsstring>()</argsstring>
+        <name>addElseClause</name>
+        <qualifiedname>DynamicStcodeRoutine::addElseClause</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="268" column="8" bodyfile="cppStcodeAssembly.h" bodystart="268" bodyend="275"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1adec8a7be170fad4c059d92cec7a0e6f0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::addBlockClosing</definition>
+        <argsstring>()</argsstring>
+        <name>addBlockClosing</name>
+        <qualifiedname>DynamicStcodeRoutine::addBlockClosing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="276" column="8" bodyfile="cppStcodeAssembly.h" bodystart="276" bodyend="282"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a52915845f86b734b137d40c30cce9731" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicStcodeRoutine::reportStageUsage</definition>
+        <argsstring>(ShaderStage stage)</argsstring>
+        <name>reportStageUsage</name>
+        <qualifiedname>DynamicStcodeRoutine::reportStageUsage</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="284" column="8" bodyfile="cppStcodeAssembly.h" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a4066d586b729c8fc9ed1f2df8e00d9e5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange DynamicStcodeRoutine::collectSetRegistersRange</definition>
+        <argsstring>(ShaderStage stage) const</argsstring>
+        <name>collectSetRegistersRange</name>
+        <qualifiedname>DynamicStcodeRoutine::collectSetRegistersRange</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="290" column="16" bodyfile="cppStcodeAssembly.h" bodystart="290" bodyend="300"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicStcodeRoutine_1a2aee43209295b14ac48342b85f6703e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeAccumulator" kindref="compound">StcodeAccumulator</ref></type>
+        <definition>StcodeAccumulator DynamicStcodeRoutine::releaseAssembledCode</definition>
+        <argsstring>(size_t routine_idx, size_t static_var_idx, HlslRegRange ps_or_cs_const_range, HlslRegRange vs_const_range)</argsstring>
+        <name>releaseAssembledCode</name>
+        <qualifiedname>DynamicStcodeRoutine::releaseAssembledCode</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>routine_idx</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>static_var_idx</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>ps_or_cs_const_range</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>vs_const_range</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="302" column="21" bodyfile="cppStcodeAssembly.cpp" bodystart="367" bodyend="447"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="4">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="2">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="239" column="1" bodyfile="cppStcodeAssembly.h" bodystart="240" bodyend="304"/>
+    <listofallmembers>
+      <member refid="structDynamicStcodeRoutine_1adec8a7be170fad4c059d92cec7a0e6f0" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addBlockClosing</name></member>
+      <member refid="structStcodeRoutine_1a4f376c7749e414c89ed9b70990d015e4" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addBoolVarDecl</name></member>
+      <member refid="structDynamicStcodeRoutine_1a42f63f12511ebc50d12eeba245b76c8e" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addDynamicShaderResource</name></member>
+      <member refid="structDynamicStcodeRoutine_1a23cb88f9a61a246c76b452516feae406" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addElseClause</name></member>
+      <member refid="structStcodeRoutine_1a4482357fc0c8a5ffbd7950ddfe96d3d3" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addFormattedStatement</name></member>
+      <member refid="structDynamicStcodeRoutine_1a554baae416302d8c2a8efe3bc2ce416a" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addGlobalShaderResource</name></member>
+      <member refid="structDynamicStcodeRoutine_1ab2b220cb56690e8cac1fa3d07c33c85d" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addIfClause</name></member>
+      <member refid="structStcodeRoutine_1afea3011003d486cdc2094d1ecb5227d1" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addLocalVarDecl</name></member>
+      <member refid="structStcodeRoutine_1abd5112d8321812bca8c76b6aeb38ad29" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addSetConstStmt</name></member>
+      <member refid="structDynamicStcodeRoutine_1ab06ec5869d901baecd80bf249d8e9fb7" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addShaderConst</name></member>
+      <member refid="structDynamicStcodeRoutine_1a5a227fa3be4ea1567aee5e0ed26e6230" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addShaderConst</name></member>
+      <member refid="structDynamicStcodeRoutine_1ae3f113f042917068e579c4975d99148b" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addShaderGlobMatrix</name></member>
+      <member refid="structDynamicStcodeRoutine_1a6c6314cfdbda35c448f02c4bfe49f099" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addShaderGlobVec</name></member>
+      <member refid="structStcodeRoutine_1a7923f13b9917706c92076c807e3ef73b" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addStmt</name></member>
+      <member refid="structStcodeRoutine_1ab48c535db9e0ca9e1c0fedc8369bbf21" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>addStmt</name></member>
+      <member refid="structStcodeRoutine_1af0a0fa1835a8049cce67a6139364c86c" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>blockDepth</name></member>
+      <member refid="structStcodeRoutine_1a5babc5921e35eb29e7cfe8f1e0181c3c" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>calcHash</name></member>
+      <member refid="structStcodeRoutine_1a79b3a88d088ad5748c5c11f132486697" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>code</name></member>
+      <member refid="structDynamicStcodeRoutine_1a4066d586b729c8fc9ed1f2df8e00d9e5" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>collectSetRegistersRange</name></member>
+      <member refid="structStcodeRoutine_1a90bea292e40f565eee2602e7bcb781ff" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>constMask</name></member>
+      <member refid="structStcodeRoutine_1a65f07be4ac6541c4d3457d3bbe1c6774" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>decls</name></member>
+      <member refid="structDynamicStcodeRoutine_1ab87a84691b951182c33aea3a3fe8dfa6" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>DynamicStcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52c" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>GlobMatrixType</name></member>
+      <member refid="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>GlobVecType</name></member>
+      <member refid="structStcodeRoutine_1a27f002069a52afa2d7d73f73727455b4" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>hasCode</name></member>
+      <member refid="structStcodeRoutine_1afb8bf37166f1a27a35a670a0809a1433" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>hasCodeUnderConditions</name></member>
+      <member refid="structDynamicStcodeRoutine_1ad445bbe14daa249ee8c2422643325aa2" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>isCompute</name></member>
+      <member refid="structStcodeRoutine_1aea501750e08811b7aa3784b8db15490a" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>makeIndentedLine</name></member>
+      <member refid="structStcodeRoutine_1a5830b77faa2e85d087f330c51c9d6f94" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>merge</name></member>
+      <member refid="structStcodeRoutine_1abd9817c49e5ecd7b181ca5abd200f2fc" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>nonContributingStatementsCnt</name></member>
+      <member refid="structStcodeRoutine_1a7460d1f9d1d2a0a7e354d6a23f0d09a2" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>operator=</name></member>
+      <member refid="structStcodeRoutine_1a0cca6b6375f436074eae2d347140cc7a" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>operator=</name></member>
+      <member refid="structStcodeRoutine_1aa63b75770f06597f8f0f1a04c369dbe8" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>pixelOrComputeRegs</name></member>
+      <member refid="structStcodeRoutine_1adf3b15015bd8f9eb437d4aa67941084d" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>regsForStage</name></member>
+      <member refid="structDynamicStcodeRoutine_1a2aee43209295b14ac48342b85f6703e3" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>releaseAssembledCode</name></member>
+      <member refid="structDynamicStcodeRoutine_1a52915845f86b734b137d40c30cce9731" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>reportStageUsage</name></member>
+      <member refid="structStcodeRoutine_1a369ed87d71228864072aa892c4054a70" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>reset</name></member>
+      <member refid="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>ResourceType</name></member>
+      <member refid="structStcodeRoutine_1a3aa9c49a9d2ffa5a0670be12dde467ec" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>setVarValue</name></member>
+      <member refid="structStcodeRoutine_1a243e67e29b628fbad8e903f4edd2143c" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>setVarValue</name></member>
+      <member refid="structStcodeRoutine_1a7e3f29a7fffb2635c11f10ecdb9194da" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>STATIC_VAR_ABSCENT_ID</name></member>
+      <member refid="structStcodeRoutine_1a78fee5f71241249cca34143bb078c8d8" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1a2c1c3bfdf0613f72ee5a89397e3b6e7f" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1ab08b6710dc48afd0c6e64dff4de809d7" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structDynamicStcodeRoutine_1a98109234eabf6edafeb4fc0c4d0a68c9" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>usesDynamicBranching</name></member>
+      <member refid="structStcodeRoutine_1ac1b6d1d4a8f437337beb0c9973c35edf" prot="public" virt="non-virtual"><scope>DynamicStcodeRoutine</scope><name>vertexRegs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

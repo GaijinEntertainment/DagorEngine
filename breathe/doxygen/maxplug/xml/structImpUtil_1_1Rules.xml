@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpUtil_1_1Rules" kind="struct" language="C++" prot="public">
+    <compoundname>ImpUtil::Rules</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpUtil_1_1Rules_1a25d3a31ac97a0a96bc4d70253f3cb027" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ImpUtil::Rules::isWildcard</definition>
+        <argsstring></argsstring>
+        <name>isWildcard</name>
+        <qualifiedname>ImpUtil::Rules::isWildcard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="431" column="10" bodyfile="dagimp.cpp" bodystart="431" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpUtil_1_1Rules_1a714be1d9ee0f72ffd6272fb066836009" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt;TSTR&gt; ImpUtil::Rules::incl</definition>
+        <argsstring></argsstring>
+        <name>incl</name>
+        <qualifiedname>ImpUtil::Rules::incl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="432" column="17" bodyfile="dagimp.cpp" bodystart="432" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpUtil_1_1Rules_1af17e1ad7be0aae9dd0823fa5279f581e" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt;TSTR&gt; ImpUtil::Rules::excl</definition>
+        <argsstring></argsstring>
+        <name>excl</name>
+        <qualifiedname>ImpUtil::Rules::excl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="433" column="17" bodyfile="dagimp.cpp" bodystart="433" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImpUtil_1_1Rules_1a5152da80377aa83a1fbdd6810179fd56" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ImpUtil::Rules::Rules</definition>
+        <argsstring>(bool isWildcard_)</argsstring>
+        <name>Rules</name>
+        <qualifiedname>ImpUtil::Rules::Rules</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>isWildcard_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="435" column="14" bodyfile="dagimp.cpp" bodystart="435" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpUtil_1_1Rules_1ae255e8014e6a77028ce11373944a64e7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::Rules::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>ImpUtil::Rules::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="437" column="10" bodyfile="dagimp.cpp" bodystart="437" bodyend="441"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="429" column="3" bodyfile="dagimp.cpp" bodystart="430" bodyend="442"/>
+    <listofallmembers>
+      <member refid="structImpUtil_1_1Rules_1ae255e8014e6a77028ce11373944a64e7" prot="public" virt="non-virtual"><scope>ImpUtil::Rules</scope><name>clear</name></member>
+      <member refid="structImpUtil_1_1Rules_1af17e1ad7be0aae9dd0823fa5279f581e" prot="public" virt="non-virtual"><scope>ImpUtil::Rules</scope><name>excl</name></member>
+      <member refid="structImpUtil_1_1Rules_1a714be1d9ee0f72ffd6272fb066836009" prot="public" virt="non-virtual"><scope>ImpUtil::Rules</scope><name>incl</name></member>
+      <member refid="structImpUtil_1_1Rules_1a25d3a31ac97a0a96bc4d70253f3cb027" prot="public" virt="non-virtual"><scope>ImpUtil::Rules</scope><name>isWildcard</name></member>
+      <member refid="structImpUtil_1_1Rules_1a5152da80377aa83a1fbdd6810179fd56" prot="public" virt="non-virtual"><scope>ImpUtil::Rules</scope><name>Rules</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

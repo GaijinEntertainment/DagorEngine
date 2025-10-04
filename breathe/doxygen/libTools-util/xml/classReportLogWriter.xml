@@ -1,0 +1,305 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classReportLogWriter" kind="class" language="C++" prot="public">
+    <compoundname>ReportLogWriter</compoundname>
+    <basecompoundref refid="classILogWriter" prot="public" virt="non-virtual">ILogWriter</basecompoundref>
+    <includes refid="reportLogWriter_8h" local="no">reportLogWriter.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classReportLogWriter_1af0bc33a7ef8f35427fae1b75bf0494ab" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; SimpleString &gt;</type>
+        <definition>Tab&lt;SimpleString&gt; ReportLogWriter::list</definition>
+        <argsstring></argsstring>
+        <name>list</name>
+        <qualifiedname>ReportLogWriter::list</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="58" column="7" bodyfile="reportLogWriter.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classReportLogWriter_1a541b077d56a9f66226f0aa5af697ffad" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::errors</definition>
+        <argsstring></argsstring>
+        <name>errors</name>
+        <qualifiedname>ReportLogWriter::errors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="59" column="8" bodyfile="reportLogWriter.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classReportLogWriter_1a32d7f3dd9e0352f41dfb94ea4cd0982b" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::warnings</definition>
+        <argsstring></argsstring>
+        <name>warnings</name>
+        <qualifiedname>ReportLogWriter::warnings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="59" column="15" bodyfile="reportLogWriter.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classReportLogWriter_1aa6057ed11a63f994681a73e73d8297c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ReportLogWriter::ReportLogWriter</definition>
+        <argsstring>()</argsstring>
+        <name>ReportLogWriter</name>
+        <qualifiedname>ReportLogWriter::ReportLogWriter</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="22" column="3" bodyfile="reportLogWriter.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1adf8b347787969034700f7fa630c903c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ReportLogWriter::addMessageFmt</definition>
+        <argsstring>(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override</argsstring>
+        <name>addMessageFmt</name>
+        <qualifiedname>ReportLogWriter::addMessageFmt</qualifiedname>
+        <reimplements refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799">addMessageFmt</reimplements>
+        <param>
+          <type><ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" kindref="member">MessageType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+<para>Add formatted message. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="25" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1ad29eb134710cb550d5508b65517f92bf" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::hasErrors</definition>
+        <argsstring>() const override</argsstring>
+        <name>hasErrors</name>
+        <qualifiedname>ReportLogWriter::hasErrors</qualifiedname>
+        <reimplements refid="classILogWriter_1a7741a6fa40073605a2e147c3d6343463">hasErrors</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has error messages. <simplesect kind="return"><para><bold>true</bold> if messages list has error messages, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="29" column="8" bodyfile="reportLogWriter.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1aad5449a8344a901d8189383234c3efe3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ReportLogWriter::startLog</definition>
+        <argsstring>() override</argsstring>
+        <name>startLog</name>
+        <qualifiedname>ReportLogWriter::startLog</qualifiedname>
+        <reimplements refid="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9">startLog</reimplements>
+        <briefdescription>
+<para>starts log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="31" column="8" bodyfile="reportLogWriter.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1a93d1188aa2b0386ac060c53cead3a0b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ReportLogWriter::endLog</definition>
+        <argsstring>() override</argsstring>
+        <name>endLog</name>
+        <qualifiedname>ReportLogWriter::endLog</qualifiedname>
+        <reimplements refid="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062">endLog</reimplements>
+        <briefdescription>
+<para>finishes log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="32" column="8" bodyfile="reportLogWriter.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1a1e07bef92c5f9720f3daa84210c53a9c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ReportLogWriter::clearMessages</definition>
+        <argsstring>()</argsstring>
+        <name>clearMessages</name>
+        <qualifiedname>ReportLogWriter::clearMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Clear messages list. (for reusing one log writer object for several operations) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="36" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1a81d43b8e1733a31c7c8f3bd7b57d0277" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::hasWarnings</definition>
+        <argsstring>() const</argsstring>
+        <name>hasWarnings</name>
+        <qualifiedname>ReportLogWriter::hasWarnings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has warning messages. <simplesect kind="return"><para><bold>true</bold> if messages list has warning messages, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="41" column="9" bodyfile="reportLogWriter.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1a9cdf8213e15d04c87f628805ab7642d1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::hasMessages</definition>
+        <argsstring>() const</argsstring>
+        <name>hasMessages</name>
+        <qualifiedname>ReportLogWriter::hasMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has messages. <simplesect kind="return"><para><bold>true</bold> if messages list is not empty, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="45" column="9" bodyfile="reportLogWriter.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classReportLogWriter_1a183449224584316dfdae25f5ac33b172" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ReportLogWriter::showReport</definition>
+        <argsstring>(const char *title, const char *error_msg, const char *ok_msg)</argsstring>
+        <name>showReport</name>
+        <qualifiedname>ReportLogWriter::showReport</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>error_msg</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>ok_msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show dialog window with messages list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">title</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- window title </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">error_msg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message displayed at the end of window if there are error messages in messages list </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">ok_msg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message displayed at the end of window if there are no error messages in messages list </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if user pressed &apos;OK&apos; button, <bold>false</bold> if user pressed &apos;Cancel&apos; button </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="reportLogWriter.h" line="55" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to output log messages in special dialog window. A color of text messages depends on their types. At the end of window summary info is represented with number of errors and warnings. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+      <node id="1">
+        <label>ReportLogWriter</label>
+        <link refid="classReportLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+      <node id="1">
+        <label>ReportLogWriter</label>
+        <link refid="classReportLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="reportLogWriter.h" line="18" column="1" bodyfile="reportLogWriter.h" bodystart="19" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classReportLogWriter_1adf8b347787969034700f7fa630c903c1" prot="public" virt="virtual"><scope>ReportLogWriter</scope><name>addMessageFmt</name></member>
+      <member refid="classReportLogWriter_1a1e07bef92c5f9720f3daa84210c53a9c" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>clearMessages</name></member>
+      <member refid="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+      <member refid="classReportLogWriter_1a93d1188aa2b0386ac060c53cead3a0b0" prot="public" virt="virtual"><scope>ReportLogWriter</scope><name>endLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>ERROR</name></member>
+      <member refid="classReportLogWriter_1a541b077d56a9f66226f0aa5af697ffad" prot="protected" virt="non-virtual"><scope>ReportLogWriter</scope><name>errors</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>FATAL</name></member>
+      <member refid="classReportLogWriter_1ad29eb134710cb550d5508b65517f92bf" prot="public" virt="virtual"><scope>ReportLogWriter</scope><name>hasErrors</name></member>
+      <member refid="classReportLogWriter_1a9cdf8213e15d04c87f628805ab7642d1" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>hasMessages</name></member>
+      <member refid="classReportLogWriter_1a81d43b8e1733a31c7c8f3bd7b57d0277" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>hasWarnings</name></member>
+      <member refid="classReportLogWriter_1af0bc33a7ef8f35427fae1b75bf0494ab" prot="protected" virt="non-virtual"><scope>ReportLogWriter</scope><name>list</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>MessageType</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>NOTE</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>REMARK</name></member>
+      <member refid="classReportLogWriter_1aa6057ed11a63f994681a73e73d8297c3" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>ReportLogWriter</name></member>
+      <member refid="classReportLogWriter_1a183449224584316dfdae25f5ac33b172" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>showReport</name></member>
+      <member refid="classReportLogWriter_1aad5449a8344a901d8189383234c3efe3" prot="public" virt="virtual"><scope>ReportLogWriter</scope><name>startLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" prot="public" virt="non-virtual"><scope>ReportLogWriter</scope><name>WARNING</name></member>
+      <member refid="classReportLogWriter_1a32d7f3dd9e0352f41dfb94ea4cd0982b" prot="protected" virt="non-virtual"><scope>ReportLogWriter</scope><name>warnings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

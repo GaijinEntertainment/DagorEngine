@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structInertia" kind="struct" language="C++" prot="public">
+    <compoundname>Inertia</compoundname>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structInertia_1abffe8b4739a8ef4d4aeabc731710f71e" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Inertia::stop</definition>
+        <argsstring></argsstring>
+        <name>stop</name>
+        <qualifiedname>Inertia::stop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Smoothness factor of a camera stopping process. The greater this value, the longer camera will do stoppinng. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="16" column="8" bodyfile="ec_camera_dlg.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structInertia_1a9b2c6c5e5269b601141a41c7253e8960" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Inertia::move</definition>
+        <argsstring></argsstring>
+        <name>move</name>
+        <qualifiedname>Inertia::move</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Smoothness factor of a camera acceleration process. The greater this value, the longer camera will do acceleration. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="20" column="8" bodyfile="ec_camera_dlg.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structInertia_1a59e6b481b2b610c4f0829bb169e3a3df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Inertia::load</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>load</name>
+        <qualifiedname>Inertia::load</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load inertia parameters from BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="24" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structInertia_1aa1fedfd45693544b3d491b11920c0517" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Inertia::save</definition>
+        <argsstring>(DataBlock &amp;blk)</argsstring>
+        <name>save</name>
+        <qualifiedname>Inertia::save</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save inertia parameters to BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="28" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structInertia_1a60e6047226027e065b6cb4e4f6d50f58" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Inertia::Inertia</definition>
+        <argsstring>()</argsstring>
+        <name>Inertia</name>
+        <qualifiedname>Inertia::Inertia</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="31" column="3" bodyfile="ec_camera_dlg.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structInertia" kindref="compound">Inertia</ref> parameters of a camera. </para>
+    </detaileddescription>
+    <location file="ec_camera_dlg.h" line="12" column="1" bodyfile="ec_camera_dlg.h" bodystart="13" bodyend="32"/>
+    <listofallmembers>
+      <member refid="structInertia_1a60e6047226027e065b6cb4e4f6d50f58" prot="public" virt="non-virtual"><scope>Inertia</scope><name>Inertia</name></member>
+      <member refid="structInertia_1a59e6b481b2b610c4f0829bb169e3a3df" prot="public" virt="non-virtual"><scope>Inertia</scope><name>load</name></member>
+      <member refid="structInertia_1a9b2c6c5e5269b601141a41c7253e8960" prot="public" virt="non-virtual"><scope>Inertia</scope><name>move</name></member>
+      <member refid="structInertia_1aa1fedfd45693544b3d491b11920c0517" prot="public" virt="non-virtual"><scope>Inertia</scope><name>save</name></member>
+      <member refid="structInertia_1abffe8b4739a8ef4d4aeabc731710f71e" prot="public" virt="non-virtual"><scope>Inertia</scope><name>stop</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

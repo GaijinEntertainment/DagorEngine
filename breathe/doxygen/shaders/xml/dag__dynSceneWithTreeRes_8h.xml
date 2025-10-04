@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__dynSceneWithTreeRes_8h" kind="file" language="C++">
+    <compoundname>dag_dynSceneWithTreeRes.h</compoundname>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includes local="no">math/dag_geomTree.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_dynSceneWithTreeRes.h</label>
+        <link refid="dag__dynSceneWithTreeRes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_geomTree.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__dynSceneWithTreeRes_8h_1a6d89ba8265c84436b3ecb658f5025f9c" prot="public" static="no">
+        <name>DynamicSceneWithTreeResourceClassName</name>
+        <initializer>&quot;DynScene&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneWithTreeRes.h" line="26" column="9" bodyfile="dag_dynSceneWithTreeRes.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__dynSceneWithTreeRes_8h_1ad3c87c55a4cb0b7ccda63262fd9c84de" prot="public" static="no" mutable="no">
+        <type>decl_dclass_and_id(DynamicSceneWithTreeResource, DObject, 0xB885220D) public GeomNodeTree</type>
+        <definition>decl_dclass_and_id (DynamicSceneWithTreeResource, DObject, 0xB885220D) public GeomNodeTree nodeTree</definition>
+        <argsstring></argsstring>
+        <name>nodeTree</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneWithTreeRes.h" line="16" column="16" bodyfile="dag_dynSceneWithTreeRes.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__dynSceneWithTreeRes_8h_1a3cb133b8e9419b56d58941a86bde030a" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>DynamicSceneWithTreeResource *</type>
+        <definition>static DynamicSceneWithTreeResource * loadResource</definition>
+        <argsstring>(IGenLoad &amp;crd, int srl_flags)</argsstring>
+        <name>loadResource</name>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>srl_flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneWithTreeRes.h" line="19" column="39" declfile="dag_dynSceneWithTreeRes.h" declline="19" declcolumn="39"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__dynSceneWithTreeRes_8h_1a76f8e5dcff39124f8b7c0c49b6700cae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicSceneWithTreeResource</definition>
+        <argsstring>()</argsstring>
+        <name>DynamicSceneWithTreeResource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneWithTreeRes.h" line="21" column="3" bodyfile="dag_dynSceneWithTreeRes.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__dynSceneWithTreeRes_8h_1ad8c59d3509ba55387fa5389afda47beb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>end_dclass_decl</definition>
+        <argsstring>()</argsstring>
+        <name>end_dclass_decl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneWithTreeRes.h" line="23" column="1" declfile="dag_dynSceneWithTreeRes.h" declline="23" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_geomTree.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">decl_dclass_and_id(DynamicSceneWithTreeResource,<sp/>DObject,<sp/>0xB885220D)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">public:</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>Ptr&lt;class<sp/>DynamicRenderableSceneLodsResource&gt;<sp/>scene;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>GeomNodeTree<sp/>nodeTree;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>static<sp/>DynamicSceneWithTreeResource<sp/>*loadResource(IGenLoad<sp/>&amp;<sp/>crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>srl_flags);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>DynamicSceneWithTreeResource()<sp/>{}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">end_dclass_decl();</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DynamicSceneWithTreeResourceClassName<sp/>&quot;DynScene&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_dynSceneWithTreeRes.h"/>
+  </compounddef>
+</doxygen>

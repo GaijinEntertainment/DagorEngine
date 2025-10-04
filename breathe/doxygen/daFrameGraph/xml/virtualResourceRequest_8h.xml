@@ -1,0 +1,400 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="virtualResourceRequest_8h" kind="file" language="C++">
+    <compoundname>virtualResourceRequest.h</compoundname>
+    <includes local="no">EASTL/type_traits.h</includes>
+    <includes refid="usage_8h" local="no">render/daFrameGraph/usage.h</includes>
+    <includes refid="stage_8h" local="no">render/daFrameGraph/stage.h</includes>
+    <includes refid="virtualResourceHandle_8h" local="no">render/daFrameGraph/virtualResourceHandle.h</includes>
+    <includes local="no">render/daFrameGraph/detail/virtualResourceRequestBase.h</includes>
+    <includes local="no">render/daFrameGraph/detail/resourceRequestPolicy.h</includes>
+    <includes local="no">render/daFrameGraph/detail/dispatchRequestPolicy.h</includes>
+    <includes local="no">render/daFrameGraph/detail/drawRequestPolicy.h</includes>
+    <includedby refid="dispatchRequest_8h" local="no">dispatchRequest.h</includedby>
+    <includedby refid="drawRequest_8h" local="no">drawRequest.h</includedby>
+    <includedby refid="virtualPassRequest_8h" local="no">virtualPassRequest.h</includedby>
+    <includedby refid="virtualResourceCreationSemiRequest_8h" local="no">virtualResourceCreationSemiRequest.h</includedby>
+    <includedby refid="virtualResourceSemiRequest_8h" local="no">virtualResourceSemiRequest.h</includedby>
+    <incdepgraph>
+      <node id="7">
+        <label>render/daFrameGraph/stage.h</label>
+        <link refid="stage_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>render/daFrameGraph/usage.h</label>
+        <link refid="usage_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>render/daFrameGraph/virtualResourceHandle.h</label>
+        <link refid="virtualResourceHandle_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="13">
+        <label>render/daFrameGraph/detail/dispatchRequestPolicy.h</label>
+      </node>
+      <node id="14">
+        <label>render/daFrameGraph/detail/drawRequestPolicy.h</label>
+      </node>
+      <node id="12">
+        <label>render/daFrameGraph/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="9">
+        <label>render/daFrameGraph/detail/virtualResourceHandleBase.h</label>
+      </node>
+      <node id="11">
+        <label>render/daFrameGraph/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="2">
+        <label>dispatchRequest.h</label>
+        <link refid="dispatchRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>drawRequest.h</label>
+        <link refid="drawRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>nameSpaceRequest.h</label>
+        <link refid="nameSpaceRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+      <node id="7">
+        <label>virtualPassRequest.h</label>
+        <link refid="virtualPassRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>virtualResourceSemiRequest.h</label>
+        <link refid="virtualResourceSemiRequest_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdafg_1_1VirtualResourceRequest" prot="public">dafg::VirtualResourceRequest</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <innernamespace refid="namespacedafg_1_1detail">dafg::detail</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="virtualResourceRequest_8h_1a07ef1be6ac6d4f71411952ffd3aafd14" prot="public" static="no">
+        <name>REQUIRE_IMPL</name>
+        <param><defname>...</defname></param>
+        <initializer>class = void</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="32" column="10" bodyfile="virtualResourceRequest.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="virtualResourceRequest_8h_1ad57835ba8f1bb419a865ada6bd011a85" prot="public" static="no">
+        <name>REQUIRE</name>
+        <param><defname>...</defname></param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="33" column="9" bodyfile="virtualResourceRequest.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/type_traits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="usage_8h" kindref="compound">render/daFrameGraph/usage.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="stage_8h" kindref="compound">render/daFrameGraph/stage.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="virtualResourceHandle_8h" kindref="compound">render/daFrameGraph/virtualResourceHandle.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/virtualResourceRequestBase.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/resourceRequestPolicy.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/dispatchRequestPolicy.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/drawRequestPolicy.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">detail</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::ResourceRequestPolicy,<sp/>detail::ResourceRequestPolicy&gt;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">VirtualAttachmentRequest;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>DOXYGEN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>TODO:<sp/>Replace<sp/>this<sp/>hackyness<sp/>with<sp/>constraints<sp/>as<sp/>soon<sp/>as<sp/>C++20<sp/>drops</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REQUIRE_IMPL(...)<sp/>class<sp/>Dummy1<sp/>=<sp/>void,<sp/>class<sp/>=<sp/>typename<sp/>eastl::enable_if&lt;(__VA_ARGS__),<sp/>Dummy1&gt;::type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REQUIRE(...)<sp/><sp/><sp/><sp/><sp/><sp/>template<sp/>&lt;REQUIRE_IMPL(__VA_ARGS__)&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="virtualResourceRequest_8h_1a07ef1be6ac6d4f71411952ffd3aafd14" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REQUIRE_IMPL(...)<sp/>class<sp/>=<sp/>void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="virtualResourceRequest_8h_1ad57835ba8f1bb419a865ada6bd011a85" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REQUIRE(...)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Res,<sp/>detail::ResourceRequestPolicy<sp/>policy&gt;</highlight></codeline>
+<codeline lineno="56" refid="classdafg_1_1VirtualResourceRequest" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>:<sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal"><sp/>detail::VirtualResourceRequestBase</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_gpu<sp/>=<sp/>eastl::is_base_of_v&lt;D3dResource,<sp/>Res&gt;;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">Base<sp/>=<sp/>detail::VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::ResourceRequestPolicy,<sp/>detail::ResourceRequestPolicy&gt;</highlight></codeline>
+<codeline lineno="66" refid="classdafg_1_1VirtualResourceRequest_1a5c118345dcb7ac9fd630e1eb927b31e5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal">,<sp/>detail::ResourceRequestPolicy&gt;</highlight></codeline>
+<codeline lineno="69" refid="classdafg_1_1VirtualResourceRequest_1a89ee6a63e927cac45492ffd867edb640" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classdafg_1_1VirtualResourceRequest_1aa0692960a5b78ac80ae656ee82d0503b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest" kindref="compound">VirtualResourceCreationSemiRequest</ref>;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::DispatchRequestPolicy<sp/>dispatch_type&gt;</highlight></codeline>
+<codeline lineno="74" refid="classdafg_1_1VirtualResourceRequest_1a949fb8ee5b97164be925072537300360" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::DrawRequestPolicy,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">&gt;</highlight></codeline>
+<codeline lineno="77" refid="classdafg_1_1VirtualResourceRequest_1a5d6de53582df98529b17158511c172dc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::ResourceRequestPolicy&gt;</highlight></codeline>
+<codeline lineno="80" refid="classdafg_1_1VirtualResourceRequest_1a6046590c8b81f8d2f9cadc1a48f867c2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>;</highlight></codeline>
+<codeline lineno="81" refid="classdafg_1_1VirtualResourceRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a89ee6a63e927cac45492ffd867edb640" kindref="member">VirtualResourceRequest</ref>(detail::ResUid<sp/>resId,<sp/>NodeNameId<sp/>node,<sp/>InternalRegistry<sp/>*reg)<sp/>:<sp/>Base{resId,<sp/>node,<sp/>reg}<sp/>{}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasPolicy(RRP<sp/>p)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(policy<sp/>&amp;<sp/>p)<sp/>==<sp/>p;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasPolicy(RRP<sp/>p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasPolicy(p);<sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>RRP<sp/>flipPolicy(RRP<sp/>p)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">RRP</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eastl::to_underlying(policy)<sp/>^<sp/>eastl::to_underlying(p));<sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">HandleType<sp/>=</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>VirtualResourceHandle&lt;eastl::conditional_t&lt;hasPolicy(RRP::Readonly),<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Res,<sp/>Res&gt;,<sp/>is_gpu,<sp/>hasPolicy(RRP::Optional)&gt;;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(!hasPolicy(RRP::Optional,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.optional()<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="101" refid="classdafg_1_1VirtualResourceRequest_1a4286afa2ca5bc718398b351ef74f6157" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::Optional)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a4286afa2ca5bc718398b351ef74f6157" kindref="member">optional</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::optional();</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(!is_gpu<sp/>||<sp/>(hasPolicy(RRP::HasUsageStage,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>call<sp/>.atStage(usage<sp/>stage)<sp/>before<sp/>.bindToShaderVar(...)!&quot;</highlight><highlight class="normal">)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!hasPolicy(RRP::HasUsageType,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>don&apos;t<sp/>call<sp/>.useAs(usage<sp/>type)<sp/>before<sp/>.bindToShaderVar(...)!&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="119" refid="classdafg_1_1VirtualResourceRequest_1a36727cb71304bedb3a3b725ae498a0c5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasUsageType)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a36727cb71304bedb3a3b725ae498a0c5" kindref="member">bindToShaderVar</ref>(const<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_var_name<sp/>=<sp/></highlight><highlight class="keywordtype">nullptr</highlight><highlight class="normal">)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindToShaderVar(shader_var_name,<sp/>tag_for&lt;Res&gt;(),<sp/>detail::identity_projector);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;auto<sp/>projector,<sp/>REQUIRE_IMPL(!is_gpu<sp/>&amp;&amp;<sp/>eastl::is_invocable_v&lt;decltype(projector),<sp/>Res&gt;)&gt;</highlight></codeline>
+<codeline lineno="136" refid="classdafg_1_1VirtualResourceRequest_1a0da0567411e37f033940ebfd27d571b1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Res, policy&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a0da0567411e37f033940ebfd27d571b1" kindref="member">bindToShaderVar</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_var_name<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ProjectedType<sp/>=<sp/>detail::ProjectedType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindToShaderVar(shader_var_name,<sp/>tag_for&lt;ProjectedType&gt;(),<sp/>detail::erase_projector_type&lt;projector,<sp/>Res&gt;());</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(!is_gpu)</highlight></codeline>
+<codeline lineno="148" refid="classdafg_1_1VirtualResourceRequest_1a97be262024938f5c17e7eabca5b83f8b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>policy&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a97be262024938f5c17e7eabca5b83f8b" kindref="member">bindAsView</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsView(tag_for&lt;Res&gt;(),<sp/>detail::identity_projector);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;auto<sp/>projector,<sp/>REQUIRE_IMPL(!is_gpu<sp/>&amp;&amp;<sp/>eastl::is_invocable_v&lt;decltype(projector),<sp/>Res&gt;)&gt;</highlight></codeline>
+<codeline lineno="163" refid="classdafg_1_1VirtualResourceRequest_1a9aaa3841b849faaebc7764fa39c96891" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Res, policy&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a9aaa3841b849faaebc7764fa39c96891" kindref="member">bindAsView</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ProjectedType<sp/>=<sp/>detail::ProjectedType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsView(tag_for&lt;ProjectedType&gt;(),<sp/>detail::erase_projector_type&lt;projector,<sp/>Res&gt;());</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(!is_gpu)</highlight></codeline>
+<codeline lineno="175" refid="classdafg_1_1VirtualResourceRequest_1a4fb56f193e60c94a72c24a1692669f7f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>policy&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a4fb56f193e60c94a72c24a1692669f7f" kindref="member">bindAsProj</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsProj(tag_for&lt;Res&gt;(),<sp/>detail::identity_projector);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;auto<sp/>projector,<sp/>REQUIRE_IMPL(!is_gpu<sp/>&amp;&amp;<sp/>eastl::is_invocable_v&lt;decltype(projector),<sp/>const<sp/>Res<sp/>&amp;&gt;)&gt;</highlight></codeline>
+<codeline lineno="190" refid="classdafg_1_1VirtualResourceRequest_1ac2ddb0859c4ad31d7cfbc36fbf767b4d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Res, policy&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceRequest_1ac2ddb0859c4ad31d7cfbc36fbf767b4d" kindref="member">bindAsProj</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ProjectedType<sp/>=<sp/>detail::ProjectedType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsProj(tag_for&lt;ProjectedType&gt;(),<sp/>detail::erase_projector_type&lt;projector,<sp/>Res&gt;());</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(eastl::is_same_v&lt;Res,<sp/>Sbuffer&gt;<sp/>&amp;&amp;hasPolicy(RRP::HasUsageType))</highlight></codeline>
+<codeline lineno="203" refid="classdafg_1_1VirtualResourceRequest_1a45fb36eff15b14f276fa7e296673885a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>policy&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a45fb36eff15b14f276fa7e296673885a" kindref="member">bindAsVertexBuffer</ref>(uint32_t<sp/>stream,<sp/>uint32_t<sp/>stride)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsVertexBuffer(stream,<sp/>stride);</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(eastl::is_same_v&lt;Res,<sp/>Sbuffer&gt;<sp/>&amp;&amp;hasPolicy(RRP::HasUsageType))</highlight></codeline>
+<codeline lineno="213" refid="classdafg_1_1VirtualResourceRequest_1a821a586a2211540fd2a7415edd91b4b5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>policy&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a821a586a2211540fd2a7415edd91b4b5" kindref="member">bindAsIndexBuffer</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::bindAsIndexBuffer();</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(is_gpu<sp/>&amp;&amp;<sp/>!hasPolicy(RRP::HasUsageStage,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.atStage(usage<sp/>stage)<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="225" refid="classdafg_1_1VirtualResourceRequest_1a0084e536925983c5915a98346595b62e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasUsageStage)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a0084e536925983c5915a98346595b62e" kindref="member">atStage</ref>(<ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref><sp/>stage)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::atStage(stage);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(is_gpu<sp/>&amp;&amp;<sp/>!hasPolicy(RRP::HasUsageType,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.useAs(usage<sp/>type)<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="236" refid="classdafg_1_1VirtualResourceRequest_1a19bd5e64ae7eed7e68e911e91eda42b3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasUsageType)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a19bd5e64ae7eed7e68e911e91eda42b3" kindref="member">useAs</ref>(<ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref><sp/>type)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::useAs(type);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(!is_gpu<sp/>||<sp/>(hasPolicy(RRP::HasUsageStage,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>call<sp/>.atStage(usage<sp/>stage)<sp/>before<sp/>.handle()!&quot;</highlight><highlight class="normal">)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>hasPolicy(RRP::HasUsageType,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>call<sp/>.useAs(usage<sp/>type)<sp/>before<sp/>.handle()!&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="251" refid="classdafg_1_1VirtualResourceRequest_1a40b6ee4845965b5c6b625d69cf486417" refkind="member"><highlight class="normal"><sp/><sp/>[[nodiscard]]<sp/><ref refid="classdafg_1_1VirtualResourceHandle" kindref="compound">HandleType</ref><sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a40b6ee4845965b5c6b625d69cf486417" kindref="member">handle</ref>()<sp/>&amp;&amp;<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>Base::provider()};<sp/>}</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(eastl::is_same_v&lt;Res,<sp/>BaseTexture&gt;<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!hasPolicy(RRP::HasClearValue,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.clear(clear<sp/>value)/.disacrd()<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="260" refid="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasClearValue)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" kindref="member">clear</ref>(const<sp/>ResourceClearValue<sp/>&amp;clear_value)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::clear(clear_value);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(eastl::is_same_v&lt;Res,<sp/>BaseTexture&gt;<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!hasPolicy(RRP::HasClearValue,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.clear(clear<sp/>value)/.disacrd()<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="273" refid="classdafg_1_1VirtualResourceRequest_1a3dfccdce64d2f3d1619dc715d8950c6e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasClearValue)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" kindref="member">clear</ref>(const<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*blob_name)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::clear(tag_for&lt;ResourceClearValue&gt;(),<sp/>blob_name,<sp/>detail::identity_projector);</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;auto<sp/>projector&gt;</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">requires</highlight><highlight class="normal">(eastl::is_same_v&lt;Res,<sp/>BaseTexture&gt;<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!hasPolicy(RRP::HasClearValue,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.clear(clear<sp/>value)/.disacrd()<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="287" refid="classdafg_1_1VirtualResourceRequest_1ad96a36b4b3875e6cdff200f358445ee3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasClearValue)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1ad96a36b4b3875e6cdff200f358445ee3" kindref="member">clear</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*blob_name)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ProjectedType<sp/>=<sp/>detail::ProjectedType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ProjecteeType<sp/>=<sp/>detail::ProjecteeType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(eastl::is_same_v&lt;ProjectedType,<sp/>ResourceClearValue&gt;,<sp/></highlight><highlight class="stringliteral">&quot;Expected<sp/>the<sp/>projector<sp/>to<sp/>return<sp/>a<sp/>ResourceClearValue!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::clear(tag_for&lt;ProjecteeType&gt;(),<sp/>blob_name,<sp/>detail::erase_projector_type&lt;projector,<sp/>ProjecteeType&gt;());</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><ref refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kindref="member">REQUIRE</ref>(eastl::is_same_v&lt;Res,<sp/>BaseTexture&gt;<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!hasPolicy(RRP::HasClearValue,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Please,<sp/>remove<sp/>the<sp/>duplicate<sp/>.clear(clear<sp/>value)/.disacrd()<sp/>call!&quot;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="303" refid="classdafg_1_1VirtualResourceRequest_1a8333df1bf2c93b4f4f3fa7ab4b714930" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt;Res,<sp/>flipPolicy(RRP::HasClearValue)&gt;<sp/><ref refid="classdafg_1_1VirtualResourceRequest_1a8333df1bf2c93b4f4f3fa7ab4b714930" kindref="member">discard</ref>()<sp/>&amp;&amp;<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};<sp/>}</highlight></codeline>
+<codeline lineno="304"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>REQUIRE_IMPL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>REQUIRE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"></highlight></codeline>
+<codeline lineno="309"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="virtualResourceRequest.h"/>
+  </compounddef>
+</doxygen>

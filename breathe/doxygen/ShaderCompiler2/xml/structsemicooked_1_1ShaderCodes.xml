@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemicooked_1_1ShaderCodes" kind="struct" language="C++" prot="public">
+    <compoundname>semicooked::ShaderCodes</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1a80b2344fa6218e56466c40d67c5004aa" prot="public" static="no" mutable="no">
+        <type>Tab&lt; shader_layout::ShaderCode&lt;&gt; &gt;</type>
+        <definition>Tab&lt;shader_layout::ShaderCode&lt;&gt; &gt; semicooked::ShaderCodes::codes</definition>
+        <argsstring></argsstring>
+        <name>codes</name>
+        <qualifiedname>semicooked::ShaderCodes::codes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="842" column="7" bodyfile="makeShBinDump.cpp" bodystart="842" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1ad1124941d048e0384e8f14b8a390b026" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; shader_layout::ShaderCode&lt;&gt;::ShRef &gt;</type>
+        <definition>SharedStorage&lt;shader_layout::ShaderCode&lt;&gt;::ShRef&gt; semicooked::ShaderCodes::shrefStorage</definition>
+        <argsstring></argsstring>
+        <name>shrefStorage</name>
+        <qualifiedname>semicooked::ShaderCodes::shrefStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="843" column="18" bodyfile="makeShBinDump.cpp" bodystart="843" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1a557e7e08893ab2a8467a59b293e8ea5a" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; ShaderChannelId &gt;</type>
+        <definition>SharedStorage&lt;ShaderChannelId&gt; semicooked::ShaderCodes::chanStorage</definition>
+        <argsstring></argsstring>
+        <name>chanStorage</name>
+        <qualifiedname>semicooked::ShaderCodes::chanStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="844" column="17" bodyfile="makeShBinDump.cpp" bodystart="844" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1a00c7307e7491c15b80f4871daca952b3" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; int &gt;</type>
+        <definition>SharedStorage&lt;int&gt; semicooked::ShaderCodes::icStorage</definition>
+        <argsstring></argsstring>
+        <name>icStorage</name>
+        <qualifiedname>semicooked::ShaderCodes::icStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="845" column="17" bodyfile="makeShBinDump.cpp" bodystart="845" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1a25ee9dd2e234ddb1163149c09c988013" prot="public" static="no" mutable="no">
+        <type>SharedStorage&lt; uint32_t &gt;</type>
+        <definition>SharedStorage&lt;uint32_t&gt; semicooked::ShaderCodes::svStorage</definition>
+        <argsstring></argsstring>
+        <name>svStorage</name>
+        <qualifiedname>semicooked::ShaderCodes::svStorage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="846" column="17" bodyfile="makeShBinDump.cpp" bodystart="846" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1ad1505da66ee86b2aa941e40e197f93d4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Tab&lt; ShaderVarTextureType &gt; &gt;</type>
+        <definition>Tab&lt;Tab&lt;ShaderVarTextureType&gt; &gt; semicooked::ShaderCodes::staticTextureTypesByCode</definition>
+        <argsstring></argsstring>
+        <name>staticTextureTypesByCode</name>
+        <qualifiedname>semicooked::ShaderCodes::staticTextureTypesByCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="847" column="7" bodyfile="makeShBinDump.cpp" bodystart="847" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderCodes_1ae988b66c7f71e34f1b7d6c0635d025c4" prot="public" static="yes" mutable="no">
+        <type>Tab&lt; shader_layout::Pass&lt;&gt; &gt;</type>
+        <definition>Tab&lt; shader_layout::Pass&lt;&gt; &gt; semicooked::ShaderCodes::tmpPasses</definition>
+        <argsstring></argsstring>
+        <name>tmpPasses</name>
+        <qualifiedname>semicooked::ShaderCodes::tmpPasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="849" column="14" bodyfile="makeShBinDump.cpp" bodystart="849" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemicooked_1_1ShaderCodes_1ace180d5eb097b29d7612be65ae3b632a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semicooked::ShaderCodes::ShaderCodes</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderCodes</name>
+        <qualifiedname>semicooked::ShaderCodes::ShaderCodes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="716" column="3" bodyfile="makeShBinDump.cpp" bodystart="716" bodyend="716"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemicooked_1_1ShaderCodes_1a3ce6296d40b3824c85be8521675f3824" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semicooked::ShaderCodes::addCode</definition>
+        <argsstring>(::ShaderCode &amp;scode, Variants &amp;vt, const char *shader_name, int code_idx)</argsstring>
+        <name>addCode</name>
+        <qualifiedname>semicooked::ShaderCodes::addCode</qualifiedname>
+        <param>
+          <type><ref refid="classShaderCode" kindref="compound">::ShaderCode</ref> &amp;</type>
+          <declname>scode</declname>
+        </param>
+        <param>
+          <type><ref refid="structsemicooked_1_1Variants" kindref="compound">Variants</ref> &amp;</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>code_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="720" column="7" bodyfile="makeShBinDump.cpp" bodystart="720" bodyend="775"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemicooked_1_1ShaderCodes_1aefb43083af241640426c53804c0c52b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semicooked::ShaderCodes::addCodePasses</definition>
+        <argsstring>(::ShaderCode::PassTab &amp;pt)</argsstring>
+        <name>addCodePasses</name>
+        <qualifiedname>semicooked::ShaderCodes::addCodePasses</qualifiedname>
+        <param>
+          <type><ref refid="structShaderCode_1_1PassTab" kindref="compound">::ShaderCode::PassTab</ref> &amp;</type>
+          <declname>pt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="777" column="7" bodyfile="makeShBinDump.cpp" bodystart="777" bodyend="812"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structsemicooked_1_1ShaderCodes_1afcc6c9333dcdcd4a2b89c7be31a2c12d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void semicooked::ShaderCodes::clearTemp</definition>
+        <argsstring>()</argsstring>
+        <name>clearTemp</name>
+        <qualifiedname>semicooked::ShaderCodes::clearTemp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="718" column="15" bodyfile="makeShBinDump.cpp" bodystart="718" bodyend="718"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemicooked_1_1ShaderCodes_1a9108afbf0a824fdc04732b6494207686" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bindump::Span&lt; blk_word_t &gt;</type>
+        <definition>static bindump::Span&lt; blk_word_t &gt; semicooked::ShaderCodes::addSuppBlkCodes</definition>
+        <argsstring>(dag::ConstSpan&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt; blocks)</argsstring>
+        <name>addSuppBlkCodes</name>
+        <qualifiedname>semicooked::ShaderCodes::addSuppBlkCodes</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt;</type>
+          <declname>blocks</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="814" column="24" bodyfile="makeShBinDump.cpp" bodystart="814" bodyend="840"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="makeShBinDump.cpp" line="714" column="1" bodyfile="makeShBinDump.cpp" bodystart="715" bodyend="850"/>
+    <listofallmembers>
+      <member refid="structsemicooked_1_1ShaderCodes_1a3ce6296d40b3824c85be8521675f3824" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>addCode</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1aefb43083af241640426c53804c0c52b3" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>addCodePasses</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1a9108afbf0a824fdc04732b6494207686" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>addSuppBlkCodes</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1a557e7e08893ab2a8467a59b293e8ea5a" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>chanStorage</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1afcc6c9333dcdcd4a2b89c7be31a2c12d" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>clearTemp</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1a80b2344fa6218e56466c40d67c5004aa" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>codes</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1a00c7307e7491c15b80f4871daca952b3" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>icStorage</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1ace180d5eb097b29d7612be65ae3b632a" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>ShaderCodes</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1ad1124941d048e0384e8f14b8a390b026" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>shrefStorage</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1ad1505da66ee86b2aa941e40e197f93d4" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>staticTextureTypesByCode</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1a25ee9dd2e234ddb1163149c09c988013" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>svStorage</name></member>
+      <member refid="structsemicooked_1_1ShaderCodes_1ae988b66c7f71e34f1b7d6c0635d025c4" prot="public" virt="non-virtual"><scope>semicooked::ShaderCodes</scope><name>tmpPasses</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::NamedConstInitializerElement::MaterialVar</compoundname>
+    <basecompoundref refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase" prot="public" virt="non-virtual">semantic::NamedConstInitializerElement::VarBase</basecompoundref>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>semantic::NamedConstInitializerElement::MaterialVar</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>semantic::NamedConstInitializerElement::VarBase</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>semantic::NamedConstInitializerElement::MaterialVar</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>semantic::NamedConstInitializerElement::VarBase</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase"/>
+      </node>
+    </collaborationgraph>
+    <location file="variantSemantic.h" line="182" column="3" bodyfile="variantSemantic.h" bodystart="183" bodyend="183"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a75b50df98a899ff8ce51bf80f30a98ee" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::MaterialVar</scope><name>id</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a083cc6e1b2b02ba263c43a076664b112" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::MaterialVar</scope><name>name</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a56dccdfa05e50e11febb4812fd51fdcb" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::MaterialVar</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

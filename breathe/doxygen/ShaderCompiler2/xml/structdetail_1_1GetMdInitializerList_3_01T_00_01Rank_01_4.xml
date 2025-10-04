@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdetail_1_1GetMdInitializerList_3_01T_00_01Rank_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>detail::GetMdInitializerList&lt; T, Rank &gt;</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">eastl::type_identity&lt; std::initializer_list&lt; GetMdInitializerList&lt; T, Rank - 1 &gt;::type &gt; &gt;</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">eastl::type_identity&lt; std::initializer_list&lt; T &gt; &gt;</basecompoundref>
+    <includes refid="mdArray_8h" local="no">mdArray.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+      <param>
+        <type>uint32_t</type>
+        <declname>Rank</declname>
+        <defname>Rank</defname>
+      </param>
+    </templateparamlist>
+    <requiresclause>(Rank &gt; 1)    </requiresclause>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>detail::GetMdInitializerList&lt; T, Rank &gt;</label>
+        <link refid="structdetail_1_1GetMdInitializerList_3_01T_00_01Rank_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>eastl::type_identity&lt; std::initializer_list&lt; GetMdInitializerList&lt; T, Rank - 1 &gt;::type &gt; &gt;</label>
+      </node>
+      <node id="3">
+        <label>eastl::type_identity&lt; std::initializer_list&lt; T &gt; &gt;</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>detail::GetMdInitializerList&lt; T, Rank &gt;</label>
+        <link refid="structdetail_1_1GetMdInitializerList_3_01T_00_01Rank_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>eastl::type_identity&lt; std::initializer_list&lt; GetMdInitializerList&lt; T, Rank - 1 &gt;::type &gt; &gt;</label>
+      </node>
+      <node id="3">
+        <label>eastl::type_identity&lt; std::initializer_list&lt; T &gt; &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="mdArray.h" line="132" column="1" bodyfile="mdArray.h" bodystart="133" bodyend="133"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

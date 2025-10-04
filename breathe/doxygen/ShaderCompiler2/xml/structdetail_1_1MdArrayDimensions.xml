@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdetail_1_1MdArrayDimensions" kind="struct" language="C++" prot="public">
+    <compoundname>detail::MdArrayDimensions</compoundname>
+    <templateparamlist>
+      <param>
+        <type>uint32_t</type>
+        <declname>Rank</declname>
+        <defname>Rank</defname>
+      </param>
+    </templateparamlist>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mdArray.h" line="34" column="1" bodyfile="mdArray.h" bodystart="34" bodyend="-1"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

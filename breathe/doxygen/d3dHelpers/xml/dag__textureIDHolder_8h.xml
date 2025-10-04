@@ -1,0 +1,272 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__textureIDHolder_8h" kind="file" language="C++">
+    <compoundname>dag_textureIDHolder.h</compoundname>
+    <includes refid="dag__texMgr_8h" local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">EASTL/vector_map.h</includes>
+    <includedby refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includedby>
+    <includedby refid="dag__occlusionSystem_8h" local="no">dag_occlusionSystem.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>3d/dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_textureIDHolder.h</label>
+        <link refid="dag__textureIDHolder_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="12">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="11">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="8">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="10">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_dynAtlas.h</label>
+        <link refid="dag__dynAtlas_8h"/>
+      </node>
+      <node id="3">
+        <label>dag_occlusionSystem.h</label>
+        <link refid="dag__occlusionSystem_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_textureIDHolder.h</label>
+        <link refid="dag__textureIDHolder_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classTextureIDPair" prot="public">TextureIDPair</innerclass>
+    <innerclass refid="classTextureIDHolder" prot="public">TextureIDHolder</innerclass>
+    <innerclass refid="classTextureIDHolderWithVar" prot="public">TextureIDHolderWithVar</innerclass>
+    <innerclass refid="classResizableTextureIDHolder" prot="public">ResizableTextureIDHolder</innerclass>
+    <innerclass refid="structResizableTextureIDHolder_1_1TextureRecord" prot="private">ResizableTextureIDHolder::TextureRecord</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__texMgr_8h" kindref="compound">3d/dag_texMgr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_map.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classTextureIDPair" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14" refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" refkind="member"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="15" refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" refkind="member"><highlight class="normal"><sp/><sp/>TEXTUREID<sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="18" refid="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" kindref="member">TextureIDPair</ref>(BaseTexture<sp/>*t<sp/>=<sp/>NULL,<sp/>TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>BAD_TEXTUREID)<sp/>:<sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>(t),<sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref>(id)<sp/>{}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" refkind="member"><highlight class="normal"><sp/><sp/>TEXTUREID<sp/><ref refid="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" kindref="member">getId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="21" refid="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" refkind="member"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*<ref refid="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" kindref="member">getTex</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="22" refid="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref><sp/>*<ref refid="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" kindref="member">getTex2D</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="23"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" kindref="member">is_tex2d</ref>());</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref><sp/>*)<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27" refid="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" refkind="member"><highlight class="normal"><sp/><sp/>ArrayTexture<sp/>*<ref refid="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" kindref="member">getArrayTex</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="28"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" kindref="member">is_arrtex</ref>());</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ArrayTexture<sp/>*)<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32" refid="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" refkind="member"><highlight class="normal"><sp/><sp/>CubeTexture<sp/>*<ref refid="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" kindref="member">getCubeTex</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="33"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" kindref="member">is_cubetex</ref>());</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(CubeTexture<sp/>*)<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37" refid="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" refkind="member"><highlight class="normal"><sp/><sp/>VolTexture<sp/>*<ref refid="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" kindref="member">getVolTex</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="38"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" kindref="member">is_voltex</ref>());</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(VolTexture<sp/>*)<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="42" refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" kindref="member">is_voltex</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43" refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" kindref="member">is_arrtex</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44" refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" kindref="member">is_cubetex</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="45" refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" kindref="member">is_tex2d</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" kindref="member">releaseAndEvictTexId</ref>();</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classTextureIDHolder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref></highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="53" refid="classTextureIDHolder_1a7c2a30b03f71f6eedeb0eb17b1bec35f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder_1a7c2a30b03f71f6eedeb0eb17b1bec35f" kindref="member">TextureIDHolder</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54" refid="classTextureIDHolder_1a14c73acb8f1484cd9be5c74c661515e8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder_1a14c73acb8f1484cd9be5c74c661515e8" kindref="member">TextureIDHolder</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55" refid="classTextureIDHolder_1a7e487b4545fca6b3599f304ea5f126d1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;<ref refid="classTextureIDHolder_1a7e487b4545fca6b3599f304ea5f126d1" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56" refid="classTextureIDHolder_1a065a0752f3cf997228f4fe12a0b3479d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder_1a065a0752f3cf997228f4fe12a0b3479d" kindref="member">TextureIDHolder</ref>(<ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>rhs.tex;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>rhs.texId;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.tex<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.texId<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63" refid="classTextureIDHolder_1a4a1848e5354d4e96bed41e0341360d2c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder_1a4a1848e5354d4e96bed41e0341360d2c" kindref="member">~TextureIDHolder</ref>()<sp/>{<sp/><ref refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classTextureIDHolder_1afdc340be5fd6f990a60a017705c1366e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;<ref refid="classTextureIDHolder_1afdc340be5fd6f990a60a017705c1366e" kindref="member">operator=</ref>(<ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>rhs.tex;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>rhs.texId;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.tex<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.texId<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classTextureIDHolder_1a0324e2bb6b2c472f3f110a662d3a7aeb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder_1a0324e2bb6b2c472f3f110a662d3a7aeb" kindref="member">setRaw</ref>(BaseTexture<sp/>*tex_,<sp/>TEXTUREID<sp/>texId_)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>tex_;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>texId_;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80" refid="classTextureIDHolder_1afaec1f430d758f742d23c0e4b3339c10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder_1afaec1f430d758f742d23c0e4b3339c10" kindref="member">set</ref>(BaseTexture<sp/>*tex_,<sp/>TEXTUREID<sp/>texId_)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolder_1a0324e2bb6b2c472f3f110a662d3a7aeb" kindref="member">setRaw</ref>(tex_,<sp/>texId_);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85" refid="classTextureIDHolder_1acbb2783402411b4a19423539cc9cac3e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder_1acbb2783402411b4a19423539cc9cac3e" kindref="member">set</ref>(BaseTexture<sp/>*tex_,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="86" refid="classTextureIDHolder_1a6b226b3ad22021395c697db2ebec5e60" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder_1a6b226b3ad22021395c697db2ebec5e60" kindref="member">set</ref>(BaseTexture<sp/>*<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>);</highlight></codeline>
+<codeline lineno="87" refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90" refid="classTextureIDHolderWithVar" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref></highlight></codeline>
+<codeline lineno="91"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="93" refid="classTextureIDHolderWithVar_1acf2acbebc1efcbf2e67b272be9848f08" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar_1acf2acbebc1efcbf2e67b272be9848f08" kindref="member">TextureIDHolderWithVar</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94" refid="classTextureIDHolderWithVar_1a3cdeb5f94a50005d61cb10fa0ce69e94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a3cdeb5f94a50005d61cb10fa0ce69e94" kindref="member">TextureIDHolderWithVar</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95" refid="classTextureIDHolderWithVar_1a8f2b0ce50fb192892c012e48bf8dd728" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;<ref refid="classTextureIDHolderWithVar_1a8f2b0ce50fb192892c012e48bf8dd728" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96" refid="classTextureIDHolderWithVar_1a33b33c4aff57b1b068dba3ce0bd15dbb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a33b33c4aff57b1b068dba3ce0bd15dbb" kindref="member">TextureIDHolderWithVar</ref>(<ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>rhs.tex;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>rhs.texId;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" kindref="member">varId</ref><sp/>=<sp/>rhs.varId;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.tex<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.texId<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.varId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105" refid="classTextureIDHolderWithVar_1a2d1a3a5c0078024311eda04b145558d6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a2d1a3a5c0078024311eda04b145558d6" kindref="member">~TextureIDHolderWithVar</ref>()<sp/>{<sp/><ref refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="classTextureIDHolderWithVar_1ad19222eacc3b18029a893951d8002ea5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;<ref refid="classTextureIDHolderWithVar_1ad19222eacc3b18029a893951d8002ea5" kindref="member">operator=</ref>(<ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>rhs.tex;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>rhs.texId;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" kindref="member">varId</ref><sp/>=<sp/>rhs.varId;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.tex<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.texId<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.varId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="classTextureIDHolderWithVar_1a1de51b0887578d53248aae1a119da448" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a1de51b0887578d53248aae1a119da448" kindref="member">setRaw</ref>(BaseTexture<sp/>*tex_,<sp/>TEXTUREID<sp/>texId_)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref><sp/>=<sp/>tex_;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" kindref="member">texId</ref><sp/>=<sp/>texId_;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="124" refid="classTextureIDHolderWithVar_1a11bcf9447fc95645065f18f645a45c0a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a11bcf9447fc95645065f18f645a45c0a" kindref="member">set</ref>(BaseTexture<sp/>*tex_,<sp/>TEXTUREID<sp/>texId_)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDHolderWithVar_1a1de51b0887578d53248aae1a119da448" kindref="member">setRaw</ref>(tex_,<sp/>texId_);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129" refid="classTextureIDHolderWithVar_1a7f4176b7013f893a1837ff32f55000f4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a7f4176b7013f893a1837ff32f55000f4" kindref="member">set</ref>(BaseTexture<sp/>*tex_,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tex_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_var_name);</highlight></codeline>
+<codeline lineno="130" refid="classTextureIDHolderWithVar_1ad850502295421f01f21d3bdacb7e77ff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1ad850502295421f01f21d3bdacb7e77ff" kindref="member">set</ref>(BaseTexture<sp/>*tex_,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>{<sp/><ref refid="classTextureIDHolderWithVar_1ad850502295421f01f21d3bdacb7e77ff" kindref="member">set</ref>(tex_,<sp/>name,<sp/>name);<sp/>}</highlight></codeline>
+<codeline lineno="131" refid="classTextureIDHolderWithVar_1acc16528e6e1a0676059ce9d751895829" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1acc16528e6e1a0676059ce9d751895829" kindref="member">set</ref>(BaseTexture<sp/>*<ref refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" kindref="member">tex</ref>);</highlight></codeline>
+<codeline lineno="132" refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a2e6f1f5375482de57f1047ee61983b86" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="classTextureIDHolderWithVar_1a2f8e0ed2833e317d19a20cb23a79534d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a2f8e0ed2833e317d19a20cb23a79534d" kindref="member">setVarId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" kindref="member">varId</ref><sp/>=<sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="135" refid="classTextureIDHolderWithVar_1ab4ede9d9ae900e72bbcf9aa5501e4a41" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1ab4ede9d9ae900e72bbcf9aa5501e4a41" kindref="member">getVarId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" kindref="member">varId</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="136" refid="classTextureIDHolderWithVar_1a37a42e10c8e9ca082987870041754777" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a37a42e10c8e9ca082987870041754777" kindref="member">setVar</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="139" refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar_1a234408929607315c510ed8daba907ee4" kindref="member">varId</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dynamically<sp/>resizable<sp/>texture<sp/>baked<sp/>by<sp/>single<sp/>memory<sp/>area<sp/>(heap)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="comment">//<sp/>resize<sp/>to<sp/>smaller<sp/>size<sp/>works<sp/>only<sp/>when<sp/>heaps<sp/>&amp;<sp/>resource<sp/>aliasing<sp/>are<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="classResizableTextureIDHolder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classResizableTextureIDHolder" kindref="compound">ResizableTextureIDHolder</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classTextureIDHolderWithVar" kindref="compound">TextureIDHolderWithVar</ref></highlight></codeline>
+<codeline lineno="145"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="147" refid="classResizableTextureIDHolder_1a0970e8a4776b5aa74887554be4006786" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classResizableTextureIDHolder_1a0970e8a4776b5aa74887554be4006786" kindref="member">ResizableTextureIDHolder</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="148" refid="classResizableTextureIDHolder_1abe4b2180840b52a363d72e6fffbf57c7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classResizableTextureIDHolder_1abe4b2180840b52a363d72e6fffbf57c7" kindref="member">ResizableTextureIDHolder</ref>(<ref refid="classResizableTextureIDHolder" kindref="compound">ResizableTextureIDHolder</ref><sp/>&amp;&amp;rhs)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="149" refid="classResizableTextureIDHolder_1a9978f66b23ab7cce6dfa8360d68b59a8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classResizableTextureIDHolder_1a9978f66b23ab7cce6dfa8360d68b59a8" kindref="member">~ResizableTextureIDHolder</ref>()<sp/>{<sp/><ref refid="classResizableTextureIDHolder_1ac702f8739499dc242304f3e19855aa8e" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151" refid="classResizableTextureIDHolder_1a8e81ec323e6f5b5975babb30403accc1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classResizableTextureIDHolder_1a8e81ec323e6f5b5975babb30403accc1" kindref="member">resize</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h);</highlight></codeline>
+<codeline lineno="152" refid="classResizableTextureIDHolder_1ac702f8739499dc242304f3e19855aa8e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classResizableTextureIDHolder_1ac702f8739499dc242304f3e19855aa8e" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">TextureRecord</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/>BaseTexture<sp/>*tex;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/>texId;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">TexRecKey<sp/>=<sp/>uint32_t;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>eastl::vector_map&lt;TexRecKey,<sp/>TextureRecord&gt;<sp/>aliases;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>TexRecKey<sp/>getKey(uint16_t<sp/>w,<sp/>uint16_t<sp/>h)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(w<sp/>&lt;&lt;<sp/>16)<sp/>|<sp/>h;<sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_textureIDHolder.h"/>
+  </compounddef>
+</doxygen>

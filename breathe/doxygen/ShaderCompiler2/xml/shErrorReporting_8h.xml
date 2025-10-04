@@ -1,0 +1,782 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shErrorReporting_8h" kind="file" language="C++">
+    <compoundname>shErrorReporting.h</compoundname>
+    <includes local="yes">shsyn.h</includes>
+    <includes refid="shlexterm_8h" local="yes">shlexterm.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes local="no">util/dag_safeArg.h</includes>
+    <includedby refid="hwSemantic_8cpp" local="yes">hwSemantic.cpp</includedby>
+    <includedby refid="samplers_8cpp" local="yes">samplers.cpp</includedby>
+    <includedby refid="shAssumes_8cpp" local="yes">shAssumes.cpp</includedby>
+    <includedby refid="shExpr_8cpp" local="yes">shExpr.cpp</includedby>
+    <includedby refid="shExprParser_8cpp" local="yes">shExprParser.cpp</includedby>
+    <includedby refid="shaderSemantic_8h" local="yes">shaderSemantic.h</includedby>
+    <includedby refid="stcodeBytecode_8h" local="yes">stcodeBytecode.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="3">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="2">
+        <label>shsyn.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="6">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="14">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="13">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="16">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="38">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="20">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="22">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="25">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="24">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="29">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="26">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="3">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="4">
+        <label>shAssumes.cpp</label>
+        <link refid="shAssumes_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="6">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="32">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="7">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>stcodeBytecode.cpp</label>
+        <link refid="stcodeBytecode_8cpp"/>
+      </node>
+      <node id="11">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="19">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="35">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="37">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="shErrorReporting_8h_1ad5c6e896348b92a48387418a812c2187" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_DECL</name>
+        <initializer><ref refid="structParser" kindref="compound">Parser</ref> &amp;parser, const Symbol *s,</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="10" column="9" bodyfile="shErrorReporting.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="shErrorReporting_8h_1a5efd92b66f81e72a2c053181a96518a9" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_PASS</name>
+        <initializer>parser, s,</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="11" column="9" bodyfile="shErrorReporting.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="shErrorReporting_8h_1ad5c6e896348b92a48387418a812c2187" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_DECL</name>
+        <initializer><ref refid="structParser" kindref="compound">Parser</ref> &amp;parser, const Symbol &amp;s,</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="16" column="9" bodyfile="shErrorReporting.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="shErrorReporting_8h_1a5efd92b66f81e72a2c053181a96518a9" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_PASS</name>
+        <initializer>parser, s,</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="17" column="9" bodyfile="shErrorReporting.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(inline void report_error, void report_error, report_error)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>inline void</type>
+          <declname>report_error</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>report_error</declname>
+        </param>
+        <param>
+          <type><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="12" column="1" declfile="shErrorReporting.h" declline="12" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1aa18a603f4f2e423f0f1969b9efc2b248" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(inline void report_warning, void report_warning, report_warning)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>inline void</type>
+          <declname>report_warning</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>report_warning</declname>
+        </param>
+        <param>
+          <type><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="18" column="1" declfile="shErrorReporting.h" declline="18" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1a0c2343aed1bfc967c4e6511ea1bfa42c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(inline void report_message, void report_message, report_message)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>inline void</type>
+          <declname>report_message</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>report_message</declname>
+        </param>
+        <param>
+          <type><ref refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" kindref="member">report_message</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="19" column="1" declfile="shErrorReporting.h" declline="19" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1ade42baa7bc982e0c2cca5cb47100fdb6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(inline void report_debug_message, void report_debug_message, report_debug_message)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>inline void</type>
+          <declname>report_debug_message</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>report_debug_message</declname>
+        </param>
+        <param>
+          <type><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="20" column="1" declfile="shErrorReporting.h" declline="20" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void report_error</definition>
+        <argsstring>(Parser &amp;parser, const Symbol *s, const char *fmt, const DagorSafeArg *arg, int anum)</argsstring>
+        <name>report_error</name>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const Symbol *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="26" column="13" bodyfile="shErrorReporting.h" bodystart="26" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void report_warning</definition>
+        <argsstring>(Parser &amp;parser, const Symbol &amp;s, const char *fmt, const DagorSafeArg *arg, int anum)</argsstring>
+        <name>report_warning</name>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const Symbol &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="41" column="13" bodyfile="shErrorReporting.h" bodystart="41" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void report_message</definition>
+        <argsstring>(Parser &amp;parser, const Symbol &amp;s, const char *fmt, const DagorSafeArg *arg, int anum)</argsstring>
+        <name>report_message</name>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const Symbol &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="46" column="13" bodyfile="shErrorReporting.h" bodystart="46" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void report_debug_message</definition>
+        <argsstring>(Parser &amp;parser, const Symbol &amp;s, const char *fmt, const DagorSafeArg *arg, int anum)</argsstring>
+        <name>report_debug_message</name>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const Symbol &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shErrorReporting.h" line="51" column="13" bodyfile="shErrorReporting.h" bodystart="51" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shlexterm_8h" kindref="compound">shlexterm.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_safeArg.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="shErrorReporting_8h_1ad5c6e896348b92a48387418a812c2187" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL<sp/>Parser<sp/>&amp;parser,<sp/>const<sp/>Symbol<sp/>*s,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="shErrorReporting_8h_1a5efd92b66f81e72a2c053181a96518a9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS<sp/>parser,<sp/>s,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" refkind="member"><highlight class="normal"><ref refid="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>,<sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL<sp/>Parser<sp/>&amp;parser,<sp/>const<sp/>Symbol<sp/>&amp;s,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS<sp/>parser,<sp/>s,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="shErrorReporting_8h_1aa18a603f4f2e423f0f1969b9efc2b248" refkind="member"><highlight class="normal"><ref refid="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref>,<sp/><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref>);</highlight></codeline>
+<codeline lineno="19" refid="shErrorReporting_8h_1a0c2343aed1bfc967c4e6511ea1bfa42c" refkind="member"><highlight class="normal"><ref refid="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" kindref="member">report_message</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" kindref="member">report_message</ref>,<sp/><ref refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" kindref="member">report_message</ref>);</highlight></codeline>
+<codeline lineno="20" refid="shErrorReporting_8h_1ade42baa7bc982e0c2cca5cb47100fdb6" refkind="member"><highlight class="normal"><ref refid="shErrorReporting_8h_1ae64fd1e00bca19832f19a3e0a4aad4e3" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref>,<sp/><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref>);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>this<sp/>is<sp/>one<sp/>function<sp/>with<sp/>optional<sp/>symbol<sp/>rather<sp/>than<sp/>two<sp/>separate<sp/>overloads<sp/>for<sp/>a<sp/>historical<sp/>reason:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>it<sp/>has<sp/>been<sp/>done<sp/>so<sp/>before,<sp/>and<sp/>debugging<sp/>whether<sp/>call<sp/>sites<sp/>pass<sp/>nulls<sp/>sometimes<sp/>would<sp/>be<sp/>unnecessarily<sp/>hard.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Symbol<sp/>*s,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>msg<sp/>=<sp/><ref refid="commonUtils_8h_1aa1f93ffbe9e33ba8657e779783b5fbc3" kindref="member">string_dsa</ref>(fmt,<sp/>arg,<sp/>anum);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s)</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!s-&gt;macro_call_stack.empty())</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>msg.append(</highlight><highlight class="stringliteral">&quot;\nCall<sp/>stack:\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/>s-&gt;macro_call_stack.rbegin();<sp/>it<sp/>!=<sp/>s-&gt;macro_call_stack.rend();<sp/>++it)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>msg.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/><sp/>%s()\n<sp/><sp/><sp/><sp/>%s(%i)\n&quot;</highlight><highlight class="normal">,<sp/>it-&gt;name,<sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab26ad89867e01b9d9aecd26d1c74776c" kindref="member">get_filename</ref>(it-&gt;file),<sp/>it-&gt;line);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1a15173ff3748bd39e52a74ddae376a785" kindref="member">set_error</ref>(s-&gt;file_start,<sp/>s-&gt;line_start,<sp/>s-&gt;col_start,<sp/>msg.c_str());</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1a15173ff3748bd39e52a74ddae376a785" kindref="member">set_error</ref>(msg.c_str());</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1a43ca645d64998458bbb085183e295420" kindref="member">report_warning</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Symbol<sp/>&amp;s,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1a81f0bc82f294c9b3d4b8965c52afede6" kindref="member">set_warning</ref>(s.file_start,<sp/>s.line_start,<sp/>s.col_start,<sp/><ref refid="commonUtils_8h_1aa1f93ffbe9e33ba8657e779783b5fbc3" kindref="member">string_dsa</ref>(fmt,<sp/>arg,<sp/>anum).c_str());</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ad3af7b1678895cefa3d8fe5c519272bd" kindref="member">report_message</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Symbol<sp/>&amp;s,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1a4554405a6a30dbe08209d0e2687dfdba" kindref="member">set_message</ref>(s.file_start,<sp/>s.line_start,<sp/>s.col_start,<sp/><ref refid="commonUtils_8h_1aa1f93ffbe9e33ba8657e779783b5fbc3" kindref="member">string_dsa</ref>(fmt,<sp/>arg,<sp/>anum).c_str());</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref>(<ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Symbol<sp/>&amp;s,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1af117bcd3e4273181cc336216d68d81d8" kindref="member">set_debug_message</ref>(s.file_start,<sp/>s.line_start,<sp/>s.col_start,<sp/><ref refid="commonUtils_8h_1aa1f93ffbe9e33ba8657e779783b5fbc3" kindref="member">string_dsa</ref>(fmt,<sp/>arg,<sp/>anum).c_str());</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="shErrorReporting.h"/>
+  </compounddef>
+</doxygen>

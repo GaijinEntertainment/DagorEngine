@@ -1,0 +1,185 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceGeometryInstanceDescription" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceGeometryInstanceDescription</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1" prot="public" static="no" strong="no">
+        <type></type>
+        <name>Flags</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::Flags</qualifiedname>
+        <enumvalue id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a15da39cc73ecbdecd33d9bf88b93449a" prot="public">
+          <name>NONE</name>
+          <initializer>= 0x00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a0dd079025c2a8491bb7780684c361b7f" prot="public">
+          <name>TRIANGLE_CULL_DISABLE</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a7b5f1045f0b47d4f11ea5c95a124eb01" prot="public">
+          <name>TRIANGLE_CULL_FLIP_WINDING</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1aa28624280b51d09a27343523d432a1af" prot="public">
+          <name>FORCE_OPAQUE</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a66f55c1097b53afd7b3dd2cd91aa3723" prot="public">
+          <name>FORCE_NO_OPAQUE</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="113" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="114" bodyend="120"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1a23b4badf7d6109540a4c194df0f5f06f" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RaytraceGeometryInstanceDescription::transform[12]</definition>
+        <argsstring>[12]</argsstring>
+        <name>transform</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::transform</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="121" column="9" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1ae5d283531f9a0520a40054733f228232" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryInstanceDescription::instanceId</definition>
+        <argsstring></argsstring>
+        <name>instanceId</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::instanceId</qualifiedname>
+        <bitfield> 24</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="122" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1a83716c8d0405a3d3598e32093f7b4274" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryInstanceDescription::mask</definition>
+        <argsstring></argsstring>
+        <name>mask</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::mask</qualifiedname>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="123" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1af203744dc06baa319c85e548cd12b80f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryInstanceDescription::instanceOffset</definition>
+        <argsstring></argsstring>
+        <name>instanceOffset</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::instanceOffset</qualifiedname>
+        <bitfield> 24</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="124" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1a3073a49261bcd0946a4bf3159ae80bba" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryInstanceDescription::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::flags</qualifiedname>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="125" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1a06bb7b1a4e8931b2c55d6fdb061d2f61" prot="public" static="no" mutable="no">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>RaytraceBottomAccelerationStructure* RaytraceGeometryInstanceDescription::accelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructure</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::accelerationStructure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="126" column="39" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryInstanceDescription_1a26d52337de672e257ef8c379b58280fb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryInstanceDescription::paddToMatchTarget</definition>
+        <argsstring></argsstring>
+        <name>paddToMatchTarget</name>
+        <qualifiedname>RaytraceGeometryInstanceDescription::paddToMatchTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="128" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="111" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="112" bodyend="130"/>
+    <listofallmembers>
+      <member refid="structRaytraceGeometryInstanceDescription_1a06bb7b1a4e8931b2c55d6fdb061d2f61" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>accelerationStructure</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>Flags</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1a3073a49261bcd0946a4bf3159ae80bba" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>flags</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a66f55c1097b53afd7b3dd2cd91aa3723" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>FORCE_NO_OPAQUE</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1aa28624280b51d09a27343523d432a1af" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>FORCE_OPAQUE</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ae5d283531f9a0520a40054733f228232" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>instanceId</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1af203744dc06baa319c85e548cd12b80f" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>instanceOffset</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1a83716c8d0405a3d3598e32093f7b4274" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>mask</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a15da39cc73ecbdecd33d9bf88b93449a" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>NONE</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1a26d52337de672e257ef8c379b58280fb" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>paddToMatchTarget</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1a23b4badf7d6109540a4c194df0f5f06f" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>transform</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a0dd079025c2a8491bb7780684c361b7f" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>TRIANGLE_CULL_DISABLE</name></member>
+      <member refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a7b5f1045f0b47d4f11ea5c95a124eb01" prot="public" virt="non-virtual"><scope>RaytraceGeometryInstanceDescription</scope><name>TRIANGLE_CULL_FLIP_WINDING</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__auto__ptr_8h" kind="file" language="C++">
+    <compoundname>dag_auto_ptr.h</compoundname>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_auto_ptr.h</label>
+        <link refid="dag__auto__ptr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="3">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdag__auto__ptr" prot="public">dag_auto_ptr</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>X&gt;</highlight></codeline>
+<codeline lineno="5" refid="classdag__auto__ptr" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref></highlight></codeline>
+<codeline lineno="6"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>20.4.5.1<sp/>construct/copy/destroy:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classdag__auto__ptr_1afe37276189366520dbfadb900591d459" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classdag__auto__ptr_1afe37276189366520dbfadb900591d459" kindref="member">dag_auto_ptr</ref>(X<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/>0)<sp/>throw()<sp/>{<sp/>ptr<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="10" refid="classdag__auto__ptr_1aa896010c42822c3193e7071bd8241e9c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdag__auto__ptr_1aa896010c42822c3193e7071bd8241e9c" kindref="member">dag_auto_ptr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref><sp/>&amp;ap)<sp/></highlight><highlight class="keywordflow">throw</highlight><highlight class="normal">()</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/>ptr<sp/>=<sp/>ap.ptr;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/>ap.ptr<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classdag__auto__ptr_1a1038ff5379fc3f232fa5cc5426fb858f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref><sp/>&amp;<ref refid="classdag__auto__ptr_1a1038ff5379fc3f232fa5cc5426fb858f" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref><sp/>&amp;ap)<sp/></highlight><highlight class="keywordflow">throw</highlight><highlight class="normal">()</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">this</highlight><highlight class="normal"><sp/>!=<sp/>&amp;ap)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ptr<sp/>=<sp/>ap.ptr;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ap.ptr<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classdag__auto__ptr_1a127c271bdbeed3809039f29c22658ea6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdag__auto__ptr_1a127c271bdbeed3809039f29c22658ea6" kindref="member">~dag_auto_ptr</ref>()<sp/>throw()</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ptr)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/>ptr;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>ptr<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>20.4.5.2<sp/>members:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="classdag__auto__ptr_1ae637f80b666de306345fbf62103d337d" refkind="member"><highlight class="normal"><sp/><sp/>X<sp/>&amp;<ref refid="classdag__auto__ptr_1ae637f80b666de306345fbf62103d337d" kindref="member">operator*</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>throw()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*ptr;<sp/>}</highlight></codeline>
+<codeline lineno="35" refid="classdag__auto__ptr_1a3a6e2f4e1497b851e654c5c72c95e576" refkind="member"><highlight class="normal"><sp/><sp/>X<sp/>*<ref refid="classdag__auto__ptr_1a3a6e2f4e1497b851e654c5c72c95e576" kindref="member">operator-&gt;</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>throw()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ptr;<sp/>}</highlight></codeline>
+<codeline lineno="36" refid="classdag__auto__ptr_1a784f37a8bd486bb82b05b07d9ad663f1" refkind="member"><highlight class="normal"><sp/><sp/>X<sp/>*<ref refid="classdag__auto__ptr_1a784f37a8bd486bb82b05b07d9ad663f1" kindref="member">get</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>throw()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ptr;<sp/>}</highlight></codeline>
+<codeline lineno="37" refid="classdag__auto__ptr_1aac684b7d3810a281c214d642b07bc22d" refkind="member"><highlight class="normal"><sp/><sp/>X<sp/>*<ref refid="classdag__auto__ptr_1aac684b7d3810a281c214d642b07bc22d" kindref="member">release</ref>()<sp/>throw()</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>X<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/>ptr;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>ptr<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/>X<sp/>*ptr;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_auto_ptr.h"/>
+  </compounddef>
+</doxygen>

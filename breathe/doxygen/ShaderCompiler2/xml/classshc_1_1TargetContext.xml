@@ -1,0 +1,807 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1TargetContext" kind="class" language="C++" prot="public">
+    <compoundname>shc::TargetContext</compoundname>
+    <includes refid="shTargetContext_8h" local="no">shTargetContext.h</includes>
+    <innerclass refid="classshc_1_1TargetContext_1_1SourceFileScope" prot="public">shc::TargetContext::SourceFileScope</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1ac122f9b57bbab3c68ad481db59632ee6" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shc::TargetContext::mFname</definition>
+        <argsstring></argsstring>
+        <name>mFname</name>
+        <qualifiedname>shc::TargetContext::mFname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="30" column="14" bodyfile="shTargetContext.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a376bdcb318555225afba13ceed3440e0" prot="private" static="no" mutable="no">
+        <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref></type>
+        <definition>VarNameMap shc::TargetContext::mVarNameMap</definition>
+        <argsstring></argsstring>
+        <name>mVarNameMap</name>
+        <qualifiedname>shc::TargetContext::mVarNameMap</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="31" column="14" bodyfile="shTargetContext.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1ac325b54fc877fdfd6488c2a0dba32fc5" prot="private" static="no" mutable="no">
+        <type><ref refid="classHashStrings" kindref="compound">HashStrings</ref></type>
+        <definition>HashStrings shc::TargetContext::mIntervalNameMap</definition>
+        <argsstring></argsstring>
+        <name>mIntervalNameMap</name>
+        <qualifiedname>shc::TargetContext::mIntervalNameMap</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="32" column="15" bodyfile="shTargetContext.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a150322caf0103763e1cd9aef34890686" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderGlobal_1_1VarTable" kindref="compound">ShaderGlobal::VarTable</ref></type>
+        <definition>ShaderGlobal::VarTable shc::TargetContext::mGvarTable</definition>
+        <argsstring></argsstring>
+        <name>mGvarTable</name>
+        <qualifiedname>shc::TargetContext::mGvarTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="33" column="26" bodyfile="shTargetContext.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a136f74c980925d714ff4cd308aec43b8" prot="private" static="no" mutable="no">
+        <type><ref refid="classSamplerTable" kindref="compound">SamplerTable</ref></type>
+        <definition>SamplerTable shc::TargetContext::mSamplerTable</definition>
+        <argsstring></argsstring>
+        <name>mSamplerTable</name>
+        <qualifiedname>shc::TargetContext::mSamplerTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="34" column="16" bodyfile="shTargetContext.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1aac420a471414bae2f921fbe2cc8e5d71" prot="private" static="no" mutable="no">
+        <type><ref refid="structStcodeShader" kindref="compound">StcodeShader</ref></type>
+        <definition>StcodeShader shc::TargetContext::mCppstcodeAccum</definition>
+        <argsstring></argsstring>
+        <name>mCppstcodeAccum</name>
+        <qualifiedname>shc::TargetContext::mCppstcodeAccum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="35" column="16" bodyfile="shTargetContext.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a806d47384f4fa3f29c170a9feadfe3a5" prot="private" static="no" mutable="no">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref></type>
+        <definition>BoolVarTable shc::TargetContext::mBoolVarTable</definition>
+        <argsstring></argsstring>
+        <name>mBoolVarTable</name>
+        <qualifiedname>shc::TargetContext::mBoolVarTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="36" column="16" bodyfile="shTargetContext.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1ad5d87defb307c6a770bdc342c45f9e75" prot="private" static="no" mutable="no">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; String &gt;</type>
+        <definition>PerHlslStage&lt;String&gt; shc::TargetContext::mGlobalHlslSource</definition>
+        <argsstring></argsstring>
+        <name>mGlobalHlslSource</name>
+        <qualifiedname>shc::TargetContext::mGlobalHlslSource</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="37" column="16" bodyfile="shTargetContext.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a847315f66f73a3da67ebdb40ad0364f9" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderBlockTable" kindref="compound">ShaderBlockTable</ref></type>
+        <definition>ShaderBlockTable shc::TargetContext::mStateBlockTable</definition>
+        <argsstring></argsstring>
+        <name>mStateBlockTable</name>
+        <qualifiedname>shc::TargetContext::mStateBlockTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="38" column="20" bodyfile="shTargetContext.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1ab4c0d96fa06b8c3b988aa6c3b132e444" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref></type>
+        <definition>ShaderAssumesTable shc::TargetContext::mGlobalAssumes</definition>
+        <argsstring></argsstring>
+        <name>mGlobalAssumes</name>
+        <qualifiedname>shc::TargetContext::mGlobalAssumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="39" column="22" bodyfile="shTargetContext.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a5c34d8b994654bc98b6f388fbbbcccc5" prot="private" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap shc::TargetContext::mGlobalMessages</definition>
+        <argsstring></argsstring>
+        <name>mGlobalMessages</name>
+        <qualifiedname>shc::TargetContext::mGlobalMessages</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="40" column="17" bodyfile="shTargetContext.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a8ce561acb039932b228484a4791cdf85" prot="private" static="no" mutable="no">
+        <type><ref refid="structShaderTargetStorage" kindref="compound">ShaderTargetStorage</ref></type>
+        <definition>ShaderTargetStorage shc::TargetContext::mDataStorage</definition>
+        <argsstring></argsstring>
+        <name>mDataStorage</name>
+        <qualifiedname>shc::TargetContext::mDataStorage</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="41" column="23" bodyfile="shTargetContext.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a0fb6f2e376ee2990821ae44bfcec6e23" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref></type>
+        <definition>ShaderBytecodeCache shc::TargetContext::mShBytecodeCache</definition>
+        <argsstring></argsstring>
+        <name>mShBytecodeCache</name>
+        <qualifiedname>shc::TargetContext::mShBytecodeCache</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="42" column="23" bodyfile="shTargetContext.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a88d0f07f8e01fa7927634e754e8773d1" prot="private" static="no" mutable="no">
+        <type><ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref></type>
+        <definition>StcodeBytecodeCache shc::TargetContext::mStcodeBytecodeCache</definition>
+        <argsstring></argsstring>
+        <name>mStcodeBytecodeCache</name>
+        <qualifiedname>shc::TargetContext::mStcodeBytecodeCache</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="43" column="23" bodyfile="shTargetContext.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1aa6f5bcd6b0b6d1e13e4940e4264aa9a2" prot="private" static="no" mutable="no">
+        <type>eastl::optional&lt; <ref refid="structSourceFileParseState" kindref="compound">SourceFileParseState</ref> &gt;</type>
+        <definition>eastl::optional&lt;SourceFileParseState&gt; shc::TargetContext::mSourceFileState</definition>
+        <argsstring></argsstring>
+        <name>mSourceFileState</name>
+        <qualifiedname>shc::TargetContext::mSourceFileState</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="48" column="19" bodyfile="shTargetContext.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1TargetContext_1a9df7d35662bb77755d8328d874382536" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext&amp; shc::TargetContext::mParent</definition>
+        <argsstring></argsstring>
+        <name>mParent</name>
+        <qualifiedname>shc::TargetContext::mParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="50" column="28" bodyfile="shTargetContext.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classshc_1_1TargetContext_1a5c775c95215a0df8add3876d838d9823" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class CompilationContext</definition>
+        <argsstring></argsstring>
+        <name>CompilationContext</name>
+        <qualifiedname>shc::TargetContext::CompilationContext</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="125" column="16" bodyfile="shTargetContext.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a72ea1e47e9286a2dfdf513c56e495712" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext &amp; shc::TargetContext::compCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>compCtx</name>
+        <qualifiedname>shc::TargetContext::compCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="55" column="28" bodyfile="shTargetContext.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a68095d44600c370fa0f6bce536404053" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * shc::TargetContext::fname</definition>
+        <argsstring>() const</argsstring>
+        <name>fname</name>
+        <qualifiedname>shc::TargetContext::fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="57" column="14" bodyfile="shTargetContext.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+        <definition>VarNameMap &amp; shc::TargetContext::varNameMap</definition>
+        <argsstring>()</argsstring>
+        <name>varNameMap</name>
+        <qualifiedname>shc::TargetContext::varNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="59" column="14" bodyfile="shTargetContext.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a0ed35540bfdb59db00fc4d7f62fef0e8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+        <definition>const VarNameMap &amp; shc::TargetContext::varNameMap</definition>
+        <argsstring>() const</argsstring>
+        <name>varNameMap</name>
+        <qualifiedname>shc::TargetContext::varNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="60" column="20" bodyfile="shTargetContext.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classHashStrings" kindref="compound">HashStrings</ref> &amp;</type>
+        <definition>HashStrings &amp; shc::TargetContext::intervalNameMap</definition>
+        <argsstring>()</argsstring>
+        <name>intervalNameMap</name>
+        <qualifiedname>shc::TargetContext::intervalNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="62" column="15" bodyfile="shTargetContext.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a0559f635c393d45489884ab246f98e4b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classHashStrings" kindref="compound">HashStrings</ref> &amp;</type>
+        <definition>const HashStrings &amp; shc::TargetContext::intervalNameMap</definition>
+        <argsstring>() const</argsstring>
+        <name>intervalNameMap</name>
+        <qualifiedname>shc::TargetContext::intervalNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="63" column="21" bodyfile="shTargetContext.h" bodystart="63" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderGlobal_1_1VarTable" kindref="compound">ShaderGlobal::VarTable</ref> &amp;</type>
+        <definition>ShaderGlobal::VarTable &amp; shc::TargetContext::globVars</definition>
+        <argsstring>()</argsstring>
+        <name>globVars</name>
+        <qualifiedname>shc::TargetContext::globVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="65" column="26" bodyfile="shTargetContext.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1aa1c31f9b7cdb2ae8349a9a95a543ceb4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderGlobal_1_1VarTable" kindref="compound">ShaderGlobal::VarTable</ref> &amp;</type>
+        <definition>const ShaderGlobal::VarTable &amp; shc::TargetContext::globVars</definition>
+        <argsstring>() const</argsstring>
+        <name>globVars</name>
+        <qualifiedname>shc::TargetContext::globVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="66" column="32" bodyfile="shTargetContext.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a752f5f70f8d04a70f87a34102a85f83a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classSamplerTable" kindref="compound">SamplerTable</ref> &amp;</type>
+        <definition>SamplerTable &amp; shc::TargetContext::samplers</definition>
+        <argsstring>()</argsstring>
+        <name>samplers</name>
+        <qualifiedname>shc::TargetContext::samplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="68" column="16" bodyfile="shTargetContext.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a8631f4290c51a684a3cf18ee4a3c5bf8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classSamplerTable" kindref="compound">SamplerTable</ref> &amp;</type>
+        <definition>const SamplerTable &amp; shc::TargetContext::samplers</definition>
+        <argsstring>() const</argsstring>
+        <name>samplers</name>
+        <qualifiedname>shc::TargetContext::samplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="69" column="22" bodyfile="shTargetContext.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structStcodeShader" kindref="compound">StcodeShader</ref> &amp;</type>
+        <definition>StcodeShader &amp; shc::TargetContext::cppStcode</definition>
+        <argsstring>()</argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>shc::TargetContext::cppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="71" column="16" bodyfile="shTargetContext.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a5409ea88e086fbec9dbade45903bd52f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structStcodeShader" kindref="compound">StcodeShader</ref> &amp;</type>
+        <definition>const StcodeShader &amp; shc::TargetContext::cppStcode</definition>
+        <argsstring>() const</argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>shc::TargetContext::cppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="72" column="22" bodyfile="shTargetContext.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a328f404985f948f6e8038c5e4775149c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>BoolVarTable &amp; shc::TargetContext::globBoolVars</definition>
+        <argsstring>()</argsstring>
+        <name>globBoolVars</name>
+        <qualifiedname>shc::TargetContext::globBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="74" column="16" bodyfile="shTargetContext.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a2b09dc773a71fd46b1e84d6f399d5e2c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>const BoolVarTable &amp; shc::TargetContext::globBoolVars</definition>
+        <argsstring>() const</argsstring>
+        <name>globBoolVars</name>
+        <qualifiedname>shc::TargetContext::globBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="75" column="22" bodyfile="shTargetContext.h" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ab5eb91b176728c17b51fa3ed6ab11cd3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; shc::TargetContext::globHlslSrc</definition>
+        <argsstring>()</argsstring>
+        <name>globHlslSrc</name>
+        <qualifiedname>shc::TargetContext::globHlslSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="77" column="8" bodyfile="shTargetContext.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a780815bd8c7af5e8554e208730843d13" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; shc::TargetContext::globHlslSrc</definition>
+        <argsstring>() const</argsstring>
+        <name>globHlslSrc</name>
+        <qualifiedname>shc::TargetContext::globHlslSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="78" column="14" bodyfile="shTargetContext.h" bodystart="78" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a29da580ffb2850a459e34b407e0e57ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderBlockTable" kindref="compound">ShaderBlockTable</ref> &amp;</type>
+        <definition>ShaderBlockTable &amp; shc::TargetContext::blocks</definition>
+        <argsstring>()</argsstring>
+        <name>blocks</name>
+        <qualifiedname>shc::TargetContext::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="80" column="20" bodyfile="shTargetContext.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a7bdb2cf6cd347d21439c2616cc9fecc3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderBlockTable" kindref="compound">ShaderBlockTable</ref> &amp;</type>
+        <definition>const ShaderBlockTable &amp; shc::TargetContext::blocks</definition>
+        <argsstring>() const</argsstring>
+        <name>blocks</name>
+        <qualifiedname>shc::TargetContext::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="81" column="26" bodyfile="shTargetContext.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ad157465287525b2f018adc20405eab18" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> &amp;</type>
+        <definition>ShaderAssumesTable &amp; shc::TargetContext::globAssumes</definition>
+        <argsstring>()</argsstring>
+        <name>globAssumes</name>
+        <qualifiedname>shc::TargetContext::globAssumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="83" column="22" bodyfile="shTargetContext.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a70edaec08b315586299b8b80bb86299b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> &amp;</type>
+        <definition>const ShaderAssumesTable &amp; shc::TargetContext::globAssumes</definition>
+        <argsstring>() const</argsstring>
+        <name>globAssumes</name>
+        <qualifiedname>shc::TargetContext::globAssumes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="84" column="28" bodyfile="shTargetContext.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a50ca45dddf4a7db50606a5069f923f11" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref> &amp;</type>
+        <definition>SCFastNameMap &amp; shc::TargetContext::globMessages</definition>
+        <argsstring>()</argsstring>
+        <name>globMessages</name>
+        <qualifiedname>shc::TargetContext::globMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="86" column="17" bodyfile="shTargetContext.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ab7a2406d2b3b0a1b178a545dba5cedbb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref> &amp;</type>
+        <definition>const SCFastNameMap &amp; shc::TargetContext::globMessages</definition>
+        <argsstring>() const</argsstring>
+        <name>globMessages</name>
+        <qualifiedname>shc::TargetContext::globMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="87" column="23" bodyfile="shTargetContext.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a6c0de720a215829591233164a231d188" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structShaderTargetStorage" kindref="compound">ShaderTargetStorage</ref> &amp;</type>
+        <definition>ShaderTargetStorage &amp; shc::TargetContext::storage</definition>
+        <argsstring>()</argsstring>
+        <name>storage</name>
+        <qualifiedname>shc::TargetContext::storage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="89" column="23" bodyfile="shTargetContext.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ad42edff3cd5ba57f37da0f3ba0a9185e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderTargetStorage" kindref="compound">ShaderTargetStorage</ref> &amp;</type>
+        <definition>const ShaderTargetStorage &amp; shc::TargetContext::storage</definition>
+        <argsstring>() const</argsstring>
+        <name>storage</name>
+        <qualifiedname>shc::TargetContext::storage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="90" column="29" bodyfile="shTargetContext.h" bodystart="90" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a8b7f13535e319e9ea56d78ee1931ae82" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref> &amp;</type>
+        <definition>ShaderBytecodeCache &amp; shc::TargetContext::bytecodeCache</definition>
+        <argsstring>()</argsstring>
+        <name>bytecodeCache</name>
+        <qualifiedname>shc::TargetContext::bytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="92" column="23" bodyfile="shTargetContext.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a8e8f596fd3cd9001e614b36ff51c9f53" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref> &amp;</type>
+        <definition>const ShaderBytecodeCache &amp; shc::TargetContext::bytecodeCache</definition>
+        <argsstring>() const</argsstring>
+        <name>bytecodeCache</name>
+        <qualifiedname>shc::TargetContext::bytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="93" column="29" bodyfile="shTargetContext.h" bodystart="93" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a5f070e84881b4d153dff671834fe7866" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref> &amp;</type>
+        <definition>StcodeBytecodeCache &amp; shc::TargetContext::stcodeCache</definition>
+        <argsstring>()</argsstring>
+        <name>stcodeCache</name>
+        <qualifiedname>shc::TargetContext::stcodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="95" column="23" bodyfile="shTargetContext.h" bodystart="95" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a476526c93c81db7b5a8651976a405ed7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classStcodeBytecodeCache" kindref="compound">StcodeBytecodeCache</ref> &amp;</type>
+        <definition>const StcodeBytecodeCache &amp; shc::TargetContext::stcodeCache</definition>
+        <argsstring>() const</argsstring>
+        <name>stcodeCache</name>
+        <qualifiedname>shc::TargetContext::stcodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="96" column="29" bodyfile="shTargetContext.h" bodystart="96" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a2fda184b8cc1a5f05c7a8c24b01c2e86" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structSourceFileParseState" kindref="compound">SourceFileParseState</ref> &amp;</type>
+        <definition>SourceFileParseState &amp; shc::TargetContext::sourceParseState</definition>
+        <argsstring>()</argsstring>
+        <name>sourceParseState</name>
+        <qualifiedname>shc::TargetContext::sourceParseState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="98" column="24" bodyfile="shTargetContext.h" bodystart="98" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1a196141886a3b0f5be0a391e9818bc084" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structSourceFileParseState" kindref="compound">SourceFileParseState</ref> &amp;</type>
+        <definition>const SourceFileParseState &amp; shc::TargetContext::sourceParseState</definition>
+        <argsstring>() const</argsstring>
+        <name>sourceParseState</name>
+        <qualifiedname>shc::TargetContext::sourceParseState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="103" column="30" bodyfile="shTargetContext.h" bodystart="103" bodyend="107"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1aa0e13573b26b92fbde6a9d0ad4f9ee62" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1TargetContext_1_1SourceFileScope" kindref="compound">SourceFileScope</ref></type>
+        <definition>SourceFileScope shc::TargetContext::initSourceFile</definition>
+        <argsstring>()</argsstring>
+        <name>initSourceFile</name>
+        <qualifiedname>shc::TargetContext::initSourceFile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="120" column="19" bodyfile="shTargetContext.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ac03ec24da55f47ae4400917eb570ad91" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref></type>
+        <definition>ShaderContext shc::TargetContext::makeShaderContext</definition>
+        <argsstring>(const char *shname, ShaderBlockLevel block_level, Terminal *shname_term=nullptr)</argsstring>
+        <name>makeShaderContext</name>
+        <qualifiedname>shc::TargetContext::makeShaderContext</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shname</declname>
+        </param>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>block_level</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>shname_term</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="122" column="17" bodyfile="shShaderContext.h" bodystart="112" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classshc_1_1TargetContext_1ac6e0202a8c8470ca3f5de01a223ac199" prot="private" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::TargetContext::TargetContext</definition>
+        <argsstring>(const char *fname, const CompilationContext &amp;parent)</argsstring>
+        <name>TargetContext</name>
+        <qualifiedname>shc::TargetContext::TargetContext</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shTargetContext.h" line="127" column="12" bodyfile="shTargetContext.h" bodystart="127" bodyend="136"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shTargetContext.h" line="28" column="1" bodyfile="shTargetContext.h" bodystart="29" bodyend="137"/>
+    <listofallmembers>
+      <member refid="classshc_1_1TargetContext_1a29da580ffb2850a459e34b407e0e57ed" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>blocks</name></member>
+      <member refid="classshc_1_1TargetContext_1a7bdb2cf6cd347d21439c2616cc9fecc3" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>blocks</name></member>
+      <member refid="classshc_1_1TargetContext_1a8b7f13535e319e9ea56d78ee1931ae82" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>bytecodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1a8e8f596fd3cd9001e614b36ff51c9f53" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>bytecodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1a72ea1e47e9286a2dfdf513c56e495712" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>compCtx</name></member>
+      <member refid="classshc_1_1TargetContext_1a5c775c95215a0df8add3876d838d9823" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>CompilationContext</name></member>
+      <member refid="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>cppStcode</name></member>
+      <member refid="classshc_1_1TargetContext_1a5409ea88e086fbec9dbade45903bd52f" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>cppStcode</name></member>
+      <member refid="classshc_1_1TargetContext_1a68095d44600c370fa0f6bce536404053" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>fname</name></member>
+      <member refid="classshc_1_1TargetContext_1ad157465287525b2f018adc20405eab18" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globAssumes</name></member>
+      <member refid="classshc_1_1TargetContext_1a70edaec08b315586299b8b80bb86299b" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globAssumes</name></member>
+      <member refid="classshc_1_1TargetContext_1a328f404985f948f6e8038c5e4775149c" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globBoolVars</name></member>
+      <member refid="classshc_1_1TargetContext_1a2b09dc773a71fd46b1e84d6f399d5e2c" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globBoolVars</name></member>
+      <member refid="classshc_1_1TargetContext_1ab5eb91b176728c17b51fa3ed6ab11cd3" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globHlslSrc</name></member>
+      <member refid="classshc_1_1TargetContext_1a780815bd8c7af5e8554e208730843d13" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globHlslSrc</name></member>
+      <member refid="classshc_1_1TargetContext_1a50ca45dddf4a7db50606a5069f923f11" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globMessages</name></member>
+      <member refid="classshc_1_1TargetContext_1ab7a2406d2b3b0a1b178a545dba5cedbb" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globMessages</name></member>
+      <member refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globVars</name></member>
+      <member refid="classshc_1_1TargetContext_1aa1c31f9b7cdb2ae8349a9a95a543ceb4" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>globVars</name></member>
+      <member refid="classshc_1_1TargetContext_1aa0e13573b26b92fbde6a9d0ad4f9ee62" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>initSourceFile</name></member>
+      <member refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>intervalNameMap</name></member>
+      <member refid="classshc_1_1TargetContext_1a0559f635c393d45489884ab246f98e4b" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>intervalNameMap</name></member>
+      <member refid="classshc_1_1TargetContext_1ac03ec24da55f47ae4400917eb570ad91" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>makeShaderContext</name></member>
+      <member refid="classshc_1_1TargetContext_1a806d47384f4fa3f29c170a9feadfe3a5" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mBoolVarTable</name></member>
+      <member refid="classshc_1_1TargetContext_1aac420a471414bae2f921fbe2cc8e5d71" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mCppstcodeAccum</name></member>
+      <member refid="classshc_1_1TargetContext_1a8ce561acb039932b228484a4791cdf85" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mDataStorage</name></member>
+      <member refid="classshc_1_1TargetContext_1ac122f9b57bbab3c68ad481db59632ee6" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mFname</name></member>
+      <member refid="classshc_1_1TargetContext_1ab4c0d96fa06b8c3b988aa6c3b132e444" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mGlobalAssumes</name></member>
+      <member refid="classshc_1_1TargetContext_1ad5d87defb307c6a770bdc342c45f9e75" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mGlobalHlslSource</name></member>
+      <member refid="classshc_1_1TargetContext_1a5c34d8b994654bc98b6f388fbbbcccc5" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mGlobalMessages</name></member>
+      <member refid="classshc_1_1TargetContext_1a150322caf0103763e1cd9aef34890686" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mGvarTable</name></member>
+      <member refid="classshc_1_1TargetContext_1ac325b54fc877fdfd6488c2a0dba32fc5" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mIntervalNameMap</name></member>
+      <member refid="classshc_1_1TargetContext_1a9df7d35662bb77755d8328d874382536" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mParent</name></member>
+      <member refid="classshc_1_1TargetContext_1a136f74c980925d714ff4cd308aec43b8" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mSamplerTable</name></member>
+      <member refid="classshc_1_1TargetContext_1a0fb6f2e376ee2990821ae44bfcec6e23" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mShBytecodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1aa6f5bcd6b0b6d1e13e4940e4264aa9a2" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mSourceFileState</name></member>
+      <member refid="classshc_1_1TargetContext_1a847315f66f73a3da67ebdb40ad0364f9" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mStateBlockTable</name></member>
+      <member refid="classshc_1_1TargetContext_1a88d0f07f8e01fa7927634e754e8773d1" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mStcodeBytecodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1a376bdcb318555225afba13ceed3440e0" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>mVarNameMap</name></member>
+      <member refid="classshc_1_1TargetContext_1a752f5f70f8d04a70f87a34102a85f83a" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>samplers</name></member>
+      <member refid="classshc_1_1TargetContext_1a8631f4290c51a684a3cf18ee4a3c5bf8" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>samplers</name></member>
+      <member refid="classshc_1_1TargetContext_1a2fda184b8cc1a5f05c7a8c24b01c2e86" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>sourceParseState</name></member>
+      <member refid="classshc_1_1TargetContext_1a196141886a3b0f5be0a391e9818bc084" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>sourceParseState</name></member>
+      <member refid="classshc_1_1TargetContext_1a5f070e84881b4d153dff671834fe7866" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>stcodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1a476526c93c81db7b5a8651976a405ed7" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>stcodeCache</name></member>
+      <member refid="classshc_1_1TargetContext_1a6c0de720a215829591233164a231d188" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>storage</name></member>
+      <member refid="classshc_1_1TargetContext_1ad42edff3cd5ba57f37da0f3ba0a9185e" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>storage</name></member>
+      <member refid="classshc_1_1TargetContext_1ac6e0202a8c8470ca3f5de01a223ac199" prot="private" virt="non-virtual"><scope>shc::TargetContext</scope><name>TargetContext</name></member>
+      <member refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>varNameMap</name></member>
+      <member refid="classshc_1_1TargetContext_1a0ed35540bfdb59db00fc4d7f62fef0e8" prot="public" virt="non-virtual"><scope>shc::TargetContext</scope><name>varNameMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

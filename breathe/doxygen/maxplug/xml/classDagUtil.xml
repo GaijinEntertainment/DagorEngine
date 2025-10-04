@@ -1,0 +1,2230 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagUtil" kind="class" language="C++" prot="public">
+    <compoundname>DagUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDagUtil_1acb6db42a7a045ecd4992b9f714d0907a" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* DagUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>DagUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="288" column="9" bodyfile="util.cpp" bodystart="288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a6649e872e86e0c8d7d4810e7e1c7db7f" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* DagUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>DagUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="289" column="13" bodyfile="util.cpp" bodystart="289" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aa4f24f0f6ccc5b0ebe5b4ca95fc0f317" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::hBrightness</definition>
+        <argsstring></argsstring>
+        <name>hBrightness</name>
+        <qualifiedname>DagUtil::hBrightness</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="292" column="8" bodyfile="util.cpp" bodystart="292" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a23b6af4d2b4f8d32a5ba62a7dac07043" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::dagorUtilRoll</definition>
+        <argsstring></argsstring>
+        <name>dagorUtilRoll</name>
+        <qualifiedname>DagUtil::dagorUtilRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="294" column="8" bodyfile="util.cpp" bodystart="294" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1adb6399351056b5b51ae4a166e3ac6c82" prot="public" static="no" mutable="no">
+        <type>NoteKeyTab</type>
+        <definition>NoteKeyTab DagUtil::ntrk_buf</definition>
+        <argsstring></argsstring>
+        <name>ntrk_buf</name>
+        <qualifiedname>DagUtil::ntrk_buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="295" column="14" bodyfile="util.cpp" bodystart="295" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a9dbda3977a56beafd8edaa4ea4a8f44d" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::uvUtilsRoll</definition>
+        <argsstring></argsstring>
+        <name>uvUtilsRoll</name>
+        <qualifiedname>DagUtil::uvUtilsRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="298" column="8" bodyfile="util.cpp" bodystart="298" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a25955b2e7ac9536d2446174b46e68a60" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::tc_srcch</definition>
+        <argsstring></argsstring>
+        <name>tc_srcch</name>
+        <qualifiedname>DagUtil::tc_srcch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="299" column="7" bodyfile="util.cpp" bodystart="299" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a55a9dea68ff6337ddc5b93d8a106b654" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::tc_dstch</definition>
+        <argsstring></argsstring>
+        <name>tc_dstch</name>
+        <qualifiedname>DagUtil::tc_dstch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="299" column="16" bodyfile="util.cpp" bodystart="299" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a36a91243a298d6ab5d2615afe9098987" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::tc_mapach</definition>
+        <argsstring></argsstring>
+        <name>tc_mapach</name>
+        <qualifiedname>DagUtil::tc_mapach</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="299" column="25" bodyfile="util.cpp" bodystart="299" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a58eabd9b0ba02e0c475c6a6f88afa64f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::sel_fid</definition>
+        <argsstring></argsstring>
+        <name>sel_fid</name>
+        <qualifiedname>DagUtil::sel_fid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="299" column="35" bodyfile="util.cpp" bodystart="299" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1abb7193a60436f63f0c5c89e5226647d0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::tc_uk</definition>
+        <argsstring></argsstring>
+        <name>tc_uk</name>
+        <qualifiedname>DagUtil::tc_uk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="300" column="9" bodyfile="util.cpp" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1adfd6c936cbf48d15b9471457570ff962" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::tc_vk</definition>
+        <argsstring></argsstring>
+        <name>tc_vk</name>
+        <qualifiedname>DagUtil::tc_vk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="300" column="15" bodyfile="util.cpp" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a6896c284484107b020a2a12745bec6d3" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::tc_uo</definition>
+        <argsstring></argsstring>
+        <name>tc_uo</name>
+        <qualifiedname>DagUtil::tc_uo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="300" column="21" bodyfile="util.cpp" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a4ed6af55d1d0bb024e9307213deeaf1e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::tc_vo</definition>
+        <argsstring></argsstring>
+        <name>tc_vo</name>
+        <qualifiedname>DagUtil::tc_vo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="300" column="27" bodyfile="util.cpp" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a56b8b7d0170265aed791d47d1aa75d2a" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* DagUtil::edsrctc</definition>
+        <argsstring></argsstring>
+        <name>edsrctc</name>
+        <qualifiedname>DagUtil::edsrctc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="13" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a205d4cae3f9cdb77fcb514d62bbead4c" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::edmapatc</definition>
+        <argsstring></argsstring>
+        <name>edmapatc</name>
+        <qualifiedname>DagUtil::edmapatc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="21" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a4b972935093b513a268982143e84ba03" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::eddsttc</definition>
+        <argsstring></argsstring>
+        <name>eddsttc</name>
+        <qualifiedname>DagUtil::eddsttc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="30" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1af01ccea0bfe5a212f024061e7c676628" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::etc_uk</definition>
+        <argsstring></argsstring>
+        <name>etc_uk</name>
+        <qualifiedname>DagUtil::etc_uk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="38" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ab04c38b78cc6eaf5e57f8218f7a30404" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::etc_vk</definition>
+        <argsstring></argsstring>
+        <name>etc_vk</name>
+        <qualifiedname>DagUtil::etc_vk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="45" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a50080ae1d73d49684b02e1036ea040d8" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::etc_uo</definition>
+        <argsstring></argsstring>
+        <name>etc_uo</name>
+        <qualifiedname>DagUtil::etc_uo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="52" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aac6fbd62dc3698409967b58b99ffed73" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::etc_vo</definition>
+        <argsstring></argsstring>
+        <name>etc_vo</name>
+        <qualifiedname>DagUtil::etc_vo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="59" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1acae8846a48ef8d595120ac728e697327" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::edfid</definition>
+        <argsstring></argsstring>
+        <name>edfid</name>
+        <qualifiedname>DagUtil::edfid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="301" column="66" bodyfile="util.cpp" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a19aea3e937d48fb37fedabb9b9ca7175" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::tc_facesel</definition>
+        <argsstring></argsstring>
+        <name>tc_facesel</name>
+        <qualifiedname>DagUtil::tc_facesel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="302" column="8" bodyfile="util.cpp" bodystart="302" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a975c3e349c83b530a3a7b7be6c50bbbd" prot="public" static="no" mutable="no">
+        <type><ref refid="structMappingInfo" kindref="compound">MappingInfo</ref></type>
+        <definition>MappingInfo DagUtil::chanelbuf[MAX_MESHMAPS]</definition>
+        <argsstring>[MAX_MESHMAPS]</argsstring>
+        <name>chanelbuf</name>
+        <qualifiedname>DagUtil::chanelbuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="303" column="15" bodyfile="util.cpp" bodystart="303" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aef4c84d5c2df000608fe72490eba3345" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::scatterRoll</definition>
+        <argsstring></argsstring>
+        <name>scatterRoll</name>
+        <qualifiedname>DagUtil::scatterRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="306" column="8" bodyfile="util.cpp" bodystart="306" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ad75be9cfb3d2602de86c814a0f2b1727" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* DagUtil::egs_seed</definition>
+        <argsstring></argsstring>
+        <name>egs_seed</name>
+        <qualifiedname>DagUtil::egs_seed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="307" column="13" bodyfile="util.cpp" bodystart="307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aa8bc019ab7ed0d615b05521223a06290" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egs_objnum</definition>
+        <argsstring></argsstring>
+        <name>egs_objnum</name>
+        <qualifiedname>DagUtil::egs_objnum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="307" column="22" bodyfile="util.cpp" bodystart="307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a3640dc8526b088f76b31b5515a029b0d" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egs_sname</definition>
+        <argsstring></argsstring>
+        <name>egs_sname</name>
+        <qualifiedname>DagUtil::egs_sname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="307" column="33" bodyfile="util.cpp" bodystart="307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a3b7926d65ffc6ec28194641f615ea829" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egs_slope</definition>
+        <argsstring></argsstring>
+        <name>egs_slope</name>
+        <qualifiedname>DagUtil::egs_slope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="307" column="43" bodyfile="util.cpp" bodystart="307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aaf5336a6218eeb88d2c5483d50d907c5" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* DagUtil::egs_xydiap[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>egs_xydiap</name>
+        <qualifiedname>DagUtil::egs_xydiap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="308" column="13" bodyfile="util.cpp" bodystart="308" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a6bc88f9301cf785fae92994d67f743b1" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egs_zdiap[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>egs_zdiap</name>
+        <qualifiedname>DagUtil::egs_zdiap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="308" column="24" bodyfile="util.cpp" bodystart="308" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a7370d674d3c422081571e24f3779f81d" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_set2norm</definition>
+        <argsstring></argsstring>
+        <name>gs_set2norm</name>
+        <qualifiedname>DagUtil::gs_set2norm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="8" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1af258629a2dfe69531d056994219f0f8f" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_usesmgr</definition>
+        <argsstring></argsstring>
+        <name>gs_usesmgr</name>
+        <qualifiedname>DagUtil::gs_usesmgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="20" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a9ac8514c70fa8e65aac6b149c6d27911" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_rotatez</definition>
+        <argsstring></argsstring>
+        <name>gs_rotatez</name>
+        <qualifiedname>DagUtil::gs_rotatez</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="31" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a5fca6231de82bfbb82587c5ad20f6e51" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_selfaces</definition>
+        <argsstring></argsstring>
+        <name>gs_selfaces</name>
+        <qualifiedname>DagUtil::gs_selfaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="42" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ad468043dcd63b0c05f636077d3a8f7ae" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_scalexy</definition>
+        <argsstring></argsstring>
+        <name>gs_scalexy</name>
+        <qualifiedname>DagUtil::gs_scalexy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="54" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a1395f9914d1118e2651e7be2d50c9cb1" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::gs_scalez</definition>
+        <argsstring></argsstring>
+        <name>gs_scalez</name>
+        <qualifiedname>DagUtil::gs_scalez</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="309" column="65" bodyfile="util.cpp" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a8303f93b240dd10b07a4fce8834cd483" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::gs_xydiap[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>gs_xydiap</name>
+        <qualifiedname>DagUtil::gs_xydiap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="310" column="9" bodyfile="util.cpp" bodystart="310" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a5c59932a40b407fe51384a41ea614dc7" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::gs_zdiap[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>gs_zdiap</name>
+        <qualifiedname>DagUtil::gs_zdiap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="310" column="19" bodyfile="util.cpp" bodystart="310" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a48b928410b1ad4594f765f9cdf00e0ef" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::gs_slope</definition>
+        <argsstring></argsstring>
+        <name>gs_slope</name>
+        <qualifiedname>DagUtil::gs_slope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="311" column="9" bodyfile="util.cpp" bodystart="311" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a991f68e95088983d917ba87ee9afaff5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::gs_seed</definition>
+        <argsstring></argsstring>
+        <name>gs_seed</name>
+        <qualifiedname>DagUtil::gs_seed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="312" column="7" bodyfile="util.cpp" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a997d9bceb4dd3634df78aee587c52ddc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::gs_objnum</definition>
+        <argsstring></argsstring>
+        <name>gs_objnum</name>
+        <qualifiedname>DagUtil::gs_objnum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="312" column="15" bodyfile="util.cpp" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ac184605103009d29a258d552ebedf365" prot="public" static="no" mutable="no">
+        <type>TCHAR</type>
+        <definition>TCHAR DagUtil::gs_sname[512]</definition>
+        <argsstring>[512]</argsstring>
+        <name>gs_sname</name>
+        <qualifiedname>DagUtil::gs_sname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="313" column="9" bodyfile="util.cpp" bodystart="313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ae10cb6fe69717782759a594e13a45a46" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::splinesAndSmoothRoll</definition>
+        <argsstring></argsstring>
+        <name>splinesAndSmoothRoll</name>
+        <qualifiedname>DagUtil::splinesAndSmoothRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="316" column="8" bodyfile="util.cpp" bodystart="316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a4ee0097f03be2ea7374d28e3f553e31e" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::mesh_smoothtu</definition>
+        <argsstring></argsstring>
+        <name>mesh_smoothtu</name>
+        <qualifiedname>DagUtil::mesh_smoothtu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="317" column="8" bodyfile="util.cpp" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ad5779d754ce442890e728271a6f1c562" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::use_smooth_grps</definition>
+        <argsstring></argsstring>
+        <name>use_smooth_grps</name>
+        <qualifiedname>DagUtil::use_smooth_grps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="317" column="22" bodyfile="util.cpp" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a40c94bc93a753c9550d87f625666e742" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::turn_edge</definition>
+        <argsstring></argsstring>
+        <name>turn_edge</name>
+        <qualifiedname>DagUtil::turn_edge</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="317" column="38" bodyfile="util.cpp" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a53308b258e8510dd2b8966e913c68413" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::smooth_selected</definition>
+        <argsstring></argsstring>
+        <name>smooth_selected</name>
+        <qualifiedname>DagUtil::smooth_selected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="317" column="48" bodyfile="util.cpp" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aa83b7ab53967617e351caeeab52307e9" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* DagUtil::egrassht</definition>
+        <argsstring></argsstring>
+        <name>egrassht</name>
+        <qualifiedname>DagUtil::egrassht</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="13" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a97678d56e41e3e779d26b6f59832dcf0" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egrasstile</definition>
+        <argsstring></argsstring>
+        <name>egrasstile</name>
+        <qualifiedname>DagUtil::egrasstile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="22" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a08596f76eeb74eeb07a2ab53e00f7393" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egrassg</definition>
+        <argsstring></argsstring>
+        <name>egrassg</name>
+        <qualifiedname>DagUtil::egrassg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="33" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a5f1ce60f48928a4b13c682edf709708a" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egrasssegs</definition>
+        <argsstring></argsstring>
+        <name>egrasssegs</name>
+        <qualifiedname>DagUtil::egrasssegs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="41" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1acce27f1ac1608bcb23ae10e528b78ec8" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::egrasssteps</definition>
+        <argsstring></argsstring>
+        <name>egrasssteps</name>
+        <qualifiedname>DagUtil::egrasssteps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="52" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a0bdcc7d7bf0cc401f2517e8c029e5e16" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::epjs_maxseglen</definition>
+        <argsstring></argsstring>
+        <name>epjs_maxseglen</name>
+        <qualifiedname>DagUtil::epjs_maxseglen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="64" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a95411d618f35980bf9a4ab958aa1bbcf" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::epjs_optseglen</definition>
+        <argsstring></argsstring>
+        <name>epjs_optseglen</name>
+        <qualifiedname>DagUtil::epjs_optseglen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="79" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aa06567671a0f76a4bc105d4d24e27d51" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::epjs_optang</definition>
+        <argsstring></argsstring>
+        <name>epjs_optang</name>
+        <qualifiedname>DagUtil::epjs_optang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="94" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a55d0b13a876c704ae94da574a4d8e9b4" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::edaround</definition>
+        <argsstring></argsstring>
+        <name>edaround</name>
+        <qualifiedname>DagUtil::edaround</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="318" column="106" bodyfile="util.cpp" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aca7ca90fcddc70e2d3f139f363e4822e" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::edsharp</definition>
+        <argsstring></argsstring>
+        <name>edsharp</name>
+        <qualifiedname>DagUtil::edsharp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="319" column="5" bodyfile="util.cpp" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a4dc3b8a64f38936b26f7d1e0cff5c19b" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit * DagUtil::edsmthiterations</definition>
+        <argsstring></argsstring>
+        <name>edsmthiterations</name>
+        <qualifiedname>DagUtil::edsmthiterations</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="319" column="13" bodyfile="util.cpp" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1ac5c585bd63f38d02e10d332a2dd704db" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::grass_ht</definition>
+        <argsstring></argsstring>
+        <name>grass_ht</name>
+        <qualifiedname>DagUtil::grass_ht</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="9" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aea321e22da279e7c7caaaec85e8b4719" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::grass_tile</definition>
+        <argsstring></argsstring>
+        <name>grass_tile</name>
+        <qualifiedname>DagUtil::grass_tile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="18" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a7c445ed4470f7ab7e99c3e7f61fbf32b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::grass_g</definition>
+        <argsstring></argsstring>
+        <name>grass_g</name>
+        <qualifiedname>DagUtil::grass_g</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="29" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a5ca58d935c1191eeb79a0640ceac06f1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::pjspl_maxseglen</definition>
+        <argsstring></argsstring>
+        <name>pjspl_maxseglen</name>
+        <qualifiedname>DagUtil::pjspl_maxseglen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="37" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1adbd30a8376e7e899396ea9141861f27b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::pjspl_optseglen</definition>
+        <argsstring></argsstring>
+        <name>pjspl_optseglen</name>
+        <qualifiedname>DagUtil::pjspl_optseglen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="53" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1adcdfa16bced9c2fe0b5cdd87dc032a97" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::pjspl_optang</definition>
+        <argsstring></argsstring>
+        <name>pjspl_optang</name>
+        <qualifiedname>DagUtil::pjspl_optang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="320" column="69" bodyfile="util.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1afeaa53771243f92e746aae34e781ae95" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::grass_segs</definition>
+        <argsstring></argsstring>
+        <name>grass_segs</name>
+        <qualifiedname>DagUtil::grass_segs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="321" column="7" bodyfile="util.cpp" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a6cb60175f29e2ed5ded018ee7b514a5d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::grass_steps</definition>
+        <argsstring></argsstring>
+        <name>grass_steps</name>
+        <qualifiedname>DagUtil::grass_steps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="321" column="18" bodyfile="util.cpp" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a09ca1c80b75e7beae5796d8472c8f810" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::grass_up</definition>
+        <argsstring></argsstring>
+        <name>grass_up</name>
+        <qualifiedname>DagUtil::grass_up</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="322" column="8" bodyfile="util.cpp" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a01f2f910a844dc6f5f614b347b185a0c" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char DagUtil::grass_usetang</definition>
+        <argsstring></argsstring>
+        <name>grass_usetang</name>
+        <qualifiedname>DagUtil::grass_usetang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="322" column="17" bodyfile="util.cpp" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a4a0b66b85c0d8427109dfcbc764562d7" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::merge_around</definition>
+        <argsstring></argsstring>
+        <name>merge_around</name>
+        <qualifiedname>DagUtil::merge_around</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="323" column="9" bodyfile="util.cpp" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a3ff42da8777dcca7e9be388d02546de6" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagUtil::sharpness</definition>
+        <argsstring></argsstring>
+        <name>sharpness</name>
+        <qualifiedname>DagUtil::sharpness</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="323" column="22" bodyfile="util.cpp" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a31cfeccd1645583aec40d6944b8510bd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagUtil::iterations</definition>
+        <argsstring></argsstring>
+        <name>iterations</name>
+        <qualifiedname>DagUtil::iterations</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="324" column="7" bodyfile="util.cpp" bodystart="324" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aa87e60f0f09984759c3c26b7b942f225" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagUtil::materialsRoll</definition>
+        <argsstring></argsstring>
+        <name>materialsRoll</name>
+        <qualifiedname>DagUtil::materialsRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="327" column="8" bodyfile="util.cpp" bodystart="327" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1aeae5a2e250a013c98f01e43796b79983" prot="public" static="no" mutable="no">
+        <type>TCHAR</type>
+        <definition>TCHAR DagUtil::clsname[MAX_CLSNAME]</definition>
+        <argsstring>[MAX_CLSNAME]</argsstring>
+        <name>clsname</name>
+        <qualifiedname>DagUtil::clsname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="328" column="9" bodyfile="util.cpp" bodystart="328" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a8c5a867f28e8179425bd4ba526a15bcb" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* DagUtil::eclsname</definition>
+        <argsstring></argsstring>
+        <name>eclsname</name>
+        <qualifiedname>DagUtil::eclsname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="329" column="13" bodyfile="util.cpp" bodystart="329" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classDagUtil_1ac8df8719fcdc99003a40487f66555504" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagUtil::editableMeshFound</definition>
+        <argsstring></argsstring>
+        <name>editableMeshFound</name>
+        <qualifiedname>DagUtil::editableMeshFound</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="332" column="8" bodyfile="util.cpp" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a92ecfdfc480caa154bfacf94114070fb" prot="protected" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int DagUtil::degenerateFacesRemovedNum</definition>
+        <argsstring></argsstring>
+        <name>degenerateFacesRemovedNum</name>
+        <qualifiedname>DagUtil::degenerateFacesRemovedNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="333" column="16" bodyfile="util.cpp" bodystart="333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagUtil_1a39f151ad749579b5d5f3e063282bc10d" prot="protected" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int DagUtil::isolatedVerticesRemovedNum</definition>
+        <argsstring></argsstring>
+        <name>isolatedVerticesRemovedNum</name>
+        <qualifiedname>DagUtil::isolatedVerticesRemovedNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="334" column="16" bodyfile="util.cpp" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagUtil_1ac99bde3f5748539379f679c32cbc0a10" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DagUtil::DagUtil</definition>
+        <argsstring>()</argsstring>
+        <name>DagUtil</name>
+        <qualifiedname>DagUtil::DagUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="337" column="3" bodyfile="util.cpp" bodystart="1272" bodyend="1336"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a11d0ce28140d93a9638acab65ffaf49a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>DagUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="338" column="8" bodyfile="util.cpp" bodystart="1338" bodyend="1349"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ae0578af7a6c2d033aaa7f31d7a8bbb11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>DagUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="339" column="8" bodyfile="util.cpp" bodystart="1351" bodyend="1368"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a75cfbf79ca6fee53cae6dbc5d032b2e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>DagUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="340" column="8" bodyfile="util.cpp" bodystart="340" bodyend="340"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a2428411e04cb7623fc8e917378e2ea1f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::update_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_ui</name>
+        <qualifiedname>DagUtil::update_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="341" column="8" bodyfile="util.cpp" bodystart="1552" bodyend="1559"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a520e07ac1ad2cb452fe1276be795b0ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::update_vars</definition>
+        <argsstring>()</argsstring>
+        <name>update_vars</name>
+        <qualifiedname>DagUtil::update_vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="342" column="8" bodyfile="util.cpp" bodystart="1562" bodyend="1568"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a2c26a42d57c29687b141f372bb86581a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::dagor_util_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>dagor_util_dlg_proc</name>
+        <qualifiedname>DagUtil::dagor_util_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="344" column="8" bodyfile="util.cpp" bodystart="853" bodyend="930"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a27bfd3c96bfa808b5bb1eded9695c559" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::materials_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>materials_dlg_proc</name>
+        <qualifiedname>DagUtil::materials_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="345" column="8" bodyfile="util.cpp" bodystart="938" bodyend="1018"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a9fe5252cce41bf78a0d21b3e7ef177fc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::uv_util_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>uv_util_dlg_proc</name>
+        <qualifiedname>DagUtil::uv_util_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="346" column="8" bodyfile="util.cpp" bodystart="1025" bodyend="1139"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ab8748157f9bfdc48ec3031460ca6734d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::spline_and_smooth_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>spline_and_smooth_dlg_proc</name>
+        <qualifiedname>DagUtil::spline_and_smooth_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="347" column="8" bodyfile="util.cpp" bodystart="1147" bodyend="1212"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a12c1255e8ec749fea8199cdfdb837f64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::scatter_dlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>scatter_dlg_proc</name>
+        <qualifiedname>DagUtil::scatter_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="348" column="8" bodyfile="util.cpp" bodystart="1220" bodyend="1269"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1afae79b2a50dffdb082826b33a6a1e5cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtil::selection_brightness_dlg_proc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>selection_brightness_dlg_proc</name>
+        <qualifiedname>DagUtil::selection_brightness_dlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="349" column="8" bodyfile="util.cpp" bodystart="754" bodyend="846"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a5f15cf07c7694087d5e2699aefae0894" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::get_ntrk</definition>
+        <argsstring>()</argsstring>
+        <name>get_ntrk</name>
+        <qualifiedname>DagUtil::get_ntrk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="352" column="8" bodyfile="util.cpp" bodystart="3273" bodyend="3303"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a050dcdee8a256e457226e87757830011" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::put_ntrk</definition>
+        <argsstring>()</argsstring>
+        <name>put_ntrk</name>
+        <qualifiedname>DagUtil::put_ntrk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="353" column="8" bodyfile="util.cpp" bodystart="3305" bodyend="3338"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a6b7ade4b35638758ecb7da00d4b80df5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::convertSpaces</definition>
+        <argsstring>()</argsstring>
+        <name>convertSpaces</name>
+        <qualifiedname>DagUtil::convertSpaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="354" column="8" bodyfile="util.cpp" bodystart="2609" bodyend="2615"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1aafec27c74203e7f48565c96e4fc43d4c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::convertSpacesRecursive</definition>
+        <argsstring>(INode *node)</argsstring>
+        <name>convertSpacesRecursive</name>
+        <qualifiedname>DagUtil::convertSpacesRecursive</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="355" column="8" bodyfile="util.cpp" bodystart="2590" bodyend="2606"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ac7ec51c38cacb1f0df8dc054c990a1ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::selectFloorFaces</definition>
+        <argsstring>()</argsstring>
+        <name>selectFloorFaces</name>
+        <qualifiedname>DagUtil::selectFloorFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="356" column="8" bodyfile="util.cpp" bodystart="2875" bodyend="2911"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a7b4066d556ffb30fca33eea6fc85e463" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::removeDegenerates</definition>
+        <argsstring>()</argsstring>
+        <name>removeDegenerates</name>
+        <qualifiedname>DagUtil::removeDegenerates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="357" column="8" bodyfile="util.cpp" bodystart="2853" bodyend="2872"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a710196096ea17f8b5e1e93e14d8af1ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::removeDegeneratesRecursive</definition>
+        <argsstring>(INode *node)</argsstring>
+        <name>removeDegeneratesRecursive</name>
+        <qualifiedname>DagUtil::removeDegeneratesRecursive</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="358" column="8" bodyfile="util.cpp" bodystart="2755" bodyend="2850"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ac20013552f8140a7c83f3ec2b616a704" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::removeIsolatedVertices</definition>
+        <argsstring>(TopologyAdapter &amp;adapter)</argsstring>
+        <name>removeIsolatedVertices</name>
+        <qualifiedname>DagUtil::removeIsolatedVertices</qualifiedname>
+        <param>
+          <type><ref refid="classTopologyAdapter" kindref="compound">TopologyAdapter</ref> &amp;</type>
+          <declname>adapter</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="359" column="8" bodyfile="util.cpp" bodystart="2618" bodyend="2650"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1acc7a46a4e547cc7a75f86793aec71e33" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagUtil::isDegenerate</definition>
+        <argsstring>(Mesh *mesh, unsigned int face_no, const Matrix3 &amp;otm)</argsstring>
+        <name>isDegenerate</name>
+        <qualifiedname>DagUtil::isDegenerate</qualifiedname>
+        <param>
+          <type>Mesh *</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>face_no</declname>
+        </param>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>otm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="360" column="8" bodyfile="util.cpp" bodystart="2726" bodyend="2752"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a2c7206a130ff6b0b24aeffcfdce3c187" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::copy_tch</definition>
+        <argsstring>()</argsstring>
+        <name>copy_tch</name>
+        <qualifiedname>DagUtil::copy_tch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="363" column="8" bodyfile="util.cpp" bodystart="2914" bodyend="2962"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a95fb419b334f3f4dbc7558c9b2182a90" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagUtil::copy_tch1</definition>
+        <argsstring>(Mesh &amp;m, TCCOPY tc, int src, int dst, int mapa, bool sel_faces)</argsstring>
+        <name>copy_tch1</name>
+        <qualifiedname>DagUtil::copy_tch1</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type><ref refid="util_8cpp_1ad88c295d5fb3ee45822ada5de1c4b5cd" kindref="member">TCCOPY</ref></type>
+          <declname>tc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mapa</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sel_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="364" column="8" bodyfile="util.cpp" bodystart="2421" bodyend="2565"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1aa98691e62c937d288d0a0f025bb9b063" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagUtil::copy_tch_buf</definition>
+        <argsstring>(Mesh &amp;m, MappingInfo &amp;mi, int c)</argsstring>
+        <name>copy_tch_buf</name>
+        <qualifiedname>DagUtil::copy_tch_buf</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type><ref refid="structMappingInfo" kindref="compound">MappingInfo</ref> &amp;</type>
+          <declname>mi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="365" column="8" bodyfile="util.cpp" bodystart="2390" bodyend="2400"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ada57766efcb08d8d336fc68f08d7a0be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::paste_tch</definition>
+        <argsstring>()</argsstring>
+        <name>paste_tch</name>
+        <qualifiedname>DagUtil::paste_tch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="366" column="8" bodyfile="util.cpp" bodystart="2964" bodyend="3019"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a72cbeb7dcfde7d9c0dbf47716833e9a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagUtil::paste_tch_buf</definition>
+        <argsstring>(Mesh &amp;m, MappingInfo &amp;mi, int c)</argsstring>
+        <name>paste_tch_buf</name>
+        <qualifiedname>DagUtil::paste_tch_buf</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type><ref refid="structMappingInfo" kindref="compound">MappingInfo</ref> &amp;</type>
+          <declname>mi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="367" column="8" bodyfile="util.cpp" bodystart="2402" bodyend="2414"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a4858172279e497c300a528a2fbbe0fd4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::copy_tch</definition>
+        <argsstring>(TCCOPY tc)</argsstring>
+        <name>copy_tch</name>
+        <qualifiedname>DagUtil::copy_tch</qualifiedname>
+        <param>
+          <type><ref refid="util_8cpp_1ad88c295d5fb3ee45822ada5de1c4b5cd" kindref="member">TCCOPY</ref></type>
+          <declname>tc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="368" column="8" bodyfile="util.cpp" bodystart="3021" bodyend="3077"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a49610e902d1af6ae3c9bff2100286682" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::select_face</definition>
+        <argsstring>(bool vert)</argsstring>
+        <name>select_face</name>
+        <qualifiedname>DagUtil::select_face</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>vert</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="369" column="8" bodyfile="util.cpp" bodystart="3079" bodyend="3114"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1af40ea5afd2851fcdd1206af51ba33f96" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::genobjonsurf</definition>
+        <argsstring>()</argsstring>
+        <name>genobjonsurf</name>
+        <qualifiedname>DagUtil::genobjonsurf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="372" column="8" bodyfile="util.cpp" bodystart="5573" bodyend="5586"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1adbe3deec7ed466cb46b9848816e8228d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::mesh_smooth</definition>
+        <argsstring>()</argsstring>
+        <name>mesh_smooth</name>
+        <qualifiedname>DagUtil::mesh_smooth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="375" column="8" bodyfile="util.cpp" bodystart="5540" bodyend="5568"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1aabf25cf563fe0a4b62f4b0c2b97078e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::smooth_mesh</definition>
+        <argsstring>(INode *node, Mesh &amp;msh)</argsstring>
+        <name>smooth_mesh</name>
+        <qualifiedname>DagUtil::smooth_mesh</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>msh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="376" column="8" bodyfile="util.cpp" bodystart="4974" bodyend="5538"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a9e7de6616d42c28bb14268d24d0fc30b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::make_grass</definition>
+        <argsstring>()</argsstring>
+        <name>make_grass</name>
+        <qualifiedname>DagUtil::make_grass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="377" column="8" bodyfile="util.cpp" bodystart="4385" bodyend="4437"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ab3845c84fc206ffd7fae59d248dc3ea6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::project_spline</definition>
+        <argsstring>()</argsstring>
+        <name>project_spline</name>
+        <qualifiedname>DagUtil::project_spline</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="378" column="8" bodyfile="util.cpp" bodystart="4442" bodyend="4490"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a0943eb5ccc1cbe295e77dd71cc619944" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::show_all_maps</definition>
+        <argsstring>()</argsstring>
+        <name>show_all_maps</name>
+        <qualifiedname>DagUtil::show_all_maps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="381" column="8" bodyfile="util.cpp" bodystart="1614" bodyend="1621"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1adef9053cd45ae0f4a1fa043159a79e79" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::hide_all_maps</definition>
+        <argsstring>()</argsstring>
+        <name>hide_all_maps</name>
+        <qualifiedname>DagUtil::hide_all_maps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="382" column="8" bodyfile="util.cpp" bodystart="1666" bodyend="1673"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1af3a9a1a01c38b807ef4f41a2834caee0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::stdmat_to_dagmat</definition>
+        <argsstring>()</argsstring>
+        <name>stdmat_to_dagmat</name>
+        <qualifiedname>DagUtil::stdmat_to_dagmat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="383" column="8" bodyfile="util.cpp" bodystart="1776" bodyend="1783"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a4591d66df3ae6e9bf2465f2c637effcc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::dagmat_to_stdmat</definition>
+        <argsstring>()</argsstring>
+        <name>dagmat_to_stdmat</name>
+        <qualifiedname>DagUtil::dagmat_to_stdmat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="384" column="8" bodyfile="util.cpp" bodystart="1890" bodyend="1897"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ae3e82a75be89aa593f96d51aeabeaf81" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::maxtures2materials</definition>
+        <argsstring>()</argsstring>
+        <name>maxtures2materials</name>
+        <qualifiedname>DagUtil::maxtures2materials</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="385" column="8" bodyfile="util.cpp" bodystart="3597" bodyend="3622"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a69d92533e5c928485123f74c96c4df00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::maxtures2materials</definition>
+        <argsstring>(Mesh &amp;m, INode *node)</argsstring>
+        <name>maxtures2materials</name>
+        <qualifiedname>DagUtil::maxtures2materials</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="386" column="8" bodyfile="util.cpp" bodystart="3524" bodyend="3595"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ab47a850787899931c916b42155dcc660" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::collapse</definition>
+        <argsstring>()</argsstring>
+        <name>collapse</name>
+        <qualifiedname>DagUtil::collapse</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="387" column="8" bodyfile="util.cpp" bodystart="2306" bodyend="2314"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a7bd0b9844df8b3729e510c444ad4d5a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::convert</definition>
+        <argsstring>()</argsstring>
+        <name>convert</name>
+        <qualifiedname>DagUtil::convert</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="388" column="8" bodyfile="util.cpp" bodystart="2316" bodyend="2369"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a79164828f4ad9f8021c35b4d3102980d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::enumerate</definition>
+        <argsstring>()</argsstring>
+        <name>enumerate</name>
+        <qualifiedname>DagUtil::enumerate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="389" column="8" bodyfile="util.cpp" bodystart="2258" bodyend="2304"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classDagUtil_1acc8645323c88fd7ecf8d1bbd867cb3ed" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::dagor_util_update_ui</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>dagor_util_update_ui</name>
+        <qualifiedname>DagUtil::dagor_util_update_ui</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="392" column="8" bodyfile="util.cpp" bodystart="1370" bodyend="1376"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1aff945e20e766e3d3fd3537e50d9fa1e9" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::materials_update_ui</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>materials_update_ui</name>
+        <qualifiedname>DagUtil::materials_update_ui</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="393" column="8" bodyfile="util.cpp" bodystart="1379" bodyend="1383"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1ade42a375b786928dc9341404048561cb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::uv_utils_update_ui</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>uv_utils_update_ui</name>
+        <qualifiedname>DagUtil::uv_utils_update_ui</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="394" column="8" bodyfile="util.cpp" bodystart="1392" bodyend="1413"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1aea3814c1e47ac9ce358c090cd85eb987" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::splines_and_smooth_update_ui</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>splines_and_smooth_update_ui</name>
+        <qualifiedname>DagUtil::splines_and_smooth_update_ui</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="395" column="8" bodyfile="util.cpp" bodystart="1431" bodyend="1464"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1afa12270ab4991d2e8b45d81b4c0a693d" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::scatter_update_ui</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>scatter_update_ui</name>
+        <qualifiedname>DagUtil::scatter_update_ui</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="396" column="8" bodyfile="util.cpp" bodystart="1498" bodyend="1526"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a11511eb167f8d2f26bb40494fc44201a" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::materials_update_vars</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>materials_update_vars</name>
+        <qualifiedname>DagUtil::materials_update_vars</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="397" column="8" bodyfile="util.cpp" bodystart="1385" bodyend="1389"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a7b053134aa2c1cf1728c702c786a5f21" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::uv_utils_update_vars</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>uv_utils_update_vars</name>
+        <qualifiedname>DagUtil::uv_utils_update_vars</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="398" column="8" bodyfile="util.cpp" bodystart="1415" bodyend="1428"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1a939aa1b8c4e940964b2ef98bc6c788d4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::splines_and_smooth_update_vars</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>splines_and_smooth_update_vars</name>
+        <qualifiedname>DagUtil::splines_and_smooth_update_vars</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="399" column="8" bodyfile="util.cpp" bodystart="1466" bodyend="1495"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtil_1afcd0e770d2adfae633beaea31dd5bacb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUtil::scatter_update_vars</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>scatter_update_vars</name>
+        <qualifiedname>DagUtil::scatter_update_vars</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="400" column="8" bodyfile="util.cpp" bodystart="1528" bodyend="1549"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagUtil</label>
+        <link refid="classDagUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DagUtil</label>
+        <link refid="classDagUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>chanelbuf</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>MappingInfo</label>
+        <link refid="structMappingInfo"/>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="285" column="1" bodyfile="util.cpp" bodystart="286" bodyend="401"/>
+    <listofallmembers>
+      <member refid="classDagUtil_1a11d0ce28140d93a9638acab65ffaf49a" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classDagUtil_1a975c3e349c83b530a3a7b7be6c50bbbd" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>chanelbuf</name></member>
+      <member refid="classDagUtil_1aeae5a2e250a013c98f01e43796b79983" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>clsname</name></member>
+      <member refid="classDagUtil_1ab47a850787899931c916b42155dcc660" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>collapse</name></member>
+      <member refid="classDagUtil_1a7bd0b9844df8b3729e510c444ad4d5a0" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>convert</name></member>
+      <member refid="classDagUtil_1a6b7ade4b35638758ecb7da00d4b80df5" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>convertSpaces</name></member>
+      <member refid="classDagUtil_1aafec27c74203e7f48565c96e4fc43d4c" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>convertSpacesRecursive</name></member>
+      <member refid="classDagUtil_1a2c7206a130ff6b0b24aeffcfdce3c187" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>copy_tch</name></member>
+      <member refid="classDagUtil_1a4858172279e497c300a528a2fbbe0fd4" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>copy_tch</name></member>
+      <member refid="classDagUtil_1a95fb419b334f3f4dbc7558c9b2182a90" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>copy_tch1</name></member>
+      <member refid="classDagUtil_1aa98691e62c937d288d0a0f025bb9b063" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>copy_tch_buf</name></member>
+      <member refid="classDagUtil_1a4591d66df3ae6e9bf2465f2c637effcc" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>dagmat_to_stdmat</name></member>
+      <member refid="classDagUtil_1a2c26a42d57c29687b141f372bb86581a" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>dagor_util_dlg_proc</name></member>
+      <member refid="classDagUtil_1acc8645323c88fd7ecf8d1bbd867cb3ed" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>dagor_util_update_ui</name></member>
+      <member refid="classDagUtil_1a23b6af4d2b4f8d32a5ba62a7dac07043" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>dagorUtilRoll</name></member>
+      <member refid="classDagUtil_1ac99bde3f5748539379f679c32cbc0a10" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>DagUtil</name></member>
+      <member refid="classDagUtil_1a92ecfdfc480caa154bfacf94114070fb" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>degenerateFacesRemovedNum</name></member>
+      <member refid="classDagUtil_1a75cfbf79ca6fee53cae6dbc5d032b2e1" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>DeleteThis</name></member>
+      <member refid="classDagUtil_1a8c5a867f28e8179425bd4ba526a15bcb" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>eclsname</name></member>
+      <member refid="classDagUtil_1a55d0b13a876c704ae94da574a4d8e9b4" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edaround</name></member>
+      <member refid="classDagUtil_1a4b972935093b513a268982143e84ba03" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>eddsttc</name></member>
+      <member refid="classDagUtil_1acae8846a48ef8d595120ac728e697327" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edfid</name></member>
+      <member refid="classDagUtil_1ac8df8719fcdc99003a40487f66555504" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>editableMeshFound</name></member>
+      <member refid="classDagUtil_1a205d4cae3f9cdb77fcb514d62bbead4c" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edmapatc</name></member>
+      <member refid="classDagUtil_1aca7ca90fcddc70e2d3f139f363e4822e" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edsharp</name></member>
+      <member refid="classDagUtil_1a4dc3b8a64f38936b26f7d1e0cff5c19b" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edsmthiterations</name></member>
+      <member refid="classDagUtil_1a56b8b7d0170265aed791d47d1aa75d2a" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>edsrctc</name></member>
+      <member refid="classDagUtil_1a08596f76eeb74eeb07a2ab53e00f7393" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egrassg</name></member>
+      <member refid="classDagUtil_1aa83b7ab53967617e351caeeab52307e9" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egrassht</name></member>
+      <member refid="classDagUtil_1a5f1ce60f48928a4b13c682edf709708a" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egrasssegs</name></member>
+      <member refid="classDagUtil_1acce27f1ac1608bcb23ae10e528b78ec8" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egrasssteps</name></member>
+      <member refid="classDagUtil_1a97678d56e41e3e779d26b6f59832dcf0" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egrasstile</name></member>
+      <member refid="classDagUtil_1aa8bc019ab7ed0d615b05521223a06290" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_objnum</name></member>
+      <member refid="classDagUtil_1ad75be9cfb3d2602de86c814a0f2b1727" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_seed</name></member>
+      <member refid="classDagUtil_1a3b7926d65ffc6ec28194641f615ea829" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_slope</name></member>
+      <member refid="classDagUtil_1a3640dc8526b088f76b31b5515a029b0d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_sname</name></member>
+      <member refid="classDagUtil_1aaf5336a6218eeb88d2c5483d50d907c5" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_xydiap</name></member>
+      <member refid="classDagUtil_1a6bc88f9301cf785fae92994d67f743b1" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>egs_zdiap</name></member>
+      <member refid="classDagUtil_1ae0578af7a6c2d033aaa7f31d7a8bbb11" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>EndEditParams</name></member>
+      <member refid="classDagUtil_1a79164828f4ad9f8021c35b4d3102980d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>enumerate</name></member>
+      <member refid="classDagUtil_1a0bdcc7d7bf0cc401f2517e8c029e5e16" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>epjs_maxseglen</name></member>
+      <member refid="classDagUtil_1aa06567671a0f76a4bc105d4d24e27d51" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>epjs_optang</name></member>
+      <member refid="classDagUtil_1a95411d618f35980bf9a4ab958aa1bbcf" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>epjs_optseglen</name></member>
+      <member refid="classDagUtil_1af01ccea0bfe5a212f024061e7c676628" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>etc_uk</name></member>
+      <member refid="classDagUtil_1a50080ae1d73d49684b02e1036ea040d8" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>etc_uo</name></member>
+      <member refid="classDagUtil_1ab04c38b78cc6eaf5e57f8218f7a30404" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>etc_vk</name></member>
+      <member refid="classDagUtil_1aac6fbd62dc3698409967b58b99ffed73" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>etc_vo</name></member>
+      <member refid="classDagUtil_1af40ea5afd2851fcdd1206af51ba33f96" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>genobjonsurf</name></member>
+      <member refid="classDagUtil_1a5f15cf07c7694087d5e2699aefae0894" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>get_ntrk</name></member>
+      <member refid="classDagUtil_1a7c445ed4470f7ab7e99c3e7f61fbf32b" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_g</name></member>
+      <member refid="classDagUtil_1ac5c585bd63f38d02e10d332a2dd704db" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_ht</name></member>
+      <member refid="classDagUtil_1afeaa53771243f92e746aae34e781ae95" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_segs</name></member>
+      <member refid="classDagUtil_1a6cb60175f29e2ed5ded018ee7b514a5d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_steps</name></member>
+      <member refid="classDagUtil_1aea321e22da279e7c7caaaec85e8b4719" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_tile</name></member>
+      <member refid="classDagUtil_1a09ca1c80b75e7beae5796d8472c8f810" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_up</name></member>
+      <member refid="classDagUtil_1a01f2f910a844dc6f5f614b347b185a0c" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>grass_usetang</name></member>
+      <member refid="classDagUtil_1a997d9bceb4dd3634df78aee587c52ddc" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_objnum</name></member>
+      <member refid="classDagUtil_1a9ac8514c70fa8e65aac6b149c6d27911" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_rotatez</name></member>
+      <member refid="classDagUtil_1ad468043dcd63b0c05f636077d3a8f7ae" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_scalexy</name></member>
+      <member refid="classDagUtil_1a1395f9914d1118e2651e7be2d50c9cb1" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_scalez</name></member>
+      <member refid="classDagUtil_1a991f68e95088983d917ba87ee9afaff5" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_seed</name></member>
+      <member refid="classDagUtil_1a5fca6231de82bfbb82587c5ad20f6e51" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_selfaces</name></member>
+      <member refid="classDagUtil_1a7370d674d3c422081571e24f3779f81d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_set2norm</name></member>
+      <member refid="classDagUtil_1a48b928410b1ad4594f765f9cdf00e0ef" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_slope</name></member>
+      <member refid="classDagUtil_1ac184605103009d29a258d552ebedf365" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_sname</name></member>
+      <member refid="classDagUtil_1af258629a2dfe69531d056994219f0f8f" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_usesmgr</name></member>
+      <member refid="classDagUtil_1a8303f93b240dd10b07a4fce8834cd483" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_xydiap</name></member>
+      <member refid="classDagUtil_1a5c59932a40b407fe51384a41ea614dc7" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>gs_zdiap</name></member>
+      <member refid="classDagUtil_1aa4f24f0f6ccc5b0ebe5b4ca95fc0f317" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>hBrightness</name></member>
+      <member refid="classDagUtil_1adef9053cd45ae0f4a1fa043159a79e79" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>hide_all_maps</name></member>
+      <member refid="classDagUtil_1a6649e872e86e0c8d7d4810e7e1c7db7f" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>ip</name></member>
+      <member refid="classDagUtil_1acc7a46a4e547cc7a75f86793aec71e33" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>isDegenerate</name></member>
+      <member refid="classDagUtil_1a39f151ad749579b5d5f3e063282bc10d" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>isolatedVerticesRemovedNum</name></member>
+      <member refid="classDagUtil_1a31cfeccd1645583aec40d6944b8510bd" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>iterations</name></member>
+      <member refid="classDagUtil_1acb6db42a7a045ecd4992b9f714d0907a" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>iu</name></member>
+      <member refid="classDagUtil_1a9e7de6616d42c28bb14268d24d0fc30b" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>make_grass</name></member>
+      <member refid="classDagUtil_1a27bfd3c96bfa808b5bb1eded9695c559" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>materials_dlg_proc</name></member>
+      <member refid="classDagUtil_1aff945e20e766e3d3fd3537e50d9fa1e9" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>materials_update_ui</name></member>
+      <member refid="classDagUtil_1a11511eb167f8d2f26bb40494fc44201a" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>materials_update_vars</name></member>
+      <member refid="classDagUtil_1aa87e60f0f09984759c3c26b7b942f225" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>materialsRoll</name></member>
+      <member refid="classDagUtil_1ae3e82a75be89aa593f96d51aeabeaf81" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>maxtures2materials</name></member>
+      <member refid="classDagUtil_1a69d92533e5c928485123f74c96c4df00" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>maxtures2materials</name></member>
+      <member refid="classDagUtil_1a4a0b66b85c0d8427109dfcbc764562d7" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>merge_around</name></member>
+      <member refid="classDagUtil_1adbe3deec7ed466cb46b9848816e8228d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>mesh_smooth</name></member>
+      <member refid="classDagUtil_1a4ee0097f03be2ea7374d28e3f553e31e" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>mesh_smoothtu</name></member>
+      <member refid="classDagUtil_1adb6399351056b5b51ae4a166e3ac6c82" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>ntrk_buf</name></member>
+      <member refid="classDagUtil_1ada57766efcb08d8d336fc68f08d7a0be" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>paste_tch</name></member>
+      <member refid="classDagUtil_1a72cbeb7dcfde7d9c0dbf47716833e9a0" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>paste_tch_buf</name></member>
+      <member refid="classDagUtil_1a5ca58d935c1191eeb79a0640ceac06f1" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>pjspl_maxseglen</name></member>
+      <member refid="classDagUtil_1adcdfa16bced9c2fe0b5cdd87dc032a97" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>pjspl_optang</name></member>
+      <member refid="classDagUtil_1adbd30a8376e7e899396ea9141861f27b" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>pjspl_optseglen</name></member>
+      <member refid="classDagUtil_1ab3845c84fc206ffd7fae59d248dc3ea6" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>project_spline</name></member>
+      <member refid="classDagUtil_1a050dcdee8a256e457226e87757830011" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>put_ntrk</name></member>
+      <member refid="classDagUtil_1a7b4066d556ffb30fca33eea6fc85e463" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>removeDegenerates</name></member>
+      <member refid="classDagUtil_1a710196096ea17f8b5e1e93e14d8af1ee" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>removeDegeneratesRecursive</name></member>
+      <member refid="classDagUtil_1ac20013552f8140a7c83f3ec2b616a704" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>removeIsolatedVertices</name></member>
+      <member refid="classDagUtil_1a12c1255e8ec749fea8199cdfdb837f64" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>scatter_dlg_proc</name></member>
+      <member refid="classDagUtil_1afa12270ab4991d2e8b45d81b4c0a693d" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>scatter_update_ui</name></member>
+      <member refid="classDagUtil_1afcd0e770d2adfae633beaea31dd5bacb" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>scatter_update_vars</name></member>
+      <member refid="classDagUtil_1aef4c84d5c2df000608fe72490eba3345" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>scatterRoll</name></member>
+      <member refid="classDagUtil_1a58eabd9b0ba02e0c475c6a6f88afa64f" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>sel_fid</name></member>
+      <member refid="classDagUtil_1a49610e902d1af6ae3c9bff2100286682" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>select_face</name></member>
+      <member refid="classDagUtil_1ac7ec51c38cacb1f0df8dc054c990a1ae" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>selectFloorFaces</name></member>
+      <member refid="classDagUtil_1afae79b2a50dffdb082826b33a6a1e5cc" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>selection_brightness_dlg_proc</name></member>
+      <member refid="classDagUtil_1a3ff42da8777dcca7e9be388d02546de6" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>sharpness</name></member>
+      <member refid="classDagUtil_1a0943eb5ccc1cbe295e77dd71cc619944" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>show_all_maps</name></member>
+      <member refid="classDagUtil_1aabf25cf563fe0a4b62f4b0c2b97078e8" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>smooth_mesh</name></member>
+      <member refid="classDagUtil_1a53308b258e8510dd2b8966e913c68413" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>smooth_selected</name></member>
+      <member refid="classDagUtil_1ab8748157f9bfdc48ec3031460ca6734d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>spline_and_smooth_dlg_proc</name></member>
+      <member refid="classDagUtil_1aea3814c1e47ac9ce358c090cd85eb987" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>splines_and_smooth_update_ui</name></member>
+      <member refid="classDagUtil_1a939aa1b8c4e940964b2ef98bc6c788d4" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>splines_and_smooth_update_vars</name></member>
+      <member refid="classDagUtil_1ae10cb6fe69717782759a594e13a45a46" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>splinesAndSmoothRoll</name></member>
+      <member refid="classDagUtil_1af3a9a1a01c38b807ef4f41a2834caee0" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>stdmat_to_dagmat</name></member>
+      <member refid="classDagUtil_1a55a9dea68ff6337ddc5b93d8a106b654" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_dstch</name></member>
+      <member refid="classDagUtil_1a19aea3e937d48fb37fedabb9b9ca7175" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_facesel</name></member>
+      <member refid="classDagUtil_1a36a91243a298d6ab5d2615afe9098987" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_mapach</name></member>
+      <member refid="classDagUtil_1a25955b2e7ac9536d2446174b46e68a60" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_srcch</name></member>
+      <member refid="classDagUtil_1abb7193a60436f63f0c5c89e5226647d0" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_uk</name></member>
+      <member refid="classDagUtil_1a6896c284484107b020a2a12745bec6d3" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_uo</name></member>
+      <member refid="classDagUtil_1adfd6c936cbf48d15b9471457570ff962" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_vk</name></member>
+      <member refid="classDagUtil_1a4ed6af55d1d0bb024e9307213deeaf1e" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>tc_vo</name></member>
+      <member refid="classDagUtil_1a40c94bc93a753c9550d87f625666e742" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>turn_edge</name></member>
+      <member refid="classDagUtil_1a2428411e04cb7623fc8e917378e2ea1f" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>update_ui</name></member>
+      <member refid="classDagUtil_1a520e07ac1ad2cb452fe1276be795b0ea" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>update_vars</name></member>
+      <member refid="classDagUtil_1ad5779d754ce442890e728271a6f1c562" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>use_smooth_grps</name></member>
+      <member refid="classDagUtil_1a9fe5252cce41bf78a0d21b3e7ef177fc" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>uv_util_dlg_proc</name></member>
+      <member refid="classDagUtil_1ade42a375b786928dc9341404048561cb" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>uv_utils_update_ui</name></member>
+      <member refid="classDagUtil_1a7b053134aa2c1cf1728c702c786a5f21" prot="protected" virt="non-virtual"><scope>DagUtil</scope><name>uv_utils_update_vars</name></member>
+      <member refid="classDagUtil_1a9dbda3977a56beafd8edaa4ea4a8f44d" prot="public" virt="non-virtual"><scope>DagUtil</scope><name>uvUtilsRoll</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

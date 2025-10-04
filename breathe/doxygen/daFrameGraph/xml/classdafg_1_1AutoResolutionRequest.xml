@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1AutoResolutionRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::AutoResolutionRequest</compoundname>
+    <includes refid="autoResolutionRequest_8h" local="no">autoResolutionRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>int</type>
+        <declname>D</declname>
+        <defname>D</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1AutoResolutionRequest_1af224c83d458368ae6a14843794518f16" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpaceRequest</definition>
+        <argsstring></argsstring>
+        <name>NameSpaceRequest</name>
+        <qualifiedname>dafg::AutoResolutionRequest::NameSpaceRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="56" column="16" bodyfile="autoResolutionRequest.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1AutoResolutionRequest_1a54e9924205db745e6c6fdb8e7b4c174c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>detail::VirtualResourceRequestBase</name>
+        <qualifiedname>dafg::AutoResolutionRequest::VirtualResourceRequestBase</qualifiedname>
+        <param>
+          <type>detail::VirtualResourceRequestBase</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="57" column="17" bodyfile="autoResolutionRequest.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1AutoResolutionRequest_1a6c8a4e6b86fd1fd7cdfdb1e3d42331f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct detail::DispatchRequestBase</definition>
+        <argsstring></argsstring>
+        <name>detail::DispatchRequestBase</name>
+        <qualifiedname>dafg::AutoResolutionRequest::DispatchRequestBase</qualifiedname>
+        <param>
+          <type>detail::DispatchRequestBase</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="58" column="17" bodyfile="autoResolutionRequest.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1AutoResolutionRequest_1aa8d5d6e1db5d2dc5c8204053d7e1e11c" prot="private" static="no" mutable="no">
+        <type>AutoResTypeNameId</type>
+        <definition>AutoResTypeNameId dafg::AutoResolutionRequest&lt; D &gt;::autoResTypeId</definition>
+        <argsstring></argsstring>
+        <name>autoResTypeId</name>
+        <qualifiedname>dafg::AutoResolutionRequest::autoResTypeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="75" column="21" bodyfile="autoResolutionRequest.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1AutoResolutionRequest_1a58ae5e90e6a34136d27a0b27a7d9a658" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float dafg::AutoResolutionRequest&lt; D &gt;::multiplier</definition>
+        <argsstring></argsstring>
+        <name>multiplier</name>
+        <qualifiedname>dafg::AutoResolutionRequest::multiplier</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="76" column="9" bodyfile="autoResolutionRequest.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1AutoResolutionRequest_1a42500cb2b2fa9a3225b55264ad84bbbb" prot="private" static="no" mutable="no">
+        <type>const ResourceProvider *</type>
+        <definition>const ResourceProvider* dafg::AutoResolutionRequest&lt; D &gt;::provider</definition>
+        <argsstring></argsstring>
+        <name>provider</name>
+        <qualifiedname>dafg::AutoResolutionRequest::provider</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="77" column="26" bodyfile="autoResolutionRequest.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1AutoResolutionRequest_1a4dc04db80d8f327b6f9218fe3e70495a" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::AutoResolutionRequest&lt; D &gt;::AutoResolutionRequest</definition>
+        <argsstring>(AutoResTypeNameId id, float mult, const ResourceProvider *p)</argsstring>
+        <name>AutoResolutionRequest</name>
+        <qualifiedname>dafg::AutoResolutionRequest::AutoResolutionRequest</qualifiedname>
+        <param>
+          <type>AutoResTypeNameId</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>mult</declname>
+        </param>
+        <param>
+          <type>const ResourceProvider *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="60" column="3" bodyfile="autoResolutionRequest.h" bodystart="60" bodyend="61"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1AutoResolutionRequest_1ac635dfdf75abca15da9ccaa66aaa0108" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" kindref="member">IPoint</ref>&lt; D &gt;</type>
+        <definition>IPoint&lt; D &gt; dafg::AutoResolutionRequest&lt; D &gt;::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>dafg::AutoResolutionRequest::get</qualifiedname>
+        <briefdescription>
+<para>Returns the current dynamic resolution for this auto-res type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Should only be used for setting the d3d viewport/scissor, NEVER create textures with this resolution, as it might be changing every single frame!!! Also never call this outside of the execution callback for the same reason!</para>
+</simplesect>
+<simplesect kind="return"><para>The current dynamic resolution for this type. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="72" column="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>This class represents a daFG-managed automatic resolution type for a texture. If this resolution is specified for a texture, the actual texture&apos;s resolution at runtime will be the dynamic resolution scaled by the multiplier, but the consumed memory will always be equal to the static resolution times the multiplier. See <ref refid="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" kindref="member">NameSpace::setResolution</ref> and <ref refid="classdafg_1_1NameSpace_1ae03a69748fdad987326fb8372aab8041" kindref="member">NameSpace::setDynamicResolution</ref>. Note that objects of this type MAY be captured into the execution callback and used to access the actual resolution on a particular frame, but the resolution should NEVER be accessed in the declaration callback, as the value will be undefined. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ndash/> dimensionality of the resolution, either 2 or 3. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="autoResolutionRequest.h" line="54" column="1" bodyfile="autoResolutionRequest.h" bodystart="55" bodyend="78"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1AutoResolutionRequest_1a4dc04db80d8f327b6f9218fe3e70495a" prot="private" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>AutoResolutionRequest</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1aa8d5d6e1db5d2dc5c8204053d7e1e11c" prot="private" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>autoResTypeId</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1a6c8a4e6b86fd1fd7cdfdb1e3d42331f2" prot="public" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>detail::DispatchRequestBase</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1a54e9924205db745e6c6fdb8e7b4c174c" prot="public" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>detail::VirtualResourceRequestBase</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1ac635dfdf75abca15da9ccaa66aaa0108" prot="public" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>get</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1a58ae5e90e6a34136d27a0b27a7d9a658" prot="private" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>multiplier</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1af224c83d458368ae6a14843794518f16" prot="private" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>NameSpaceRequest</name></member>
+      <member refid="classdafg_1_1AutoResolutionRequest_1a42500cb2b2fa9a3225b55264ad84bbbb" prot="private" virt="non-virtual"><scope>dafg::AutoResolutionRequest</scope><name>provider</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

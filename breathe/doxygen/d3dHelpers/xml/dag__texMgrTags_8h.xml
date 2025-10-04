@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__texMgrTags_8h" kind="file" language="C++">
+    <compoundname>dag_texMgrTags.h</compoundname>
+    <includes local="no">drv/3d/dag_resId.h</includes>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_texMgrTags.h</label>
+        <link refid="dag__texMgrTags_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structTexTagInfo" prot="public">TexTagInfo</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09f5d1a61241ed3f6ac08135f8e01e13" prot="public">
+          <name>TEXTAG_LAND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a0ad0a2349450279ba1b6de07503e1b30" prot="public">
+          <name>TEXTAG_RENDINST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a9de6fc8a83d06b4829a3ab3fc459ccc6" prot="public">
+          <name>TEXTAG_DYNMODEL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600ab974218d5f221e35cb0708e922ace967" prot="public">
+          <name>TEXTAG_FX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09408aa107e70454cd5e8f8ec1c37ce5" prot="public">
+          <name>TEXTAG_USER_START</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a1892c044b05246f9e46e3dfb15c31f40" prot="public">
+          <name>TEXTAG__COUNT</name>
+          <initializer>= 16</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="10" column="1" bodyfile="dag_texMgrTags.h" bodystart="11" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__texMgrTags_8h_1afcd468c57b5ea1347421757124903405" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void textag_mark_begin</definition>
+        <argsstring>(int textag)</argsstring>
+        <name>textag_mark_begin</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <briefdescription>
+<para>begins scope to mark all resolved (get_managed_texture_id) textures with tag; may be nested; thread-local </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="29" column="6" declfile="dag_texMgrTags.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgrTags_8h_1a085c940b4351a4a86f8aa2ed10045757" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void textag_mark_end</definition>
+        <argsstring>()</argsstring>
+        <name>textag_mark_end</name>
+        <briefdescription>
+<para>ends scope to mark all resolved textures with tag </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="31" column="6" declfile="dag_texMgrTags.h" declline="31" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgrTags_8h_1a6b62d992f4f4712d47ae27e531e672ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void textag_clear_tag</definition>
+        <argsstring>(int textag)</argsstring>
+        <name>textag_clear_tag</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <briefdescription>
+<para>clears tag from all previously marked textures </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="34" column="6" declfile="dag_texMgrTags.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgrTags_8h_1a60cc53a657c8a918629cac0bd47b4ec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structTexTagInfo" kindref="compound">TexTagInfo</ref> &amp;</type>
+        <definition>const TexTagInfo &amp; textag_get_info</definition>
+        <argsstring>(int textag)</argsstring>
+        <name>textag_get_info</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <briefdescription>
+<para>returns state info struct for specified tag </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="37" column="18" declfile="dag_texMgrTags.h" declline="37" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgrTags_8h_1a42b8796d79409276e78fe8be2330e899" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void textag_get_list</definition>
+        <argsstring>(int textag, Tab&lt; TEXTUREID &gt; &amp;out_list, bool skip_unused=true)</argsstring>
+        <name>textag_get_list</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <param>
+          <type>Tab&lt; TEXTUREID &gt; &amp;</type>
+          <declname>out_list</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>skip_unused</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>returns list of textures that are marked with tag </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="40" column="6" declfile="dag_texMgrTags.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09f5d1a61241ed3f6ac08135f8e01e13" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09f5d1a61241ed3f6ac08135f8e01e13" kindref="member">TEXTAG_LAND</ref>,</highlight></codeline>
+<codeline lineno="13" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a0ad0a2349450279ba1b6de07503e1b30" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a0ad0a2349450279ba1b6de07503e1b30" kindref="member">TEXTAG_RENDINST</ref>,</highlight></codeline>
+<codeline lineno="14" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a9de6fc8a83d06b4829a3ab3fc459ccc6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a9de6fc8a83d06b4829a3ab3fc459ccc6" kindref="member">TEXTAG_DYNMODEL</ref>,</highlight></codeline>
+<codeline lineno="15" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600ab974218d5f221e35cb0708e922ace967" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600ab974218d5f221e35cb0708e922ace967" kindref="member">TEXTAG_FX</ref>,</highlight></codeline>
+<codeline lineno="16" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09408aa107e70454cd5e8f8ec1c37ce5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a09408aa107e70454cd5e8f8ec1c37ce5" kindref="member">TEXTAG_USER_START</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a1892c044b05246f9e46e3dfb15c31f40" kindref="member">TEXTAG__COUNT</ref><sp/>=<sp/>16</highlight></codeline>
+<codeline lineno="19" refid="dag__texMgrTags_8h_1abed82baf7f470b522273a3e37c24c600a1892c044b05246f9e46e3dfb15c31f40" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structTexTagInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTexTagInfo" kindref="compound">TexTagInfo</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structTexTagInfo_1aa816b3be19841181d39f84d8d1374712" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structTexTagInfo_1aa816b3be19841181d39f84d8d1374712" kindref="member">texCount</ref>;</highlight></codeline>
+<codeline lineno="24" refid="structTexTagInfo_1ace52422a6757a9157c8fc1a06dbd0748" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structTexTagInfo_1ace52422a6757a9157c8fc1a06dbd0748" kindref="member">loadGeneration</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="dag__texMgrTags_8h_1afcd468c57b5ea1347421757124903405" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgrTags_8h_1afcd468c57b5ea1347421757124903405" kindref="member">textag_mark_begin</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag);</highlight></codeline>
+<codeline lineno="31" refid="dag__texMgrTags_8h_1a085c940b4351a4a86f8aa2ed10045757" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgrTags_8h_1a085c940b4351a4a86f8aa2ed10045757" kindref="member">textag_mark_end</ref>();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="dag__texMgrTags_8h_1a6b62d992f4f4712d47ae27e531e672ec" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgrTags_8h_1a6b62d992f4f4712d47ae27e531e672ec" kindref="member">textag_clear_tag</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="dag__texMgrTags_8h_1a60cc53a657c8a918629cac0bd47b4ec2" refkind="member"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structTexTagInfo" kindref="compound">TexTagInfo</ref><sp/>&amp;<ref refid="dag__texMgrTags_8h_1a60cc53a657c8a918629cac0bd47b4ec2" kindref="member">textag_get_info</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="dag__texMgrTags_8h_1a42b8796d79409276e78fe8be2330e899" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgrTags_8h_1a42b8796d79409276e78fe8be2330e899" kindref="member">textag_get_list</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag,<sp/>Tab&lt;TEXTUREID&gt;<sp/>&amp;out_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>skip_unused<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+    </programlisting>
+    <location file="dag_texMgrTags.h"/>
+  </compounddef>
+</doxygen>

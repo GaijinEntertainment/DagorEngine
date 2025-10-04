@@ -1,0 +1,586 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="common_8cpp" kind="file" language="C++">
+    <compoundname>common.cpp</compoundname>
+    <includes refid="common_8h" local="yes">common.h</includes>
+    <includes refid="layout_8h" local="yes">layout.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+      </node>
+      <node id="6">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="4">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TCHAR *</type>
+        <definition>TCHAR * GetString</definition>
+        <argsstring>(int id)</argsstring>
+        <name>GetString</name>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="7" column="14" bodyfile="dllmain.cpp" bodystart="8" bodyend="15" declfile="common.cpp" declline="7" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab84324e6a3ef91427b0e8a5b101a4b98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND add_rollup_page</definition>
+        <argsstring>(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param, DWORD flags)</argsstring>
+        <name>add_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>resource_id</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>proc</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="9" column="6" bodyfile="common.cpp" bodystart="9" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ac9901f1c91ba6fca4d76e222820f8b52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void delete_rollup_page</definition>
+        <argsstring>(Interface *ip, HWND *hw)</argsstring>
+        <name>delete_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>HWND *</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="17" column="6" bodyfile="common.cpp" bodystart="17" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab3996dd0d94c2f2ea13b532cd01a3acf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_master_scale</definition>
+        <argsstring>()</argsstring>
+        <name>get_master_scale</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="28" column="7" bodyfile="common.cpp" bodystart="28" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a49afa681b6ba6f6b96b8a8e17a58a362" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR extract_directory</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>extract_directory</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="40" column="6" bodyfile="common.cpp" bodystart="40" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ace8247bb8d3b7d8c28336a7ddfb0e2da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR extract_basename</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>extract_basename</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="47" column="6" bodyfile="common.cpp" bodystart="47" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a33310586bc60f694d3d4d7c5815cde0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_dag_file</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>is_dag_file</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="55" column="6" bodyfile="common.cpp" bodystart="55" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a01d189dad894cfad506bc281742a1db2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool do_glob</definition>
+        <argsstring>(std::vector&lt; TSTR &gt; &amp;files, const TSTR &amp;dir, bool recursive)</argsstring>
+        <name>do_glob</name>
+        <param>
+          <type>std::vector&lt; TSTR &gt; &amp;</type>
+          <declname>files</declname>
+        </param>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>recursive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="63" column="13" bodyfile="common.cpp" bodystart="63" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a83c0e73436ecc6fe3df3f4b066604a80" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt; TSTR &gt; glob</definition>
+        <argsstring>(const TSTR &amp;dir, bool recursive)</argsstring>
+        <name>glob</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>recursive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="90" column="13" bodyfile="common.cpp" bodystart="90" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="99" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="115" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a7987669935f82bfd122e32c8f3ae2d58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR drop_quotation_marks</definition>
+        <argsstring>(const TSTR &amp;s)</argsstring>
+        <name>drop_quotation_marks</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="132" column="6" bodyfile="common.cpp" bodystart="132" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1adc4b6cbb3c15d79ea757b361472a5430" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_path_edit_control</definition>
+        <argsstring>(HWND hw, int id, const TSTR &amp;path)</argsstring>
+        <name>update_path_edit_control</name>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="141" column="6" bodyfile="common.cpp" bodystart="141" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aa6d335e2aa545c68709f116b7de9298b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_save_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, TSTR &amp;exp_fname)</argsstring>
+        <name>get_save_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>exp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="148" column="5" bodyfile="common.cpp" bodystart="148" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a7eb15367ce26c82682ab764b5a5596e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, TSTR &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="191" column="6" bodyfile="common.cpp" bodystart="191" bodyend="219"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="common_8h" kindref="compound">common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="layout_8h" kindref="compound">layout.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">HWND<sp/><ref refid="common_8cpp_1ab84324e6a3ef91427b0e8a5b101a4b98" kindref="member">add_rollup_page</ref>(Interface<sp/>*ip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>resource_id,<sp/>DLGPROC<sp/>proc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>LPARAM<sp/>param,<sp/>DWORD<sp/>flags)</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WCHAR<sp/>*tpl<sp/>=<sp/>MAKEINTRESOURCE(resource_id);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>HWND<sp/>hw<sp/>=<sp/>ip-&gt;AddRollupPage(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>tpl,<sp/>proc,<sp/>title,<sp/>0,<sp/>flags);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="layout_8h_1a480eeacd19590c8ec32486072c729272" kindref="member">attach_layout_to_rollup</ref>(hw,<sp/>tpl);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hw;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1ac9901f1c91ba6fca4d76e222820f8b52" kindref="member">delete_rollup_page</ref>(Interface<sp/>*ip,<sp/>HWND<sp/>*hw)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>assert(hw);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!*hw)</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>ip-&gt;DeleteRollupPage(*hw);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>*hw<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1ab3996dd0d94c2f2ea13b532cd01a3acf" kindref="member">get_master_scale</ref>()</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>k<sp/>=<sp/>1.0f;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>k<sp/>=<sp/>(float)GetSystemUnitScale(UNITS_METERS);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>k<sp/>=<sp/>(float)GetMasterScale(UNITS_METERS);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>k<sp/>?<sp/>(1.f<sp/>/<sp/>k)<sp/>:<sp/>1.f;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">TSTR<sp/><ref refid="common_8cpp_1a49afa681b6ba6f6b96b8a8e17a58a362" kindref="member">extract_directory</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>TSTR<sp/>dir;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>SplitFilename(path,<sp/>&amp;dir,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dir;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">TSTR<sp/><ref refid="common_8cpp_1ace8247bb8d3b7d8c28336a7ddfb0e2da" kindref="member">extract_basename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>TSTR<sp/>filename,<sp/>ext;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>SplitFilename(path,<sp/>0,<sp/>&amp;filename,<sp/>&amp;ext);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>filename.Append(ext);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>filename;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1a33310586bc60f694d3d4d7c5815cde0c" kindref="member">is_dag_file</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>TSTR<sp/>ext;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>SplitFilename(path,<sp/>0,<sp/>0,<sp/>&amp;ext);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>ext.toLower();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ext<sp/>==<sp/>_T(</highlight><highlight class="stringliteral">&quot;.dag&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>do_glob(std::vector&lt;TSTR&gt;<sp/>&amp;files,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>recursive)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>WIN32_FIND_DATA<sp/>file;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>HANDLE<sp/>findhandle<sp/>=<sp/>FindFirstFile((dir<sp/>+<sp/>_T(</highlight><highlight class="stringliteral">&quot;\\*&quot;</highlight><highlight class="normal">)).data(),<sp/>&amp;file);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(findhandle<sp/>==<sp/>INVALID_HANDLE_VALUE)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">do</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>TSTR<sp/>fullpath<sp/>=<sp/>dir<sp/>+<sp/>_T(</highlight><highlight class="stringliteral">&quot;\\&quot;</highlight><highlight class="normal">)<sp/>+<sp/>file.cFileName;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(file.dwFileAttributes<sp/>&amp;<sp/>FILE_ATTRIBUTE_DIRECTORY)</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(recursive<sp/>&amp;&amp;<sp/>_tcscmp(file.cFileName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;.&quot;</highlight><highlight class="normal">))<sp/>!=<sp/>0<sp/>&amp;&amp;<sp/>_tcscmp(file.cFileName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;..&quot;</highlight><highlight class="normal">))<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>do_glob(files,<sp/>fullpath,<sp/>recursive);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="common_8cpp_1a33310586bc60f694d3d4d7c5815cde0c" kindref="member">is_dag_file</ref>(file.cFileName))</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>files.push_back(fullpath);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(FindNextFile(findhandle,<sp/>&amp;file)<sp/>!=<sp/>0);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>FindClose(findhandle);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">std::vector&lt;TSTR&gt;<sp/><ref refid="common_8cpp_1a83c0e73436ecc6fe3df3f4b066604a80" kindref="member">glob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>recursive)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>std::vector&lt;TSTR&gt;<sp/>files;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>files.reserve(32);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>do_glob(files,<sp/>dir,<sp/>recursive);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>files;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="common_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_UNICODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n<sp/>=<sp/>strlen(sz)<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>TCHAR<sp/>*sw<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>TCHAR[n];</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>mbstowcs(sw,<sp/>sz,<sp/>n);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>res(sw);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">[]<sp/>sw;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>res(sz);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal">std::string<sp/><ref refid="common_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_UNICODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n<sp/>=<sp/>_tcslen(sw)<sp/>*<sp/>3<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal">[n];</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>_locale_t<sp/>locale<sp/>=<sp/>_create_locale(LC_ALL,<sp/></highlight><highlight class="stringliteral">&quot;ru-RU&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>_wcstombs_l(sz,<sp/>sw,<sp/>n,<sp/>locale);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>_free_locale(locale);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>std::string<sp/>res(sz);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">[]<sp/>sz;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>std::string<sp/>res(sw);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal">TSTR<sp/><ref refid="common_8cpp_1a7987669935f82bfd122e32c8f3ae2d58" kindref="member">drop_quotation_marks</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;s)</highlight></codeline>
+<codeline lineno="133"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s.Length()<sp/>&gt;=<sp/>2<sp/>&amp;&amp;<sp/>s[0]<sp/>==<sp/>_T(</highlight><highlight class="charliteral">&apos;&quot;&apos;</highlight><highlight class="normal">)<sp/>&amp;&amp;<sp/>s[s.Length()<sp/>-<sp/>1]<sp/>==<sp/>_T(</highlight><highlight class="charliteral">&apos;&quot;&apos;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s.Substr(1,<sp/>s.Length()<sp/>-<sp/>2);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1adc4b6cbb3c15d79ea757b361472a5430" kindref="member">update_path_edit_control</ref>(HWND<sp/>hw,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>SetDlgItemText(hw,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>path.data());</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>SendMessage(GetDlgItem(hw,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">),<sp/>EM_SETSEL,<sp/>(WPARAM)path.Length(),<sp/>(LPARAM)path.Length());</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aa6d335e2aa545c68709f116b7de9298b" kindref="member">get_save_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>TSTR<sp/>&amp;exp_fname)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>fname[MAX_PATH];</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>_tcscpy(fname,<sp/>exp_fname);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>OPENFILENAME<sp/>ofn;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>memset(&amp;ofn,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ofn));</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>ofn.lStructSize<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(OPENFILENAME);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>ofn.hwndOwner<sp/>=<sp/>owner;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>ofn.lpstrFilter<sp/>=<sp/>filter;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>ofn.lpstrFile<sp/>=<sp/>fname;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>ofn.nMaxFile<sp/>=<sp/>MAX_PATH;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>ofn.lpstrInitialDir<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>ofn.Flags<sp/>=<sp/>OFN_HIDEREADONLY<sp/>|<sp/>OFN_FILEMUSTEXIST<sp/>|<sp/>OFN_PATHMUSTEXIST;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>ofn.lpstrDefExt<sp/>=<sp/>def_ext;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>ofn.lpstrTitle<sp/>=<sp/>title;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal">tryAgain:</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(GetSaveFileName(&amp;ofn))</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DoesFileExist(fname))</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TSTR<sp/>buf;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buf.printf(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a191bf3b75fc50fe081f5c069f34e3fe6" kindref="member">IDS_FILE_EXISTS</ref>),<sp/>fname);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(IDYES<sp/>!=<sp/>MessageBox(owner,<sp/>buf,<sp/>title,<sp/>MB_YESNO<sp/>|<sp/>MB_ICONQUESTION))</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>tryAgain;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(exp_fname<sp/>!=<sp/>fname)</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>exp_fname<sp/>=<sp/>fname;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>3000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetSaveRequiredFlag();</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetSaveRequired();</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1a7eb15367ce26c82682ab764b5a5596e6" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/>TSTR<sp/>&amp;imp_fname)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>path[MAX_PATH];</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>_tcscpy_s(path,<sp/>MAX_PATH,<sp/>imp_fname.data());</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>OPENFILENAME<sp/>ofn;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>memset(&amp;ofn,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ofn));</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>FilterList<sp/>fl;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>fl.Append(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1ab4da16aba837425eea10a78744f0ae9e" kindref="member">IDS_SCENE_FILES</ref>));</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>fl.Append(_T(</highlight><highlight class="stringliteral">&quot;*.dag&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/>TSTR<sp/>title<sp/>=<sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a6c4adee4ed2e62b03d28dc9aca054760" kindref="member">IDS_OPEN_SCENE_TITLE</ref>);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>ofn.lStructSize<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(OPENFILENAME);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/>ofn.hwndOwner<sp/>=<sp/>owner;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>ofn.lpstrFilter<sp/>=<sp/>fl;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>ofn.lpstrFile<sp/>=<sp/>path;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>ofn.nMaxFile<sp/>=<sp/>MAX_PATH;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>ofn.lpstrInitialDir<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>ofn.Flags<sp/>=<sp/>OFN_HIDEREADONLY<sp/>|<sp/>OFN_FILEMUSTEXIST<sp/>|<sp/>OFN_PATHMUSTEXIST;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>ofn.lpstrDefExt<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;dag&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/>ofn.lpstrTitle<sp/>=<sp/>title;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>result<sp/>=<sp/>GetOpenFileName(&amp;ofn);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(result)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/>imp_fname<sp/>=<sp/>path;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>result;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="common.cpp"/>
+  </compounddef>
+</doxygen>

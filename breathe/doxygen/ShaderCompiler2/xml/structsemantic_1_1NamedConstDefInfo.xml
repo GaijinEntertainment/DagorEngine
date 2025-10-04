@@ -1,0 +1,494 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1NamedConstDefInfo" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::NamedConstDefInfo</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1aa07b5d897db7090d1b839783c54a1f81" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semantic::NamedConstDefInfo::baseName</definition>
+        <argsstring></argsstring>
+        <name>baseName</name>
+        <qualifiedname>semantic::NamedConstDefInfo::baseName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="244" column="14" bodyfile="variantSemantic.h" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1aa34d1200eefa8c3bfa01ad34fc659012" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String semantic::NamedConstDefInfo::mangledName</definition>
+        <argsstring></argsstring>
+        <name>mangledName</name>
+        <qualifiedname>semantic::NamedConstDefInfo::mangledName</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="245" column="10" bodyfile="variantSemantic.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a84ea39f76a9f28dad3f3b3f7bbd588f1" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structsemantic_1_1NamedConstInitializerElement" kindref="compound">NamedConstInitializerElement</ref> &gt;</type>
+        <definition>Tab&lt;NamedConstInitializerElement&gt; semantic::NamedConstDefInfo::initializer</definition>
+        <argsstring></argsstring>
+        <name>initializer</name>
+        <qualifiedname>semantic::NamedConstDefInfo::initializer</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="247" column="7" bodyfile="variantSemantic.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a2538d3254a9a28c20d44a6ea0c2c2e65" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstDefInfo::registerSize</definition>
+        <argsstring></argsstring>
+        <name>registerSize</name>
+        <qualifiedname>semantic::NamedConstDefInfo::registerSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="248" column="7" bodyfile="variantSemantic.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a4dd2bec578ada9674546a932860f1f17" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstDefInfo::arrayElemCount</definition>
+        <argsstring></argsstring>
+        <name>arrayElemCount</name>
+        <qualifiedname>semantic::NamedConstDefInfo::arrayElemCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="249" column="7" bodyfile="variantSemantic.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1aa18633d67a9a9e2c726ad327541a55f7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstDefInfo::hardcodedRegister</definition>
+        <argsstring></argsstring>
+        <name>hardcodedRegister</name>
+        <qualifiedname>semantic::NamedConstDefInfo::hardcodedRegister</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="250" column="7" bodyfile="variantSemantic.h" bodystart="250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a40a99bfe135ba6f6802136b1389a5aca" prot="public" static="no" mutable="no">
+        <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref></type>
+        <definition>VariableType semantic::NamedConstDefInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>semantic::NamedConstDefInfo::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="252" column="16" bodyfile="variantSemantic.h" bodystart="252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a779da705277912ae2c2cfe818c24c7b0" prot="public" static="no" mutable="no">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType semantic::NamedConstDefInfo::shvarType</definition>
+        <argsstring></argsstring>
+        <name>shvarType</name>
+        <qualifiedname>semantic::NamedConstDefInfo::shvarType</qualifiedname>
+        <initializer>= SHVT_UNKNOWN</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="253" column="17" bodyfile="variantSemantic.h" bodystart="253" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1ad923eec979d61f160ba1fcaa1032894f" prot="public" static="no" mutable="no">
+        <type>ShaderVarTextureType</type>
+        <definition>ShaderVarTextureType semantic::NamedConstDefInfo::shvarTexType</definition>
+        <argsstring></argsstring>
+        <name>shvarTexType</name>
+        <qualifiedname>semantic::NamedConstDefInfo::shvarTexType</qualifiedname>
+        <initializer>= SHVT_TEX_UNKNOWN</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="254" column="24" bodyfile="variantSemantic.h" bodystart="254" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a20cadfab62d2fe81e136c3c5b581a030" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+        <definition>HlslRegisterSpace semantic::NamedConstDefInfo::regSpace</definition>
+        <argsstring></argsstring>
+        <name>regSpace</name>
+        <qualifiedname>semantic::NamedConstDefInfo::regSpace</qualifiedname>
+        <initializer>= <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" kindref="member">HLSL_RSPACE_INVALID</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="255" column="21" bodyfile="variantSemantic.h" bodystart="255" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a17d28ce51c6f4cd40d3e731e69c63392" prot="public" static="no" mutable="no">
+        <type>ShaderStage</type>
+        <definition>ShaderStage semantic::NamedConstDefInfo::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>semantic::NamedConstDefInfo::stage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="256" column="15" bodyfile="variantSemantic.h" bodystart="256" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a52fd7afc7dff324248e68eb1185143a4" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::NamedConstDefInfo::varTerm</definition>
+        <argsstring></argsstring>
+        <name>varTerm</name>
+        <qualifiedname>semantic::NamedConstDefInfo::varTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="258" column="12" bodyfile="variantSemantic.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1ac71de402da6f259cd1b9f625209853ae" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::NamedConstDefInfo::nameSpaceTerm</definition>
+        <argsstring></argsstring>
+        <name>nameSpaceTerm</name>
+        <qualifiedname>semantic::NamedConstDefInfo::nameSpaceTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="259" column="12" bodyfile="variantSemantic.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a0ffb05c784ff92d9b19eb43ebd8e5d2b" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::NamedConstDefInfo::shaderVarTerm</definition>
+        <argsstring></argsstring>
+        <name>shaderVarTerm</name>
+        <qualifiedname>semantic::NamedConstDefInfo::shaderVarTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="260" column="12" bodyfile="variantSemantic.h" bodystart="260" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a8db347b8772c7465c68e0d07bec8045e" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::NamedConstDefInfo::builtinVarTerm</definition>
+        <argsstring></argsstring>
+        <name>builtinVarTerm</name>
+        <qualifiedname>semantic::NamedConstDefInfo::builtinVarTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="261" column="12" bodyfile="variantSemantic.h" bodystart="261" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1af20857d76c9de0988409b6d159444bfc" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::NamedConstDefInfo::sizeVarTerm</definition>
+        <argsstring></argsstring>
+        <name>sizeVarTerm</name>
+        <qualifiedname>semantic::NamedConstDefInfo::sizeVarTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="262" column="12" bodyfile="variantSemantic.h" bodystart="262" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a23c2808d87320936f88c1767cd492a1e" prot="public" static="no" mutable="no">
+        <type>SHTOK_hlsl_text *</type>
+        <definition>SHTOK_hlsl_text* semantic::NamedConstDefInfo::hlsl</definition>
+        <argsstring></argsstring>
+        <name>hlsl</name>
+        <qualifiedname>semantic::NamedConstDefInfo::hlsl</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="263" column="19" bodyfile="variantSemantic.h" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a4e2837802dde1e094a88a8895010fc93" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstDefInfo::bindlessVarId</definition>
+        <argsstring></argsstring>
+        <name>bindlessVarId</name>
+        <qualifiedname>semantic::NamedConstDefInfo::bindlessVarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="265" column="7" bodyfile="variantSemantic.h" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1aeb9fefcdec41f3f6ad3e13b9b4a41ec1" prot="public" static="no" mutable="no">
+        <type>sampler_decl *</type>
+        <definition>sampler_decl* semantic::NamedConstDefInfo::pairSamplerTmpDecl</definition>
+        <argsstring></argsstring>
+        <name>pairSamplerTmpDecl</name>
+        <qualifiedname>semantic::NamedConstDefInfo::pairSamplerTmpDecl</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="267" column="16" bodyfile="variantSemantic.h" bodystart="267" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1ab6549c450f83058df1a86ae188646adf" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String semantic::NamedConstDefInfo::pairSamplerName</definition>
+        <argsstring></argsstring>
+        <name>pairSamplerName</name>
+        <qualifiedname>semantic::NamedConstDefInfo::pairSamplerName</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="268" column="10" bodyfile="variantSemantic.h" bodystart="268" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a753999253bf724e84079f91eda852452" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semantic::NamedConstDefInfo::pairSamplerBindSuffix</definition>
+        <argsstring></argsstring>
+        <name>pairSamplerBindSuffix</name>
+        <qualifiedname>semantic::NamedConstDefInfo::pairSamplerBindSuffix</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="269" column="14" bodyfile="variantSemantic.h" bodystart="269" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1ae129b16033d7fdeabf80f748110250a1" prot="public" static="no" mutable="no">
+        <type>Symbol *</type>
+        <definition>Symbol* semantic::NamedConstDefInfo::exprWithDynamicAndMaterialTerms</definition>
+        <argsstring></argsstring>
+        <name>exprWithDynamicAndMaterialTerms</name>
+        <qualifiedname>semantic::NamedConstDefInfo::exprWithDynamicAndMaterialTerms</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="271" column="10" bodyfile="variantSemantic.h" bodystart="271" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a1618a590cbf1c99259813de7cb83c29a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::isDynamic</definition>
+        <argsstring></argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>semantic::NamedConstDefInfo::isDynamic</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="273" column="8" bodyfile="variantSemantic.h" bodystart="273" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1ad1d123b45962d8ebe20a34eddc4fab12" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::isArray</definition>
+        <argsstring></argsstring>
+        <name>isArray</name>
+        <qualifiedname>semantic::NamedConstDefInfo::isArray</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="274" column="8" bodyfile="variantSemantic.h" bodystart="274" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a263a1698c52462d32bec85c14a4e6dd1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::isBindless</definition>
+        <argsstring></argsstring>
+        <name>isBindless</name>
+        <qualifiedname>semantic::NamedConstDefInfo::isBindless</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="275" column="8" bodyfile="variantSemantic.h" bodystart="275" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a4d790db1104a8bf1731013569f5fac4e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::pairSamplerIsGlobal</definition>
+        <argsstring></argsstring>
+        <name>pairSamplerIsGlobal</name>
+        <qualifiedname>semantic::NamedConstDefInfo::pairSamplerIsGlobal</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="276" column="8" bodyfile="variantSemantic.h" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a747de66f9d463bac25b0582accbbfdf1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::pairSamplerIsShadow</definition>
+        <argsstring></argsstring>
+        <name>pairSamplerIsShadow</name>
+        <qualifiedname>semantic::NamedConstDefInfo::pairSamplerIsShadow</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="277" column="8" bodyfile="variantSemantic.h" bodystart="277" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstDefInfo_1a8fdf3096ebc54b328316c18789aa5ed7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::hasDynStcodeRelyingOnMaterialParams</definition>
+        <argsstring></argsstring>
+        <name>hasDynStcodeRelyingOnMaterialParams</name>
+        <qualifiedname>semantic::NamedConstDefInfo::hasDynStcodeRelyingOnMaterialParams</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="278" column="8" bodyfile="variantSemantic.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemantic_1_1NamedConstDefInfo_1a6871a372366521a74c2e99dd0690fc52" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::isHardcodedArray</definition>
+        <argsstring>() const</argsstring>
+        <name>isHardcodedArray</name>
+        <qualifiedname>semantic::NamedConstDefInfo::isHardcodedArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="280" column="8" bodyfile="variantSemantic.h" bodystart="280" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstDefInfo_1aa5581e46d56dba52bddebcc9663f2682" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstDefInfo::isRegularArray</definition>
+        <argsstring>() const</argsstring>
+        <name>isRegularArray</name>
+        <qualifiedname>semantic::NamedConstDefInfo::isRegularArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="281" column="8" bodyfile="variantSemantic.h" bodystart="281" bodyend="281"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantSemantic.h" line="242" column="1" bodyfile="variantSemantic.h" bodystart="243" bodyend="282"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a4dd2bec578ada9674546a932860f1f17" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>arrayElemCount</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1aa07b5d897db7090d1b839783c54a1f81" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>baseName</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a4e2837802dde1e094a88a8895010fc93" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>bindlessVarId</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a8db347b8772c7465c68e0d07bec8045e" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>builtinVarTerm</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1ae129b16033d7fdeabf80f748110250a1" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>exprWithDynamicAndMaterialTerms</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1aa18633d67a9a9e2c726ad327541a55f7" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>hardcodedRegister</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a8fdf3096ebc54b328316c18789aa5ed7" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>hasDynStcodeRelyingOnMaterialParams</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a23c2808d87320936f88c1767cd492a1e" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>hlsl</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a84ea39f76a9f28dad3f3b3f7bbd588f1" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>initializer</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1ad1d123b45962d8ebe20a34eddc4fab12" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>isArray</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a263a1698c52462d32bec85c14a4e6dd1" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>isBindless</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a1618a590cbf1c99259813de7cb83c29a" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>isDynamic</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a6871a372366521a74c2e99dd0690fc52" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>isHardcodedArray</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1aa5581e46d56dba52bddebcc9663f2682" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>isRegularArray</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1aa34d1200eefa8c3bfa01ad34fc659012" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>mangledName</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1ac71de402da6f259cd1b9f625209853ae" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>nameSpaceTerm</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a753999253bf724e84079f91eda852452" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>pairSamplerBindSuffix</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a4d790db1104a8bf1731013569f5fac4e" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>pairSamplerIsGlobal</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a747de66f9d463bac25b0582accbbfdf1" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>pairSamplerIsShadow</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1ab6549c450f83058df1a86ae188646adf" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>pairSamplerName</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1aeb9fefcdec41f3f6ad3e13b9b4a41ec1" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>pairSamplerTmpDecl</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a2538d3254a9a28c20d44a6ea0c2c2e65" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>registerSize</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a20cadfab62d2fe81e136c3c5b581a030" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>regSpace</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a0ffb05c784ff92d9b19eb43ebd8e5d2b" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>shaderVarTerm</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1ad923eec979d61f160ba1fcaa1032894f" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>shvarTexType</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a779da705277912ae2c2cfe818c24c7b0" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>shvarType</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1af20857d76c9de0988409b6d159444bfc" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>sizeVarTerm</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a17d28ce51c6f4cd40d3e731e69c63392" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>stage</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a40a99bfe135ba6f6802136b1389a5aca" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>type</name></member>
+      <member refid="structsemantic_1_1NamedConstDefInfo_1a52fd7afc7dff324248e68eb1185143a4" prot="public" virt="non-virtual"><scope>semantic::NamedConstDefInfo</scope><name>varTerm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

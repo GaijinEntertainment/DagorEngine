@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1RenderState" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderState</compoundname>
+    <basecompoundref refid="structshaders_1_1RenderStateBits" prot="public" virt="non-virtual">shaders::RenderStateBits</basecompoundref>
+    <includes refid="dag__renderStates_8h" local="no">dag_renderStates.h</includes>
+    <innerclass refid="structshaders_1_1RenderState_1_1BlendFactors" prot="public">shaders::RenderState::BlendFactors</innerclass>
+    <innerclass refid="structshaders_1_1RenderState_1_1BlendParams" prot="public">shaders::RenderState::BlendParams</innerclass>
+    <innerclass refid="structshaders_1_1RenderState_1_1DualSourceBlendParams" prot="public">shaders::RenderState::DualSourceBlendParams</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1a6d01e59ded7e0800c902cefd503cd979" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t shaders::RenderState::NumIndependentBlendParameters</definition>
+        <argsstring></argsstring>
+        <name>NumIndependentBlendParameters</name>
+        <qualifiedname>shaders::RenderState::NumIndependentBlendParameters</qualifiedname>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="55" column="29" bodyfile="dag_renderStates.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1a0acd3d76c9199502196f4ccb66d0fa05" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1RenderState_1_1BlendParams" kindref="compound">BlendParams</ref></type>
+        <definition>BlendParams shaders::RenderState::blendParams[NumIndependentBlendParameters]</definition>
+        <argsstring>[NumIndependentBlendParameters]</argsstring>
+        <name>blendParams</name>
+        <qualifiedname>shaders::RenderState::blendParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="98" column="17" bodyfile="dag_renderStates.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1aefb63695ea2ab083258d30868efbc264" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1RenderState_1_1DualSourceBlendParams" kindref="compound">DualSourceBlendParams</ref></type>
+        <definition>DualSourceBlendParams shaders::RenderState::params</definition>
+        <argsstring></argsstring>
+        <name>params</name>
+        <qualifiedname>shaders::RenderState::params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="101" column="29" bodyfile="dag_renderStates.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1ac836aa81d98638b20bf13ddc3ac5b831" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::pad_[sizeof(blendParams) - sizeof(params)]</definition>
+        <argsstring>[sizeof(blendParams) - sizeof(params)]</argsstring>
+        <name>pad_</name>
+        <qualifiedname>shaders::RenderState::pad_</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="102" column="15" bodyfile="dag_renderStates.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1aed7732d4a6d549453015a6895d55ab7e" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structshaders_1_1RenderState" kindref="compound">shaders::RenderState</ref></type>
+        <definition>struct shaders::RenderState shaders::RenderState::dualSourceBlend</definition>
+        <argsstring></argsstring>
+        <name>dualSourceBlend</name>
+        <qualifiedname>shaders::RenderState::dualSourceBlend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="103" column="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1accbbe0cee6cbb694ab89a98afc354c5b" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structshaders_1_1RenderState" kindref="compound">shaders::RenderState</ref></type>
+        <definition>union shaders::RenderState shaders::RenderState</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>shaders::RenderState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="104" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1ada140c5454b5d8eee724f322ff435195" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR shaders::RenderState::blendFactor</definition>
+        <argsstring></argsstring>
+        <name>blendFactor</name>
+        <qualifiedname>shaders::RenderState::blendFactor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="106" column="12" bodyfile="dag_renderStates.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshaders_1_1RenderState_1a1a9487f73dbf19b1632bd8406d3d21b6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::RenderState::RenderState</definition>
+        <argsstring>()</argsstring>
+        <name>RenderState</name>
+        <qualifiedname>shaders::RenderState::RenderState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="114" column="3" bodyfile="dag_renderStates.h" bodystart="114" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1RenderState_1a5da3db99b8d3f118edcfb1ec26dca05b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::RenderState::operator==</definition>
+        <argsstring>(const RenderState &amp;s) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>shaders::RenderState::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1RenderState" kindref="compound">RenderState</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="146" column="8" bodyfile="dag_renderStates.h" bodystart="146" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1RenderState_1abcea5c426400a752353b685be0236f1e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::RenderState::operator!=</definition>
+        <argsstring>(const RenderState &amp;s) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>shaders::RenderState::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1RenderState" kindref="compound">RenderState</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="158" column="8" bodyfile="dag_renderStates.h" bodystart="158" bodyend="158"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Extended render state with blending params. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>shaders::RenderState</label>
+        <link refid="structshaders_1_1RenderState"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders::RenderStateBits</label>
+        <link refid="structshaders_1_1RenderStateBits"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>shaders::RenderState</label>
+        <link refid="structshaders_1_1RenderState"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>blendParams</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>params</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shaders::RenderState::BlendFactors</label>
+        <link refid="structshaders_1_1RenderState_1_1BlendFactors"/>
+      </node>
+      <node id="3">
+        <label>shaders::RenderState::BlendParams</label>
+        <link refid="structshaders_1_1RenderState_1_1BlendParams"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>ablendFactors</edgelabel>
+          <edgelabel>sepablendFactors</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shaders::RenderState::DualSourceBlendParams</label>
+        <link refid="structshaders_1_1RenderState_1_1DualSourceBlendParams"/>
+      </node>
+      <node id="2">
+        <label>shaders::RenderStateBits</label>
+        <link refid="structshaders_1_1RenderStateBits"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderStates.h" line="52" column="1" bodyfile="dag_renderStates.h" bodystart="53" bodyend="159"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1RenderStateBits_1abf9ecd74a66b231601ef4abb39f2cefc" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>alphaToCoverage</name></member>
+      <member refid="structshaders_1_1RenderState_1ada140c5454b5d8eee724f322ff435195" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>blendFactor</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1ac42cbf3958beecf7de6a31c6c79ff7b9" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>blendFactorUsed</name></member>
+      <member refid="structshaders_1_1RenderState_1a0acd3d76c9199502196f4ccb66d0fa05" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>blendParams</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1ad0c3d02cefc012f3ec8761b81dad48da" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>colorWr</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1ac7eed855dd4645947ef475403171f980" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>conservativeRaster</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1abd2b3881859cac60dd8463335f98c5c1" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>cull</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a0514fd670606fb307ffba3a2145dd4e7" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>depthBoundsEnable</name></member>
+      <member refid="structshaders_1_1RenderState_1aed7732d4a6d549453015a6895d55ab7e" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>dualSourceBlend</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a954bf8df37a234b28dc884d1d6d74963" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>dualSourceBlendEnabled</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a02fd720d83c068ed936052f8ef1ef676" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>forcedSampleCount</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a72955f98d8689819e3e06efd34c87262" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>independentBlendEnabled</name></member>
+      <member refid="structshaders_1_1RenderState_1a6d01e59ded7e0800c902cefd503cd979" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>NumIndependentBlendParameters</name></member>
+      <member refid="structshaders_1_1RenderState_1abcea5c426400a752353b685be0236f1e" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>operator!=</name></member>
+      <member refid="structshaders_1_1RenderState_1a5da3db99b8d3f118edcfb1ec26dca05b" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>operator==</name></member>
+      <member refid="structshaders_1_1RenderState_1ac836aa81d98638b20bf13ddc3ac5b831" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>pad_</name></member>
+      <member refid="structshaders_1_1RenderState_1aefb63695ea2ab083258d30868efbc264" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>params</name></member>
+      <member refid="structshaders_1_1RenderState_1a1a9487f73dbf19b1632bd8406d3d21b6" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>RenderState</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1aa3471748aeacdd914dd8867837ba7c86" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>scissorEnabled</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a2baef0b95f441cba7f14eb55bb3c69ce" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>slopeZBias</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1ad87cb62ad2a9c365362b33a5e7bd0e08" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>stencil</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a5f69dc3af6288832070853bf5c78e71d" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>stencilRef</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1ac4bc0a1392ddd3c80fb1123f15624745" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>viewInstanceCount</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a6ca4c01e718744ad9052aaf9e0bc02c3" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>zBias</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a93d38a2114add3541716035cfec779b3" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>zClip</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>zFunc</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a6286e8d640191c8d002bfed7a469e5c3" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>ztest</name></member>
+      <member refid="structshaders_1_1RenderStateBits_1a9baf0b1367e6cfc9971ace5b020bdf9c" prot="public" virt="non-virtual"><scope>shaders::RenderState</scope><name>zwrite</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

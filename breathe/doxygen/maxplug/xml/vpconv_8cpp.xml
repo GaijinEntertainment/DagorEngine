@@ -1,0 +1,319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="vpconv_8cpp" kind="file" language="C++">
+    <compoundname>vpconv.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">bmmlib.h</includes>
+    <includes local="no">fltlib.h</includes>
+    <includes local="no">pixelbuf.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <incdepgraph>
+      <node id="6">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="1">
+        <label>vpconv.cpp</label>
+        <link refid="vpconv_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>bmmlib.h</label>
+      </node>
+      <node id="4">
+        <label>fltlib.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="5">
+        <label>pixelbuf.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classVPnorm" prot="public">VPnorm</innerclass>
+    <innerclass refid="classVPzbufa" prot="public">VPzbufa</innerclass>
+    <innerclass refid="classVPnormClassDesc" prot="public">VPnormClassDesc</innerclass>
+    <innerclass refid="classVPzbufaClassDesc" prot="public">VPzbufaClassDesc</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="vpconv_8cpp_1af85bdd00f745e6864de43155740b7a6a" prot="public" static="yes" mutable="no">
+        <type><ref refid="classVPnormClassDesc" kindref="compound">VPnormClassDesc</ref></type>
+        <definition>VPnormClassDesc VPnormCD</definition>
+        <argsstring></argsstring>
+        <name>VPnormCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="147" column="24" bodyfile="vpconv.cpp" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="vpconv_8cpp_1a05bb02147f5856430b7d74565ca05787" prot="public" static="yes" mutable="no">
+        <type><ref refid="classVPzbufaClassDesc" kindref="compound">VPzbufaClassDesc</ref></type>
+        <definition>VPzbufaClassDesc VPzbufaCD</definition>
+        <argsstring></argsstring>
+        <name>VPzbufaCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="166" column="25" bodyfile="vpconv.cpp" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="vpconv_8cpp_1a2264f7caf71b04ba9b70a23f48f9f02e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int lim16</definition>
+        <argsstring>(int a)</argsstring>
+        <name>lim16</name>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="47" column="19" bodyfile="vpconv.cpp" bodystart="47" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="vpconv_8cpp_1a8c78e8a2912a7d2ee176b851f7ab3390" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int get_zminmax</definition>
+        <argsstring>(INode *n, float &amp;z0, float &amp;z1)</argsstring>
+        <name>get_zminmax</name>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>z0</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>z1</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="81" column="12" bodyfile="vpconv.cpp" bodystart="81" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="vpconv_8cpp_1a4456f7c1251078051260f3932fbc9584" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetVPnormCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetVPnormCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="148" column="11" bodyfile="vpconv.cpp" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="vpconv_8cpp_1ae4377332d5b625bf84821942642e3ba6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetVPzbufCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetVPzbufCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="167" column="11" bodyfile="vpconv.cpp" bodystart="167" bodyend="167"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bmmlib.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;fltlib.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pixelbuf.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classVPnorm" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classVPnorm" kindref="compound">VPnorm</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ImageFilter</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPnorm_1a06f54c03c83ce9045db1892fc75b4a00" kindref="member">Description</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Normals<sp/>to<sp/>RGB&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPnorm_1aa4a72197617c8e201ecb6c5eb3fd2607" kindref="member">AuthorName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Aleksey<sp/>Volynskov&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPnorm_1a2e42298c89dbc3fadb7d23dda5688d5a" kindref="member">CopyrightMessage</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;(c)<sp/>Aleksey<sp/>Volynskov,<sp/>2001&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>UINT<sp/><ref refid="classVPnorm_1a61333a3da5bf8065fa80b585c4f529bd" kindref="member">Version</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>DWORD<sp/><ref refid="classVPnorm_1ac08fbbf6e1fb53d6b221d8caa6e4ba85" kindref="member">Capability</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IMGFLT_FILTER;<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classVPnorm_1adba3ec6a3f86366d15813dc6f2cc97ea" kindref="member">ShowAbout</ref>(HWND<sp/>hw)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="18"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>MessageBox(hw,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;Normals<sp/>to<sp/>RGB<sp/>convertor\n&quot;</highlight><highlight class="normal"><sp/>)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;(c)<sp/>Aleksey<sp/>Volynskov,<sp/>2001&quot;</highlight><highlight class="normal"><sp/>),</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;About...&quot;</highlight><highlight class="normal">),<sp/>MB_OK<sp/>|<sp/>MB_ICONINFORMATION);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classVPnorm_1a229892041125369e3e44a258bf720f6f" kindref="member">Render</ref>(HWND<sp/>hw)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>DWORD<sp/><ref refid="classVPnorm_1a1df99b87014b96b8aa40db420fb2bf84" kindref="member">ChannelsRequired</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMM_CHAN_NORMAL;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classVPzbufa" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classVPzbufa" kindref="compound">VPzbufa</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ImageFilter</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPzbufa_1abbd05694060e0affffad47ac42b783c8" kindref="member">Description</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Z<sp/>to<sp/>Alpha&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPzbufa_1a7efba71a5271fdc27b54db0ad1646fcc" kindref="member">AuthorName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Aleksey<sp/>Volynskov&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPzbufa_1a496cdc9e0ab81643d736abb93038cc19" kindref="member">CopyrightMessage</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;(c)<sp/>Aleksey<sp/>Volynskov,<sp/>2001&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>UINT<sp/><ref refid="classVPzbufa_1af099964cd96c200ddd26ef0b4f1af7a9" kindref="member">Version</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>DWORD<sp/><ref refid="classVPzbufa_1a1224bcfca1613348584a93f5db996a98" kindref="member">Capability</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IMGFLT_FILTER;<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classVPzbufa_1a819a28cf8fa482a811ca3a57a5995066" kindref="member">ShowAbout</ref>(HWND<sp/>hw)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="37"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>MessageBox(hw,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;Z<sp/>to<sp/>Alpha<sp/>convertor\n&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;(c)<sp/>Aleksey<sp/>Volynskov,<sp/>2001&quot;</highlight><highlight class="normal">),</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_T(<sp/></highlight><highlight class="stringliteral">&quot;About...&quot;</highlight><highlight class="normal">),<sp/>MB_OK<sp/>|<sp/>MB_ICONINFORMATION);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classVPzbufa_1a3b97d5d5006f5c6685bb19c36c534e61" kindref="member">Render</ref>(HWND<sp/>hw)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>DWORD<sp/><ref refid="classVPzbufa_1a93ddcef8db8598f81bab3bba94b11663" kindref="member">ChannelsRequired</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BMM_CHAN_Z;<sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lim16(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a<sp/>&gt;<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0xFFFF;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal">BOOL<sp/><ref refid="classVPnorm_1a229892041125369e3e44a258bf720f6f" kindref="member">VPnorm::Render</ref>(HWND<sp/>hw)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>DWORD<sp/>type;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>DWORD<sp/>*cnorm<sp/>=<sp/>(DWORD<sp/>*)srcmap-&gt;GetChannel(BMM_CHAN_NORMAL,<sp/>type);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!cnorm)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref><sp/>=<sp/>srcmap-&gt;Width(),<sp/><ref refid="polyBumpUtil_8cpp_1a1ae9d9605c00811251e50d0567e6c3ad" kindref="member">ht</ref><sp/>=<sp/>srcmap-&gt;Height();</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>PixelBuf64<sp/>pbuf(<ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y<sp/>=<sp/>0;<sp/>y<sp/>&lt;<sp/><ref refid="polyBumpUtil_8cpp_1a1ae9d9605c00811251e50d0567e6c3ad" kindref="member">ht</ref>;<sp/>++y)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!srcmap-&gt;GetPixels(0,<sp/>y,<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>,<sp/>pbuf.Ptr()))</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x<sp/>=<sp/>0;<sp/>x<sp/>&lt;<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>;<sp/>++x,<sp/>++cnorm)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/>n<sp/>=<sp/>Normalize(DeCompressNormal(*cnorm));</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pbuf[x].r<sp/>=<sp/>lim16((n.x<sp/>+<sp/>1)<sp/>*<sp/>(0x8000<sp/>-<sp/>.5f));</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pbuf[x].g<sp/>=<sp/>lim16((n.y<sp/>+<sp/>1)<sp/>*<sp/>(0x8000<sp/>-<sp/>.5f));</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pbuf[x].b<sp/>=<sp/>lim16((n.z<sp/>+<sp/>1)<sp/>*<sp/>(0x8000<sp/>-<sp/>.5f));</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!srcmap-&gt;PutPixels(0,<sp/>y,<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>,<sp/>pbuf.Ptr()))</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_zminmax(INode<sp/>*n,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;z0,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;z1)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!n)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;GetUserPropFloat(_T(</highlight><highlight class="stringliteral">&quot;zlow&quot;</highlight><highlight class="normal">),<sp/>z0))</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;GetUserPropFloat(_T(</highlight><highlight class="stringliteral">&quot;zhigh&quot;</highlight><highlight class="normal">),<sp/>z1))</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cn<sp/>=<sp/>n-&gt;NumChildren();</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>cn;<sp/>++i)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(get_zminmax(n-&gt;GetChildNode(i),<sp/>z0,<sp/>z1))</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal">BOOL<sp/><ref refid="classVPzbufa_1a3b97d5d5006f5c6685bb19c36c534e61" kindref="member">VPzbufa::Render</ref>(HWND<sp/>hw)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>z0,<sp/>z1;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!get_zminmax(Max()-&gt;GetRootNode(),<sp/>z0,<sp/>z1))</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>z1<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>z0<sp/>=<sp/>-500;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zk<sp/>=<sp/>1<sp/>/<sp/>(z1<sp/>-<sp/>z0);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>DWORD<sp/>type;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*zbuf<sp/>=<sp/>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*)srcmap-&gt;GetChannel(BMM_CHAN_Z,<sp/>type);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!zbuf)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref><sp/>=<sp/>srcmap-&gt;Width(),<sp/><ref refid="polyBumpUtil_8cpp_1a1ae9d9605c00811251e50d0567e6c3ad" kindref="member">ht</ref><sp/>=<sp/>srcmap-&gt;Height();</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>PixelBuf64<sp/>pbuf(<ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y<sp/>=<sp/>0;<sp/>y<sp/>&lt;<sp/><ref refid="polyBumpUtil_8cpp_1a1ae9d9605c00811251e50d0567e6c3ad" kindref="member">ht</ref>;<sp/>++y)</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!srcmap-&gt;GetPixels(0,<sp/>y,<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>,<sp/>pbuf.Ptr()))</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x<sp/>=<sp/>0;<sp/>x<sp/>&lt;<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>;<sp/>++x,<sp/>++zbuf)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>=<sp/>(*zbuf<sp/>-<sp/>z0)<sp/>*<sp/>zk;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pbuf[x].a<sp/>=<sp/>lim16(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>*<sp/>0xFFFF);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!srcmap-&gt;PutPixels(0,<sp/>y,<sp/><ref refid="polyBumpUtil_8cpp_1a2376ba14486c4117302393046c3abdd5" kindref="member">wd</ref>,<sp/>pbuf.Ptr()))</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131" refid="classVPnormClassDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classVPnormClassDesc" kindref="compound">VPnormClassDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classVPnormClassDesc_1ae3b55f5439f186eea77f882c7f500d96" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classVPnormClassDesc_1a447515f589bf4915509e2d5a09ac0bcd" kindref="member">Create</ref>(BOOL<sp/>loading)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classVPnorm" kindref="compound">VPnorm</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPnormClassDesc_1afcd5211cc339ca5ca5e6fb0e902cd20f" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;VPnorm2rgb&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classVPnormClassDesc_1a4893b8dce349cc73b0ac891912d672b0" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classVPnormClassDesc_1afcd5211cc339ca5ca5e6fb0e902cd20f" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classVPnormClassDesc_1a4893b8dce349cc73b0ac891912d672b0" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classVPnormClassDesc_1afcd5211cc339ca5ca5e6fb0e902cd20f" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classVPnormClassDesc_1a74a847c735e51740a818ed6ba47266fd" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FLT_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classVPnormClassDesc_1ab9d0032ce6148573c43d1b5b1ee5cc8b" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a48e13fa478c2f8accd95b628726c7d1d" kindref="member">VPNORM_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPnormClassDesc_1a561094d960c1fdbadeace0b8f5eb6541" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classVPnormClassDesc" kindref="compound">VPnormClassDesc</ref><sp/>VPnormCD;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">ClassDesc<sp/>*<ref refid="vpconv_8cpp_1a4456f7c1251078051260f3932fbc9584" kindref="member">GetVPnormCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;VPnormCD;<sp/>}</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="classVPzbufaClassDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classVPzbufaClassDesc" kindref="compound">VPzbufaClassDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classVPzbufaClassDesc_1adf2d7fce732184583cd278bde7f3cd30" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classVPzbufaClassDesc_1a8cb42605508a8d330f5c1da3a55d0863" kindref="member">Create</ref>(BOOL<sp/>loading)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classVPzbufa" kindref="compound">VPzbufa</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPzbufaClassDesc_1ac0b1b92998d94ad257a47eedb9fc34ad" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;VPzbuf2a&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classVPzbufaClassDesc_1a3544fb3e5fc8e6b9bde0bbeea712a217" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classVPzbufaClassDesc_1ac0b1b92998d94ad257a47eedb9fc34ad" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classVPzbufaClassDesc_1a3544fb3e5fc8e6b9bde0bbeea712a217" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classVPzbufaClassDesc_1ac0b1b92998d94ad257a47eedb9fc34ad" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classVPzbufaClassDesc_1a896ec79ad26f79116df4dc0114615563" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FLT_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classVPzbufaClassDesc_1a9f2f9aa444b048078fa9c579f6e2b390" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a59dc17cc24637a4258d655d40e1bcea9" kindref="member">VPZBUF_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classVPzbufaClassDesc_1abe6dafb136f5fd9dfedca65e1688391a" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classVPzbufaClassDesc" kindref="compound">VPzbufaClassDesc</ref><sp/>VPzbufaCD;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">ClassDesc<sp/>*<ref refid="vpconv_8cpp_1ae4377332d5b625bf84821942642e3ba6" kindref="member">GetVPzbufCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;VPzbufaCD;<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="vpconv.cpp"/>
+  </compounddef>
+</doxygen>

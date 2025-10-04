@@ -1,0 +1,680 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagImp" kind="class" language="C++" prot="public">
+    <compoundname>DagImp</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SceneImport</basecompoundref>
+    <innerclass refid="structDagImp_1_1Categories" prot="public">DagImp::Categories</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDagImp_1a1d12c2444eae41164409f661f59a25b8" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::separateLayers</definition>
+        <argsstring></argsstring>
+        <name>separateLayers</name>
+        <qualifiedname>DagImp::separateLayers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="363" column="15" bodyfile="dagimp.cpp" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1ae89838cf454485eaab1a6f5b752f4c15" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::useLegacyImport</definition>
+        <argsstring></argsstring>
+        <name>useLegacyImport</name>
+        <qualifiedname>DagImp::useLegacyImport</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="365" column="15" bodyfile="dagimp.cpp" bodystart="365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1aed5e30f8490310f5b2b512ea7f98587e" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::searchInSubfolders</definition>
+        <argsstring></argsstring>
+        <name>searchInSubfolders</name>
+        <qualifiedname>DagImp::searchInSubfolders</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="366" column="15" bodyfile="dagimp.cpp" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1a6a73e019f74e964f8a0121334ffb9903" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::reimportExisting</definition>
+        <argsstring></argsstring>
+        <name>reimportExisting</name>
+        <qualifiedname>DagImp::reimportExisting</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="367" column="15" bodyfile="dagimp.cpp" bodystart="367" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1ab1597f608c0098f1df0acf54f9ca1b17" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::nonInteractive</definition>
+        <argsstring></argsstring>
+        <name>nonInteractive</name>
+        <qualifiedname>DagImp::nonInteractive</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="369" column="15" bodyfile="dagimp.cpp" bodystart="369" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1af4fa04ae6927daef2847cf022afd47fd" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagImp::calledFromBatchImport</definition>
+        <argsstring></argsstring>
+        <name>calledFromBatchImport</name>
+        <qualifiedname>DagImp::calledFromBatchImport</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="370" column="15" bodyfile="dagimp.cpp" bodystart="370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" prot="public" static="yes" mutable="no">
+        <type>struct <ref refid="structDagImp_1_1Categories" kindref="compound">Categories</ref></type>
+        <definition>DagImp::Categories DagImp::checked</definition>
+        <argsstring></argsstring>
+        <name>checked</name>
+        <qualifiedname>DagImp::checked</qualifiedname>
+        <initializer>= {true, true, true, true}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="383" column="26" bodyfile="dagimp.cpp" bodystart="383" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1ab8197c0af5ecad271da496a2f5ac2095" prot="public" static="yes" mutable="no">
+        <type>struct <ref refid="structDagImp_1_1Categories" kindref="compound">Categories</ref></type>
+        <definition>DagImp::Categories DagImp::detected</definition>
+        <argsstring></argsstring>
+        <name>detected</name>
+        <qualifiedname>DagImp::detected</qualifiedname>
+        <initializer>= {false, false, false, false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="384" column="26" bodyfile="dagimp.cpp" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1aab7bf3e54d9079f0425c2bd67c265746" prot="public" static="yes" mutable="no">
+        <type>ToolTipExtender</type>
+        <definition>ToolTipExtender DagImp::tooltipExtender</definition>
+        <argsstring></argsstring>
+        <name>tooltipExtender</name>
+        <qualifiedname>DagImp::tooltipExtender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="385" column="26" bodyfile="dagimp.cpp" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1a3555246bf49a7cf63848c468cbf75d26" prot="public" static="yes" mutable="no">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt; TSTR &gt; DagImp::batchImportFiles</definition>
+        <argsstring></argsstring>
+        <name>batchImportFiles</name>
+        <qualifiedname>DagImp::batchImportFiles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="387" column="22" bodyfile="dagimp.cpp" bodystart="387" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagImp_1ab8685f3fdc76d40008c8c07f7db3689e" prot="public" static="yes" mutable="no">
+        <type>std::unordered_set&lt; <ref refid="structImportedFile" kindref="compound">ImportedFile</ref>, <ref refid="structImportedFileHash" kindref="compound">ImportedFileHash</ref> &gt;</type>
+        <definition>std::unordered_set&lt; ImportedFile, ImportedFileHash &gt; DagImp::importedFiles</definition>
+        <argsstring></argsstring>
+        <name>importedFiles</name>
+        <qualifiedname>DagImp::importedFiles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="388" column="29" bodyfile="dagimp.cpp" bodystart="388" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagImp_1a812f8ca0d79d104b42f2692bef9d3951" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagImp::DagImp</definition>
+        <argsstring>()</argsstring>
+        <name>DagImp</name>
+        <qualifiedname>DagImp::DagImp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="343" column="3" bodyfile="dagimp.cpp" bodystart="343" bodyend="343"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1ab2057d6a44191a3103844631307a89f7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagImp::~DagImp</definition>
+        <argsstring>() override</argsstring>
+        <name>~DagImp</name>
+        <qualifiedname>DagImp::~DagImp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="344" column="3" bodyfile="dagimp.cpp" bodystart="344" bodyend="344"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a2e4b9117a75efabd0c98cba92cf41513" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::ExtCount</definition>
+        <argsstring>() override</argsstring>
+        <name>ExtCount</name>
+        <qualifiedname>DagImp::ExtCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="346" column="7" bodyfile="dagimp.cpp" bodystart="346" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1ac9d191cff98462f15f579257ffb284cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::Ext</definition>
+        <argsstring>(int n) override</argsstring>
+        <name>Ext</name>
+        <qualifiedname>DagImp::Ext</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="347" column="15" bodyfile="dagimp.cpp" bodystart="347" bodyend="347"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a9620302be9826d316d7882c5b6d66b10" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::LongDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>LongDesc</name>
+        <qualifiedname>DagImp::LongDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="349" column="15" bodyfile="dagimp.cpp" bodystart="349" bodyend="349"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1aa8eb9eb2e0b417dcf20371ea8df861b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::ShortDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>ShortDesc</name>
+        <qualifiedname>DagImp::ShortDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="350" column="15" bodyfile="dagimp.cpp" bodystart="350" bodyend="350"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a23e5d4a244120ee5c6bc8dd930302fe2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::AuthorName</definition>
+        <argsstring>() override</argsstring>
+        <name>AuthorName</name>
+        <qualifiedname>DagImp::AuthorName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="351" column="15" bodyfile="dagimp.cpp" bodystart="351" bodyend="351"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a0fd50bbebcefe09def54a72405915cc5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::CopyrightMessage</definition>
+        <argsstring>() override</argsstring>
+        <name>CopyrightMessage</name>
+        <qualifiedname>DagImp::CopyrightMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="352" column="15" bodyfile="dagimp.cpp" bodystart="352" bodyend="352"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a0d337ffbc838237f60b3dda8b99b5d5b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::OtherMessage1</definition>
+        <argsstring>() override</argsstring>
+        <name>OtherMessage1</name>
+        <qualifiedname>DagImp::OtherMessage1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="353" column="15" bodyfile="dagimp.cpp" bodystart="353" bodyend="353"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a2790cc26ea077d23ef35b2027d8ba389" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImp::OtherMessage2</definition>
+        <argsstring>() override</argsstring>
+        <name>OtherMessage2</name>
+        <qualifiedname>DagImp::OtherMessage2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="354" column="15" bodyfile="dagimp.cpp" bodystart="354" bodyend="354"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a4b7bfd59bcba9bb00458e95ec0b45957" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int DagImp::Version</definition>
+        <argsstring>() override</argsstring>
+        <name>Version</name>
+        <qualifiedname>DagImp::Version</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="356" column="16" bodyfile="dagimp.cpp" bodystart="356" bodyend="356"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a9c0ab9528493f62ffbdd214f5ea19c8b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagImp::ShowAbout</definition>
+        <argsstring>(HWND hWnd) override</argsstring>
+        <name>ShowAbout</name>
+        <qualifiedname>DagImp::ShowAbout</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="358" column="8" bodyfile="dagimp.cpp" bodystart="358" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1af2ba2d0d275e03c8753f75812f3d5b17" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::DoImport</definition>
+        <argsstring>(const TCHAR *name, ImpInterface *ii, Interface *i, BOOL suppressPrompts=FALSE) override</argsstring>
+        <name>DoImport</name>
+        <qualifiedname>DagImp::DoImport</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>suppressPrompts</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="360" column="7" bodyfile="dagimp.cpp" bodystart="2818" bodyend="2850"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a1d928bae92dbdbb33e0881d947a9913b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::doImportOne</definition>
+        <argsstring>(const TCHAR *name, ImpInterface *ii, Interface *i, BOOL suppressPrompts)</argsstring>
+        <name>doImportOne</name>
+        <qualifiedname>DagImp::doImportOne</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>suppressPrompts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="361" column="7" bodyfile="dagimp.cpp" bodystart="2881" bodyend="3121"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDagImp_1a31d90ba86ca25eda37e19bf59230c2d3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::doHierImport</definition>
+        <argsstring>(const TSTR &amp;fname, ImpInterface *ii, Interface *ip, bool suppressPrompts)</argsstring>
+        <name>doHierImport</name>
+        <qualifiedname>DagImp::doHierImport</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>suppressPrompts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="391" column="7" bodyfile="dagimp.cpp" bodystart="2626" bodyend="2731"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a2da9c1610093a3eab6b250c2556a6651" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagImp::makeHierLayer</definition>
+        <argsstring>(const std::vector&lt; TSTR &gt; &amp;fnames, ImpInterface *ii, Interface *ip, bool nomsg)</argsstring>
+        <name>makeHierLayer</name>
+        <qualifiedname>DagImp::makeHierLayer</qualifiedname>
+        <param>
+          <type>const std::vector&lt; TSTR &gt; &amp;</type>
+          <declname>fnames</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nomsg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="392" column="8" bodyfile="dagimp.cpp" bodystart="2560" bodyend="2602"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1afc1b623df99a46f2e1a34b6f4909c2f9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagImp::makeHierLayer</definition>
+        <argsstring>(const TSTR &amp;fname, ImpInterface *ii, Interface *ip, bool nomsg)</argsstring>
+        <name>makeHierLayer</name>
+        <qualifiedname>DagImp::makeHierLayer</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nomsg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="393" column="8" bodyfile="dagimp.cpp" bodystart="2604" bodyend="2624"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1abe5f18a068bc07bf15696412de610c1e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::doLegacyImport</definition>
+        <argsstring>(const TCHAR *fname, ImpInterface *ii, Interface *ip, bool nomsg)</argsstring>
+        <name>doLegacyImport</name>
+        <qualifiedname>DagImp::doLegacyImport</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nomsg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="395" column="7" bodyfile="dagimp.cpp" bodystart="2734" bodyend="2770"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a076da27f46637ad61f2da99ea2cf634a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::doBatchImport</definition>
+        <argsstring>(const TSTR &amp;fname, ImpInterface *ii, Interface *ip, bool nomsg)</argsstring>
+        <name>doBatchImport</name>
+        <qualifiedname>DagImp::doBatchImport</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nomsg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="396" column="7" bodyfile="dagimp.cpp" bodystart="2774" bodyend="2808"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1afb13794db28a1dcd9dc010653ee0f6f3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImp::doMaxscriptImport</definition>
+        <argsstring>(const TSTR &amp;fname, ImpInterface *ii, Interface *ip, bool nomsg)</argsstring>
+        <name>doMaxscriptImport</name>
+        <qualifiedname>DagImp::doMaxscriptImport</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>ImpInterface *</type>
+          <declname>ii</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nomsg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="397" column="7" bodyfile="dagimp.cpp" bodystart="2810" bodyend="2813"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImp_1a5e832a42f674163bee549caebf759250" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagImp::isNamesake</definition>
+        <argsstring>(const TSTR &amp;fname) const</argsstring>
+        <name>isNamesake</name>
+        <qualifiedname>DagImp::isNamesake</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="399" column="8" bodyfile="dagimp.cpp" bodystart="2852" bodyend="2871"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagImp</label>
+        <link refid="classDagImp"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SceneImport</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DagImp</label>
+        <link refid="classDagImp"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>checked</edgelabel>
+          <edgelabel>detected</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DagImp::Categories</label>
+        <link refid="structDagImp_1_1Categories"/>
+      </node>
+      <node id="2">
+        <label>SceneImport</label>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="340" column="1" bodyfile="dagimp.cpp" bodystart="341" bodyend="400"/>
+    <listofallmembers>
+      <member refid="classDagImp_1a23e5d4a244120ee5c6bc8dd930302fe2" prot="public" virt="non-virtual"><scope>DagImp</scope><name>AuthorName</name></member>
+      <member refid="classDagImp_1a3555246bf49a7cf63848c468cbf75d26" prot="public" virt="non-virtual"><scope>DagImp</scope><name>batchImportFiles</name></member>
+      <member refid="classDagImp_1af4fa04ae6927daef2847cf022afd47fd" prot="public" virt="non-virtual"><scope>DagImp</scope><name>calledFromBatchImport</name></member>
+      <member refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" prot="public" virt="non-virtual"><scope>DagImp</scope><name>checked</name></member>
+      <member refid="classDagImp_1a0fd50bbebcefe09def54a72405915cc5" prot="public" virt="non-virtual"><scope>DagImp</scope><name>CopyrightMessage</name></member>
+      <member refid="classDagImp_1a812f8ca0d79d104b42f2692bef9d3951" prot="public" virt="non-virtual"><scope>DagImp</scope><name>DagImp</name></member>
+      <member refid="classDagImp_1ab8197c0af5ecad271da496a2f5ac2095" prot="public" virt="non-virtual"><scope>DagImp</scope><name>detected</name></member>
+      <member refid="classDagImp_1a076da27f46637ad61f2da99ea2cf634a" prot="private" virt="non-virtual"><scope>DagImp</scope><name>doBatchImport</name></member>
+      <member refid="classDagImp_1a31d90ba86ca25eda37e19bf59230c2d3" prot="private" virt="non-virtual"><scope>DagImp</scope><name>doHierImport</name></member>
+      <member refid="classDagImp_1af2ba2d0d275e03c8753f75812f3d5b17" prot="public" virt="non-virtual"><scope>DagImp</scope><name>DoImport</name></member>
+      <member refid="classDagImp_1a1d928bae92dbdbb33e0881d947a9913b" prot="public" virt="non-virtual"><scope>DagImp</scope><name>doImportOne</name></member>
+      <member refid="classDagImp_1abe5f18a068bc07bf15696412de610c1e" prot="private" virt="non-virtual"><scope>DagImp</scope><name>doLegacyImport</name></member>
+      <member refid="classDagImp_1afb13794db28a1dcd9dc010653ee0f6f3" prot="private" virt="non-virtual"><scope>DagImp</scope><name>doMaxscriptImport</name></member>
+      <member refid="classDagImp_1ac9d191cff98462f15f579257ffb284cf" prot="public" virt="non-virtual"><scope>DagImp</scope><name>Ext</name></member>
+      <member refid="classDagImp_1a2e4b9117a75efabd0c98cba92cf41513" prot="public" virt="non-virtual"><scope>DagImp</scope><name>ExtCount</name></member>
+      <member refid="classDagImp_1ab8685f3fdc76d40008c8c07f7db3689e" prot="public" virt="non-virtual"><scope>DagImp</scope><name>importedFiles</name></member>
+      <member refid="classDagImp_1a5e832a42f674163bee549caebf759250" prot="private" virt="non-virtual"><scope>DagImp</scope><name>isNamesake</name></member>
+      <member refid="classDagImp_1a9620302be9826d316d7882c5b6d66b10" prot="public" virt="non-virtual"><scope>DagImp</scope><name>LongDesc</name></member>
+      <member refid="classDagImp_1a2da9c1610093a3eab6b250c2556a6651" prot="private" virt="non-virtual"><scope>DagImp</scope><name>makeHierLayer</name></member>
+      <member refid="classDagImp_1afc1b623df99a46f2e1a34b6f4909c2f9" prot="private" virt="non-virtual"><scope>DagImp</scope><name>makeHierLayer</name></member>
+      <member refid="classDagImp_1ab1597f608c0098f1df0acf54f9ca1b17" prot="public" virt="non-virtual"><scope>DagImp</scope><name>nonInteractive</name></member>
+      <member refid="classDagImp_1a0d337ffbc838237f60b3dda8b99b5d5b" prot="public" virt="non-virtual"><scope>DagImp</scope><name>OtherMessage1</name></member>
+      <member refid="classDagImp_1a2790cc26ea077d23ef35b2027d8ba389" prot="public" virt="non-virtual"><scope>DagImp</scope><name>OtherMessage2</name></member>
+      <member refid="classDagImp_1a6a73e019f74e964f8a0121334ffb9903" prot="public" virt="non-virtual"><scope>DagImp</scope><name>reimportExisting</name></member>
+      <member refid="classDagImp_1aed5e30f8490310f5b2b512ea7f98587e" prot="public" virt="non-virtual"><scope>DagImp</scope><name>searchInSubfolders</name></member>
+      <member refid="classDagImp_1a1d12c2444eae41164409f661f59a25b8" prot="public" virt="non-virtual"><scope>DagImp</scope><name>separateLayers</name></member>
+      <member refid="classDagImp_1aa8eb9eb2e0b417dcf20371ea8df861b2" prot="public" virt="non-virtual"><scope>DagImp</scope><name>ShortDesc</name></member>
+      <member refid="classDagImp_1a9c0ab9528493f62ffbdd214f5ea19c8b" prot="public" virt="non-virtual"><scope>DagImp</scope><name>ShowAbout</name></member>
+      <member refid="classDagImp_1aab7bf3e54d9079f0425c2bd67c265746" prot="public" virt="non-virtual"><scope>DagImp</scope><name>tooltipExtender</name></member>
+      <member refid="classDagImp_1ae89838cf454485eaab1a6f5b752f4c15" prot="public" virt="non-virtual"><scope>DagImp</scope><name>useLegacyImport</name></member>
+      <member refid="classDagImp_1a4b7bfd59bcba9bb00458e95ec0b45957" prot="public" virt="non-virtual"><scope>DagImp</scope><name>Version</name></member>
+      <member refid="classDagImp_1ab2057d6a44191a3103844631307a89f7" prot="public" virt="non-virtual"><scope>DagImp</scope><name>~DagImp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

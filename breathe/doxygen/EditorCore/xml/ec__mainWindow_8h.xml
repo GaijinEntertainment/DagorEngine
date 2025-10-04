@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__mainWindow_8h" kind="file" language="C++">
+    <compoundname>ec_mainWindow.h</compoundname>
+    <includes local="no">EASTL/functional.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_mainWindow.h</label>
+        <link refid="ec__mainWindow_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/functional.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="4">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="5">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classEditorMainWindow" prot="public">EditorMainWindow</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/functional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManager" kindref="compound">IWndManager</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="classEditorMainWindow" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditorMainWindow" kindref="compound">EditorMainWindow</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It<sp/>must<sp/>return<sp/>true<sp/>if<sp/>the<sp/>drag<sp/>and<sp/>drop<sp/>has<sp/>been<sp/>handled.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>eastl::function&lt;bool(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>dag::Vector&lt;String&gt;<sp/>&amp;files)&gt;<sp/><ref refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" kindref="member">FileDropHandler</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classEditorMainWindow_1ab42d20e38811ba0b23f7daaa31e7613e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classEditorMainWindow_1ab42d20e38811ba0b23f7daaa31e7613e" kindref="member">EditorMainWindow</ref>(<ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref><sp/>&amp;event_handler);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>file_drop_handler:<sp/>if<sp/>it<sp/>is<sp/>set<sp/>then<sp/>the<sp/>main<sp/>window<sp/>will<sp/>accept<sp/>drag<sp/>and<sp/>dropped<sp/>files<sp/>from<sp/>Windows.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>bg_color:<sp/>background<sp/>color<sp/>of<sp/>the<sp/>window<sp/>(can<sp/>be<sp/>seen<sp/>before<sp/>d3d<sp/>starts<sp/>drawing)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classEditorMainWindow_1ae9d9bb4299055c630a5cab49a9728131" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorMainWindow_1ae9d9bb4299055c630a5cab49a9728131" kindref="member">run</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*icon,<sp/><ref refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" kindref="member">FileDropHandler</ref><sp/>file_drop_handler<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>E3DCOLOR<sp/>bg_color<sp/>=<sp/>E3DCOLOR(229,<sp/>229,<sp/>229));</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classEditorMainWindow_1af39e0848a4f81e14471856c95a511a2f" refkind="member"><highlight class="normal"><sp/><sp/>intptr_t<sp/><ref refid="classEditorMainWindow_1af39e0848a4f81e14471856c95a511a2f" kindref="member">windowProc</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*h_wnd,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>msg,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*w_param,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*l_param);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*createWindowManager();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onMainWindowCreated();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onClose();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>close();</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>onMouseButtonDown(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>onMouseButtonUp(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref><sp/>&amp;eventHandler;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*mainHwnd<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;IWndManager&gt;<sp/>wndManager;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" kindref="member">FileDropHandler</ref><sp/>fileDropHandler;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_mainWindow.h"/>
+  </compounddef>
+</doxygen>

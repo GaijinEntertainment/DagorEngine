@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableSet" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableSet</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableSet_1a904b37ad4e5c10d8770821fd4503d67e" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableOffset" kindref="compound">ShaderBindingTableOffset</ref></type>
+        <definition>ShaderBindingTableOffset raytrace::ShaderBindingTableSet::rayGenGroup</definition>
+        <argsstring></argsstring>
+        <name>rayGenGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableSet::rayGenGroup</qualifiedname>
+        <briefdescription>
+<para>ray gen group binding table data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="924" column="28" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="924" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableSet_1a26a0ec26a9e6031b0c581d672ee6294d" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref></type>
+        <definition>ShaderBindingTableSubRange raytrace::ShaderBindingTableSet::missGroup</definition>
+        <argsstring></argsstring>
+        <name>missGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableSet::missGroup</qualifiedname>
+        <briefdescription>
+<para>miss group binding table data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="926" column="30" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="926" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableSet_1ae79b31835f274477efaca586bad322e5" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref></type>
+        <definition>ShaderBindingTableSubRange raytrace::ShaderBindingTableSet::hitGroup</definition>
+        <argsstring></argsstring>
+        <name>hitGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableSet::hitGroup</qualifiedname>
+        <briefdescription>
+<para>hit group binding table data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="928" column="30" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="928" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableSet_1af1295426b2e92f41509e4a7053eb11ca" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref></type>
+        <definition>ShaderBindingTableSubRange raytrace::ShaderBindingTableSet::callableGroup</definition>
+        <argsstring></argsstring>
+        <name>callableGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableSet::callableGroup</qualifiedname>
+        <briefdescription>
+<para>callable group binding table data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="930" column="30" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="930" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Shader binding table set, it contains all the binding table data for all shader groups. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>bindingTableBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableSet</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSet"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>rayGenGroup</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>callableGroup</edgelabel>
+          <edgelabel>hitGroup</edgelabel>
+          <edgelabel>missGroup</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>raytrace::ShaderBindingTableSubRange</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSubRange"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="921" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="922" bodyend="931"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableSet_1af1295426b2e92f41509e4a7053eb11ca" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSet</scope><name>callableGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableSet_1ae79b31835f274477efaca586bad322e5" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSet</scope><name>hitGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableSet_1a26a0ec26a9e6031b0c581d672ee6294d" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSet</scope><name>missGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableSet_1a904b37ad4e5c10d8770821fd4503d67e" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSet</scope><name>rayGenGroup</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

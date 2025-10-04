@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__fencedRingBuffer_8h" kind="file" language="C++">
+    <compoundname>dag_fencedRingBuffer.h</compoundname>
+    <includes local="no">EASTL/deque.h</includes>
+    <includes local="no">stdint.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">drv/3d/dag_query.h</includes>
+    <includedby refid="dag__gpuEventRingBuffer_8h" local="no">dag_gpuEventRingBuffer.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_fencedRingBuffer.h</label>
+        <link refid="dag__fencedRingBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/deque.h</label>
+      </node>
+      <node id="4">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+      <node id="3">
+        <label>stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_fencedRingBuffer.h</label>
+        <link refid="dag__fencedRingBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_gpuEventRingBuffer.h</label>
+        <link refid="dag__gpuEventRingBuffer_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classFencedRingBuffer" prot="public">FencedRingBuffer</innerclass>
+    <innerclass refid="structFencedRingBuffer_1_1FrameHeadAttribs" prot="public">FencedRingBuffer::FrameHeadAttribs</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/deque.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_query.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>FenceType<sp/>=<sp/>D3dEventQuery<sp/>*&gt;</highlight></codeline>
+<codeline lineno="13" refid="classFencedRingBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16" refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>=<sp/>size_t;</highlight></codeline>
+<codeline lineno="17" refid="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" kindref="member">invalid_offset</ref><sp/>=<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref>(~<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref>(0));</highlight></codeline>
+<codeline lineno="18" refid="structFencedRingBuffer_1_1FrameHeadAttribs" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs" kindref="compound">FrameHeadAttribs</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="20" refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a0ea0f549888ed28d9bec4108e308db73" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a0ea0f549888ed28d9bec4108e308db73" kindref="member">FrameHeadAttribs</ref>(FenceType<sp/>&amp;&amp;f,<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>off,<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>sz)<sp/>:<sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a6bef2ad923b325e715b410ad2c14e0a3" kindref="member">fence</ref>(eastl::move(f)),<sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a34a81651c81c1cd50ae6c5e3c1e1113b" kindref="member">offset</ref>(off),<sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a2338b3cbb850555178e5a29b783061be" kindref="member">size</ref>(sz)<sp/>{}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a6bef2ad923b325e715b410ad2c14e0a3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>FenceType<sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a6bef2ad923b325e715b410ad2c14e0a3" kindref="member">fence</ref>;</highlight></codeline>
+<codeline lineno="23" refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a34a81651c81c1cd50ae6c5e3c1e1113b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a34a81651c81c1cd50ae6c5e3c1e1113b" kindref="member">offset</ref>;</highlight></codeline>
+<codeline lineno="24" refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a2338b3cbb850555178e5a29b783061be" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a2338b3cbb850555178e5a29b783061be" kindref="member">size</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="classFencedRingBuffer_1a332ce2f9890205786f067392eb4b4be6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a332ce2f9890205786f067392eb4b4be6" kindref="member">FencedRingBuffer</ref>(<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>sz)<sp/>:<sp/>maxSize(sz)<sp/>{}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classFencedRingBuffer_1adbda65e8d56decd8a30630106ad94201" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1adbda65e8d56decd8a30630106ad94201" kindref="member">FencedRingBuffer</ref>(<ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;&amp;a)<sp/>:</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>completedFrameHeads(eastl::move(a.completedFrameHeads)),</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>tail(a.tail),</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>head(a.head),</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>maxSize(a.maxSize),</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>usedSize(a.usedSize),</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>currentFrameSize(a.currentFrameSize)</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>a.tail<sp/>=<sp/>a.head<sp/>=<sp/>a.maxSize<sp/>=<sp/>a.usedSize<sp/>=<sp/>a.currentFrameSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="classFencedRingBuffer_1aa0ba1fcddc9c307cf333176fee1cc504" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;<ref refid="classFencedRingBuffer_1aa0ba1fcddc9c307cf333176fee1cc504" kindref="member">operator=</ref>(<ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;&amp;a)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>completedFrameHeads<sp/>=<sp/>eastl::move(a.completedFrameHeads);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>tail<sp/>=<sp/>a.tail;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>head<sp/>=<sp/>a.head;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>maxSize<sp/>=<sp/>a.maxSize;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>usedSize<sp/>=<sp/>a.usedSize;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>currentFrameSize<sp/>=<sp/>a.currentFrameSize;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>a.tail<sp/>=<sp/>a.head<sp/>=<sp/>a.maxSize<sp/>=<sp/>a.usedSize<sp/>=<sp/>a.currentFrameSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classFencedRingBuffer_1aafe88b529433a6f1dde2d604123ed392" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1aafe88b529433a6f1dde2d604123ed392" kindref="member">FencedRingBuffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54" refid="classFencedRingBuffer_1a53759263ac4e3c8648ce4ac2281c17ff" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;<ref refid="classFencedRingBuffer_1a53759263ac4e3c8648ce4ac2281c17ff" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classFencedRingBuffer_1ac7b74f9ff83a7541d5723ff14bc1cf76" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1ac7b74f9ff83a7541d5723ff14bc1cf76" kindref="member">~FencedRingBuffer</ref>()<sp/>{<sp/>G_ASSERTF(usedSize<sp/>==<sp/>0,<sp/></highlight><highlight class="stringliteral">&quot;Ring<sp/>buffer<sp/>must<sp/>be<sp/>released&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" kindref="member">allocateFromHead</ref>(<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>size,<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>alignedHead)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Allocate<sp/>from<sp/>current<sp/>head</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>offset<sp/>=<sp/>alignedHead;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>adjustedSize<sp/>=<sp/>size<sp/>+<sp/>(alignedHead<sp/>-<sp/>head);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>head<sp/>+=<sp/>adjustedSize;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>usedSize<sp/>+=<sp/>adjustedSize;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>currentFrameSize<sp/>+=<sp/>adjustedSize;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offset;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="classFencedRingBuffer_1a4482c78657175f2debc4ba82aca42cb6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1a4482c78657175f2debc4ba82aca42cb6" kindref="member">allocate</ref>(<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>size,<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>alignment)<sp/></highlight><highlight class="comment">//<sp/>returns<sp/>allocated<sp/>offset</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(size<sp/>&gt;<sp/>0);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>size<sp/>=<sp/>((size<sp/>+<sp/>alignment<sp/>-<sp/>1)<sp/>/<sp/>alignment)<sp/>*<sp/>alignment;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(usedSize<sp/>+<sp/>size<sp/>&gt;<sp/>maxSize)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" kindref="member">invalid_offset</ref>;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>alignedHead<sp/>=<sp/>((head<sp/>+<sp/>alignment<sp/>-<sp/>1)<sp/>/<sp/>alignment)<sp/>*<sp/>alignment;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(head<sp/>&gt;=<sp/>tail)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(alignedHead<sp/>+<sp/>size<sp/>&lt;=<sp/>maxSize)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" kindref="member">allocateFromHead</ref>(size,<sp/>alignedHead);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(size<sp/>&lt;=<sp/>tail)</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Allocate<sp/>from<sp/>the<sp/>beginning<sp/>of<sp/>the<sp/>buffer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>addSize<sp/>=<sp/>(maxSize<sp/>-<sp/>head)<sp/>+<sp/>size;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>usedSize<sp/>+=<sp/>addSize;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>currentFrameSize<sp/>+=<sp/>addSize;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>head<sp/>=<sp/>size;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(alignedHead<sp/>+<sp/>size<sp/>&lt;=<sp/>tail)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" kindref="member">allocateFromHead</ref>(size,<sp/>alignedHead);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" kindref="member">invalid_offset</ref>;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="103" refid="classFencedRingBuffer_1aad8c94a97896cf6d3bc08e3104068eab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1aad8c94a97896cf6d3bc08e3104068eab" kindref="member">updateLast</ref>(intptr_t<sp/>allocated_minus_actual_used)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(head<sp/>&gt;=<sp/>allocated_minus_actual_used<sp/>&amp;&amp;<sp/>currentFrameSize<sp/>&gt;=<sp/>allocated_minus_actual_used);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>head<sp/>-=<sp/>allocated_minus_actual_used;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>currentFrameSize<sp/>-=<sp/>allocated_minus_actual_used;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>fv<sp/>is<sp/>the<sp/>fence<sp/>value<sp/>associated<sp/>with<sp/>the<sp/>command<sp/>list<sp/>in<sp/>which<sp/>the<sp/>head.<sp/>Currently<sp/>we<sp/>use<sp/>only<sp/>one<sp/>gpu<sp/>fence</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="classFencedRingBuffer_1a5fa4986ea31618b4c7afd12c3aec7756" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a5fa4986ea31618b4c7afd12c3aec7756" kindref="member">finishCurrentFrame</ref>(FenceType<sp/>&amp;&amp;fv)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Ignore<sp/>zero-size<sp/>frames</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(currentFrameSize<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>completedFrameHeads.emplace_back(eastl::move(fv),<sp/>head,<sp/>currentFrameSize);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>currentFrameSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>GPU<sp/>progress</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>currently<sp/>use<sp/>d3d::get_event_query_status(completedFrameHeads.front().fence,<sp/>false)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>IsFinishedFence&gt;</highlight></codeline>
+<codeline lineno="124" refid="classFencedRingBuffer_1aef8e555780f82fbc5a8a324ebd3d7239" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1aef8e555780f82fbc5a8a324ebd3d7239" kindref="member">releaseCompletedFrames</ref>(IsFinishedFence<sp/>finished)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>We<sp/>can<sp/>release<sp/>all<sp/>heads<sp/>whose<sp/>associated<sp/>fence<sp/>value<sp/>is<sp/>less<sp/>than<sp/>or<sp/>equal<sp/>to<sp/>CompletedFenceValue</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!completedFrameHeads.empty()<sp/>&amp;&amp;<sp/>finished(completedFrameHeads.front().fence))</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;oldestFrameHead<sp/>=<sp/>completedFrameHeads.front();</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(oldestFrameHead.size<sp/>&lt;=<sp/>usedSize);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>usedSize<sp/>-=<sp/>oldestFrameHead.size;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tail<sp/>=<sp/>oldestFrameHead.offset;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>completedFrameHeads.pop_front();</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFencedRingBuffer_1a322a0d35d4d8c028bb58a5ff444984d2" kindref="member">isEmpty</ref>())</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>completedFrameHeads.clear();</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tail<sp/>=<sp/>head<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142" refid="classFencedRingBuffer_1ae04b5ec9b92a5cf9b0c78b6560b26f5d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1ae04b5ec9b92a5cf9b0c78b6560b26f5d" kindref="member">forceReset</ref>()<sp/></highlight><highlight class="comment">//<sp/>on<sp/>reset</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/>completedFrameHeads.clear();</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/>tail<sp/>=<sp/>head<sp/>=<sp/>usedSize<sp/>=<sp/>currentFrameSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="147" refid="classFencedRingBuffer_1a4c3c4c8ed07c9f5f7cd2bd8ebf3b766e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a4c3c4c8ed07c9f5f7cd2bd8ebf3b766e" kindref="member">reset</ref>(<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>sz)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>maxSize<sp/>=<sp/>sz;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFencedRingBuffer_1ae04b5ec9b92a5cf9b0c78b6560b26f5d" kindref="member">forceReset</ref>();</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="classFencedRingBuffer_1aa1c061599907ba367413c2895984bbf6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1aa1c061599907ba367413c2895984bbf6" kindref="member">getMaxSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>maxSize;<sp/>}</highlight></codeline>
+<codeline lineno="154" refid="classFencedRingBuffer_1a5bb126c79d9a46f0f86785866698cafa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a5bb126c79d9a46f0f86785866698cafa" kindref="member">isFull</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usedSize<sp/>==<sp/>maxSize;<sp/>};</highlight></codeline>
+<codeline lineno="155" refid="classFencedRingBuffer_1a322a0d35d4d8c028bb58a5ff444984d2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classFencedRingBuffer_1a322a0d35d4d8c028bb58a5ff444984d2" kindref="member">isEmpty</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usedSize<sp/>==<sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="156" refid="classFencedRingBuffer_1a40691fcf82c11c20ca9fb26652d34d66" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1a40691fcf82c11c20ca9fb26652d34d66" kindref="member">getUsedSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usedSize;<sp/>}</highlight></codeline>
+<codeline lineno="157" refid="classFencedRingBuffer_1a1b4c1b50240eac2d084e973e35c08dbf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1a1b4c1b50240eac2d084e973e35c08dbf" kindref="member">getHead</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>head;<sp/>}</highlight></codeline>
+<codeline lineno="158" refid="classFencedRingBuffer_1ab235a52ae47c423174aa0b61fabc338b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1ab235a52ae47c423174aa0b61fabc338b" kindref="member">getTail</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tail;<sp/>}</highlight></codeline>
+<codeline lineno="159" refid="classFencedRingBuffer_1ad00b953afe172aa2bbcdf7be8be226c0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/><ref refid="classFencedRingBuffer_1ad00b953afe172aa2bbcdf7be8be226c0" kindref="member">getCurrentFrameSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>currentFrameSize;<sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>eastl::deque&lt;FrameHeadAttribs&gt;<sp/>completedFrameHeads;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>tail<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>head<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>maxSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>usedSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref><sp/>currentFrameSize<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_fencedRingBuffer.h"/>
+  </compounddef>
+</doxygen>

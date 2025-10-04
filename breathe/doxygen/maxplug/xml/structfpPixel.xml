@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structfpPixel" kind="struct" language="C++" prot="public">
+    <compoundname>fpPixel</compoundname>
+    <includes refid="tPixel_8h" local="no">tPixel.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structfpPixel_1a330dac58113e69afd2da41b4dd3315a0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float fpPixel::fp[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>fp</name>
+        <qualifiedname>fpPixel::fp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="24" column="9" bodyfile="tPixel.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tPixel.h" line="22" column="1" bodyfile="tPixel.h" bodystart="23" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structfpPixel_1a330dac58113e69afd2da41b4dd3315a0" prot="public" virt="non-virtual"><scope>fpPixel</scope><name>fp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

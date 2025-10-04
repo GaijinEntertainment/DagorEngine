@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderHashValue" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderHashValue</compoundname>
+    <innerclass refid="classShaderHashValue_1_1CalculateContext" prot="public">ShaderHashValue::CalculateContext</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structShaderHashValue_1ac7f2fa8d8d8f036021c869a68e29800a" prot="public" static="no">
+        <type>uint8_t</type>
+        <definition>typedef uint8_t ShaderHashValue::ValueType[20]</definition>
+        <argsstring>[20]</argsstring>
+        <name>ValueType</name>
+        <qualifiedname>ShaderHashValue::ValueType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="12" column="19" bodyfile="dag_shaderHash.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderHashValue_1a12b9594325019a57e1b0632b53a546db" prot="public" static="no" mutable="no">
+        <type>ValueType</type>
+        <definition>ValueType ShaderHashValue::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ShaderHashValue::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="13" column="13" bodyfile="dag_shaderHash.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structShaderHashValue_1aaa839a3f2dd2947d155effe8ead3fa22" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const ShaderHashValue &amp;l, const ShaderHashValue &amp;r)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderHashValue::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="15" column="15" bodyfile="dag_shaderHash.h" bodystart="15" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="friend" id="structShaderHashValue_1a59aa468af69570ff9fd569fa4c9212e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator!=</definition>
+        <argsstring>(const ShaderHashValue &amp;l, const ShaderHashValue &amp;r)</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderHashValue::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="22" column="15" bodyfile="dag_shaderHash.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structShaderHashValue_1a3c0742f08c9c78131af3a320cb746562" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref></type>
+        <definition>static ShaderHashValue ShaderHashValue::calculate</definition>
+        <argsstring>(dag::ConstSpan&lt; T &gt; data)</argsstring>
+        <name>calculate</name>
+        <qualifiedname>ShaderHashValue::calculate</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; T &gt;</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="25" column="26" bodyfile="dag_shaderHash.h" bodystart="25" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderHashValue_1a2409d32304c6906ada7f032531cbabac" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref></type>
+        <definition>static ShaderHashValue ShaderHashValue::calculate</definition>
+        <argsstring>(const T *data, size_t count)</argsstring>
+        <name>calculate</name>
+        <qualifiedname>ShaderHashValue::calculate</qualifiedname>
+        <param>
+          <type>const T *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="34" column="26" bodyfile="dag_shaderHash.h" bodystart="34" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderHashValue_1a309b849c6077212b61ce96d0c62bf5f6" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref></type>
+        <definition>static ShaderHashValue ShaderHashValue::fromString</definition>
+        <argsstring>(const char *str, int len=-1)</argsstring>
+        <name>fromString</name>
+        <qualifiedname>ShaderHashValue::fromString</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="42" column="26" bodyfile="dag_shaderHash.h" bodystart="42" bodyend="47"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderHashValue_1a421e2523fd6544b25e85650b3a59c707" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderHashValue::convertToString</definition>
+        <argsstring>(char *buffer, size_t size) const</argsstring>
+        <name>convertToString</name>
+        <qualifiedname>ShaderHashValue::convertToString</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>buffer</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="49" column="8" bodyfile="dag_shaderHash.h" bodystart="49" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderHash.h" line="10" column="1" bodyfile="dag_shaderHash.h" bodystart="11" bodyend="82"/>
+    <listofallmembers>
+      <member refid="structShaderHashValue_1a3c0742f08c9c78131af3a320cb746562" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>calculate</name></member>
+      <member refid="structShaderHashValue_1a2409d32304c6906ada7f032531cbabac" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>calculate</name></member>
+      <member refid="structShaderHashValue_1a421e2523fd6544b25e85650b3a59c707" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>convertToString</name></member>
+      <member refid="structShaderHashValue_1a309b849c6077212b61ce96d0c62bf5f6" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>fromString</name></member>
+      <member refid="structShaderHashValue_1a59aa468af69570ff9fd569fa4c9212e9" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>operator!=</name></member>
+      <member refid="structShaderHashValue_1aaa839a3f2dd2947d155effe8ead3fa22" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>operator==</name></member>
+      <member refid="structShaderHashValue_1a12b9594325019a57e1b0632b53a546db" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>value</name></member>
+      <member refid="structShaderHashValue_1ac7f2fa8d8d8f036021c869a68e29800a" prot="public" virt="non-virtual"><scope>ShaderHashValue</scope><name>ValueType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

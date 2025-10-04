@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindow_1_1Input" kind="struct" language="C++" prot="public">
+    <compoundname>ViewportWindow::Input</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindow_1_1Input_1a325e54b757308524d2ec7fe46560130d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::Input::mouseX</definition>
+        <argsstring></argsstring>
+        <name>mouseX</name>
+        <qualifiedname>ViewportWindow::Input::mouseX</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="344" column="9" bodyfile="ec_ViewportWindow.h" bodystart="344" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1Input_1a3b0424b608dad4bc8fb91e751ca78fd6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ViewportWindow::Input::mouseY</definition>
+        <argsstring></argsstring>
+        <name>mouseY</name>
+        <qualifiedname>ViewportWindow::Input::mouseY</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="345" column="9" bodyfile="ec_ViewportWindow.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1Input_1a861eed6fdd7c2eb41ce73ade1d2e532c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::Input::lmbPressed</definition>
+        <argsstring></argsstring>
+        <name>lmbPressed</name>
+        <qualifiedname>ViewportWindow::Input::lmbPressed</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="346" column="10" bodyfile="ec_ViewportWindow.h" bodystart="346" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1Input_1afecdecd71036eeb5906f807c678a43c6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::Input::rmbPressed</definition>
+        <argsstring></argsstring>
+        <name>rmbPressed</name>
+        <qualifiedname>ViewportWindow::Input::rmbPressed</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="347" column="10" bodyfile="ec_ViewportWindow.h" bodystart="347" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindow.h" line="342" column="3" bodyfile="ec_ViewportWindow.h" bodystart="343" bodyend="348"/>
+    <listofallmembers>
+      <member refid="structViewportWindow_1_1Input_1a861eed6fdd7c2eb41ce73ade1d2e532c" prot="public" virt="non-virtual"><scope>ViewportWindow::Input</scope><name>lmbPressed</name></member>
+      <member refid="structViewportWindow_1_1Input_1a325e54b757308524d2ec7fe46560130d" prot="public" virt="non-virtual"><scope>ViewportWindow::Input</scope><name>mouseX</name></member>
+      <member refid="structViewportWindow_1_1Input_1a3b0424b608dad4bc8fb91e751ca78fd6" prot="public" virt="non-virtual"><scope>ViewportWindow::Input</scope><name>mouseY</name></member>
+      <member refid="structViewportWindow_1_1Input_1afecdecd71036eeb5906f807c678a43c6" prot="public" virt="non-virtual"><scope>ViewportWindow::Input</scope><name>rmbPressed</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

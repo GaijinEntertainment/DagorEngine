@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCode_1_1PassTab" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCode::PassTab</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCode_1_1PassTab_1ae6a673af2561707440b5b16ee1af51a3" prot="public" static="no" mutable="no">
+        <type>bindump::Address&lt; <ref refid="structShaderCode_1_1Pass" kindref="compound">Pass</ref> &gt;</type>
+        <definition>bindump::Address&lt;Pass&gt; ShaderCode::PassTab::rpass</definition>
+        <argsstring></argsstring>
+        <name>rpass</name>
+        <qualifiedname>ShaderCode::PassTab::rpass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="94" column="22" bodyfile="shcode.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1PassTab_1a72990da48c33ec5962477ae0cf0c77fb" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt;</type>
+        <definition>SerializableTab&lt;bindump::Address&lt;ShaderStateBlock&gt; &gt; ShaderCode::PassTab::suppBlk</definition>
+        <argsstring></argsstring>
+        <name>suppBlk</name>
+        <qualifiedname>ShaderCode::PassTab::suppBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="95" column="21" bodyfile="shcode.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderCode_1_1PassTab_1a0114926f3c235376ec057ac307a0c0d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCode::PassTab::PassTab</definition>
+        <argsstring>()</argsstring>
+        <name>PassTab</name>
+        <qualifiedname>ShaderCode::PassTab::PassTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="97" column="5" bodyfile="shcode.h" bodystart="97" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderCode_1_1PassTab_1a9a833f24e0e26bb6792586a123925d8a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderCode::PassTab::toPtr</definition>
+        <argsstring>(dag::Span&lt; Pass &gt; all_pass)</argsstring>
+        <name>toPtr</name>
+        <qualifiedname>ShaderCode::PassTab::toPtr</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="structShaderCode_1_1Pass" kindref="compound">Pass</ref> &gt;</type>
+          <declname>all_pass</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="100" column="10" bodyfile="shcode.h" bodystart="100" bodyend="100"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderCode::PassTab</label>
+        <link refid="structShaderCode_1_1PassTab"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="shcode.h" line="92" column="3" bodyfile="shcode.h" bodystart="93" bodyend="101"/>
+    <listofallmembers>
+      <member refid="structShaderCode_1_1PassTab_1a0114926f3c235376ec057ac307a0c0d1" prot="public" virt="non-virtual"><scope>ShaderCode::PassTab</scope><name>PassTab</name></member>
+      <member refid="structShaderCode_1_1PassTab_1ae6a673af2561707440b5b16ee1af51a3" prot="public" virt="non-virtual"><scope>ShaderCode::PassTab</scope><name>rpass</name></member>
+      <member refid="structShaderCode_1_1PassTab_1a72990da48c33ec5962477ae0cf0c77fb" prot="public" virt="non-virtual"><scope>ShaderCode::PassTab</scope><name>suppBlk</name></member>
+      <member refid="structShaderCode_1_1PassTab_1a9a833f24e0e26bb6792586a123925d8a" prot="public" virt="non-virtual"><scope>ShaderCode::PassTab</scope><name>toPtr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

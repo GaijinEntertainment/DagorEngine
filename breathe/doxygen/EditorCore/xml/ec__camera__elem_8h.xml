@@ -1,0 +1,348 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__camera__elem_8h" kind="file" language="C++">
+    <compoundname>ec_camera_elem.h</compoundname>
+    <includes refid="ec__interface_8h" local="no">EditorCore/ec_interface.h</includes>
+    <includes local="no">generic/dag_initOnDemand.h</includes>
+    <includes local="no">propPanel/c_common.h</includes>
+    <includedby refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="9">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="8">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="10">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="7">
+        <label>propPanel/control/menu.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="7">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="4">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classCCameraElem" prot="public">CCameraElem</innerclass>
+    <innerclass refid="classFreeCameraElem" prot="public">FreeCameraElem</innerclass>
+    <innerclass refid="classMaxCameraElem" prot="public">MaxCameraElem</innerclass>
+    <innerclass refid="classFpsCameraElem" prot="public">FpsCameraElem</innerclass>
+    <innerclass refid="classTpsCameraElem" prot="public">TpsCameraElem</innerclass>
+    <innerclass refid="structTpsCameraElem_1_1Target" prot="protected">TpsCameraElem::Target</innerclass>
+    <innerclass refid="structTpsCameraElem_1_1Cam" prot="protected">TpsCameraElem::Cam</innerclass>
+    <innerclass refid="classCarCameraElem" prot="public">CarCameraElem</innerclass>
+    <innernamespace refid="namespaceec__camera__elem">ec_camera_elem</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__interface_8h" kindref="compound">EditorCore/ec_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_initOnDemand.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/c_common.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classCCameraElem" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="16" refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" kindref="member">FREE_CAMERA</ref>,<sp/></highlight></codeline>
+<codeline lineno="17" refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" kindref="member">MAX_CAMERA</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="18" refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" kindref="member">FPS_CAMERA</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="19" refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" kindref="member">TPS_CAMERA</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="20" refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" kindref="member">CAR_CAMERA</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="23" refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" kindref="member">CCameraElem</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cam_type);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" kindref="member">~CCameraElem</ref>();</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" kindref="member">setViewportWindow</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*vpw_)<sp/>{<sp/><ref refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" kindref="member">vpw</ref><sp/>=<sp/>vpw_;<sp/>}</highlight></codeline>
+<codeline lineno="33" refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" kindref="member">getCamera</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" kindref="member">currentType</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="38" refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" kindref="member">switchCamera</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ctrl_pressed,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>shift_pressed);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" kindref="member">showConfigDlg</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*parent,<sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*max_cc,<sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*free_cc,<sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*fps_cc,<sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*tps_cc);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" kindref="member">setMultiply</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiply_)<sp/>{<sp/><ref refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" kindref="member">multiply</ref><sp/>=<sp/>multiply_;<sp/>}</highlight></codeline>
+<codeline lineno="53" refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" kindref="member">getMultiplier</ref>();</highlight></codeline>
+<codeline lineno="59" refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" kindref="member">setAboveSurface</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>above_surface);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="63"><highlight class="comment"></highlight></codeline>
+<codeline lineno="64"></codeline>
+<codeline lineno="66" refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*<ref refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" kindref="member">getConfig</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" kindref="member">config</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="69" refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="72" refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" kindref="member">save</ref>(DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="77"><highlight class="comment"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@param[in]<sp/>viewport_id<sp/>-<sp/>ImGuiID<sp/>of<sp/>the<sp/>viewport<sp/>handling<sp/>the<sp/>input</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39" kindref="member">handleKeyboardInput</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>viewport_id);</highlight></codeline>
+<codeline lineno="83" refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" kindref="member">handleMouseMove</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" kindref="member">rotateXFuture</ref><sp/>+=<sp/>x;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" kindref="member">rotateYFuture</ref><sp/>+=<sp/>y;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90" refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63" kindref="member">handleMouseWheel</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>delta);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="95"><highlight class="comment"></highlight></codeline>
+<codeline lineno="96"></codeline>
+<codeline lineno="102" refid="classCCameraElem_1a2785cf40d68476457beae35149a99b5c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a2785cf40d68476457beae35149a99b5c" kindref="member">rotate</ref>(real<sp/>dX,<sp/>real<sp/>dY,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiplySencetive,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>aroundSelection);</highlight></codeline>
+<codeline lineno="108" refid="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4" kindref="member">moveForward</ref>(real<sp/>dZ,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiplySencetive,<sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118" refid="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622" kindref="member">strife</ref>(real<sp/>dx,<sp/>real<sp/>dy,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiply_sencetive,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>config_sencetive);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>act<sp/>camera<sp/>dynamics</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122" refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" kindref="member">act</ref>()</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" kindref="member">getCamera</ref>()<sp/>!=<sp/><ref refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" kindref="member">thisCamType</ref>)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" kindref="member">initPosition</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" kindref="member">stop</ref>();</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" kindref="member">actInternal</ref>();</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>render<sp/>camera-related<sp/>objects<sp/>(e.g.,<sp/>camera<sp/>target<sp/>for<sp/>TP)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153" kindref="member">render</ref>();</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="137" refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref><sp/>*<ref refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" kindref="member">config</ref>;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139" refid="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" kindref="member">setAboveSurf</ref>();</highlight></codeline>
+<codeline lineno="142" refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" kindref="member">moveUp</ref>(real<sp/>deltaY,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiplySencetive);</highlight></codeline>
+<codeline lineno="143" refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" kindref="member">setCamera</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type_)<sp/>{<sp/><ref refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" kindref="member">currentType</ref><sp/>=<sp/>type_;<sp/>}</highlight></codeline>
+<codeline lineno="144" refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" kindref="member">getSurfPos</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;pos);</highlight></codeline>
+<codeline lineno="145" refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" kindref="member">canPutCapsule</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;pt);</highlight></codeline>
+<codeline lineno="146" refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" kindref="member">actInternal</ref>();</highlight></codeline>
+<codeline lineno="147" refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" kindref="member">stop</ref>();</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*<ref refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" kindref="member">vpw</ref>;</highlight></codeline>
+<codeline lineno="150" refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" kindref="member">currentType</ref>;</highlight></codeline>
+<codeline lineno="151" refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>IPoint2<sp/><ref refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" kindref="member">freeCamEnterPos</ref>;</highlight></codeline>
+<codeline lineno="152" refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" kindref="member">setAboveSurfFuture</ref>;</highlight></codeline>
+<codeline lineno="153" refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" kindref="member">initPosition</ref>;</highlight></codeline>
+<codeline lineno="154" refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" kindref="member">forwardZFuture</ref>;</highlight></codeline>
+<codeline lineno="155" refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" kindref="member">forwardZCurrent</ref>;</highlight></codeline>
+<codeline lineno="156" refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" kindref="member">rotateXFuture</ref><sp/>=<sp/>0.f;</highlight></codeline>
+<codeline lineno="157" refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" kindref="member">rotateXCurrent</ref>;</highlight></codeline>
+<codeline lineno="158" refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" kindref="member">rotateYFuture</ref><sp/>=<sp/>0.f;</highlight></codeline>
+<codeline lineno="159" refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" kindref="member">rotateYCurrent</ref>;</highlight></codeline>
+<codeline lineno="160" refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" kindref="member">strifeXFuture</ref>;</highlight></codeline>
+<codeline lineno="161" refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" kindref="member">strifeXCurrent</ref>;</highlight></codeline>
+<codeline lineno="162" refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" kindref="member">strifeYFuture</ref>;</highlight></codeline>
+<codeline lineno="163" refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" kindref="member">strifeYCurrent</ref>;</highlight></codeline>
+<codeline lineno="164" refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" kindref="member">upYCurrent</ref>;</highlight></codeline>
+<codeline lineno="165" refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" kindref="member">upYFuture</ref>;</highlight></codeline>
+<codeline lineno="166" refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" kindref="member">multiply</ref>;</highlight></codeline>
+<codeline lineno="167" refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" kindref="member">bow</ref>;</highlight></codeline>
+<codeline lineno="168" refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" kindref="member">aboveSurface</ref>;</highlight></codeline>
+<codeline lineno="169" refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" kindref="member">thisCamType</ref>;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="classFreeCameraElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFreeCameraElem" kindref="compound">FreeCameraElem</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref></highlight></codeline>
+<codeline lineno="174"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="176" refid="classFreeCameraElem_1a3873846fd07db35c60dc720f88bb5024" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFreeCameraElem_1a3873846fd07db35c60dc720f88bb5024" kindref="member">FreeCameraElem</ref>()<sp/>:<sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref>(<ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" kindref="member">FREE_CAMERA</ref>)<sp/>{}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0" kindref="member">CCameraElem::actInternal</ref>;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="classMaxCameraElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMaxCameraElem" kindref="compound">MaxCameraElem</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref></highlight></codeline>
+<codeline lineno="181"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="183" refid="classMaxCameraElem_1a61d491fb907282941330e401562287a5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMaxCameraElem_1a61d491fb907282941330e401562287a5" kindref="member">MaxCameraElem</ref>()<sp/>:<sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref>(<ref refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" kindref="member">MAX_CAMERA</ref>)<sp/>{}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185" refid="classMaxCameraElem_1a77476b3e73e4ba479a39723735569fb6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMaxCameraElem_1a77476b3e73e4ba479a39723735569fb6" kindref="member">handleKeyboardInput</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187" refid="classMaxCameraElem_1aba6383a7f9c889447972ae86a448b699" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMaxCameraElem_1aba6383a7f9c889447972ae86a448b699" kindref="member">handleMouseWheel</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="188"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>the<sp/>Max<sp/>camera<sp/>the<sp/>mouse<sp/>wheel<sp/>is<sp/>handled<sp/>in<sp/>ViewportWindow::processCameraControl.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>function<sp/>will<sp/>not<sp/>be<sp/>called<sp/>at<sp/>all,<sp/>so<sp/>the<sp/>empty<sp/>override<sp/>is<sp/>not<sp/>really<sp/>necessary.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight><highlight class="comment">//<sp/>FPS<sp/>Camera</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="197" refid="classFpsCameraElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFpsCameraElem" kindref="compound">FpsCameraElem</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref></highlight></codeline>
+<codeline lineno="198"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="200" refid="classFpsCameraElem_1a3e4fc6241823e99933656ca00f53e330" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFpsCameraElem_1a3e4fc6241823e99933656ca00f53e330" kindref="member">FpsCameraElem</ref>();</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202" refid="classFpsCameraElem_1a55147651c18e6361f82287e8f08935c7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a55147651c18e6361f82287e8f08935c7" kindref="member">actInternal</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="203" refid="classFpsCameraElem_1a671b4e0a900cf72d5d636a93dd33f1d3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a671b4e0a900cf72d5d636a93dd33f1d3" kindref="member">render</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="204" refid="classFpsCameraElem_1a763dabc61c999eeb5187be465023b5a4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a763dabc61c999eeb5187be465023b5a4" kindref="member">clear</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="205" refid="classFpsCameraElem_1ad2431c4fba7014c44b2495a2077d201a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1ad2431c4fba7014c44b2495a2077d201a" kindref="member">handleKeyboardInput</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>viewport_id)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="206" refid="classFpsCameraElem_1a85772a67f1b3f995fca09fc93c7e7ef4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a85772a67f1b3f995fca09fc93c7e7ef4" kindref="member">moveForward</ref>(real<sp/>deltaZ,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiplySencetive,<sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="207" refid="classFpsCameraElem_1a915ca547c540086a4b12f451e2222929" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a915ca547c540086a4b12f451e2222929" kindref="member">strife</ref>(real<sp/>dx,<sp/>real<sp/>dy,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiply_sencetive,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>config_sencetive)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="208" refid="classFpsCameraElem_1a3ea044abd4e8a02f80d66f335be5281f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a3ea044abd4e8a02f80d66f335be5281f" kindref="member">moveOn</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;dpos);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="211" refid="classFpsCameraElem_1a9651334ef25746c494363c69439dd1a8" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classFpsCameraElem_1ac114aad02ecca74330022fa1888caf22" kindref="member">pos</ref>,<sp/><ref refid="classFpsCameraElem_1a3a018eadb0880fc53dff038ef78f1d60" kindref="member">prevPos</ref>,<sp/><ref refid="classFpsCameraElem_1a6c8e5de12a2fd9d6137680dd79d732df" kindref="member">speed</ref>,<sp/><ref refid="classFpsCameraElem_1a9651334ef25746c494363c69439dd1a8" kindref="member">accelerate</ref>;</highlight></codeline>
+<codeline lineno="212" refid="classFpsCameraElem_1a8280620f2c9e3284f9f27d20502dbeb4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classFpsCameraElem_1a8280620f2c9e3284f9f27d20502dbeb4" kindref="member">mayJump</ref>;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight><highlight class="comment">//<sp/>TPS<sp/>Camera</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219" refid="classTpsCameraElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTpsCameraElem" kindref="compound">TpsCameraElem</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCCameraElem" kindref="compound">CCameraElem</ref></highlight></codeline>
+<codeline lineno="220"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="222" refid="classTpsCameraElem_1af292a9359ddb0c5ddd67a5b6b9ae854e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTpsCameraElem_1af292a9359ddb0c5ddd67a5b6b9ae854e" kindref="member">TpsCameraElem</ref>();</highlight></codeline>
+<codeline lineno="223" refid="classTpsCameraElem_1a3930f59c6daaf02250f5beb24d30b02d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTpsCameraElem_1a3930f59c6daaf02250f5beb24d30b02d" kindref="member">TpsCameraElem</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cam_type);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="225" refid="classTpsCameraElem_1a555bd3567b646ed01cc0d1d305e860b7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1a555bd3567b646ed01cc0d1d305e860b7" kindref="member">actInternal</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="226" refid="classTpsCameraElem_1ac1b7862595f342627e12dd1bdaa849cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1ac1b7862595f342627e12dd1bdaa849cf" kindref="member">render</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="227" refid="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f" kindref="member">clear</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="228" refid="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760" kindref="member">handleKeyboardInput</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>viewport_id)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="229" refid="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481" kindref="member">rotate</ref>(real<sp/>dX,<sp/>real<sp/>dY,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiplySencetive,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>aroundSelection)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="230" refid="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb" kindref="member">moveForward</ref>(real<sp/>deltaZ,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiply_sensitive,<sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="231" refid="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d" kindref="member">strife</ref>(real<sp/>dx,<sp/>real<sp/>dy,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>multiply_sensitive,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>config_sensitive)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="232" refid="classTpsCameraElem_1ae4335cc5eff4da95f2907d83b2b1c70c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1ae4335cc5eff4da95f2907d83b2b1c70c" kindref="member">moveOn</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;dpos);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight></codeline>
+<codeline lineno="234" refid="classTpsCameraElem_1a0734be832c4f0c259e60ee2c52c4031b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1a0734be832c4f0c259e60ee2c52c4031b" kindref="member">handleMouseWheel</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dz)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="237" refid="structTpsCameraElem_1_1Target" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTpsCameraElem_1_1Target" kindref="compound">Target</ref></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="239" refid="structTpsCameraElem_1_1Target_1a0441f124ac249e4b09acd04ac3f94840" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="structTpsCameraElem_1_1Target_1a0441f124ac249e4b09acd04ac3f94840" kindref="member">pos</ref>,<sp/><ref refid="structTpsCameraElem_1_1Target_1aad30b894e291614ed392ccf28760366f" kindref="member">prevPos</ref>;</highlight></codeline>
+<codeline lineno="240" refid="structTpsCameraElem_1_1Target_1a02479fc9d1230abf4ff77d66ac9b5844" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="structTpsCameraElem_1_1Target_1a3eedf132f67133c1f60fd01eeafc1836" kindref="member">vel</ref>,<sp/><ref refid="structTpsCameraElem_1_1Target_1a02479fc9d1230abf4ff77d66ac9b5844" kindref="member">acc</ref>;</highlight></codeline>
+<codeline lineno="241" refid="structTpsCameraElem_1_1Target_1a9b49806f660abac14abe8abc71dc5ebc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTpsCameraElem_1_1Target_1a9b49806f660abac14abe8abc71dc5ebc" kindref="member">mayJump</ref>;</highlight></codeline>
+<codeline lineno="242" refid="classTpsCameraElem_1af5b734521f0c07c022a271ba761d70a1" refkind="member"><highlight class="normal"><sp/><sp/>}<sp/><ref refid="classTpsCameraElem_1af5b734521f0c07c022a271ba761d70a1" kindref="member">target</ref>;</highlight></codeline>
+<codeline lineno="243" refid="classTpsCameraElem_1ac13a51e1b1b265ed5c52a2ae27c05616" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem_1ac13a51e1b1b265ed5c52a2ae27c05616" kindref="member">maxDist</ref>;</highlight></codeline>
+<codeline lineno="244" refid="structTpsCameraElem_1_1Cam" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTpsCameraElem_1_1Cam" kindref="compound">Cam</ref></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="246" refid="structTpsCameraElem_1_1Cam_1a5e3aea9044671c8379b21bdd4d048b5e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structTpsCameraElem_1_1Cam_1a5e3aea9044671c8379b21bdd4d048b5e" kindref="member">curDist</ref>;</highlight></codeline>
+<codeline lineno="247" refid="structTpsCameraElem_1_1Cam_1af117977046e739105595f79490394f5c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structTpsCameraElem_1_1Cam_1af117977046e739105595f79490394f5c" kindref="member">ang</ref>;</highlight></codeline>
+<codeline lineno="248" refid="structTpsCameraElem_1_1Cam_1aa5d8007ce27231b1483c57b371ca85ab" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTpsCameraElem_1_1Cam_1aa5d8007ce27231b1483c57b371ca85ab" kindref="member">changed</ref>;</highlight></codeline>
+<codeline lineno="249" refid="classTpsCameraElem_1afc25ec1ed10607340af0bba72dff56ac" refkind="member"><highlight class="normal"><sp/><sp/>}<sp/><ref refid="classTpsCameraElem_1afc25ec1ed10607340af0bba72dff56ac" kindref="member">cam</ref>;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Car<sp/>Camera</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="254"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="255"><highlight class="normal"></highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">VehicleViewer;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">CameraController;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259" refid="classCarCameraElem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCarCameraElem" kindref="compound">CarCameraElem</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classTpsCameraElem" kindref="compound">TpsCameraElem</ref></highlight></codeline>
+<codeline lineno="260"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="262" refid="classCarCameraElem_1a0775f9d892c60e430322369ff937db59" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classCarCameraElem_1a0775f9d892c60e430322369ff937db59" kindref="member">CarCameraElem</ref>();</highlight></codeline>
+<codeline lineno="263" refid="classCarCameraElem_1a72d51672d543f6b7e43626a64ea95f20" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classCarCameraElem_1a72d51672d543f6b7e43626a64ea95f20" kindref="member">~CarCameraElem</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight></codeline>
+<codeline lineno="265" refid="classCarCameraElem_1a712c337f11fdce6f3007d4dd56a428dd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a712c337f11fdce6f3007d4dd56a428dd" kindref="member">begin</ref>();</highlight></codeline>
+<codeline lineno="266" refid="classCarCameraElem_1a7fbdd3fc3f054962de3b5301361c5907" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a7fbdd3fc3f054962de3b5301361c5907" kindref="member">end</ref>();</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight></codeline>
+<codeline lineno="268" refid="classCarCameraElem_1a4708c22e0eec15c19c9966cdc5a505c0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a4708c22e0eec15c19c9966cdc5a505c0" kindref="member">actInternal</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="269" refid="classCarCameraElem_1a37e41364fba5c6f98829d60c9b559da0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a37e41364fba5c6f98829d60c9b559da0" kindref="member">render</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="270" refid="classCarCameraElem_1a366257aac9f91aad8e938cab2f784141" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a366257aac9f91aad8e938cab2f784141" kindref="member">externalRender</ref>();</highlight></codeline>
+<codeline lineno="271" refid="classCarCameraElem_1a5449e03416f59bc9bc24c1408142d3dd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1a5449e03416f59bc9bc24c1408142d3dd" kindref="member">handleMouseWheel</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dz)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="274" refid="classCarCameraElem_1abde3731102942bf5c04d88dc60ba35bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classCarCameraElem_1abde3731102942bf5c04d88dc60ba35bd" kindref="member">zoom</ref>;</highlight></codeline>
+<codeline lineno="275" refid="classCarCameraElem_1aca3b88c5d198ab2e554937332303a6cd" refkind="member"><highlight class="normal"><sp/><sp/>VehicleViewer<sp/>*<ref refid="classCarCameraElem_1aca3b88c5d198ab2e554937332303a6cd" kindref="member">vehicleViewer</ref>;</highlight></codeline>
+<codeline lineno="276" refid="classCarCameraElem_1ac79c3b69a9e7c2af1b74c129824b2166" refkind="member"><highlight class="normal"><sp/><sp/>CameraController<sp/>*<ref refid="classCarCameraElem_1ac79c3b69a9e7c2af1b74c129824b2166" kindref="member">camController</ref>;</highlight></codeline>
+<codeline lineno="277"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"></highlight><highlight class="comment">//=================================================================================================</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281" refid="namespaceec__camera__elem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceec__camera__elem" kindref="compound">ec_camera_elem</ref></highlight></codeline>
+<codeline lineno="282"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>InitOnDemand&lt;FreeCameraElem&gt;<sp/><ref refid="namespaceec__camera__elem_1a6df53423b79354657d7e6678a00299cd" kindref="member">freeCameraElem</ref>;</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>InitOnDemand&lt;MaxCameraElem&gt;<sp/><ref refid="namespaceec__camera__elem_1a4fefdd33e28290b29bf8e05824a538d4" kindref="member">maxCameraElem</ref>;</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>InitOnDemand&lt;FpsCameraElem&gt;<sp/><ref refid="namespaceec__camera__elem_1a04925619f952a5d9ec624177e4378383" kindref="member">fpsCameraElem</ref>;</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>InitOnDemand&lt;TpsCameraElem&gt;<sp/><ref refid="namespaceec__camera__elem_1a4873dd0b9d4a9be552994ba2bde441dc" kindref="member">tpsCameraElem</ref>;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>InitOnDemand&lt;CarCameraElem&gt;<sp/><ref refid="namespaceec__camera__elem_1a2e40be7781c1443da8a48057a7935eb8" kindref="member">carCameraElem</ref>;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ec_camera_elem</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="ec_camera_elem.h"/>
+  </compounddef>
+</doxygen>

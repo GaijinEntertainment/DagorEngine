@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1CompilationContext" kind="class" language="C++" prot="public">
+    <compoundname>shc::CompilationContext</compoundname>
+    <includes refid="shCompContext_8h" local="no">shCompContext.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1CompilationContext_1a23398a0824d12a9e3adc561a5ca08011" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> *</type>
+        <definition>const ShCompilationInfo* shc::CompilationContext::mInfo</definition>
+        <argsstring></argsstring>
+        <name>mInfo</name>
+        <qualifiedname>shc::CompilationContext::mInfo</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="17" column="27" bodyfile="shCompContext.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1CompilationContext_1ad92c7edc22c79e7c4725d0e2afd4e594" prot="private" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string shc::CompilationContext::commonHlslDefinesCached</definition>
+        <argsstring></argsstring>
+        <name>commonHlslDefinesCached</name>
+        <qualifiedname>shc::CompilationContext::commonHlslDefinesCached</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="18" column="17" bodyfile="shCompContext.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1CompilationContext_1aa38d109fdfc678360d21291723e93952" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::CompilationContext::CompilationContext</definition>
+        <argsstring>(const ShCompilationInfo &amp;info)</argsstring>
+        <name>CompilationContext</name>
+        <qualifiedname>shc::CompilationContext::CompilationContext</qualifiedname>
+        <param>
+          <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="21" column="3" bodyfile="shCompContext.h" bodystart="21" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1CompilationContext_1a8994f2ef66560adc7db8cae292c5ec65" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> &amp;</type>
+        <definition>const ShCompilationInfo &amp; shc::CompilationContext::compInfo</definition>
+        <argsstring>() const</argsstring>
+        <name>compInfo</name>
+        <qualifiedname>shc::CompilationContext::compInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="28" column="27" bodyfile="shCompContext.h" bodystart="28" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1CompilationContext_1aa26118117091cbb3b7c91678d11e49fc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const eastl::string &amp;</type>
+        <definition>const eastl::string &amp; shc::CompilationContext::commonHlslDefines</definition>
+        <argsstring>() const</argsstring>
+        <name>commonHlslDefines</name>
+        <qualifiedname>shc::CompilationContext::commonHlslDefines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="34" column="23" bodyfile="shCompContext.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1CompilationContext_1a54c6fe92110c82a2d44d8cff82f28261" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref></type>
+        <definition>TargetContext shc::CompilationContext::makeTargetContext</definition>
+        <argsstring>(const char *fname) const</argsstring>
+        <name>makeTargetContext</name>
+        <qualifiedname>shc::CompilationContext::makeTargetContext</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompContext.h" line="36" column="17" bodyfile="shTargetContext.h" bodystart="139" bodyend="139"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompContext.h" line="15" column="1" bodyfile="shCompContext.h" bodystart="16" bodyend="37"/>
+    <listofallmembers>
+      <member refid="classshc_1_1CompilationContext_1aa26118117091cbb3b7c91678d11e49fc" prot="public" virt="non-virtual"><scope>shc::CompilationContext</scope><name>commonHlslDefines</name></member>
+      <member refid="classshc_1_1CompilationContext_1ad92c7edc22c79e7c4725d0e2afd4e594" prot="private" virt="non-virtual"><scope>shc::CompilationContext</scope><name>commonHlslDefinesCached</name></member>
+      <member refid="classshc_1_1CompilationContext_1aa38d109fdfc678360d21291723e93952" prot="public" virt="non-virtual"><scope>shc::CompilationContext</scope><name>CompilationContext</name></member>
+      <member refid="classshc_1_1CompilationContext_1a8994f2ef66560adc7db8cae292c5ec65" prot="public" virt="non-virtual"><scope>shc::CompilationContext</scope><name>compInfo</name></member>
+      <member refid="classshc_1_1CompilationContext_1a54c6fe92110c82a2d44d8cff82f28261" prot="public" virt="non-virtual"><scope>shc::CompilationContext</scope><name>makeTargetContext</name></member>
+      <member refid="classshc_1_1CompilationContext_1a23398a0824d12a9e3adc561a5ca08011" prot="private" virt="non-virtual"><scope>shc::CompilationContext</scope><name>mInfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

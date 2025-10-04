@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderGlobal" kind="namespace" language="C++">
+    <compoundname>ShaderGlobal</compoundname>
+    <innerclass refid="unionShaderGlobal_1_1StVarValue" prot="public">ShaderGlobal::StVarValue</innerclass>
+    <innerclass refid="classShaderGlobal_1_1Var" prot="public">ShaderGlobal::Var</innerclass>
+    <innerclass refid="classShaderGlobal_1_1VarTable" prot="public">ShaderGlobal::VarTable</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceShaderGlobal_1a4c3f611719624c3be339f689a4c6fabc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderGlobal::get_var_name</definition>
+        <argsstring>(const Var &amp;variable, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_var_name</name>
+        <qualifiedname>ShaderGlobal::get_var_name</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+          <declname>variable</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globvar.cpp" line="16" column="12" bodyfile="globvar.cpp" bodystart="16" bodyend="16" declfile="globVar.h" declline="65" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="globvar.cpp" line="13" column="1"/>
+  </compounddef>
+</doxygen>

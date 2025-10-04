@@ -1,0 +1,319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderVarType_8h" kind="file" language="C++">
+    <compoundname>dag_shaderVarType.h</compoundname>
+    <includedby refid="dag__shaderCommon_8h" local="no">dag_shaderCommon.h</includedby>
+    <includedby refid="dag__shaderVariableInfo_8h" local="no">dag_shaderVariableInfo.h</includedby>
+    <invincdepgraph>
+      <node id="5">
+        <label>dag_DebugPrimitivesVbuffer.h</label>
+        <link refid="dag__DebugPrimitivesVbuffer_8h_source"/>
+      </node>
+      <node id="6">
+        <label>dag_DynamicShaderHelper.h</label>
+        <link refid="dag__DynamicShaderHelper_8h_source"/>
+      </node>
+      <node id="7">
+        <label>dag_DynamicShadersBuffer.h</label>
+        <link refid="dag__DynamicShadersBuffer_8h_source"/>
+      </node>
+      <node id="13">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="8">
+        <label>dag_dynShaderBuf.h</label>
+        <link refid="dag__dynShaderBuf_8h_source"/>
+      </node>
+      <node id="16">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h_source"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>dag_linkedListOfShadervars.h</label>
+        <link refid="dag__linkedListOfShadervars_8h_source"/>
+      </node>
+      <node id="14">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+      <node id="10">
+        <label>dag_renderScene.h</label>
+        <link refid="dag__renderScene_8h_source"/>
+      </node>
+      <node id="3">
+        <label>dag_shMaterialUtils.h</label>
+        <link refid="dag__shMaterialUtils_8h_source"/>
+      </node>
+      <node id="11">
+        <label>dag_shSkinMesh.h</label>
+        <link refid="dag__shSkinMesh_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h_source"/>
+      </node>
+      <node id="19">
+        <label>dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>dag_shadersRes.h</label>
+        <link refid="dag__shadersRes_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ShaderVarType</name>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56ae9864887e74baa6f0313d21f92c16c59" prot="public">
+          <name>SHVT_INT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56a197e89f39f496bd8f317f66b4bad6ee6" prot="public">
+          <name>SHVT_REAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56aff8eb1a597b4e39c799b073b173c102d" prot="public">
+          <name>SHVT_COLOR4</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56ac6fb22d2b550521d827745775b3d3f9c" prot="public">
+          <name>SHVT_TEXTURE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56a88d3e3b9fde2b8c84be2a6855bfb1b2c" prot="public">
+          <name>SHVT_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56a380fa6bfa616052d665f2dd6915bfb6b" prot="public">
+          <name>SHVT_INT4</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56a3aaef347bbeb22a7b071ef59f49630a8" prot="public">
+          <name>SHVT_FLOAT4X4</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56abe7c392c0f0222b4267b17d2d9a30a5d" prot="public">
+          <name>SHVT_SAMPLER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56abace4a3326ef923f7c66dd906be148e8" prot="public">
+          <name>SHVT_TLAS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56aac579968dbd882f49dc750283989ac93" prot="public">
+          <name>SHVT_COUNT_</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a594961042adbb3b086eb538765c48a56a0d9aca26b545758a6ca1b7634aa17f72" prot="public">
+          <name>SHVT_UNKNOWN</name>
+          <initializer>= SHVT_COUNT_</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarType.h" line="11" column="1" bodyfile="dag_shaderVarType.h" bodystart="12" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1" prot="public" static="no" strong="no">
+        <type>int</type>
+        <name>ShaderVarTextureType</name>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1aa26fff30baea1a2f136d4a274c26425d" prot="public">
+          <name>SHVT_TEX_UNKNOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1a75df335f1c828e564c36241f1094ea09" prot="public">
+          <name>SHVT_TEX_2D</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1afcc66d8ca887f30cc04e24da0922664f" prot="public">
+          <name>SHVT_TEX_3D</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1a5f99acbd40035819cc104ea37a542255" prot="public">
+          <name>SHVT_TEX_CUBE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1a740690bf2a2b34a09e0b2b32a7d33704" prot="public">
+          <name>SHVT_TEX_2D_ARRAY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderVarType_8h_1a6c94b2733abb18d182faa181b4b78ac1a506832c07f66581d8a813df93cc1a2a2" prot="public">
+          <name>SHVT_TEX_CUBE_ARRAY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarType.h" line="26" column="1" bodyfile="dag_shaderVarType.h" bodystart="27" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/><sp/>shader<sp/>variable<sp/>types</highlight></codeline>
+<codeline lineno="9"><highlight class="comment">************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ShaderVarType</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>SHVT_INT,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>SHVT_REAL,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>SHVT_COLOR4,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>SHVT_TEXTURE,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>SHVT_BUFFER,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>SHVT_INT4,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>SHVT_FLOAT4X4,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>SHVT_SAMPLER,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>SHVT_TLAS,</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>SHVT_COUNT_,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>SHVT_UNKNOWN<sp/>=<sp/>SHVT_COUNT_</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ShaderVarTextureType<sp/>:<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>SHVT_TEX_UNKNOWN,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>SHVT_TEX_2D,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>SHVT_TEX_3D,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>SHVT_TEX_CUBE,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>SHVT_TEX_2D_ARRAY,</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>SHVT_TEX_CUBE_ARRAY,</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderVarType.h"/>
+  </compounddef>
+</doxygen>

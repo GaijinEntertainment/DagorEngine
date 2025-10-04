@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableBufferProperties" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableBufferProperties</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" prot="public">raytrace::ShaderBindingTableBufferProperties::GroupCounts</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::createStructSize</definition>
+        <argsstring></argsstring>
+        <name>createStructSize</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::createStructSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Structure size that has to be used with create_sbuffer. Using a different value may result in a device reset. Only 0 on error, otherwise larger than 0. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="750" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="750" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a405e3224800438780d954c234051bcc9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::createFlags</definition>
+        <argsstring></argsstring>
+        <name>createFlags</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::createFlags</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create flags required to pass to create_sbuffer. Using different flags may result in device reset or the buffer being not usable as a shader binding table. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="753" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="753" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a95f1ae143a7452431c008259a6e30afb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::createFormat</definition>
+        <argsstring></argsstring>
+        <name>createFormat</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::createFormat</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create format required to pass to create_sbuffer. Using a different format may result in device reset or the buffer being not usable as a shader binding table. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="756" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="756" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b0ec37e826b73bc9beee918ceaa1dae" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::groupOffsetAlignmentSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>groupOffsetAlignmentSizeInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::groupOffsetAlignmentSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offsets of each group has to be aligned to this value. Note that this may be (and will be on DX12) different than ShaderBindingTableGroupProperties::entryAlignedSize. Not properly aligning the offsets may result in a device reset. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="759" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="759" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b796c7404138879b6c932077a631d9e" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref></type>
+        <definition>ShaderBindingTableGroupProperties raytrace::ShaderBindingTableBufferProperties::rayGenGroup</definition>
+        <argsstring></argsstring>
+        <name>rayGenGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::rayGenGroup</qualifiedname>
+        <briefdescription>
+<para>Properties of the ray gen shader groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="761" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a0ec3ce9ac259a10028fd4753a82e9527" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref></type>
+        <definition>ShaderBindingTableGroupProperties raytrace::ShaderBindingTableBufferProperties::missGroup</definition>
+        <argsstring></argsstring>
+        <name>missGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::missGroup</qualifiedname>
+        <briefdescription>
+<para>Properties of the miss shader groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="763" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="763" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a56ea1b71893b6f15f2e787281c88c63a" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref></type>
+        <definition>ShaderBindingTableGroupProperties raytrace::ShaderBindingTableBufferProperties::hitGroup</definition>
+        <argsstring></argsstring>
+        <name>hitGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::hitGroup</qualifiedname>
+        <briefdescription>
+<para>Properties of the hit shader groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="765" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="765" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1a21f09e22f156752a70c1cc6764fbc68a" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref></type>
+        <definition>ShaderBindingTableGroupProperties raytrace::ShaderBindingTableBufferProperties::callableGroup</definition>
+        <argsstring></argsstring>
+        <name>callableGroup</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::callableGroup</qualifiedname>
+        <briefdescription>
+<para>Properties of the callable groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="767" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="767" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structraytrace_1_1ShaderBindingTableBufferProperties_1ad6e0fbda7043e2b0de7124f05a798716" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::calculateElementCount</definition>
+        <argsstring>(const GroupCounts &amp;counts) const</argsstring>
+        <name>calculateElementCount</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::calculateElementCount</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" kindref="compound">GroupCounts</ref> &amp;</type>
+          <declname>counts</declname>
+        </param>
+        <briefdescription>
+<para>Calculates the number of elements input for sbuffer create. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="783" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="783" bodyend="798"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>The driver calculated properties of the shader binding table to be used with create_sbuffer to create a buffer that can be used as shader binding table. Typical use is: auto props = <ref refid="rayTrace3di_8inl_8h_1a17d5959d61ea5017d45d14ab993c9bfb" kindref="member">get_shader_binding_table_buffer_properties(myBindingTableProperties, myPipeline)</ref>; auto buf = <ref refid="namespaced3d_1afd21fceb7da673b87882d780710152e3" kindref="member">d3d::create_sbuffer</ref>(props.createStructSize, props.calculateElementCount({ray_gen_count, miss_count, hit_count, call_count}), props.createFlags, props.createFormat, &quot;my shader binding table buffer&quot;); </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableBufferProperties</label>
+        <link refid="structraytrace_1_1ShaderBindingTableBufferProperties"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>callableGroup</edgelabel>
+          <edgelabel>hitGroup</edgelabel>
+          <edgelabel>missGroup</edgelabel>
+          <edgelabel>rayGenGroup</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableGroupProperties</label>
+        <link refid="structraytrace_1_1ShaderBindingTableGroupProperties"/>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="745" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="746" bodyend="799"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1ad6e0fbda7043e2b0de7124f05a798716" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>calculateElementCount</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a21f09e22f156752a70c1cc6764fbc68a" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>callableGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a405e3224800438780d954c234051bcc9" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>createFlags</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a95f1ae143a7452431c008259a6e30afb" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>createFormat</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>createStructSize</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b0ec37e826b73bc9beee918ceaa1dae" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>groupOffsetAlignmentSizeInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a56ea1b71893b6f15f2e787281c88c63a" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>hitGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a0ec3ce9ac259a10028fd4753a82e9527" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>missGroup</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b796c7404138879b6c932077a631d9e" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties</scope><name>rayGenGroup</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

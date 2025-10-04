@@ -1,0 +1,233 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceproc" kind="namespace" language="C++">
+    <compoundname>proc</compoundname>
+    <innerclass refid="structproc_1_1ProcessTask" prot="public">proc::ProcessTask</innerclass>
+    <innernamespace refid="namespaceproc_1_1internal">proc::internal</innernamespace>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceproc_1a69849a7a3932a53a80bb6e7e7ca09a4a" prot="public" static="yes" mutable="no">
+        <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref></type>
+        <definition>internal::ExecutionState proc::g_state</definition>
+        <argsstring></argsstring>
+        <name>g_state</name>
+        <qualifiedname>proc::g_state</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="35" column="33" bodyfile="processes.cpp" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char proc::MANAGED_MESSAGE_SEPARATOR</definition>
+        <argsstring></argsstring>
+        <name>MANAGED_MESSAGE_SEPARATOR</name>
+        <qualifiedname>proc::MANAGED_MESSAGE_SEPARATOR</qualifiedname>
+        <initializer>= &apos;\x1E&apos;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="20" column="23" bodyfile="processes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceproc_1a82a85c7394d8ed1472287cfe74911348" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void proc::parse_output</definition>
+        <argsstring>(internal::OutputSink &amp;sink)</argsstring>
+        <name>parse_output</name>
+        <qualifiedname>proc::parse_output</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1OutputSink" kindref="compound">internal::OutputSink</ref> &amp;</type>
+          <declname>sink</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="37" column="13" bodyfile="processes.cpp" bodystart="37" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1a0787550c69989293f1e7ecd3657e0ac5" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void proc::marshall_output</definition>
+        <argsstring>(internal::ExecutionState &amp;state)</argsstring>
+        <name>marshall_output</name>
+        <qualifiedname>proc::marshall_output</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="57" column="13" bodyfile="processes.cpp" bodystart="57" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1a3ae5e0472b3b0947cf0eab17096b24e0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void proc::serve_output</definition>
+        <argsstring>(internal::ExecutionState &amp;state)</argsstring>
+        <name>serve_output</name>
+        <qualifiedname>proc::serve_output</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="75" column="13" bodyfile="processes.cpp" bodystart="75" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1a70ea938c5ccbe95687c57066da668fc2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::init</definition>
+        <argsstring>(int max_proc_count, int should_cancel_on_fail)</argsstring>
+        <name>init</name>
+        <qualifiedname>proc::init</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_proc_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>should_cancel_on_fail</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="82" column="6" bodyfile="processes.cpp" bodystart="82" bodyend="99" declfile="processes.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1ad83d474bf228f85aa5d829213c75a161" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::deinit</definition>
+        <argsstring>()</argsstring>
+        <name>deinit</name>
+        <qualifiedname>proc::deinit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="101" column="6" bodyfile="processes.cpp" bodystart="101" bodyend="107" declfile="processes.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1a660c2f1d2aa0933c48ff9123c87d0211" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int proc::is_multiproc</definition>
+        <argsstring>()</argsstring>
+        <name>is_multiproc</name>
+        <qualifiedname>proc::is_multiproc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="109" column="5" bodyfile="processes.cpp" bodystart="109" bodyend="109" declfile="processes.h" declline="27" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int proc::max_proc_count</definition>
+        <argsstring>()</argsstring>
+        <name>max_proc_count</name>
+        <qualifiedname>proc::max_proc_count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="110" column="5" bodyfile="processes.cpp" bodystart="110" bodyend="110" declfile="processes.h" declline="28" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1ad5f5c1701a3bca364551263b0995445a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::enqueue</definition>
+        <argsstring>(ProcessTask &amp;&amp;task)</argsstring>
+        <name>enqueue</name>
+        <qualifiedname>proc::enqueue</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref> &amp;&amp;</type>
+          <declname>task</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="112" column="6" bodyfile="processes.cpp" bodystart="112" bodyend="112" declfile="processes.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1a257d06e08e03d9e24ea58c3bad2d8799" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>auto</type>
+        <definition>static auto proc::start_process</definition>
+        <argsstring>(internal::ExecutionState &amp;state, ProcessTask &amp;&amp;task)</argsstring>
+        <name>start_process</name>
+        <qualifiedname>proc::start_process</qualifiedname>
+        <param>
+          <type><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref> &amp;&amp;</type>
+          <declname>task</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="114" column="13" bodyfile="processes.cpp" bodystart="114" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1aad37db27edb90a297ccc8ae4716e7905" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool proc::execute</definition>
+        <argsstring>()</argsstring>
+        <name>execute</name>
+        <qualifiedname>proc::execute</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="143" column="6" bodyfile="processes.cpp" bodystart="143" bodyend="276" declfile="processes.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void proc::cancel</definition>
+        <argsstring>()</argsstring>
+        <name>cancel</name>
+        <qualifiedname>proc::cancel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.cpp" line="278" column="6" bodyfile="processes.cpp" bodystart="278" bodyend="282" declfile="processes.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes.cpp" line="12" column="1"/>
+  </compounddef>
+</doxygen>

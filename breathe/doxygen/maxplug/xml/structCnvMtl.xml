@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCnvMtl" kind="struct" language="C++" prot="public">
+    <compoundname>CnvMtl</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCnvMtl_1ae6624c8a0dc736b639a9c60798c070ff" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* CnvMtl::om</definition>
+        <argsstring></argsstring>
+        <name>om</name>
+        <qualifiedname>CnvMtl::om</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1678" column="7" bodyfile="util.cpp" bodystart="1678" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCnvMtl_1a8a6a360283dd7988c2e3a4d3ba675166" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* CnvMtl::nm</definition>
+        <argsstring></argsstring>
+        <name>nm</name>
+        <qualifiedname>CnvMtl::nm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1679" column="7" bodyfile="util.cpp" bodystart="1679" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util.cpp" line="1676" column="1" bodyfile="util.cpp" bodystart="1677" bodyend="1680"/>
+    <listofallmembers>
+      <member refid="structCnvMtl_1a8a6a360283dd7988c2e3a4d3ba675166" prot="public" virt="non-virtual"><scope>CnvMtl</scope><name>nm</name></member>
+      <member refid="structCnvMtl_1ae6624c8a0dc736b639a9c60798c070ff" prot="public" virt="non-virtual"><scope>CnvMtl</scope><name>om</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

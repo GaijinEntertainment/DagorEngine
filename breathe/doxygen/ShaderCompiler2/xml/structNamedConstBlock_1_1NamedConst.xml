@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNamedConstBlock_1_1NamedConst" kind="struct" language="C++" prot="public">
+    <compoundname>NamedConstBlock::NamedConst</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1ae359a7880fbc827b5c35dc774f0f16de" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+        <definition>HlslRegisterSpace NamedConstBlock::NamedConst::rspace</definition>
+        <argsstring></argsstring>
+        <name>rspace</name>
+        <qualifiedname>NamedConstBlock::NamedConst::rspace</qualifiedname>
+        <initializer>= <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" kindref="member">HLSL_RSPACE_INVALID</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="45" column="23" bodyfile="namedConst.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1a9b72aedb4704db42efdfbd0b6afb6ae8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int NamedConstBlock::NamedConst::regIndex</definition>
+        <argsstring></argsstring>
+        <name>regIndex</name>
+        <qualifiedname>NamedConstBlock::NamedConst::regIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="46" column="9" bodyfile="namedConst.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1a295c57d7bf4be34bd42d5c63a1f11b8b" prot="public" static="no" mutable="no">
+        <type>short</type>
+        <definition>short NamedConstBlock::NamedConst::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>NamedConstBlock::NamedConst::size</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="47" column="11" bodyfile="namedConst.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1a111dba21c4a67faefc3a5ea9c50179d1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool NamedConstBlock::NamedConst::isDynamic</definition>
+        <argsstring></argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>NamedConstBlock::NamedConst::isDynamic</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="48" column="10" bodyfile="namedConst.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1a9e3f9c7d3906fef3c287d91624915a8c" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String NamedConstBlock::NamedConst::hlslDecl</definition>
+        <argsstring></argsstring>
+        <name>hlslDecl</name>
+        <qualifiedname>NamedConstBlock::NamedConst::hlslDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="49" column="12" bodyfile="namedConst.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1NamedConst_1ae45a5004fb1c8ef223d65c13dd8dc711" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String NamedConstBlock::NamedConst::hlslPostfix</definition>
+        <argsstring></argsstring>
+        <name>hlslPostfix</name>
+        <qualifiedname>NamedConstBlock::NamedConst::hlslPostfix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="49" column="21" bodyfile="namedConst.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namedConst.h" line="43" column="3" bodyfile="namedConst.h" bodystart="44" bodyend="50"/>
+    <listofallmembers>
+      <member refid="structNamedConstBlock_1_1NamedConst_1a9e3f9c7d3906fef3c287d91624915a8c" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>hlslDecl</name></member>
+      <member refid="structNamedConstBlock_1_1NamedConst_1ae45a5004fb1c8ef223d65c13dd8dc711" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>hlslPostfix</name></member>
+      <member refid="structNamedConstBlock_1_1NamedConst_1a111dba21c4a67faefc3a5ea9c50179d1" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>isDynamic</name></member>
+      <member refid="structNamedConstBlock_1_1NamedConst_1a9b72aedb4704db42efdfbd0b6afb6ae8" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>regIndex</name></member>
+      <member refid="structNamedConstBlock_1_1NamedConst_1ae359a7880fbc827b5c35dc774f0f16de" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>rspace</name></member>
+      <member refid="structNamedConstBlock_1_1NamedConst_1a295c57d7bf4be34bd42d5c63a1f11b8b" prot="public" virt="non-virtual"><scope>NamedConstBlock::NamedConst</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

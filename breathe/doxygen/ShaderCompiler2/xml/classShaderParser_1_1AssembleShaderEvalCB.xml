@@ -1,0 +1,1970 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1AssembleShaderEvalCB" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::AssembleShaderEvalCB</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::ShaderEvalCB</basecompoundref>
+    <basecompoundref refid="classsemantic_1_1VariantBoolExprEvalCB" prot="public" virt="non-virtual">semantic::VariantBoolExprEvalCB</basecompoundref>
+    <includes refid="assemblyShader_8h" local="no">assemblyShader.h</includes>
+    <innerclass refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile" prot="public">ShaderParser::AssembleShaderEvalCB::HlslCompile</innerclass>
+    <innerclass refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" prot="public">ShaderParser::AssembleShaderEvalCB::PreshaderStat</innerclass>
+      <sectiondef kind="private-type">
+      <memberdef kind="enum" id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817" prot="private" static="no" strong="no">
+        <type></type>
+        <name>BlockPipelineType</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::BlockPipelineType</qualifiedname>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a9170e1c2523f9dec6090051e66b63081" prot="private">
+          <name>BLOCK_COMPUTE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a705fed6bbd43390ebe38ae7e1bfb9f28" prot="private">
+          <name>BLOCK_GRAPHICS_PS</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817afa0a5ce5ccb54898e7a2dc53bbae82a6" prot="private">
+          <name>BLOCK_GRAPHICS_VERTEX</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a9706c7d90afdf0abe46cf3bc9de5447c" prot="private">
+          <name>BLOCK_GRAPHICS_MESH</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817ad7b1ea8e19d660a630b9c68bb07effcc" prot="private">
+          <name>BLOCK_MAX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="103" column="3" bodyfile="assemblyShader.h" bodystart="104" bodyend="111"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classShaderParser_1_1AssembleShaderEvalCB_1af08835abccd6bc11220cf91b6ae85e5c" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>BlendValueType</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::BlendValueType</qualifiedname>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1af08835abccd6bc11220cf91b6ae85e5ca3c3ba615798db7340cd94c6e2d59e74e" prot="public">
+          <name>Factor</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1AssembleShaderEvalCB_1af08835abccd6bc11220cf91b6ae85e5ca8d6afc555354627f9706e93f0c452720" prot="public">
+          <name>BlendFunc</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="143" column="3" bodyfile="assemblyShader.h" bodystart="144" bodyend="147"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a3058e4d1c01fc25c4a62bf0e150fe6ca" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        <definition>shc::VariantContext&amp; ShaderParser::AssembleShaderEvalCB::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="63" column="23" bodyfile="assemblyShader.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a2e5aa16f073ae06f6d67c338553e8c6b" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+        <definition>ShaderClass&amp; ShaderParser::AssembleShaderEvalCB::sclass</definition>
+        <argsstring></argsstring>
+        <name>sclass</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::sclass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="66" column="15" bodyfile="assemblyShader.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a2ba6fb52310a3ced7b31ede7fd8cbc8b" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+        <definition>ShaderSemCode&amp; ShaderParser::AssembleShaderEvalCB::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="67" column="17" bodyfile="assemblyShader.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a5f188611e0ec12c9ca4259dcc5ec1be5" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderSemCode_1_1PassTab" kindref="compound">ShaderSemCode::PassTab</ref> *</type>
+        <definition>ShaderSemCode::PassTab* ShaderParser::AssembleShaderEvalCB::curvariant</definition>
+        <argsstring></argsstring>
+        <name>curvariant</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::curvariant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="68" column="26" bodyfile="assemblyShader.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1afc3b519f4870906d37b91b0c43d9dd3d" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> *</type>
+        <definition>SemanticShaderPass* ShaderParser::AssembleShaderEvalCB::curpass</definition>
+        <argsstring></argsstring>
+        <name>curpass</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::curpass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="69" column="22" bodyfile="assemblyShader.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a13773638b08aa98d58ad65a92533a4e8" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref> &amp;</type>
+        <definition>StcodeBytecodeAccumulator&amp; ShaderParser::AssembleShaderEvalCB::stBytecodeAccum</definition>
+        <argsstring></argsstring>
+        <name>stBytecodeAccum</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::stBytecodeAccum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="70" column="29" bodyfile="assemblyShader.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1ae6d873c03dd1eb2d1d3df5df90875819" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodePass" kindref="compound">StcodePass</ref> &amp;</type>
+        <definition>StcodePass&amp; ShaderParser::AssembleShaderEvalCB::stCppcodeAccum</definition>
+        <argsstring></argsstring>
+        <name>stCppcodeAccum</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::stCppcodeAccum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="71" column="14" bodyfile="assemblyShader.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a9fce8bcafff541a352da46dc6bb3e441" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref> &amp;</type>
+        <definition>NamedConstBlock&amp; ShaderParser::AssembleShaderEvalCB::shConst</definition>
+        <argsstring></argsstring>
+        <name>shConst</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::shConst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="72" column="19" bodyfile="assemblyShader.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1afabaa52e0ea25f004960aacc342b3c84" prot="public" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; ShaderParser::AssembleShaderEvalCB::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="73" column="10" bodyfile="assemblyShader.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1acd8eb6b1e5a36d30cc261b2f860856e3" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classShaderParser_1_1ExpressionParser" kindref="compound">ExpressionParser</ref></type>
+        <definition>const ExpressionParser ShaderParser::AssembleShaderEvalCB::exprParser</definition>
+        <argsstring></argsstring>
+        <name>exprParser</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::exprParser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="74" column="26" bodyfile="assemblyShader.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a24fe31141b2ba1fbf952b0e8dd4bec22" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> &amp;</type>
+        <definition>const ShaderVariant::TypeTable&amp; ShaderParser::AssembleShaderEvalCB::allRefStaticVars</definition>
+        <argsstring></argsstring>
+        <name>allRefStaticVars</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::allRefStaticVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="75" column="34" bodyfile="assemblyShader.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a4c3cbc6db4d70ab44ab3c36ae1592827" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::dont_render</definition>
+        <argsstring></argsstring>
+        <name>dont_render</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::dont_render</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="77" column="8" bodyfile="assemblyShader.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a427ca9934008b70bad704563c42c617b" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* ShaderParser::AssembleShaderEvalCB::no_dynstcode</definition>
+        <argsstring></argsstring>
+        <name>no_dynstcode</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::no_dynstcode</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="78" column="12" bodyfile="assemblyShader.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1ab9cab3d8f792289893c0ea004fb65110" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Terminal * &gt;</type>
+        <definition>Tab&lt;Terminal *&gt; ShaderParser::AssembleShaderEvalCB::stcode_vars</definition>
+        <argsstring></argsstring>
+        <name>stcode_vars</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::stcode_vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="79" column="7" bodyfile="assemblyShader.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a7c80bebc9e0a9217fa0568c9e7ab1ec9" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref> &amp;</type>
+        <definition>const ShaderVariant::VariantInfo&amp; ShaderParser::AssembleShaderEvalCB::variant</definition>
+        <argsstring></argsstring>
+        <name>variant</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::variant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="80" column="36" bodyfile="assemblyShader.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a6860b6f93232191e96b1ccada7510d8d" prot="public" static="no" mutable="no">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile" kindref="compound">HlslCompile</ref> &gt;</type>
+        <definition>PerHlslStage&lt;HlslCompile&gt; ShaderParser::AssembleShaderEvalCB::hlsls</definition>
+        <argsstring></argsstring>
+        <name>hlsls</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::hlsls</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="82" column="16" bodyfile="assemblyShader.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a14130d2479772469a8e6df8580f83c1a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::variant&lt; <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref>, local_var_decl * &gt; &gt;</type>
+        <definition>Tab&lt;eastl::variant&lt;PreshaderStat, local_var_decl *&gt; &gt; ShaderParser::AssembleShaderEvalCB::preshaderScalarStats</definition>
+        <argsstring></argsstring>
+        <name>preshaderScalarStats</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::preshaderScalarStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="84" column="7" bodyfile="assemblyShader.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a6ea7a67aa6b841f14f12d1b2e02759d6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; ShaderParser::AssembleShaderEvalCB::preshaderStaticTextureStats</definition>
+        <argsstring></argsstring>
+        <name>preshaderStaticTextureStats</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::preshaderStaticTextureStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="85" column="7" bodyfile="assemblyShader.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a92a00236fa1ab932b4046af012d3799b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; ShaderParser::AssembleShaderEvalCB::preshaderDynamicResourceStats</definition>
+        <argsstring></argsstring>
+        <name>preshaderDynamicResourceStats</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::preshaderDynamicResourceStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="86" column="7" bodyfile="assemblyShader.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a83ff86702f67548a6b715f02e8ebecf6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; ShaderParser::AssembleShaderEvalCB::preshaderHardcodedStats</definition>
+        <argsstring></argsstring>
+        <name>preshaderHardcodedStats</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::preshaderHardcodedStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="87" column="7" bodyfile="assemblyShader.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a39ca44997c80a1fdda49317b73bc8151" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::hasDynStcodeRelyingOnMaterialParams</definition>
+        <argsstring></argsstring>
+        <name>hasDynStcodeRelyingOnMaterialParams</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::hasDynStcodeRelyingOnMaterialParams</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="90" column="8" bodyfile="assemblyShader.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1ab4b7f4890dc105b84683fbadd463351d" prot="public" static="no" mutable="no">
+        <type>Symbol *</type>
+        <definition>Symbol* ShaderParser::AssembleShaderEvalCB::exprWithDynamicAndMaterialTerms</definition>
+        <argsstring></argsstring>
+        <name>exprWithDynamicAndMaterialTerms</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::exprWithDynamicAndMaterialTerms</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="91" column="10" bodyfile="assemblyShader.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a14bbbcbe63f36f84456a546fd36f1f2c" prot="public" static="no" mutable="no">
+        <type>eastl::vector_map&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>eastl::vector_map&lt;eastl::string_view, Symbol *&gt; ShaderParser::AssembleShaderEvalCB::uavGlobalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>uavGlobalShadervarRefs</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::uavGlobalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="93" column="21" bodyfile="assemblyShader.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a2507936d16835c9e6a9269dae3b5b9cf" prot="public" static="no" mutable="no">
+        <type>eastl::vector_map&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>eastl::vector_map&lt;eastl::string_view, Symbol *&gt; ShaderParser::AssembleShaderEvalCB::srvGlobalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>srvGlobalShadervarRefs</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::srvGlobalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="93" column="44" bodyfile="assemblyShader.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a1d333fad79171cbd841277824bd2fa8f" prot="public" static="no" mutable="no">
+        <type>eastl::vector_map&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>eastl::vector_map&lt;eastl::string_view, Symbol *&gt; ShaderParser::AssembleShaderEvalCB::uavLocalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>uavLocalShadervarRefs</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::uavLocalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="93" column="67" bodyfile="assemblyShader.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a00e1da3808ed324516f05116b65d4794" prot="public" static="no" mutable="no">
+        <type>eastl::vector_map&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>eastl::vector_map&lt;eastl::string_view, Symbol *&gt; ShaderParser::AssembleShaderEvalCB::srvLocalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>srvLocalShadervarRefs</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::srvLocalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="94" column="5" bodyfile="assemblyShader.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a34667529acbb189246a907737c79f2dd" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">VariablesMerger</ref></type>
+        <definition>VariablesMerger ShaderParser::AssembleShaderEvalCB::varMerger</definition>
+        <argsstring></argsstring>
+        <name>varMerger</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::varMerger</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="96" column="19" bodyfile="assemblyShader.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1aa0a30867edef6bbfacd9e7286672d2f2" prot="public" static="no" mutable="no">
+        <type>Tab&lt; uintptr_t &gt;</type>
+        <definition>Tab&lt;uintptr_t&gt; ShaderParser::AssembleShaderEvalCB::usedPreshaderStatements</definition>
+        <argsstring></argsstring>
+        <name>usedPreshaderStatements</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::usedPreshaderStatements</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="99" column="7" bodyfile="assemblyShader.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a78718c8e3e4a81b09d11890c5d7f362b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::pair&lt; uintptr_t, <ref refid="classShVarBool" kindref="compound">ShVarBool</ref> &gt; &gt;</type>
+        <definition>Tab&lt;eastl::pair&lt;uintptr_t, ShVarBool&gt; &gt; ShaderParser::AssembleShaderEvalCB::boolElementsEvaluationResults</definition>
+        <argsstring></argsstring>
+        <name>boolElementsEvaluationResults</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::boolElementsEvaluationResults</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="100" column="7" bodyfile="assemblyShader.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderParser_1_1AssembleShaderEvalCB_1a73469f9521c5c8ca69fd45c4698dda74" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class VariablesMerger</definition>
+        <argsstring></argsstring>
+        <name>VariablesMerger</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::VariablesMerger</qualifiedname>
+        <param>
+          <type><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">VariablesMerger</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="97" column="16" bodyfile="assemblyShader.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1AssembleShaderEvalCB_1a03b7e45403948a09d7a1318f93a8c369" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::declaredBlockTypes[BLOCK_MAX]</definition>
+        <argsstring>[BLOCK_MAX]</argsstring>
+        <name>declaredBlockTypes</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::declaredBlockTypes</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="112" column="8" bodyfile="assemblyShader.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1af72de12b5e67f69286b9fdb0c6913fe5" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AssembleShaderEvalCB::AssembleShaderEvalCB</definition>
+        <argsstring>(shc::VariantContext &amp;ctx)</argsstring>
+        <name>AssembleShaderEvalCB</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::AssembleShaderEvalCB</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="118" column="12" bodyfile="assemblyShader.cpp" bodystart="80" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a8547081625f30f139a633db30fdef8b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_static</definition>
+        <argsstring>(static_var_decl &amp;s) override</argsstring>
+        <name>eval_static</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_static</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a773524a09efd3b118970955178a69efd">eval_static</reimplements>
+        <param>
+          <type>static_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="120" column="8" bodyfile="assemblyShader.cpp" bodystart="112" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a3766a5b39d47f20c878a715af4d5b947" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_interval_decl</definition>
+        <argsstring>(interval &amp;interv) override</argsstring>
+        <name>eval_interval_decl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_interval_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ad1e613fd064621334abb0c35002af923">eval_interval_decl</reimplements>
+        <param>
+          <type>interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="121" column="8" bodyfile="assemblyShader.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a86f0e5f34abfab44d24408407ec9fdd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_bool_decl</definition>
+        <argsstring>(bool_decl &amp;) override</argsstring>
+        <name>eval_bool_decl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_bool_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a0b1484996b87155daf73af501febbd9d">eval_bool_decl</reimplements>
+        <param>
+          <type>bool_decl &amp;</type>
+          <defname>decl</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="122" column="8" bodyfile="assemblyShader.cpp" bodystart="235" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a480c8889867db4476ba58b6a24f224d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_init_stat</definition>
+        <argsstring>(SHTOK_ident *var, shader_init_value &amp;v)</argsstring>
+        <name>eval_init_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_init_stat</qualifiedname>
+        <param>
+          <type>SHTOK_ident *</type>
+          <declname>var</declname>
+        </param>
+        <param>
+          <type>shader_init_value &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="123" column="8" bodyfile="assemblyShader.cpp" bodystart="250" bodyend="337"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a3e8154a7f96876f610141f55f60b1df2" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_channel_decl</definition>
+        <argsstring>(channel_decl &amp;s, int stream_id=0) override</argsstring>
+        <name>eval_channel_decl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_channel_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4342c33792df4746ba4575adeebad9e7">eval_channel_decl</reimplements>
+        <param>
+          <type>channel_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stream_id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="124" column="8" bodyfile="assemblyShader.cpp" bodystart="376" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a0292aa556aa46a5382fc848545707b9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AssembleShaderEvalCB::get_blend_k</definition>
+        <argsstring>(const Terminal &amp;s)</argsstring>
+        <name>get_blend_k</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_blend_k</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="126" column="7" bodyfile="assemblyShader.cpp" bodystart="437" bodyend="479"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a95994dc93e46ff28ada30d35fed26a1c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AssembleShaderEvalCB::get_blend_op_k</definition>
+        <argsstring>(const Terminal &amp;s)</argsstring>
+        <name>get_blend_op_k</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_blend_op_k</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="127" column="7" bodyfile="assemblyShader.cpp" bodystart="481" bodyend="495"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a24fee822ee6d7b1f95ebc4d26abee7c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AssembleShaderEvalCB::get_stencil_cmpf_k</definition>
+        <argsstring>(const Terminal &amp;s)</argsstring>
+        <name>get_stencil_cmpf_k</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_stencil_cmpf_k</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="128" column="7" bodyfile="assemblyShader.cpp" bodystart="521" bodyend="545"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a1e335ec618c1855de86a27862763d629" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AssembleShaderEvalCB::get_stensil_op_k</definition>
+        <argsstring>(const Terminal &amp;s)</argsstring>
+        <name>get_stensil_op_k</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_stensil_op_k</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="129" column="7" bodyfile="assemblyShader.cpp" bodystart="497" bodyend="519"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a424f366a6638e8386b30cead6b91f905" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AssembleShaderEvalCB::get_bool_const</definition>
+        <argsstring>(const Terminal &amp;s)</argsstring>
+        <name>get_bool_const</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_bool_const</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="130" column="7" bodyfile="assemblyShader.cpp" bodystart="563" bodyend="572"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a2c157ef42d3454c48841426347e84113" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::get_depth_cmpf_k</definition>
+        <argsstring>(const Terminal &amp;s, int &amp;cmpf)</argsstring>
+        <name>get_depth_cmpf_k</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::get_depth_cmpf_k</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>cmpf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="131" column="8" bodyfile="assemblyShader.cpp" bodystart="547" bodyend="561"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a336c7cd326496ed18d4c80dd3fcbb7ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_state</definition>
+        <argsstring>(state_stat &amp;s) override</argsstring>
+        <name>eval_state</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a484b9919d67d330ad15f99a673aeb3f3">eval_state</reimplements>
+        <param>
+          <type>state_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="133" column="8" bodyfile="assemblyShader.cpp" bodystart="602" bodyend="871"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a8d1dd1a14d6d7533dab6195ea1c0c858" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_zbias_state</definition>
+        <argsstring>(zbias_state_stat &amp;s) override</argsstring>
+        <name>eval_zbias_state</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_zbias_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9bed93ba21bf89440d7b037f4ac2800d">eval_zbias_state</reimplements>
+        <param>
+          <type>zbias_state_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="134" column="8" bodyfile="assemblyShader.cpp" bodystart="873" bodyend="903"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ac5a6d090c23e495087cdda988448979b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_external_block</definition>
+        <argsstring>(external_state_block &amp;) override</argsstring>
+        <name>eval_external_block</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_external_block</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1af335c328a2c5792ea32c2429be3d308a">eval_external_block</reimplements>
+        <param>
+          <type>external_state_block &amp;</type>
+          <defname>state_block</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="135" column="8" bodyfile="assemblyShader.cpp" bodystart="905" bodyend="950"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a5a8a17df94ef7badf4bfb19910ad2a78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval</definition>
+        <argsstring>(immediate_const_block &amp;) override</argsstring>
+        <name>eval</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a2a70eff4ba8af3b3efc57fb6eb0ac15c">eval</reimplements>
+        <param>
+          <type>immediate_const_block &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="136" column="8" bodyfile="assemblyShader.h" bodystart="136" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1aba32b080ce1cb3cf207c3c19affa6fba" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_error_stat</definition>
+        <argsstring>(error_stat &amp;) override</argsstring>
+        <name>eval_error_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_error_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4feaa347af2510e01f37ebc31027211a">eval_error_stat</reimplements>
+        <param>
+          <type>error_stat &amp;</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="137" column="8" bodyfile="assemblyShader.cpp" bodystart="1332" bodyend="1335"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ac2ae9bc248d946e895701b0ed15c3ed2" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_render_stage</definition>
+        <argsstring>(render_stage_stat &amp;s) override</argsstring>
+        <name>eval_render_stage</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_render_stage</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aadbbbbeee8e38a94cfbc2a59f0108b89">eval_render_stage</reimplements>
+        <param>
+          <type>render_stage_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="138" column="8" bodyfile="assemblyShader.cpp" bodystart="1275" bodyend="1297"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a380f90903c94fbc7d7150f8d4039fb4a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_assume_stat</definition>
+        <argsstring>(assume_stat &amp;s) override</argsstring>
+        <name>eval_assume_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_assume_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4a1e738e214667e11fc939008f4f3c95">eval_assume_stat</reimplements>
+        <param>
+          <type>assume_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="139" column="8" bodyfile="assemblyShader.h" bodystart="139" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ae573845abdba8e6308f76202c1f08375" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_assume_if_not_assumed_stat</definition>
+        <argsstring>(assume_if_not_assumed_stat &amp;s) override</argsstring>
+        <name>eval_assume_if_not_assumed_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_assume_if_not_assumed_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a5117e36e50dbf966e0e8d09d291523ff">eval_assume_if_not_assumed_stat</reimplements>
+        <param>
+          <type>assume_if_not_assumed_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="140" column="8" bodyfile="assemblyShader.h" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a8bc58fb62ecbcc9971c041aa354c25ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_command</definition>
+        <argsstring>(shader_directive &amp;s) override</argsstring>
+        <name>eval_command</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_command</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ab93a6a4886b18225c46688a355703854">eval_command</reimplements>
+        <param>
+          <type>shader_directive &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="141" column="8" bodyfile="assemblyShader.cpp" bodystart="1298" bodyend="1328"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a2fbcfc2d67b6deefd9dd09711f92b1a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_supports</definition>
+        <argsstring>(supports_stat &amp;) override</argsstring>
+        <name>eval_supports</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_supports</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a6da845097d790e43f21f1d743f0b4ea7">eval_supports</reimplements>
+        <param>
+          <type>supports_stat &amp;</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="142" column="8" bodyfile="assemblyShader.cpp" bodystart="1164" bodyend="1273"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a49c2d527b890a4a01b14a9e0ba660d65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_blend_value</definition>
+        <argsstring>(const Terminal &amp;blend_func_tok, const SHTOK_intnum *const index, SemanticShaderPass::BlendValues &amp;blend_factors, const BlendValueType type)</argsstring>
+        <name>eval_blend_value</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_blend_value</qualifiedname>
+        <param>
+          <type>const Terminal &amp;</type>
+          <declname>blend_func_tok</declname>
+        </param>
+        <param>
+          <type>const SHTOK_intnum *const</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">SemanticShaderPass::BlendValues</ref> &amp;</type>
+          <declname>blend_factors</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderParser_1_1AssembleShaderEvalCB_1af08835abccd6bc11220cf91b6ae85e5c" kindref="member">BlendValueType</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="148" column="8" bodyfile="assemblyShader.cpp" bodystart="574" bodyend="600"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a5e9a6d3c7f86c43bd326f57002c3254c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::AssembleShaderEvalCB::eval_if</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_if</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_if</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a515e729e35d13de79ffbea9eacbd9d70">eval_if</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="151" column="14" bodyfile="assemblyShader.h" bodystart="212" bodyend="212"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ac2ee7f22e484cd1d5ddccda6c664ddbf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_else</definition>
+        <argsstring>(bool_expr &amp;) override</argsstring>
+        <name>eval_else</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_else</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a989962b2c720c97dcfc93e7c5d60caea">eval_else</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="152" column="8" bodyfile="assemblyShader.h" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1aa6a89d6146622fbd7e464ce6466bc2c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_endif</definition>
+        <argsstring>(bool_expr &amp;) override</argsstring>
+        <name>eval_endif</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_endif</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aad4f2cba55111bfe7c17380c714f3383">eval_endif</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="153" column="8" bodyfile="assemblyShader.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1aa4a451b226975e4146bd01448f46db4e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool ShaderParser::AssembleShaderEvalCB::eval_expr</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_expr</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_expr</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a9adf5ca170f128f4b53c4dce191b6e1b">eval_expr</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="155" column="13" bodyfile="assemblyShader.h" bodystart="155" bodyend="161"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a01261f9c19a099c786067a26b47d3677" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool ShaderParser::AssembleShaderEvalCB::eval_bool_value</definition>
+        <argsstring>(bool_value &amp;val) override</argsstring>
+        <name>eval_bool_value</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_bool_value</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a07dc087d3c096d83623b89cc7b02acc7">eval_bool_value</reimplements>
+        <param>
+          <type>bool_value &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="162" column="13" bodyfile="assemblyShader.h" bodystart="162" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a7659036a957a8b26ecaa6c9b1e9d9b76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::compilePreshader</definition>
+        <argsstring>()</argsstring>
+        <name>compilePreshader</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::compilePreshader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="170" column="8" bodyfile="assemblyShader.cpp" bodystart="1338" bodyend="1488"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a177f4d3ae0d1f3a58d864ceb0df9f96e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::end_pass</definition>
+        <argsstring>()</argsstring>
+        <name>end_pass</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::end_pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="171" column="8" bodyfile="assemblyShader.cpp" bodystart="1490" bodyend="1702"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1adaeffdf412eba643b05832b77de2f83c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::end_eval</definition>
+        <argsstring>(shader_decl &amp;sh)</argsstring>
+        <name>end_eval</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::end_eval</qualifiedname>
+        <param>
+          <type>shader_decl &amp;</type>
+          <declname>sh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="173" column="8" bodyfile="assemblyShader.cpp" bodystart="1721" bodyend="1728"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a000c2b52b77e52c55bf9f6c535f2983d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_hlsl_compile</definition>
+        <argsstring>(hlsl_compile_class &amp;hlsl_compile) override</argsstring>
+        <name>eval_hlsl_compile</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_hlsl_compile</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9ea4626b3b1eab41bd7a8fadfad3c349">eval_hlsl_compile</reimplements>
+        <param>
+          <type>hlsl_compile_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="175" column="8" bodyfile="assemblyShader.cpp" bodystart="1742" bodyend="1788"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a94c02339e46e46ec8270f2f7f59bd68f" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_hlsl_decl</definition>
+        <argsstring>(hlsl_local_decl_class &amp;hlsl_decl) override</argsstring>
+        <name>eval_hlsl_decl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_hlsl_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aeca67333ebe04120b20e000ee0bf826a">eval_hlsl_decl</reimplements>
+        <param>
+          <type>hlsl_local_decl_class &amp;</type>
+          <declname>hlsl_decl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="176" column="8" bodyfile="assemblyShader.cpp" bodystart="1791" bodyend="1795"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1af4b1bf80be2b69362e8632392b14649f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::hlsl_compile</definition>
+        <argsstring>(HlslCompilationStage stage)</argsstring>
+        <name>hlsl_compile</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::hlsl_compile</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="178" column="8" bodyfile="assemblyShader.cpp" bodystart="1967" bodyend="2023"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a22833c4bc718aae5d5591acbecd69235" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::eval_external_block_stat</definition>
+        <argsstring>(state_block_stat &amp;s, ShaderStage stage)</argsstring>
+        <name>eval_external_block_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_external_block_stat</qualifiedname>
+        <param>
+          <type>state_block_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="181" column="8" bodyfile="assemblyShader.cpp" bodystart="952" bodyend="971"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a2415344cab91b48a6ec6a1bdf1a3cd59" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::eval_shader_locdecl</definition>
+        <argsstring>(local_var_decl &amp;s) override</argsstring>
+        <name>eval_shader_locdecl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::eval_shader_locdecl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4c4bdf71ee607e8951eaee08654fc954">eval_shader_locdecl</reimplements>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="182" column="8" bodyfile="assemblyShader.h" bodystart="182" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a5dc7b25816fae47cee7290147b0d4074" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::process_external_block_stat</definition>
+        <argsstring>(const PreshaderStat &amp;stat)</argsstring>
+        <name>process_external_block_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::process_external_block_stat</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref> &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="184" column="8" bodyfile="assemblyShader.cpp" bodystart="973" bodyend="1038"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a88b1d93ad602d078e0bd1a764309f6e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::process_shader_locdecl</definition>
+        <argsstring>(local_var_decl &amp;s)</argsstring>
+        <name>process_shader_locdecl</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::process_shader_locdecl</qualifiedname>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="185" column="8" bodyfile="assemblyShader.cpp" bodystart="1731" bodyend="1739"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a3b8376325930f135b0627b375c28e7c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::decl_bool_alias</definition>
+        <argsstring>(const char *name, bool_expr &amp;expr) override</argsstring>
+        <name>decl_bool_alias</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::decl_bool_alias</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a69a7fb78162d42fed759dcfa1877d54c">decl_bool_alias</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="187" column="8" bodyfile="assemblyShader.cpp" bodystart="237" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1afab0695b7761813942c9eb642211617c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::AssembleShaderEvalCB::is_debug_mode_enabled</definition>
+        <argsstring>() override</argsstring>
+        <name>is_debug_mode_enabled</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::is_debug_mode_enabled</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a5ce5cefefa2c7e01910a9e62542baed7">is_debug_mode_enabled</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="188" column="7" bodyfile="assemblyShader.h" bodystart="188" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a9f2c16d8833b79771315394b6abe5685" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::compile_external_block_stat</definition>
+        <argsstring>(const PreshaderStat &amp;stat)</argsstring>
+        <name>compile_external_block_stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::compile_external_block_stat</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kindref="compound">PreshaderStat</ref> &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="190" column="8" bodyfile="assemblyShader.cpp" bodystart="1040" bodyend="1161"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ac900057d3ff58a08e1f0ffaa1b66a823" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::addBlockType</definition>
+        <argsstring>(const char *name, const Terminal *t)</argsstring>
+        <name>addBlockType</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::addBlockType</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="193" column="8" bodyfile="assemblyShader.cpp" bodystart="1797" bodyend="1825"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a74698269d5d236ef8ad5962fd5a921da" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool AssembleShaderEvalCB::hasDeclaredGraphicsBlocks</definition>
+        <argsstring>()</argsstring>
+        <name>hasDeclaredGraphicsBlocks</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::hasDeclaredGraphicsBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="194" column="8" bodyfile="assemblyShader.cpp" bodystart="1827" bodyend="1830"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a905a3702fcc5dad41db66b642b9ce4be" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool AssembleShaderEvalCB::hasDeclaredMeshPipelineBlocks</definition>
+        <argsstring>()</argsstring>
+        <name>hasDeclaredMeshPipelineBlocks</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::hasDeclaredMeshPipelineBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="195" column="8" bodyfile="assemblyShader.cpp" bodystart="1832" bodyend="1832"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1ac7723b08ee4c0d74f4d5aad0ff058af3" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::isCompute</definition>
+        <argsstring>() const</argsstring>
+        <name>isCompute</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::isCompute</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="197" column="8" bodyfile="assemblyShader.h" bodystart="197" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a9c5b478d06a39682282493bf78fed526" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::isMesh</definition>
+        <argsstring>() const</argsstring>
+        <name>isMesh</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::isMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="198" column="8" bodyfile="assemblyShader.h" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a388daa0029585e5f5516e2580920ddaf" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::isGraphics</definition>
+        <argsstring>() const</argsstring>
+        <name>isGraphics</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::isGraphics</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="199" column="8" bodyfile="assemblyShader.h" bodystart="199" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a80f21d5ea835f89f3d47373981524c1d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::evalHlslCompileClass</definition>
+        <argsstring>(HlslCompile *comp)</argsstring>
+        <name>evalHlslCompileClass</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::evalHlslCompileClass</qualifiedname>
+        <param>
+          <type><ref refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile" kindref="compound">HlslCompile</ref> *</type>
+          <declname>comp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="205" column="8" bodyfile="assemblyShader.cpp" bodystart="1835" bodyend="1867"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1aeedb172c9c30573ef27a1f5e1053a89a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AssembleShaderEvalCB::reserveSpecialCbufferAt</definition>
+        <argsstring>(HlslSlotSemantic cbuffer_sem, int reg)</argsstring>
+        <name>reserveSpecialCbufferAt</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::reserveSpecialCbufferAt</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>cbuffer_sem</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="207" column="8" bodyfile="assemblyShader.cpp" bodystart="1869" bodyend="1886"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1AssembleShaderEvalCB_1a319d68ba4fab628bf274485c7ebc0123" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool AssembleShaderEvalCB::validateDynamicConstsForMultidraw</definition>
+        <argsstring>()</argsstring>
+        <name>validateDynamicConstsForMultidraw</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::validateDynamicConstsForMultidraw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="209" column="8" bodyfile="assemblyShader.cpp" bodystart="1704" bodyend="1719"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::AssembleShaderEvalCB</label>
+        <link refid="classShaderParser_1_1AssembleShaderEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+      <node id="3">
+        <label>semantic::VariantBoolExprEvalCB</label>
+        <link refid="classsemantic_1_1VariantBoolExprEvalCB"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="20">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="21" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="25">
+        <label>HlslRegRange</label>
+        <link refid="structHlslRegRange"/>
+      </node>
+      <node id="44">
+        <label>IVariantInfoProvider</label>
+        <link refid="classIVariantInfoProvider"/>
+      </node>
+      <node id="45">
+        <label>IntervalList</label>
+        <link refid="classIntervalList"/>
+      </node>
+      <node id="29">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="30" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="31" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="32" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="33" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="34" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="30">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="33">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="32" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="36">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="37" relation="public-inheritance">
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="46">
+        <label>PerHlslStage&lt; ShaderParser::AssembleShaderEvalCB::HlslCompile &gt;</label>
+        <link refid="structPerHlslStage"/>
+        <childnode refid="47" relation="usage">
+          <edgelabel>as</edgelabel>
+          <edgelabel>cs</edgelabel>
+          <edgelabel>ds</edgelabel>
+          <edgelabel>gs</edgelabel>
+          <edgelabel>hs</edgelabel>
+          <edgelabel>ms</edgelabel>
+          <edgelabel>ps</edgelabel>
+          <edgelabel>vs</edgelabel>
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SemanticShaderPass</label>
+        <link refid="structSemanticShaderPass"/>
+        <childnode refid="19" relation="usage">
+          <edgelabel>cppstcode</edgelabel>
+        </childnode>
+        <childnode refid="25" relation="usage">
+          <edgelabel>bufferedConstRange</edgelabel>
+          <edgelabel>psOrCsConstRange</edgelabel>
+          <edgelabel>vsConstRange</edgelabel>
+        </childnode>
+        <childnode refid="26" relation="usage">
+          <edgelabel>enableFp16</edgelabel>
+        </childnode>
+        <childnode refid="27" relation="usage">
+          <edgelabel>target</edgelabel>
+        </childnode>
+      </node>
+      <node id="26">
+        <label>SemanticShaderPass::EnableFp16State</label>
+        <link refid="structSemanticShaderPass_1_1EnableFp16State"/>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; ShaderClass::Var &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; ShaderCode * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="35" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ShaderClass</label>
+        <link refid="classShaderClass"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>staticVariants</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>stvar</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>shInitCode</edgelabel>
+        </childnode>
+      </node>
+      <node id="27">
+        <label>ShaderCode::Pass</label>
+        <link refid="structShaderCode_1_1Pass"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::AssembleShaderEvalCB</label>
+        <link refid="classShaderParser_1_1AssembleShaderEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>sclass</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>curvariant</edgelabel>
+        </childnode>
+        <childnode refid="18" relation="usage">
+          <edgelabel>curpass</edgelabel>
+        </childnode>
+        <childnode refid="28" relation="usage">
+          <edgelabel>stBytecodeAccum</edgelabel>
+        </childnode>
+        <childnode refid="19" relation="usage">
+          <edgelabel>stCppcodeAccum</edgelabel>
+        </childnode>
+        <childnode refid="29" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+        <childnode refid="36" relation="usage">
+          <edgelabel>parser</edgelabel>
+        </childnode>
+        <childnode refid="38" relation="usage">
+          <edgelabel>exprParser</edgelabel>
+        </childnode>
+        <childnode refid="39" relation="usage">
+          <edgelabel>allRefStaticVars</edgelabel>
+        </childnode>
+        <childnode refid="40" relation="usage">
+          <edgelabel>variant</edgelabel>
+        </childnode>
+        <childnode refid="46" relation="usage">
+          <edgelabel>hlsls</edgelabel>
+        </childnode>
+        <childnode refid="48" relation="usage">
+          <edgelabel>varMerger</edgelabel>
+        </childnode>
+      </node>
+      <node id="47">
+        <label>ShaderParser::AssembleShaderEvalCB::HlslCompile</label>
+        <link refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile"/>
+      </node>
+      <node id="38">
+        <label>ShaderParser::ExpressionParser</label>
+        <link refid="classShaderParser_1_1ExpressionParser"/>
+      </node>
+      <node id="4">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+      <node id="48">
+        <label>ShaderParser::VariablesMerger</label>
+        <link refid="structShaderParser_1_1VariablesMerger"/>
+        <childnode refid="15" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>ShaderSemCode</label>
+        <link refid="classShaderSemCode"/>
+        <childnode refid="15" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>staticStcodeVars</edgelabel>
+        </childnode>
+      </node>
+      <node id="17">
+        <label>ShaderSemCode::PassTab</label>
+        <link refid="structShaderSemCode_1_1PassTab"/>
+      </node>
+      <node id="31">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="29" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="37">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+      <node id="43">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="42">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+        <childnode refid="39" relation="usage">
+          <edgelabel>types</edgelabel>
+        </childnode>
+        <childnode refid="43" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+      <node id="39">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+      <node id="40">
+        <label>ShaderVariant::VariantInfo</label>
+        <link refid="structShaderVariant_1_1VariantInfo"/>
+        <childnode refid="41" relation="usage">
+          <edgelabel>dyn</edgelabel>
+          <edgelabel>stat</edgelabel>
+        </childnode>
+        <childnode refid="45" relation="usage">
+          <edgelabel>intervals</edgelabel>
+        </childnode>
+      </node>
+      <node id="41">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="42" relation="public-inheritance">
+        </childnode>
+        <childnode refid="44" relation="public-inheritance">
+        </childnode>
+        <childnode refid="39" relation="usage">
+          <edgelabel>defCtorTypeTable</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>ShaderVariant::VariantTable</label>
+        <link refid="classShaderVariant_1_1VariantTable"/>
+      </node>
+      <node id="24">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="21" relation="public-inheritance">
+        </childnode>
+        <childnode refid="23" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="22">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="28">
+        <label>StcodeBytecodeAccumulator</label>
+        <link refid="structStcodeBytecodeAccumulator"/>
+      </node>
+      <node id="19">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="20" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="24" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="23">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="21">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="22" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="23" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="16">
+        <label>StcodeStaticVars</label>
+        <link refid="structStcodeStaticVars"/>
+      </node>
+      <node id="11">
+        <label>Tab&lt; ShaderClass::Var &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; ShaderCode * &gt;</label>
+      </node>
+      <node id="35">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+      <node id="13">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+      <node id="3">
+        <label>semantic::VariantBoolExprEvalCB</label>
+        <link refid="classsemantic_1_1VariantBoolExprEvalCB"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+      <node id="5">
+        <label>shc::VariantContext</label>
+        <link refid="classshc_1_1VariantContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="assemblyShader.h" line="42" column="1" bodyfile="assemblyShader.h" bodystart="43" bodyend="210"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a2a47dcc0c4945cd7ddd6568fa71e9151" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>add_message</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ac900057d3ff58a08e1f0ffaa1b66a823" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>addBlockType</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a24fe31141b2ba1fbf952b0e8dd4bec22" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>allRefStaticVars</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1af72de12b5e67f69286b9fdb0c6913fe5" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>AssembleShaderEvalCB</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1af08835abccd6bc11220cf91b6ae85e5c" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BlendValueType</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a9170e1c2523f9dec6090051e66b63081" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BLOCK_COMPUTE</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a9706c7d90afdf0abe46cf3bc9de5447c" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BLOCK_GRAPHICS_MESH</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817a705fed6bbd43390ebe38ae7e1bfb9f28" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BLOCK_GRAPHICS_PS</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817afa0a5ce5ccb54898e7a2dc53bbae82a6" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BLOCK_GRAPHICS_VERTEX</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817ad7b1ea8e19d660a630b9c68bb07effcc" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BLOCK_MAX</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa3ddf211e9530472aa183343892dd817" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>BlockPipelineType</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a78718c8e3e4a81b09d11890c5d7f362b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>boolElementsEvaluationResults</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2ba6fb52310a3ced7b31ede7fd8cbc8b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>code</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a9f2c16d8833b79771315394b6abe5685" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>compile_external_block_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a7659036a957a8b26ecaa6c9b1e9d9b76" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>compilePreshader</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a3058e4d1c01fc25c4a62bf0e150fe6ca" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>ctx</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1afc3b519f4870906d37b91b0c43d9dd3d" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>curpass</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a5f188611e0ec12c9ca4259dcc5ec1be5" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>curvariant</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a3b8376325930f135b0627b375c28e7c8" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>decl_bool_alias</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a03b7e45403948a09d7a1318f93a8c369" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>declaredBlockTypes</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a4c3cbc6db4d70ab44ab3c36ae1592827" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>dont_render</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1adaeffdf412eba643b05832b77de2f83c" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>end_eval</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a177f4d3ae0d1f3a58d864ceb0df9f96e" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>end_pass</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a5a8a17df94ef7badf4bfb19910ad2a78" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ae573845abdba8e6308f76202c1f08375" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_assume_if_not_assumed_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a380f90903c94fbc7d7150f8d4039fb4a" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_assume_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a49c2d527b890a4a01b14a9e0ba660d65" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_blend_value</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a86f0e5f34abfab44d24408407ec9fdd8" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_bool_decl</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a01261f9c19a099c786067a26b47d3677" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_bool_value</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a3e8154a7f96876f610141f55f60b1df2" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_channel_decl</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a8bc58fb62ecbcc9971c041aa354c25ff" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_command</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ac2ee7f22e484cd1d5ddccda6c664ddbf" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_else</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa6a89d6146622fbd7e464ce6466bc2c2" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_endif</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aba32b080ce1cb3cf207c3c19affa6fba" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_error_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa4a451b226975e4146bd01448f46db4e" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_expr</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ac5a6d090c23e495087cdda988448979b" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_external_block</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a22833c4bc718aae5d5591acbecd69235" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_external_block_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a000c2b52b77e52c55bf9f6c535f2983d" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_hlsl_compile</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a94c02339e46e46ec8270f2f7f59bd68f" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_hlsl_decl</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a5e9a6d3c7f86c43bd326f57002c3254c" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_if</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a480c8889867db4476ba58b6a24f224d0" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_init_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a3766a5b39d47f20c878a715af4d5b947" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_interval_decl</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1acbd6f09e2484d9927d19f51dc0220747" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_interval_value</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ac2ae9bc248d946e895701b0ed15c3ed2" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_render_stage</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2415344cab91b48a6ec6a1bdf1a3cd59" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_shader_locdecl</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a336c7cd326496ed18d4c80dd3fcbb7ec" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_state</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a8547081625f30f139a633db30fdef8b3" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_static</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2fbcfc2d67b6deefd9dd09711f92b1a3" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_supports</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a8d1dd1a14d6d7533dab6195ea1c0c858" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>eval_zbias_state</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a80f21d5ea835f89f3d47373981524c1d" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>evalHlslCompileClass</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1acd8eb6b1e5a36d30cc261b2f860856e3" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>exprParser</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ab4b7f4890dc105b84683fbadd463351d" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>exprWithDynamicAndMaterialTerms</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a0292aa556aa46a5382fc848545707b9b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_blend_k</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a95994dc93e46ff28ada30d35fed26a1c" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_blend_op_k</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a424f366a6638e8386b30cead6b91f905" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_bool_const</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2c157ef42d3454c48841426347e84113" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_depth_cmpf_k</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a24fee822ee6d7b1f95ebc4d26abee7c2" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_stencil_cmpf_k</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a1e335ec618c1855de86a27862763d629" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>get_stensil_op_k</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a581f2cf7ed7c9fc774cac32e197b8b35" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>getDefines</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a74698269d5d236ef8ad5962fd5a921da" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>hasDeclaredGraphicsBlocks</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a905a3702fcc5dad41db66b642b9ce4be" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>hasDeclaredMeshPipelineBlocks</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a39ca44997c80a1fdda49317b73bc8151" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>hasDynStcodeRelyingOnMaterialParams</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1af4b1bf80be2b69362e8632392b14649f" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>hlsl_compile</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a6860b6f93232191e96b1ccada7510d8d" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>hlsls</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>IF_BOTH</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>IF_FALSE</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>IF_TRUE</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1afab0695b7761813942c9eb642211617c" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>is_debug_mode_enabled</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ac7723b08ee4c0d74f4d5aad0ff058af3" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>isCompute</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a388daa0029585e5f5516e2580920ddaf" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>isGraphics</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a9c5b478d06a39682282493bf78fed526" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>isMesh</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a427ca9934008b70bad704563c42c617b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>no_dynstcode</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1afabaa52e0ea25f004960aacc342b3c84" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>parser</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a92a00236fa1ab932b4046af012d3799b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>preshaderDynamicResourceStats</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a83ff86702f67548a6b715f02e8ebecf6" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>preshaderHardcodedStats</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a14130d2479772469a8e6df8580f83c1a" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>preshaderScalarStats</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a6ea7a67aa6b841f14f12d1b2e02759d6" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>preshaderStaticTextureStats</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a5dc7b25816fae47cee7290147b0d4074" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>process_external_block_stat</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a88b1d93ad602d078e0bd1a764309f6e7" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>process_shader_locdecl</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1a8ea1c1a892a5b6911982b058dbc93d28" prot="public" virt="virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>report_bool_eval_error</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aeedb172c9c30573ef27a1f5e1053a89a" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>reserveSpecialCbufferAt</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2e5aa16f073ae06f6d67c338553e8c6b" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>sclass</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a9fce8bcafff541a352da46dc6bb3e441" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>shConst</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a2507936d16835c9e6a9269dae3b5b9cf" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>srvGlobalShadervarRefs</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a00e1da3808ed324516f05116b65d4794" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>srvLocalShadervarRefs</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a13773638b08aa98d58ad65a92533a4e8" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>stBytecodeAccum</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ab9cab3d8f792289893c0ea004fb65110" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>stcode_vars</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1ae6d873c03dd1eb2d1d3df5df90875819" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>stCppcodeAccum</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a14bbbcbe63f36f84456a546fd36f1f2c" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>uavGlobalShadervarRefs</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a1d333fad79171cbd841277824bd2fa8f" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>uavLocalShadervarRefs</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1aa0a30867edef6bbfacd9e7286672d2f2" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>usedPreshaderStatements</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a319d68ba4fab628bf274485c7ebc0123" prot="private" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>validateDynamicConstsForMultidraw</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a73469f9521c5c8ca69fd45c4698dda74" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>VariablesMerger</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a7c80bebc9e0a9217fa0568c9e7ab1ec9" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>variant</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1ac0de7783c0cf7e4c7690db0005e87972" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>VariantBoolExprEvalCB</name></member>
+      <member refid="classShaderParser_1_1AssembleShaderEvalCB_1a34667529acbb189246a907737c79f2dd" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB</scope><name>varMerger</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

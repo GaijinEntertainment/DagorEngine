@@ -1,0 +1,984 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedafg" kind="namespace" language="C++">
+    <compoundname>dafg</compoundname>
+    <innerclass refid="classdafg_1_1AutoResolutionRequest" prot="public">dafg::AutoResolutionRequest</innerclass>
+    <innerclass refid="structdafg_1_1BufferCreateInfo" prot="public">dafg::BufferCreateInfo</innerclass>
+    <innerclass refid="classdafg_1_1DispatchRequest" prot="public">dafg::DispatchRequest</innerclass>
+    <innerclass refid="classdafg_1_1DrawRequest" prot="public">dafg::DrawRequest</innerclass>
+    <innerclass refid="structdafg_1_1ExternalState" prot="public">dafg::ExternalState</innerclass>
+    <innerclass refid="structdafg_1_1NamedSlot" prot="public">dafg::NamedSlot</innerclass>
+    <innerclass refid="classdafg_1_1NameSpace" prot="public">dafg::NameSpace</innerclass>
+    <innerclass refid="classdafg_1_1NameSpaceRequest" prot="public">dafg::NameSpaceRequest</innerclass>
+    <innerclass refid="classdafg_1_1NodeHandle" prot="public">dafg::NodeHandle</innerclass>
+    <innerclass refid="classdafg_1_1Registry" prot="public">dafg::Registry</innerclass>
+    <innerclass refid="classdafg_1_1StateRequest" prot="public">dafg::StateRequest</innerclass>
+    <innerclass refid="structdafg_1_1Texture2dCreateInfo" prot="public">dafg::Texture2dCreateInfo</innerclass>
+    <innerclass refid="structdafg_1_1Texture3dCreateInfo" prot="public">dafg::Texture3dCreateInfo</innerclass>
+    <innerclass refid="classdafg_1_1VirtualPassRequest" prot="public">dafg::VirtualPassRequest</innerclass>
+    <innerclass refid="classdafg_1_1VirtualResourceCreationSemiRequest" prot="public">dafg::VirtualResourceCreationSemiRequest</innerclass>
+    <innerclass refid="classdafg_1_1VirtualResourceHandle" prot="public">dafg::VirtualResourceHandle</innerclass>
+    <innerclass refid="classdafg_1_1VirtualResourceRequest" prot="public">dafg::VirtualResourceRequest</innerclass>
+    <innerclass refid="classdafg_1_1VirtualResourceSemiRequest" prot="public">dafg::VirtualResourceSemiRequest</innerclass>
+    <innerclass refid="structdafg_1_1VrsSettings" prot="public">dafg::VrsSettings</innerclass>
+    <innernamespace refid="namespacedafg_1_1detail">dafg::detail</innernamespace>
+    <innernamespace refid="namespacedafg_1_1multiplexing">dafg::multiplexing</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>History</name>
+        <qualifiedname>dafg::History</qualifiedname>
+        <enumvalue id="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209abafd7322c6e97d25b6299b5d6fe8920b" prot="public">
+          <name>No</name>
+          <briefdescription>
+<para>Resource does not need history, requesting it will result in an error message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209a34703f5435004c8a983bbce26a8476fb" prot="public">
+          <name>ClearZeroOnFirstFrame</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>History is required and should be an all-zero image on the first frame. This might be slow, so should only be used when necessary. NOTE: for CPU-resources, this simply default-constructs them </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209affc059c5154ced7686f64990ce2cd9b6" prot="public">
+          <name>DiscardOnFirstFrame</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>History is required and it doesn&apos;t matter what it contains on the first frame This is the preferred variant as it is faster, but it might cause artifacts and trash value propagation for cumulative type algorithms. NOTE: for CPU-resources, this simply default-constructs them </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>History policy for a resource. Must always be specified on creation. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="history.h" line="13" column="1" bodyfile="history.h" bodystart="14" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>DrawPrimitive</name>
+        <qualifiedname>dafg::DrawPrimitive</qualifiedname>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19ad2632e54a7b9520714554554f4b9619d" prot="public">
+          <name>POINT_LIST</name>
+          <initializer>= PRIM_POINTLIST</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a195d93c98c5e94cad21509e910f65fae" prot="public">
+          <name>LINE_LIST</name>
+          <initializer>= PRIM_LINELIST</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19ae64a4d2159ed46d077e21a505575c814" prot="public">
+          <name>LINE_STRIP</name>
+          <initializer>= PRIM_LINESTRIP</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a14d20da17f6d27fc43c5f311c17eb912" prot="public">
+          <name>TRIANGLE_LIST</name>
+          <initializer>= PRIM_TRILIST</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a708de017e3b83ccba21dfc9f6367d46f" prot="public">
+          <name>TRIANGLE_STRIP</name>
+          <initializer>= PRIM_TRISTRIP</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19aa9f047dff7e4cd4d8d3bdeafc4029d47" prot="public">
+          <name>TRIANGLE_FAN</name>
+          <initializer>= PRIM_TRIFAN</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="primitive.h" line="13" column="1" bodyfile="primitive.h" bodystart="14" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>SideEffects</name>
+        <qualifiedname>dafg::SideEffects</qualifiedname>
+        <enumvalue id="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90a6adf97f83acf6453d4a6a4b1070f3754" prot="public">
+          <name>None</name>
+          <briefdescription>
+<para>Node has an empty execution callback that can safely be skipped. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90aafbf0897a5a83fdd873dfb032ec695d3" prot="public">
+          <name>Internal</name>
+          <briefdescription>
+<para>Default: node only accesses daFG state and may be culled away. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90ab206a1b4ea1097761f78e8876f6da779" prot="public">
+          <name>External</name>
+          <briefdescription>
+<para>Node has side effects outside daFG and will never be culled away. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Specified the side effects of executing a node. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sideEffects.h" line="11" column="1" bodyfile="sideEffects.h" bodystart="12" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>Stage</name>
+        <qualifiedname>dafg::Stage</qualifiedname>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a696b031073e74bf2cb98e5ef201d4aa3" prot="public">
+          <name>UNKNOWN</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>For legacy code only. Will suppress a barrier before this usage and force a barrier after this usage. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" prot="public">
+          <name>PRE_RASTER</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>All pre-rasterization stages: indirect draw reading, vertex input, vertex shader, geometry shader, tesselation shaders, mesh shaders. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1309488addcb247cddce3f8ed38aebb6" prot="public">
+          <name>POST_RASTER</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>All post-rasterization stages: early tests, fragment shader, late tests, attachment output. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aac404d7ce6ca5862e9b8a2641fbafd90" prot="public">
+          <name>COMPUTE</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Copute dispatches. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aeb5ddb3b6096fb90ff720d9c3e2a6628" prot="public">
+          <name>TRANSFER</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+<para>Blit and copy operations. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c0fd52f85dbdb17fffd3d0d653013d3" prot="public">
+          <name>RAYTRACE</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+<para>All raytrace shaders. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad3d4c5deb455ac79dd5ff47c88bd65d9" prot="public">
+          <name>PS</name>
+          <initializer>= POST_RASTER</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Aliases for simple use-cases. Note however that even though all PS usages are POST_RASTER, but not all POST_RASTER usages are from the pixel shader (PS). Use with caution so as not to confuse the reader of your code. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c54e23f4c5442c665a807ab19f61204" prot="public">
+          <name>VS</name>
+          <initializer>= PRE_RASTER</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a8d7e99c73cd5a10adaaf4c9f9a520368" prot="public">
+          <name>CS</name>
+          <initializer>= COMPUTE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a9610cb37185d9e4d4316114bed2ab3c5" prot="public">
+          <name>PS_OR_CS</name>
+          <initializer>= PS | CS</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1b88f31774becdfc8ccef062b2496f5b" prot="public">
+          <name>ALL_GRAPHICS</name>
+          <initializer>= PRE_RASTER | POST_RASTER</initializer>
+          <briefdescription>
+<para>Anything graphics-related. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad836d748421aedd50926610946a2612d" prot="public">
+          <name>ALL_INDIRECTION</name>
+          <initializer>= PRE_RASTER | COMPUTE | RAYTRACE</initializer>
+          <briefdescription>
+<para>Reads from inderection buffers can only happen during one of these stages. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes a GPU pipeline stage at which a resource is accessed. Part of the information required for daFG to place barriers. Note that this is a flags enum, so you can combine multiple stages. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="20" column="1" bodyfile="stage.h" bodystart="21" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" prot="public" static="no" strong="yes">
+        <type>uint16_t</type>
+        <name>Usage</name>
+        <qualifiedname>dafg::Usage</qualifiedname>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a696b031073e74bf2cb98e5ef201d4aa3" prot="public">
+          <name>UNKNOWN</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>For legacy code only, will suppress a barrier before this usage and force a barrier after this usage. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa63816e658355cace69f46e9242fed85" prot="public">
+          <name>COLOR_ATTACHMENT</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+<para>Regular render target. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aba7579ee628893eb0c00a258beac2e61" prot="public">
+          <name>DEPTH_ATTACHMENT</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+<para>Depth buffer. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa458be3770c54edd6535c18ac1fe731f" prot="public">
+          <name>RESOLVE_ATTACHMENT</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Vulkan only: automatic MSAA resolve inside a subpass. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a46dbeefa1c9cf07f114b142fc7096f43" prot="public">
+          <name>SHADER_RESOURCE</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Any type of shader resource, i.e. a sampled image or a storage buffer/texture in terms of vulkan and an SRV or a UAV in terms of directX. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a4ca062f3b263f76e4246287f4fce16bd" prot="public">
+          <name>CONSTANT_BUFFER</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Special type of shader resource that is limited in size but is faster to read. Marked as <computeroutput>cbuffer</computeroutput> in shaders. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a24ba47a6b7ca772e4185e7a7b54d4c90" prot="public">
+          <name>INDEX_BUFFER</name>
+          <initializer>= 1u &lt;&lt; 5</initializer>
+          <briefdescription>
+<para>Index buffer for a draw primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa77fcc0c8db7e3e4c3ca370997298c34" prot="public">
+          <name>VERTEX_BUFFER</name>
+          <initializer>= 1u &lt;&lt; 6</initializer>
+          <briefdescription>
+<para>Vertex buffer for a draw primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885ae8606d021da140a92c7eba8d9b8af84f" prot="public">
+          <name>COPY</name>
+          <initializer>= 1u &lt;&lt; 7</initializer>
+          <briefdescription>
+<para>Either the source or the destination of a copy operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885afceb4f1763a5a673cad9b33713e8f265" prot="public">
+          <name>BLIT</name>
+          <initializer>= 1u &lt;&lt; 8</initializer>
+          <briefdescription>
+<para>Either the source or the destination of a blit operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a7b13946562f2c201cd5d104358ebe8af" prot="public">
+          <name>INDIRECTION_BUFFER</name>
+          <initializer>= 1u &lt;&lt; 9</initializer>
+          <briefdescription>
+<para>A buffer used for an indirect draw/dispatch/raytrace primitive. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a03d68685b3c84c181aff34c8aac84f76" prot="public">
+          <name>VRS_RATE_TEXTURE</name>
+          <initializer>= 1u &lt;&lt; 10</initializer>
+          <briefdescription>
+<para>A texture used for determining variable shading rate for regions. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a08ea2c247044640bd3e2d3ad238e0ac6" prot="public">
+          <name>INPUT_ATTACHMENT</name>
+          <initializer>= COLOR_ATTACHMENT | SHADER_RESOURCE</initializer>
+          <briefdescription>
+<para>Vulkan only: subpass input attachment. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1abcd6f808900c4a881e38118a91c9c885addee6c92527ce45bd946be2ca1ab5923" prot="public">
+          <name>DEPTH_ATTACHMENT_AND_SHADER_RESOURCE</name>
+          <initializer>= DEPTH_ATTACHMENT | SHADER_RESOURCE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>A special read-only usage type that allows a texture to be used as a read-only depth target as well as a sampled image simultaneously. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes the way a node uses a resource. Part of the information required for daFG to place barriers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="usage.h" line="18" column="1" bodyfile="usage.h" bodystart="19" bodyend="74"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" prot="public" static="no">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type>typename <ref refid="structdafg_1_1detail_1_1IPointImpl" kindref="compound">detail::IPointImpl</ref>&lt; D &gt;::Value</type>
+        <definition>using dafg::IPoint = typedef typename detail::IPointImpl&lt;D&gt;::Value</definition>
+        <argsstring></argsstring>
+        <name>IPoint</name>
+        <qualifiedname>dafg::IPoint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="autoResolutionRequest.h" line="38" column="1" bodyfile="autoResolutionRequest.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1a586af6f25a430f249f6a8daeceb81200" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasThreads &gt;</type>
+        <definition>using dafg::DispatchComputeThreadsRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasThreads&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchComputeThreadsRequest</name>
+        <qualifiedname>dafg::DispatchComputeThreadsRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="22" column="1" bodyfile="dispatchRequest.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1a36320871f9856273e0268b58b9540736" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasGroups &gt;</type>
+        <definition>using dafg::DispatchComputeGroupsRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasGroups&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchComputeGroupsRequest</name>
+        <qualifiedname>dafg::DispatchComputeGroupsRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="23" column="1" bodyfile="dispatchRequest.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1a4839019b7a27899ebf3882262ed4a4bc" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasIndirect &gt;</type>
+        <definition>using dafg::DispatchComputeIndirectRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasIndirect&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchComputeIndirectRequest</name>
+        <qualifiedname>dafg::DispatchComputeIndirectRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="24" column="1" bodyfile="dispatchRequest.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1a505faaf224aa5a9e42d8b3180f4f71da" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasThreads|detail::DispatchRequestPolicy::HasMesh &gt;</type>
+        <definition>using dafg::DispatchMeshThreadsRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasThreads | detail::DispatchRequestPolicy::HasMesh&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchMeshThreadsRequest</name>
+        <qualifiedname>dafg::DispatchMeshThreadsRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="26" column="1" bodyfile="dispatchRequest.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1aad3d2469d471fc0af0e30fe90e872770" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasGroups|detail::DispatchRequestPolicy::HasMesh &gt;</type>
+        <definition>using dafg::DispatchMeshGroupsRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasGroups | detail::DispatchRequestPolicy::HasMesh&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchMeshGroupsRequest</name>
+        <qualifiedname>dafg::DispatchMeshGroupsRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="27" column="1" bodyfile="dispatchRequest.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1aa3874f309a6b25a641dd83486eb2f256" prot="public" static="no">
+        <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref>&lt; detail::DispatchRequestPolicy::HasIndirect|detail::DispatchRequestPolicy::HasMesh &gt;</type>
+        <definition>using dafg::DispatchMeshIndirectRequest = typedef DispatchRequest&lt;detail::DispatchRequestPolicy::HasIndirect | detail::DispatchRequestPolicy::HasMesh&gt;</definition>
+        <argsstring></argsstring>
+        <name>DispatchMeshIndirectRequest</name>
+        <qualifiedname>dafg::DispatchMeshIndirectRequest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dispatchRequest.h" line="28" column="1" bodyfile="dispatchRequest.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1ae736bc1fe0d15e536353454f9ac04f0e" prot="public" static="no">
+        <type>eastl::variant&lt; ManagedTexView, ManagedBufView &gt;</type>
+        <definition>using dafg::ExternalResource = typedef eastl::variant&lt;ManagedTexView, ManagedBufView&gt;</definition>
+        <argsstring></argsstring>
+        <name>ExternalResource</name>
+        <qualifiedname>dafg::ExternalResource</qualifiedname>
+        <briefdescription>
+<para>A concrete physical resource provided to daFG for external virtual resource on a particular multiplexing iteration. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="externalResources.h" line="21" column="1" bodyfile="externalResources.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1a66da18b5e569598f333d9181e77eba36" prot="public" static="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 32, <ref refid="namespacedafg_1ae736bc1fe0d15e536353454f9ac04f0e" kindref="member">ExternalResource</ref>(const <ref refid="structdafg_1_1multiplexing_1_1Index" kindref="compound">multiplexing::Index</ref> &amp;) const  &gt;</type>
+        <definition>using dafg::ExternalResourceProvider = typedef dag::FixedMoveOnlyFunction&lt;32, ExternalResource(const multiplexing::Index &amp;) const&gt;</definition>
+        <argsstring></argsstring>
+        <name>ExternalResourceProvider</name>
+        <qualifiedname>dafg::ExternalResourceProvider</qualifiedname>
+        <briefdescription>
+<para>A callback that provides a physical resource to daFG for a particular external virtual resource on a particular multiplexing iteration. Note that if a node that registers this virtual resource is multiplexed along any dimension, this callback will be called multiple times and must return different values each time. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="externalResources.h" line="30" column="1" bodyfile="externalResources.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" prot="public" static="no">
+        <type>int32_t</type>
+        <definition>using dafg::priority_t = typedef int32_t</definition>
+        <argsstring></argsstring>
+        <name>priority_t</name>
+        <qualifiedname>dafg::priority_t</qualifiedname>
+        <briefdescription>
+<para>Type for daFG node execution priorities. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="priority.h" line="14" column="1" bodyfile="priority.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespacedafg_1a1bb5a834e607dcd9de90cf2b3a79f4f3" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref></type>
+        <definition>constexpr priority_t dafg::PRIO_DEFAULT</definition>
+        <argsstring></argsstring>
+        <name>PRIO_DEFAULT</name>
+        <qualifiedname>dafg::PRIO_DEFAULT</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Default priority that is used when none is specified explicitly. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="priority.h" line="17" column="29" bodyfile="priority.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedafg_1a436606c43fdd50ad658bc5e9b444d620" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref></type>
+        <definition>constexpr priority_t dafg::PRIO_AS_LATE_AS_POSSIBLE</definition>
+        <argsstring></argsstring>
+        <name>PRIO_AS_LATE_AS_POSSIBLE</name>
+        <qualifiedname>dafg::PRIO_AS_LATE_AS_POSSIBLE</qualifiedname>
+        <initializer>= eastl::numeric_limits&lt;<ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref>&gt;::max()</initializer>
+        <briefdescription>
+<para>Max priority: the node will be executed as late as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="priority.h" line="20" column="29" bodyfile="priority.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedafg_1a1d9330256a3b21123618ec7387ea390d" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref></type>
+        <definition>constexpr priority_t dafg::PRIO_AS_EARLY_AS_POSSIBLE</definition>
+        <argsstring></argsstring>
+        <name>PRIO_AS_EARLY_AS_POSSIBLE</name>
+        <qualifiedname>dafg::PRIO_AS_EARLY_AS_POSSIBLE</qualifiedname>
+        <initializer>= eastl::numeric_limits&lt;<ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref>&gt;::min()</initializer>
+        <briefdescription>
+<para>Min priority: the node will be executed as early as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="priority.h" line="23" column="29" bodyfile="priority.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedafg_1ae16099a071daf6f269658b1ce3de3387" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int dafg::AUTO_MIP_COUNT</definition>
+        <argsstring></argsstring>
+        <name>AUTO_MIP_COUNT</name>
+        <qualifiedname>dafg::AUTO_MIP_COUNT</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Special value for <ref refid="structdafg_1_1Texture2dCreateInfo_1a10e8f8306de46433c0a1b1a9ca540bc3" kindref="member">Texture2dCreateInfo::mipLevels</ref>. daFG will automatically generate all mip levels for such a texture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="35" column="22" bodyfile="resourceCreation.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <member refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kind="function"><name>root</name></member>
+      <member refid="group__DaFgCore_1gadcd1f8fcbd59c45221a4c019da78b8ef" kind="function"><name>set_multiplexing_default_mode</name></member>
+      <member refid="group__DaFgCore_1ga9c7ea4d4a1ff177e608822e2143caab7" kind="function"><name>set_multiplexing_extents</name></member>
+      <member refid="group__DaFgCore_1ga7b070b98495f0a529b0975f5397b227b" kind="function"><name>run_nodes</name></member>
+      <member refid="group__DaFgCore_1ga018106098f1b4d3b288101565f38854e" kind="function"><name>startup</name></member>
+      <member refid="group__DaFgCore_1ga195f1fa9c2e79c8d9e4d75e8edfbe274" kind="function"><name>shutdown</name></member>
+      <member refid="group__DaFgCore_1ga0a00bb8d9e8c9c430617ab9c53bdf033" kind="function"><name>invalidate_history</name></member>
+      <member refid="group__DaFgCore_1ga7faecc99c2d71ab2e7bf758093d1c0f2" kind="function"><name>update_external_state</name></member>
+      <member refid="group__DaFgCore_1ga94023330da759d5a4ffb118e9e3d499f" kind="function"><name>mark_external_resource_for_validation</name></member>
+      <member refid="group__DaFgCoreAliases_1ga809e6b0f9d075aea31d0f0a73599fc62" kind="function"><name>register_node</name></member>
+      <member refid="group__DaFgCoreAliases_1gada7d9ec98286cfca314b477b5dd934d2" kind="function"><name>set_resolution</name></member>
+      <member refid="group__DaFgCoreAliases_1ga031d2d7924b7baeb08647c431019452c" kind="function"><name>set_dynamic_resolution</name></member>
+      <member refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kind="function"><name>fill_slot</name></member>
+      <member refid="group__DaFgCoreAliases_1gab9fc6f86b483dbd2d7860c5f0272432d" kind="function"><name>update_externally_consumed_resource_set</name></member>
+      <member refid="group__DaFgCoreAliases_1ga2f6d90eeb6f8432df5db9bfe6e62f620" kind="function"><name>update_externally_consumed_resource_set</name></member>
+      <member refid="group__DaFgCoreAliases_1gaf75370aa6dbb49fd1c67e327b5c16b3e" kind="function"><name>mark_resource_externally_consumed</name></member>
+      <member refid="group__DaFgCoreAliases_1gaeefdb179bc6c743eedcfad4cae1f819a" kind="function"><name>unmark_resource_externally_consumed</name></member>
+      <memberdef kind="function" id="namespacedafg_1a7fc7ea99b7081025054a76bb006deb05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::show_dependencies_window</definition>
+        <argsstring>()</argsstring>
+        <name>show_dependencies_window</name>
+        <qualifiedname>dafg::show_dependencies_window</qualifiedname>
+        <briefdescription>
+<para>Opens frame graph visualization window. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="13" column="6" declfile="debug.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1abeb7e04e54814f3713bc35417b8c3914" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * dafg::to_string</definition>
+        <argsstring>(History history)</argsstring>
+        <name>to_string</name>
+        <qualifiedname>dafg::to_string</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="history.h" line="34" column="12" declfile="history.h" declline="34" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a8debf9eb114033a1f9a8fe4d9fdc8574" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int dafg::get_d3d_primitive</definition>
+        <argsstring>(DrawPrimitive primitive)</argsstring>
+        <name>get_d3d_primitive</name>
+        <qualifiedname>dafg::get_d3d_primitive</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" kindref="member">DrawPrimitive</ref></type>
+          <declname>primitive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="primitive.h" line="23" column="12" bodyfile="primitive.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::postFx</definition>
+        <argsstring>(const char *shader_name, dafg::Registry &amp;registry)</argsstring>
+        <name>postFx</name>
+        <qualifiedname>dafg::postFx</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">dafg::Registry</ref> &amp;</type>
+          <declname>registry</declname>
+        </param>
+        <briefdescription>
+<para>Request a node to render full screen postFx with a shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to use. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>registry</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The node&apos;s declaration registry. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="singleShaders.h" line="18" column="13" bodyfile="singleShaders.h" bodystart="18" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1acd8aa8caea7e733172293bb61ed81a6d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+        <definition>constexpr Stage dafg::operator|</definition>
+        <argsstring>(Stage a, Stage b)</argsstring>
+        <name>operator|</name>
+        <qualifiedname>dafg::operator|</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="69" column="24" bodyfile="stage.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a5fefe7386ef89e879f4f8988e5938406" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref> &amp;</type>
+        <definition>constexpr Stage &amp; dafg::operator|=</definition>
+        <argsstring>(Stage &amp;a, Stage b)</argsstring>
+        <name>operator|=</name>
+        <qualifiedname>dafg::operator|=</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="71" column="24" bodyfile="stage.h" bodystart="71" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a3275c3d29c83d19143104a0c252bfeac" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+        <definition>constexpr Stage dafg::operator&amp;</definition>
+        <argsstring>(Stage a, Stage b)</argsstring>
+        <name>operator&amp;</name>
+        <qualifiedname>dafg::operator&amp;</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="77" column="24" bodyfile="stage.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a83035bc2075c76c48530000504e3565a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref> &amp;</type>
+        <definition>constexpr Stage &amp; dafg::operator&amp;=</definition>
+        <argsstring>(Stage &amp;a, Stage b)</argsstring>
+        <name>operator&amp;=</name>
+        <qualifiedname>dafg::operator&amp;=</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="79" column="24" bodyfile="stage.h" bodystart="79" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a69c38d35de6c7083bf0b4329884ccf11" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+        <definition>constexpr Stage dafg::operator~</definition>
+        <argsstring>(Stage a)</argsstring>
+        <name>operator~</name>
+        <qualifiedname>dafg::operator~</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="85" column="24" bodyfile="stage.h" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1aabc604cb0d2bcfd53e0f1bc981f495d1" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool dafg::stagesSubsetOf</definition>
+        <argsstring>(Stage subset, Stage superset)</argsstring>
+        <name>stagesSubsetOf</name>
+        <qualifiedname>dafg::stagesSubsetOf</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>subset</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>superset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="87" column="23" bodyfile="stage.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a0c8a21d5dfbe461539f18f79ea7fab45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string dafg::to_string</definition>
+        <argsstring>(Stage stage)</argsstring>
+        <name>to_string</name>
+        <qualifiedname>dafg::to_string</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stage.h" line="89" column="15" declfile="stage.h" declline="89" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1aa1e67097f94c1fff4559e9ed5f08daa0" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+        <definition>constexpr Usage dafg::operator|</definition>
+        <argsstring>(Usage a, Usage b)</argsstring>
+        <name>operator|</name>
+        <qualifiedname>dafg::operator|</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="usage.h" line="76" column="24" bodyfile="usage.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1a318a8cebb5a06d5c2538604910b28cbd" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref> &amp;</type>
+        <definition>constexpr Usage &amp; dafg::operator|=</definition>
+        <argsstring>(Usage &amp;a, Usage b)</argsstring>
+        <name>operator|=</name>
+        <qualifiedname>dafg::operator|=</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="usage.h" line="78" column="24" bodyfile="usage.h" bodystart="78" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1af91dd4ba976b3db006e5f2ff873f76cc" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+        <definition>constexpr Usage dafg::operator&amp;</definition>
+        <argsstring>(Usage a, Usage b)</argsstring>
+        <name>operator&amp;</name>
+        <qualifiedname>dafg::operator&amp;</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="usage.h" line="84" column="24" bodyfile="usage.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1aee3c15d737d835e1ead832484383f7df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string dafg::to_string</definition>
+        <argsstring>(dafg::Usage usage)</argsstring>
+        <name>to_string</name>
+        <qualifiedname>dafg::to_string</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">dafg::Usage</ref></type>
+          <declname>usage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="usage.h" line="86" column="15" declfile="usage.h" declline="86" declcolumn="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="autoResolutionRequest.h" line="13" column="1"/>
+  </compounddef>
+</doxygen>

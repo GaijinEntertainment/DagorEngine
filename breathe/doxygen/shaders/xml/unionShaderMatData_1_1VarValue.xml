@@ -1,0 +1,175 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionShaderMatData_1_1VarValue" kind="union" language="C++" prot="public">
+    <compoundname>ShaderMatData::VarValue</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionShaderMatData_1_1VarValue_1a6d39f359f2f4991b39794f55b514270b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ShaderMatData::VarValue::c[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>c</name>
+        <qualifiedname>ShaderMatData::VarValue::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="15" column="11" bodyfile="dag_shaderMatData.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderMatData_1_1VarValue_1a69d6564e82a4ceebb1734a9f0398dc17" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ShaderMatData::VarValue::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>ShaderMatData::VarValue::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="16" column="10" bodyfile="dag_shaderMatData.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderMatData_1_1VarValue_1ad8b2136c94b1656af124c93f812d1119" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMatData::VarValue::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>ShaderMatData::VarValue::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="17" column="9" bodyfile="dag_shaderMatData.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderMatData_1_1VarValue_1a3ca61e4614da49c831158e73d9b5f877" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderMatData::VarValue::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>ShaderMatData::VarValue::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="18" column="15" bodyfile="dag_shaderMatData.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderMatData_1_1VarValue_1af280e759dd86f9d8968141d538093ae2" prot="public" static="no" mutable="no">
+        <type>d3d::SamplerHandle</type>
+        <definition>d3d::SamplerHandle ShaderMatData::VarValue::samplerHnd</definition>
+        <argsstring></argsstring>
+        <name>samplerHnd</name>
+        <qualifiedname>ShaderMatData::VarValue::samplerHnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="19" column="24" bodyfile="dag_shaderMatData.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="unionShaderMatData_1_1VarValue_1a95d09da724d86c5b695a6a3cc4b5f5ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Color4 &amp;</type>
+        <definition>Color4 &amp; ShaderMatData::VarValue::c4</definition>
+        <argsstring>()</argsstring>
+        <name>c4</name>
+        <qualifiedname>ShaderMatData::VarValue::c4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="21" column="12" bodyfile="dag_shaderMatData.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="unionShaderMatData_1_1VarValue_1afacd751bfc17b8623f5d599cf02fc2d7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Color4 &amp;</type>
+        <definition>const Color4 &amp; ShaderMatData::VarValue::c4</definition>
+        <argsstring>() const</argsstring>
+        <name>c4</name>
+        <qualifiedname>ShaderMatData::VarValue::c4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="22" column="18" bodyfile="dag_shaderMatData.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="unionShaderMatData_1_1VarValue_1ab10df788fcb6e88cc3d5487789e1d01c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMatData::VarValue::VarValue</definition>
+        <argsstring>()</argsstring>
+        <name>VarValue</name>
+        <qualifiedname>ShaderMatData::VarValue::VarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="24" column="5" bodyfile="dag_shaderMatData.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="unionShaderMatData_1_1VarValue_1ab6f618e7290c8707738343bcfa5f91bd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMatData::VarValue::operator==</definition>
+        <argsstring>(const VarValue &amp;val) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderMatData::VarValue::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="unionShaderMatData_1_1VarValue" kindref="compound">VarValue</ref> &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="25" column="10" bodyfile="dag_shaderMatData.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="unionShaderMatData_1_1VarValue_1a40b85fcc9a2d63ed354e56c87a89e42d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMatData::VarValue::operator!=</definition>
+        <argsstring>(const VarValue &amp;val) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderMatData::VarValue::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="unionShaderMatData_1_1VarValue" kindref="compound">VarValue</ref> &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMatData.h" line="26" column="10" bodyfile="dag_shaderMatData.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMatData.h" line="13" column="3" bodyfile="dag_shaderMatData.h" bodystart="14" bodyend="27"/>
+    <listofallmembers>
+      <member refid="unionShaderMatData_1_1VarValue_1a6d39f359f2f4991b39794f55b514270b" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>c</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1a95d09da724d86c5b695a6a3cc4b5f5ce" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>c4</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1afacd751bfc17b8623f5d599cf02fc2d7" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>c4</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1ad8b2136c94b1656af124c93f812d1119" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>i</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1a40b85fcc9a2d63ed354e56c87a89e42d" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>operator!=</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1ab6f618e7290c8707738343bcfa5f91bd" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>operator==</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1a69d6564e82a4ceebb1734a9f0398dc17" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>r</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1af280e759dd86f9d8968141d538093ae2" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>samplerHnd</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1a3ca61e4614da49c831158e73d9b5f877" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>texId</name></member>
+      <member refid="unionShaderMatData_1_1VarValue_1ab10df788fcb6e88cc3d5487789e1d01c" prot="public" virt="non-virtual"><scope>ShaderMatData::VarValue</scope><name>VarValue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

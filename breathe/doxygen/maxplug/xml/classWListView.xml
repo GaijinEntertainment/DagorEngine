@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classWListView" kind="class" language="C++" prot="public">
+    <compoundname>WListView</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classWListView_1ac74eede12970a1d12f52b53a04da361c" prot="private" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND WListView::hw</definition>
+        <argsstring></argsstring>
+        <name>hw</name>
+        <qualifiedname>WListView::hw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="760" column="8" bodyfile="dagimp.cpp" bodystart="760" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWListView_1a4c42dda2d51973f8bdde55394bcd24ff" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool WListView::isWildcard</definition>
+        <argsstring></argsstring>
+        <name>isWildcard</name>
+        <qualifiedname>WListView::isWildcard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="761" column="8" bodyfile="dagimp.cpp" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWListView_1a22eeea54d9c834333fdbd8410c4fdf65" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; TSTR &gt; &amp;</type>
+        <definition>std::vector&lt;TSTR&gt;&amp; WListView::rules</definition>
+        <argsstring></argsstring>
+        <name>rules</name>
+        <qualifiedname>WListView::rules</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="762" column="15" bodyfile="dagimp.cpp" bodystart="762" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classWListView_1ae7c2f8a6be6a751c52fb0b506750f58a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WListView::WListView</definition>
+        <argsstring>(HWND hw_, bool isWildcard_, std::vector&lt; TSTR &gt; &amp;rules_)</argsstring>
+        <name>WListView</name>
+        <qualifiedname>WListView::WListView</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw_</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>isWildcard_</declname>
+        </param>
+        <param>
+          <type>std::vector&lt; TSTR &gt; &amp;</type>
+          <declname>rules_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="765" column="3" bodyfile="dagimp.cpp" bodystart="776" bodyend="787"/>
+      </memberdef>
+      <memberdef kind="function" id="classWListView_1a8f5d8b1730f641cb3ab6fd5fd53b6720" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WListView::AddRule</definition>
+        <argsstring>()</argsstring>
+        <name>AddRule</name>
+        <qualifiedname>WListView::AddRule</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="767" column="8" bodyfile="dagimp.cpp" bodystart="789" bodyend="800"/>
+      </memberdef>
+      <memberdef kind="function" id="classWListView_1a9e0c772c6d8955a914743805d21bad55" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WListView::DelRule</definition>
+        <argsstring>()</argsstring>
+        <name>DelRule</name>
+        <qualifiedname>WListView::DelRule</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="768" column="8" bodyfile="dagimp.cpp" bodystart="802" bodyend="810"/>
+      </memberdef>
+      <memberdef kind="function" id="classWListView_1ab99d3b358ec0d0415560e5e72112ba73" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR</type>
+        <definition>INT_PTR WListView::EditRule</definition>
+        <argsstring>(LPARAM lParam)</argsstring>
+        <name>EditRule</name>
+        <qualifiedname>WListView::EditRule</qualifiedname>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="769" column="11" bodyfile="dagimp.cpp" bodystart="812" bodyend="855"/>
+      </memberdef>
+      <memberdef kind="function" id="classWListView_1ad0b036dcaff752bc341af456ff572c3d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WListView::UpdateView</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateView</name>
+        <qualifiedname>WListView::UpdateView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="770" column="8" bodyfile="dagimp.cpp" bodystart="857" bodyend="871"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classWListView_1a27aed9080a8d8493f1b42e9b2288691c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>COLORREF</type>
+        <definition>COLORREF WListView::ruleColor</definition>
+        <argsstring>(TSTR rule)</argsstring>
+        <name>ruleColor</name>
+        <qualifiedname>WListView::ruleColor</qualifiedname>
+        <param>
+          <type>TSTR</type>
+          <declname>rule</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="773" column="12" bodyfile="dagimp.cpp" bodystart="873" bodyend="873"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="758" column="1" bodyfile="dagimp.cpp" bodystart="759" bodyend="774"/>
+    <listofallmembers>
+      <member refid="classWListView_1a8f5d8b1730f641cb3ab6fd5fd53b6720" prot="public" virt="non-virtual"><scope>WListView</scope><name>AddRule</name></member>
+      <member refid="classWListView_1a9e0c772c6d8955a914743805d21bad55" prot="public" virt="non-virtual"><scope>WListView</scope><name>DelRule</name></member>
+      <member refid="classWListView_1ab99d3b358ec0d0415560e5e72112ba73" prot="public" virt="non-virtual"><scope>WListView</scope><name>EditRule</name></member>
+      <member refid="classWListView_1ac74eede12970a1d12f52b53a04da361c" prot="private" virt="non-virtual"><scope>WListView</scope><name>hw</name></member>
+      <member refid="classWListView_1a4c42dda2d51973f8bdde55394bcd24ff" prot="private" virt="non-virtual"><scope>WListView</scope><name>isWildcard</name></member>
+      <member refid="classWListView_1a27aed9080a8d8493f1b42e9b2288691c" prot="private" virt="non-virtual"><scope>WListView</scope><name>ruleColor</name></member>
+      <member refid="classWListView_1a22eeea54d9c834333fdbd8410c4fdf65" prot="private" virt="non-virtual"><scope>WListView</scope><name>rules</name></member>
+      <member refid="classWListView_1ad0b036dcaff752bc341af456ff572c3d" prot="public" virt="non-virtual"><scope>WListView</scope><name>UpdateView</name></member>
+      <member refid="classWListView_1ae7c2f8a6be6a751c52fb0b506750f58a" prot="public" virt="non-virtual"><scope>WListView</scope><name>WListView</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

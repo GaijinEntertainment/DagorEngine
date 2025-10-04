@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1NamedConstInitializerElement_1_1BuiltinVar" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::NamedConstInitializerElement::BuiltinVar</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1_1BuiltinVar_1adef44bb0f0cfddf89b75e2500d652e23" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstInitializerElement::BuiltinVar::tokNum</definition>
+        <argsstring></argsstring>
+        <name>tokNum</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::BuiltinVar::tokNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="174" column="9" bodyfile="variantSemantic.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantSemantic.h" line="172" column="3" bodyfile="variantSemantic.h" bodystart="173" bodyend="175"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1BuiltinVar_1adef44bb0f0cfddf89b75e2500d652e23" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::BuiltinVar</scope><name>tokNum</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

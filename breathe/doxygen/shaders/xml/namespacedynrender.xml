@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedynrender" kind="namespace" language="C++">
+    <compoundname>dynrender</compoundname>
+    <innerclass refid="structdynrender_1_1RElem" prot="public">dynrender::RElem</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaders_8h_1ace91f3792711ed946e89571774130e0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>VDECL</type>
+        <definition>VDECL dynrender::addShaderVdecl</definition>
+        <argsstring>(const CompiledShaderChannelId *ch, int numch, int stride=-1, dag::Span&lt; VSDTYPE &gt; add_vsd={})</argsstring>
+        <name>addShaderVdecl</name>
+        <qualifiedname>dynrender::addShaderVdecl</qualifiedname>
+        <param>
+          <type>const <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>dag::Span&lt; VSDTYPE &gt;</type>
+          <declname>add_vsd</declname>
+          <defval>{}</defval>
+        </param>
+        <briefdescription>
+<para>Add vdecl or get existing for specified channel set. If stride &lt; 0, calculate it automatically. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="295" column="7" declfile="dag_shaders.h" declline="295" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a34d2f782b278adb7ea87ffa6b796da76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int dynrender::getStride</definition>
+        <argsstring>(const CompiledShaderChannelId *ch, int numch)</argsstring>
+        <name>getStride</name>
+        <qualifiedname>dynrender::getStride</qualifiedname>
+        <param>
+          <type>const <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numch</declname>
+        </param>
+        <briefdescription>
+<para>Get stride for channel set. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>-1, if failed. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="299" column="5" declfile="dag_shaders.h" declline="299" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaders_8h_1a72c794141151d6cfee2e6d7fa973c7e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dynrender::convert_channels_to_vsd</definition>
+        <argsstring>(const CompiledShaderChannelId *ch, int numch, Tab&lt; VSDTYPE &gt; &amp;out_vsd)</argsstring>
+        <name>convert_channels_to_vsd</name>
+        <qualifiedname>dynrender::convert_channels_to_vsd</qualifiedname>
+        <param>
+          <type>const <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numch</declname>
+        </param>
+        <param>
+          <type>Tab&lt; VSDTYPE &gt; &amp;</type>
+          <declname>out_vsd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="301" column="6" declfile="dag_shaders.h" declline="301" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaders.h" line="261" column="1"/>
+  </compounddef>
+</doxygen>

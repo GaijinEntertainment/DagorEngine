@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpMat" kind="struct" language="C++" prot="public">
+    <compoundname>ExpMat</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpMat_1a9292d88eb67e9e21419fa8a3729d6d93" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagMater" kindref="compound">DagMater</ref></type>
+        <definition>DagMater ExpMat::m</definition>
+        <argsstring></argsstring>
+        <name>m</name>
+        <qualifiedname>ExpMat::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="992" column="12" bodyfile="expUtil.cpp" bodystart="992" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpMat_1a973bab825f4f63bcaf37dfcfdd006b6b" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* ExpMat::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ExpMat::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="993" column="9" bodyfile="expUtil.cpp" bodystart="993" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpMat_1aabb16a5318105044271b390d1df6641f" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR * ExpMat::classname</definition>
+        <argsstring></argsstring>
+        <name>classname</name>
+        <qualifiedname>ExpMat::classname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="993" column="14" bodyfile="expUtil.cpp" bodystart="993" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpMat_1a64a3d7c187e5632f0b78781b26014e9c" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR * ExpMat::script</definition>
+        <argsstring></argsstring>
+        <name>script</name>
+        <qualifiedname>ExpMat::script</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="993" column="24" bodyfile="expUtil.cpp" bodystart="993" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpMat_1ab63bfefe2371112bcec61c458567fc97" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* ExpMat::mtl</definition>
+        <argsstring></argsstring>
+        <name>mtl</name>
+        <qualifiedname>ExpMat::mtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="994" column="7" bodyfile="expUtil.cpp" bodystart="994" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpMat_1ab5f5403edfbf996a3c74ba14fafcd655" prot="public" static="no" mutable="no">
+        <type>DWORD</type>
+        <definition>DWORD ExpMat::wirecolor</definition>
+        <argsstring></argsstring>
+        <name>wirecolor</name>
+        <qualifiedname>ExpMat::wirecolor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="995" column="9" bodyfile="expUtil.cpp" bodystart="995" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structExpMat_1a44feec0ad002f3c087b39ab43389a0df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpMat::ExpMat</definition>
+        <argsstring>()</argsstring>
+        <name>ExpMat</name>
+        <qualifiedname>ExpMat::ExpMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="997" column="3" bodyfile="expUtil.cpp" bodystart="997" bodyend="997"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>DagColor</label>
+        <link refid="structDagColor"/>
+      </node>
+      <node id="2">
+        <label>DagMater</label>
+        <link refid="structDagMater"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>amb</edgelabel>
+          <edgelabel>diff</edgelabel>
+          <edgelabel>emis</edgelabel>
+          <edgelabel>spec</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ExpMat</label>
+        <link refid="structExpMat"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>m</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="990" column="1" bodyfile="expUtil.cpp" bodystart="991" bodyend="998"/>
+    <listofallmembers>
+      <member refid="structExpMat_1aabb16a5318105044271b390d1df6641f" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>classname</name></member>
+      <member refid="structExpMat_1a44feec0ad002f3c087b39ab43389a0df" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>ExpMat</name></member>
+      <member refid="structExpMat_1a9292d88eb67e9e21419fa8a3729d6d93" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>m</name></member>
+      <member refid="structExpMat_1ab63bfefe2371112bcec61c458567fc97" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>mtl</name></member>
+      <member refid="structExpMat_1a973bab825f4f63bcaf37dfcfdd006b6b" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>name</name></member>
+      <member refid="structExpMat_1a64a3d7c187e5632f0b78781b26014e9c" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>script</name></member>
+      <member refid="structExpMat_1ab5f5403edfbf996a3c74ba14fafcd655" prot="public" virt="non-virtual"><scope>ExpMat</scope><name>wirecolor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

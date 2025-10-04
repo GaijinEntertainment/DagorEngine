@@ -1,0 +1,1551 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorMat" kind="class" language="C++" prot="public">
+    <compoundname>DagorMat</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">Mtl</basecompoundref>
+    <basecompoundref refid="classIDagorMat" prot="public" virt="non-virtual">IDagorMat</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDagorMat_1a56237349cb013952168f67a581098529" prot="private" static="no" mutable="no">
+        <type>TexHandle *</type>
+        <definition>TexHandle* DagorMat::texHandle[NUMTEXMAPS]</definition>
+        <argsstring>[NUMTEXMAPS]</argsstring>
+        <name>texHandle</name>
+        <qualifiedname>DagorMat::texHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="71" column="13" bodyfile="mater.cpp" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDagorMat_1a68b13c9b9b30f9602f00fe8e1f4c51a3" prot="public" static="no" mutable="no">
+        <type>class <ref refid="classMaterDlg" kindref="compound">MaterDlg</ref> *</type>
+        <definition>class MaterDlg* DagorMat::dlg</definition>
+        <argsstring></argsstring>
+        <name>dlg</name>
+        <qualifiedname>DagorMat::dlg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="74" column="17" bodyfile="mater.cpp" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1ab0c29439e137d997e013d54e96cf1418" prot="public" static="no" mutable="no">
+        <type>IParamBlock *</type>
+        <definition>IParamBlock* DagorMat::pblock</definition>
+        <argsstring></argsstring>
+        <name>pblock</name>
+        <qualifiedname>DagorMat::pblock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="75" column="15" bodyfile="mater.cpp" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1ae257556cf6fb7960184ce984a21ff147" prot="public" static="no" mutable="no">
+        <type><ref refid="classTexmaps" kindref="compound">Texmaps</ref> *</type>
+        <definition>Texmaps* DagorMat::texmaps</definition>
+        <argsstring></argsstring>
+        <name>texmaps</name>
+        <qualifiedname>DagorMat::texmaps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="76" column="11" bodyfile="mater.cpp" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1af233ca729a43b6dd1e41f075c4d9b315" prot="public" static="no" mutable="no">
+        <type>Interval</type>
+        <definition>Interval DagorMat::ivalid</definition>
+        <argsstring></argsstring>
+        <name>ivalid</name>
+        <qualifiedname>DagorMat::ivalid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="77" column="12" bodyfile="mater.cpp" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1ad32e80077d80a83e82a3ce754236d975" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagorMat::shin</definition>
+        <argsstring></argsstring>
+        <name>shin</name>
+        <qualifiedname>DagorMat::shin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="78" column="9" bodyfile="mater.cpp" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a9498f34b79dddc9b8afca15ae924a244" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagorMat::power</definition>
+        <argsstring></argsstring>
+        <name>power</name>
+        <qualifiedname>DagorMat::power</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="79" column="9" bodyfile="mater.cpp" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a48b9d32931bb122c4836ab0d6d82da0a" prot="public" static="no" mutable="no">
+        <type>Color</type>
+        <definition>Color DagorMat::cola</definition>
+        <argsstring></argsstring>
+        <name>cola</name>
+        <qualifiedname>DagorMat::cola</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="80" column="9" bodyfile="mater.cpp" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a84b52473b0599af0a867db7ca915cb3b" prot="public" static="no" mutable="no">
+        <type>Color</type>
+        <definition>Color DagorMat::cold</definition>
+        <argsstring></argsstring>
+        <name>cold</name>
+        <qualifiedname>DagorMat::cold</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="80" column="14" bodyfile="mater.cpp" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a1f8ad446752b59460b79504a2efe635c" prot="public" static="no" mutable="no">
+        <type>Color</type>
+        <definition>Color DagorMat::cols</definition>
+        <argsstring></argsstring>
+        <name>cols</name>
+        <qualifiedname>DagorMat::cols</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="80" column="19" bodyfile="mater.cpp" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a5c32ff4b047276b8373001955fc54b8e" prot="public" static="no" mutable="no">
+        <type>Color</type>
+        <definition>Color DagorMat::cole</definition>
+        <argsstring></argsstring>
+        <name>cole</name>
+        <qualifiedname>DagorMat::cole</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="80" column="24" bodyfile="mater.cpp" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a9eeec47e3a87a007968a39992b39862d" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref></type>
+        <definition>Sides DagorMat::twosided</definition>
+        <argsstring></argsstring>
+        <name>twosided</name>
+        <qualifiedname>DagorMat::twosided</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="81" column="9" bodyfile="mater.cpp" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a810de89ad573b2d1aac80a717256abdf" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR DagorMat::classname</definition>
+        <argsstring></argsstring>
+        <name>classname</name>
+        <qualifiedname>DagorMat::classname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="82" column="8" bodyfile="mater.cpp" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorMat_1a6bc21d543e25b564ba8bd6b590eaf267" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR DagorMat::script</definition>
+        <argsstring></argsstring>
+        <name>script</name>
+        <qualifiedname>DagorMat::script</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="82" column="18" bodyfile="mater.cpp" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDagorMat_1aa0ba9137338402fb423ddd011d9bf8da" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::DiscardTexHandles</definition>
+        <argsstring>()</argsstring>
+        <name>DiscardTexHandles</name>
+        <qualifiedname>DagorMat::DiscardTexHandles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="68" column="8" bodyfile="mater.cpp" bodystart="984" bodyend="992"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a8035bef63501158ff74597fe17aa7505" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::updateViewportTexturesState</definition>
+        <argsstring>()</argsstring>
+        <name>updateViewportTexturesState</name>
+        <qualifiedname>DagorMat::updateViewportTexturesState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="69" column="8" bodyfile="mater.cpp" bodystart="994" bodyend="1007"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a00d059567cea6f29c8fde169fd6a74a8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagorMat::hasAlpha</definition>
+        <argsstring>()</argsstring>
+        <name>hasAlpha</name>
+        <qualifiedname>DagorMat::hasAlpha</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="70" column="8" bodyfile="mater.cpp" bodystart="982" bodyend="982"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagorMat_1a3c12af07480e9ae81cac3837da3d8077" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DagorMat::DagorMat</definition>
+        <argsstring>(BOOL loading)</argsstring>
+        <name>DagorMat</name>
+        <qualifiedname>DagorMat::DagorMat</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="84" column="3" bodyfile="mater.cpp" bodystart="553" bodyend="561"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a54333ebd7b2323c51d4d2dd19b38b67d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DagorMat::~DagorMat</definition>
+        <argsstring>() override</argsstring>
+        <name>~DagorMat</name>
+        <qualifiedname>DagorMat::~DagorMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="85" column="3" bodyfile="mater.cpp" bodystart="563" bodyend="563"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a627ac0f00febf2c411aa81adfa937b31" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::NotifyChanged</definition>
+        <argsstring>()</argsstring>
+        <name>NotifyChanged</name>
+        <qualifiedname>DagorMat::NotifyChanged</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="86" column="8" bodyfile="mater.cpp" bodystart="1009" bodyend="1014"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a017111a521026a9d012f606635d016ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DagorMat::GetInterface</definition>
+        <argsstring>(ULONG) override</argsstring>
+        <name>GetInterface</name>
+        <qualifiedname>DagorMat::GetInterface</qualifiedname>
+        <param>
+          <type>ULONG</type>
+          <defname>id</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="88" column="8" bodyfile="mater.cpp" bodystart="1119" bodyend="1127"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a5129f05fe61dfca72562a48080ac256e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::ReleaseInterface</definition>
+        <argsstring>(ULONG, void *) override</argsstring>
+        <name>ReleaseInterface</name>
+        <qualifiedname>DagorMat::ReleaseInterface</qualifiedname>
+        <param>
+          <type>ULONG</type>
+          <defname>id</defname>
+        </param>
+        <param>
+          <type>void *</type>
+          <defname>i</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="89" column="8" bodyfile="mater.cpp" bodystart="1129" bodyend="1135"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1afafa3e8427698a5863ef6fd060f31205" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::get_amb</definition>
+        <argsstring>() override</argsstring>
+        <name>get_amb</name>
+        <qualifiedname>DagorMat::get_amb</qualifiedname>
+        <reimplements refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358">get_amb</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="92" column="9" bodyfile="mater.cpp" bodystart="1064" bodyend="1069"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a497bc94efaf7eeb36266d3bfe30a7612" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::get_diff</definition>
+        <argsstring>() override</argsstring>
+        <name>get_diff</name>
+        <qualifiedname>DagorMat::get_diff</qualifiedname>
+        <reimplements refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48">get_diff</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="93" column="9" bodyfile="mater.cpp" bodystart="1071" bodyend="1076"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a1cd31bb29fad1b9c1f662033077abb70" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::get_spec</definition>
+        <argsstring>() override</argsstring>
+        <name>get_spec</name>
+        <qualifiedname>DagorMat::get_spec</qualifiedname>
+        <reimplements refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693">get_spec</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="94" column="9" bodyfile="mater.cpp" bodystart="1078" bodyend="1083"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a9886739820ce3dfaa4f5156a030ebc83" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::get_emis</definition>
+        <argsstring>() override</argsstring>
+        <name>get_emis</name>
+        <qualifiedname>DagorMat::get_emis</qualifiedname>
+        <reimplements refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4">get_emis</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="95" column="9" bodyfile="mater.cpp" bodystart="1085" bodyend="1090"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a506eb18e202c96dd694a15941f982de6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>float</type>
+        <definition>float DagorMat::get_power</definition>
+        <argsstring>() override</argsstring>
+        <name>get_power</name>
+        <qualifiedname>DagorMat::get_power</qualifiedname>
+        <reimplements refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f">get_power</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="96" column="9" bodyfile="mater.cpp" bodystart="1092" bodyend="1097"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a346c257de2b7113669a09099cce0aeba" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">IDagorMat::Sides</ref></type>
+        <definition>IDagorMat::Sides DagorMat::get_2sided</definition>
+        <argsstring>() override</argsstring>
+        <name>get_2sided</name>
+        <qualifiedname>DagorMat::get_2sided</qualifiedname>
+        <reimplements refid="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13">get_2sided</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="97" column="20" bodyfile="mater.cpp" bodystart="1099" bodyend="1099"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1af503d8876b8f77c68ea3f22749808152" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagorMat::get_classname</definition>
+        <argsstring>() override</argsstring>
+        <name>get_classname</name>
+        <qualifiedname>DagorMat::get_classname</qualifiedname>
+        <reimplements refid="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65">get_classname</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="98" column="15" bodyfile="mater.cpp" bodystart="1101" bodyend="1101"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a72c5b8edc734dc2e23efcacc0ace8c73" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagorMat::get_script</definition>
+        <argsstring>() override</argsstring>
+        <name>get_script</name>
+        <qualifiedname>DagorMat::get_script</qualifiedname>
+        <reimplements refid="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88">get_script</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="99" column="15" bodyfile="mater.cpp" bodystart="1103" bodyend="1103"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a855f95e06a9a631571fe626da62432e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagorMat::get_texname</definition>
+        <argsstring>(int) override</argsstring>
+        <name>get_texname</name>
+        <qualifiedname>DagorMat::get_texname</qualifiedname>
+        <reimplements refid="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383">get_texname</reimplements>
+        <param>
+          <type>int</type>
+          <defname>i</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="100" column="15" bodyfile="mater.cpp" bodystart="1105" bodyend="1115"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a93ea0471f0705589af18a6a4cf407727" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>float</type>
+        <definition>float DagorMat::get_param</definition>
+        <argsstring>(int) override</argsstring>
+        <name>get_param</name>
+        <qualifiedname>DagorMat::get_param</qualifiedname>
+        <reimplements refid="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d">get_param</reimplements>
+        <param>
+          <type>int</type>
+          <defname>i</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="101" column="9" bodyfile="mater.cpp" bodystart="1117" bodyend="1117"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a9a5416f6e0a1a0d3d317682d796faf9c" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_amb</definition>
+        <argsstring>(Color) override</argsstring>
+        <name>set_amb</name>
+        <qualifiedname>DagorMat::set_amb</qualifiedname>
+        <reimplements refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5">set_amb</reimplements>
+        <param>
+          <type>Color</type>
+          <defname>c</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="103" column="8" bodyfile="mater.cpp" bodystart="1137" bodyend="1141"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ad243355376e35c60f65460d4a690e6a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_diff</definition>
+        <argsstring>(Color) override</argsstring>
+        <name>set_diff</name>
+        <qualifiedname>DagorMat::set_diff</qualifiedname>
+        <reimplements refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4">set_diff</reimplements>
+        <param>
+          <type>Color</type>
+          <defname>c</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="104" column="8" bodyfile="mater.cpp" bodystart="1143" bodyend="1147"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a6237a49ee641c5857785fef0f23ac9dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_spec</definition>
+        <argsstring>(Color) override</argsstring>
+        <name>set_spec</name>
+        <qualifiedname>DagorMat::set_spec</qualifiedname>
+        <reimplements refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd">set_spec</reimplements>
+        <param>
+          <type>Color</type>
+          <defname>c</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="105" column="8" bodyfile="mater.cpp" bodystart="1149" bodyend="1153"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ac7e3e13a7322864556646f3359faf1f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_emis</definition>
+        <argsstring>(Color) override</argsstring>
+        <name>set_emis</name>
+        <qualifiedname>DagorMat::set_emis</qualifiedname>
+        <reimplements refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528">set_emis</reimplements>
+        <param>
+          <type>Color</type>
+          <defname>c</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="106" column="8" bodyfile="mater.cpp" bodystart="1155" bodyend="1159"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ad9877aa9a6b7dd77cc851c4477eca5f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_power</definition>
+        <argsstring>(float) override</argsstring>
+        <name>set_power</name>
+        <qualifiedname>DagorMat::set_power</qualifiedname>
+        <reimplements refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1">set_power</reimplements>
+        <param>
+          <type>float</type>
+          <defname>p</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="107" column="8" bodyfile="mater.cpp" bodystart="1161" bodyend="1168"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a232a5e93c184d6ec2942f0fe363f3c33" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_2sided</definition>
+        <argsstring>(Sides) override</argsstring>
+        <name>set_2sided</name>
+        <qualifiedname>DagorMat::set_2sided</qualifiedname>
+        <reimplements refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2">set_2sided</reimplements>
+        <param>
+          <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref></type>
+          <defname>b</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="108" column="8" bodyfile="mater.cpp" bodystart="1170" bodyend="1174"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ab91a17e1822bc6cdf0f1b979c22d4bd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_classname</definition>
+        <argsstring>(const TCHAR *) override</argsstring>
+        <name>set_classname</name>
+        <qualifiedname>DagorMat::set_classname</qualifiedname>
+        <reimplements refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482">set_classname</reimplements>
+        <param>
+          <type>const TCHAR *</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="109" column="8" bodyfile="mater.cpp" bodystart="1176" bodyend="1183"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a542673506f621ac4b91e8af39e6c7aa5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_script</definition>
+        <argsstring>(const TCHAR *) override</argsstring>
+        <name>set_script</name>
+        <qualifiedname>DagorMat::set_script</qualifiedname>
+        <reimplements refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893">set_script</reimplements>
+        <param>
+          <type>const TCHAR *</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="110" column="8" bodyfile="mater.cpp" bodystart="1185" bodyend="1192"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a016b7395c53e2d29ca06ba63104ebde2" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_texname</definition>
+        <argsstring>(int, const TCHAR *) override</argsstring>
+        <name>set_texname</name>
+        <qualifiedname>DagorMat::set_texname</qualifiedname>
+        <reimplements refid="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989">set_texname</reimplements>
+        <param>
+          <type>int</type>
+          <defname>i</defname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <defname>s</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="111" column="8" bodyfile="mater.cpp" bodystart="1194" bodyend="1214"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aada0ee3846e50d9bec06fe447655bca7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void DagorMat::set_param</definition>
+        <argsstring>(int, float) override</argsstring>
+        <name>set_param</name>
+        <qualifiedname>DagorMat::set_param</qualifiedname>
+        <reimplements refid="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8">set_param</reimplements>
+        <param>
+          <type>int</type>
+          <defname>i</defname>
+        </param>
+        <param>
+          <type>float</type>
+          <defname>p</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="112" column="8" bodyfile="mater.cpp" bodystart="1216" bodyend="1216"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a1df9e20224d303a23417167b49860303" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorMat::NumSubTexmaps</definition>
+        <argsstring>() override</argsstring>
+        <name>NumSubTexmaps</name>
+        <qualifiedname>DagorMat::NumSubTexmaps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="115" column="7" bodyfile="mater.cpp" bodystart="676" bodyend="676"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ac89642dab3634e95d5b204703c84927d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Texmap *</type>
+        <definition>Texmap * DagorMat::GetSubTexmap</definition>
+        <argsstring>(int) override</argsstring>
+        <name>GetSubTexmap</name>
+        <qualifiedname>DagorMat::GetSubTexmap</qualifiedname>
+        <param>
+          <type>int</type>
+          <defname>i</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="116" column="10" bodyfile="mater.cpp" bodystart="678" bodyend="678"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a1cb42f32ddc4b992b744c35ac3b89937" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetSubTexmap</definition>
+        <argsstring>(int i, Texmap *m) override</argsstring>
+        <name>SetSubTexmap</name>
+        <qualifiedname>DagorMat::SetSubTexmap</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>Texmap *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="117" column="8" bodyfile="mater.cpp" bodystart="680" bodyend="700"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aadc0817d2af077cfaebfe818a3dc303f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetAmbient</definition>
+        <argsstring>(Color c, TimeValue t) override</argsstring>
+        <name>SetAmbient</name>
+        <qualifiedname>DagorMat::SetAmbient</qualifiedname>
+        <param>
+          <type>Color</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="119" column="8" bodyfile="mater.cpp" bodystart="1016" bodyend="1020"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a9cb37de0048c5dd7c5e8768839670b00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetDiffuse</definition>
+        <argsstring>(Color c, TimeValue t) override</argsstring>
+        <name>SetDiffuse</name>
+        <qualifiedname>DagorMat::SetDiffuse</qualifiedname>
+        <param>
+          <type>Color</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="120" column="8" bodyfile="mater.cpp" bodystart="1022" bodyend="1026"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aa8d035df780d412625a1995d592b6aa1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetSpecular</definition>
+        <argsstring>(Color c, TimeValue t) override</argsstring>
+        <name>SetSpecular</name>
+        <qualifiedname>DagorMat::SetSpecular</qualifiedname>
+        <param>
+          <type>Color</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="121" column="8" bodyfile="mater.cpp" bodystart="1028" bodyend="1032"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a76c2e11f2e8c85803d983a312a07d65e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetShininess</definition>
+        <argsstring>(float v, TimeValue t) override</argsstring>
+        <name>SetShininess</name>
+        <qualifiedname>DagorMat::SetShininess</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="122" column="8" bodyfile="mater.cpp" bodystart="1034" bodyend="1039"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a707b1c1100ba74c8b5cf8e9e8f7f0f97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::GetAmbient</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetAmbient</name>
+        <qualifiedname>DagorMat::GetAmbient</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="124" column="9" bodyfile="mater.cpp" bodystart="1041" bodyend="1041"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aac3da3ddd1b0c8c56a67a655459cfeed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::GetDiffuse</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetDiffuse</name>
+        <qualifiedname>DagorMat::GetDiffuse</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="125" column="9" bodyfile="mater.cpp" bodystart="1043" bodyend="1043"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1adb1f7abd0b0d97afa6dcc1de495fc51a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color</type>
+        <definition>Color DagorMat::GetSpecular</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetSpecular</name>
+        <qualifiedname>DagorMat::GetSpecular</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="126" column="9" bodyfile="mater.cpp" bodystart="1045" bodyend="1045"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a87551d7003960d4c63b17027dde5a533" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float DagorMat::GetXParency</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetXParency</name>
+        <qualifiedname>DagorMat::GetXParency</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="127" column="9" bodyfile="mater.cpp" bodystart="1047" bodyend="1047"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a3c442c497a09ed5415c510e487662f17" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float DagorMat::GetShininess</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetShininess</name>
+        <qualifiedname>DagorMat::GetShininess</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="128" column="9" bodyfile="mater.cpp" bodystart="1049" bodyend="1049"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a52f5375d4ed5113685b4e7dc45c91ab3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float DagorMat::GetShinStr</definition>
+        <argsstring>(int mtlNum=0, BOOL backFace=FALSE) override</argsstring>
+        <name>GetShinStr</name>
+        <qualifiedname>DagorMat::GetShinStr</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mtlNum</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>backFace</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="129" column="9" bodyfile="mater.cpp" bodystart="1051" bodyend="1056"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a6fdd7bf12882ad7b11493fb005477dd6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ParamDlg *</type>
+        <definition>ParamDlg * DagorMat::CreateParamDlg</definition>
+        <argsstring>(HWND hwMtlEdit, IMtlParams *imp) override</argsstring>
+        <name>CreateParamDlg</name>
+        <qualifiedname>DagorMat::CreateParamDlg</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwMtlEdit</declname>
+        </param>
+        <param>
+          <type>IMtlParams *</type>
+          <declname>imp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="131" column="12" bodyfile="mater.cpp" bodystart="580" bodyend="584"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aa21252bd0b756d2f0711f6a40f3d9f76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::Shade</definition>
+        <argsstring>(ShadeContext &amp;sc) override</argsstring>
+        <name>Shade</name>
+        <qualifiedname>DagorMat::Shade</qualifiedname>
+        <param>
+          <type>ShadeContext &amp;</type>
+          <declname>sc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="133" column="8" bodyfile="mater.cpp" bodystart="589" bodyend="636"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a85cd220f3e0d160103d8c82f723e551d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::Update</definition>
+        <argsstring>(TimeValue t, Interval &amp;valid) override</argsstring>
+        <name>Update</name>
+        <qualifiedname>DagorMat::Update</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Interval &amp;</type>
+          <declname>valid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="134" column="8" bodyfile="mater.cpp" bodystart="651" bodyend="661"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a052f5d93de389e14f911d4bdb23b1c22" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::Reset</definition>
+        <argsstring>() override</argsstring>
+        <name>Reset</name>
+        <qualifiedname>DagorMat::Reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="135" column="8" bodyfile="mater.cpp" bodystart="565" bodyend="578"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a5e4cd106d95890a6d078bb1b5e09314e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Interval</type>
+        <definition>Interval DagorMat::Validity</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>Validity</name>
+        <qualifiedname>DagorMat::Validity</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="136" column="12" bodyfile="mater.cpp" bodystart="663" bodyend="674"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a86d26bea23c866637cf8bf5498c10b9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagorMat::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagorMat::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="138" column="12" bodyfile="mater.cpp" bodystart="1058" bodyend="1058"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a35024f401e15af676ac34dfe53f2eb72" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagorMat::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagorMat::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="139" column="13" bodyfile="mater.cpp" bodystart="1060" bodyend="1060"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a1c78616403bb1b7fc39cc5a30246a505" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::GetClassName</definition>
+        <argsstring>(TSTR &amp;s)</argsstring>
+        <name>GetClassName</name>
+        <qualifiedname>DagorMat::GetClassName</qualifiedname>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="143" column="8" bodyfile="mater.cpp" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aa6914de54f09afdfa696b78516c20507" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>DagorMat::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="146" column="8" bodyfile="mater.cpp" bodystart="1062" bodyend="1062"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a5e7745a51cea4e6b19ceb84b1b4b65cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ULONG</type>
+        <definition>ULONG DagorMat::Requirements</definition>
+        <argsstring>(int subMtlNum) override</argsstring>
+        <name>Requirements</name>
+        <qualifiedname>DagorMat::Requirements</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>subMtlNum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="148" column="9" bodyfile="mater.cpp" bodystart="638" bodyend="648"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a2d71b518023cfabc0dc538d4e6976ede" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorMat::NumSubs</definition>
+        <argsstring>() override</argsstring>
+        <name>NumSubs</name>
+        <qualifiedname>DagorMat::NumSubs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="149" column="7" bodyfile="mater.cpp" bodystart="702" bodyend="702"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a384e681501216827d9df541cb0ed8850" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Animatable *</type>
+        <definition>Animatable * DagorMat::SubAnim</definition>
+        <argsstring>(int i) override</argsstring>
+        <name>SubAnim</name>
+        <qualifiedname>DagorMat::SubAnim</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="150" column="14" bodyfile="mater.cpp" bodystart="708" bodyend="716"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1abbfb820ffcd4b61725c6f531f033138e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR DagorMat::SubAnimName</definition>
+        <argsstring>(int i)</argsstring>
+        <name>SubAnimName</name>
+        <qualifiedname>DagorMat::SubAnimName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="154" column="8" bodyfile="mater.cpp" bodystart="721" bodyend="730"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a5ad7d2555445e9e871c6c781de0155c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorMat::SubNumToRefNum</definition>
+        <argsstring>(int subNum) override</argsstring>
+        <name>SubNumToRefNum</name>
+        <qualifiedname>DagorMat::SubNumToRefNum</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>subNum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="156" column="7" bodyfile="mater.cpp" bodystart="704" bodyend="704"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a4e225f7cec299ff2514e8169bfd3f17d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorMat::NumRefs</definition>
+        <argsstring>() override</argsstring>
+        <name>NumRefs</name>
+        <qualifiedname>DagorMat::NumRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="159" column="7" bodyfile="mater.cpp" bodystart="706" bodyend="706"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1aa8fc261cd294b98450a90b9671a4c137" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle DagorMat::GetReference</definition>
+        <argsstring>(int i) override</argsstring>
+        <name>GetReference</name>
+        <qualifiedname>DagorMat::GetReference</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="160" column="19" bodyfile="mater.cpp" bodystart="732" bodyend="740"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a8a53417cb79e462ceb8624d8a91a1231" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetReference</definition>
+        <argsstring>(int i, RefTargetHandle rtarg) override</argsstring>
+        <name>SetReference</name>
+        <qualifiedname>DagorMat::SetReference</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>RefTargetHandle</type>
+          <declname>rtarg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="161" column="8" bodyfile="mater.cpp" bodystart="742" bodyend="761"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a6533e0b4aeedf0ac1265f5fb5f450aeb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagorMat::Save</definition>
+        <argsstring>(ISave *isave) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>DagorMat::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <declname>isave</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="163" column="12" bodyfile="mater.cpp" bodystart="834" bodyend="858"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a41db67914e92e3456158a0349faaac76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagorMat::Load</definition>
+        <argsstring>(ILoad *iload) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>DagorMat::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <declname>iload</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="164" column="12" bodyfile="mater.cpp" bodystart="860" bodyend="906"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a0d3053f31b5455f0cfc7f74c6a5624c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle DagorMat::Clone</definition>
+        <argsstring>(RemapDir &amp;remap) override</argsstring>
+        <name>Clone</name>
+        <qualifiedname>DagorMat::Clone</qualifiedname>
+        <param>
+          <type>RemapDir &amp;</type>
+          <declname>remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="166" column="19" bodyfile="mater.cpp" bodystart="763" bodyend="776"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ad3d99d9571fd30b04d414fee43228b6e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RefResult</type>
+        <definition>RefResult DagorMat::NotifyRefChanged</definition>
+        <argsstring>(Interval changeInt, RefTargetHandle hTarget, PartID &amp;partID, RefMessage message) override</argsstring>
+        <name>NotifyRefChanged</name>
+        <qualifiedname>DagorMat::NotifyRefChanged</qualifiedname>
+        <param>
+          <type>Interval</type>
+          <declname>changeInt</declname>
+        </param>
+        <param>
+          <type>RefTargetHandle</type>
+          <declname>hTarget</declname>
+        </param>
+        <param>
+          <type>PartID &amp;</type>
+          <declname>partID</declname>
+        </param>
+        <param>
+          <type>RefMessage</type>
+          <declname>message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="171" column="13" bodyfile="mater.cpp" bodystart="783" bodyend="824"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1a34fb40e4a04595621530b42cc17a6ed2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::SetupGfxMultiMaps</definition>
+        <argsstring>(TimeValue t, Material *mtl, MtlMakerCallback &amp;cb) override</argsstring>
+        <name>SetupGfxMultiMaps</name>
+        <qualifiedname>DagorMat::SetupGfxMultiMaps</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Material *</type>
+          <declname>mtl</declname>
+        </param>
+        <param>
+          <type>MtlMakerCallback &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="173" column="8" bodyfile="mater.cpp" bodystart="915" bodyend="980"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat_1ab73551c7bde63c7dcaf1f56c851248a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat::ActivateTexDisplay</definition>
+        <argsstring>(BOOL onoff) override</argsstring>
+        <name>ActivateTexDisplay</name>
+        <qualifiedname>DagorMat::ActivateTexDisplay</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>onoff</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="174" column="8" bodyfile="mater.cpp" bodystart="908" bodyend="912"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagorMat</label>
+        <link refid="classDagorMat"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="2">
+        <label>Mtl</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DagorMat</label>
+        <link refid="classDagorMat"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="4">
+        <label>MaterDlg</label>
+        <link refid="classMaterDlg"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Mtl</label>
+      </node>
+      <node id="5">
+        <label>ParamDlg</label>
+      </node>
+      <node id="7">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="6">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater.cpp" line="66" column="1" bodyfile="mater.cpp" bodystart="67" bodyend="175"/>
+    <listofallmembers>
+      <member refid="classDagorMat_1ab73551c7bde63c7dcaf1f56c851248a9" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>ActivateTexDisplay</name></member>
+      <member refid="classDagorMat_1a86d26bea23c866637cf8bf5498c10b9a" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>ClassID</name></member>
+      <member refid="classDagorMat_1a810de89ad573b2d1aac80a717256abdf" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>classname</name></member>
+      <member refid="classDagorMat_1a0d3053f31b5455f0cfc7f74c6a5624c0" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Clone</name></member>
+      <member refid="classDagorMat_1a48b9d32931bb122c4836ab0d6d82da0a" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>cola</name></member>
+      <member refid="classDagorMat_1a84b52473b0599af0a867db7ca915cb3b" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>cold</name></member>
+      <member refid="classDagorMat_1a5c32ff4b047276b8373001955fc54b8e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>cole</name></member>
+      <member refid="classDagorMat_1a1f8ad446752b59460b79504a2efe635c" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>cols</name></member>
+      <member refid="classDagorMat_1a6fdd7bf12882ad7b11493fb005477dd6" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>CreateParamDlg</name></member>
+      <member refid="classDagorMat_1a3c12af07480e9ae81cac3837da3d8077" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>DagorMat</name></member>
+      <member refid="classDagorMat_1aa6914de54f09afdfa696b78516c20507" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>DeleteThis</name></member>
+      <member refid="classDagorMat_1aa0ba9137338402fb423ddd011d9bf8da" prot="private" virt="non-virtual"><scope>DagorMat</scope><name>DiscardTexHandles</name></member>
+      <member refid="classDagorMat_1a68b13c9b9b30f9602f00fe8e1f4c51a3" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>dlg</name></member>
+      <member refid="classDagorMat_1a346c257de2b7113669a09099cce0aeba" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_2sided</name></member>
+      <member refid="classDagorMat_1afafa3e8427698a5863ef6fd060f31205" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_amb</name></member>
+      <member refid="classDagorMat_1af503d8876b8f77c68ea3f22749808152" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_classname</name></member>
+      <member refid="classDagorMat_1a497bc94efaf7eeb36266d3bfe30a7612" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_diff</name></member>
+      <member refid="classDagorMat_1a9886739820ce3dfaa4f5156a030ebc83" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_emis</name></member>
+      <member refid="classDagorMat_1a93ea0471f0705589af18a6a4cf407727" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_param</name></member>
+      <member refid="classDagorMat_1a506eb18e202c96dd694a15941f982de6" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_power</name></member>
+      <member refid="classDagorMat_1a72c5b8edc734dc2e23efcacc0ace8c73" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_script</name></member>
+      <member refid="classDagorMat_1a1cd31bb29fad1b9c1f662033077abb70" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_spec</name></member>
+      <member refid="classDagorMat_1a855f95e06a9a631571fe626da62432e6" prot="public" virt="virtual"><scope>DagorMat</scope><name>get_texname</name></member>
+      <member refid="classDagorMat_1a707b1c1100ba74c8b5cf8e9e8f7f0f97" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetAmbient</name></member>
+      <member refid="classDagorMat_1a1c78616403bb1b7fc39cc5a30246a505" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetClassName</name></member>
+      <member refid="classDagorMat_1aac3da3ddd1b0c8c56a67a655459cfeed" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetDiffuse</name></member>
+      <member refid="classDagorMat_1a017111a521026a9d012f606635d016ec" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetInterface</name></member>
+      <member refid="classDagorMat_1aa8fc261cd294b98450a90b9671a4c137" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetReference</name></member>
+      <member refid="classDagorMat_1a3c442c497a09ed5415c510e487662f17" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetShininess</name></member>
+      <member refid="classDagorMat_1a52f5375d4ed5113685b4e7dc45c91ab3" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetShinStr</name></member>
+      <member refid="classDagorMat_1adb1f7abd0b0d97afa6dcc1de495fc51a" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetSpecular</name></member>
+      <member refid="classDagorMat_1ac89642dab3634e95d5b204703c84927d" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetSubTexmap</name></member>
+      <member refid="classDagorMat_1a87551d7003960d4c63b17027dde5a533" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>GetXParency</name></member>
+      <member refid="classDagorMat_1a00d059567cea6f29c8fde169fd6a74a8" prot="private" virt="non-virtual"><scope>DagorMat</scope><name>hasAlpha</name></member>
+      <member refid="classDagorMat_1af233ca729a43b6dd1e41f075c4d9b315" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>ivalid</name></member>
+      <member refid="classDagorMat_1a41db67914e92e3456158a0349faaac76" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Load</name></member>
+      <member refid="classDagorMat_1a627ac0f00febf2c411aa81adfa937b31" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>NotifyChanged</name></member>
+      <member refid="classDagorMat_1ad3d99d9571fd30b04d414fee43228b6e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>NotifyRefChanged</name></member>
+      <member refid="classDagorMat_1a4e225f7cec299ff2514e8169bfd3f17d" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>NumRefs</name></member>
+      <member refid="classDagorMat_1a2d71b518023cfabc0dc538d4e6976ede" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>NumSubs</name></member>
+      <member refid="classDagorMat_1a1df9e20224d303a23417167b49860303" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>NumSubTexmaps</name></member>
+      <member refid="classDagorMat_1ab0c29439e137d997e013d54e96cf1418" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>pblock</name></member>
+      <member refid="classDagorMat_1a9498f34b79dddc9b8afca15ae924a244" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>power</name></member>
+      <member refid="classDagorMat_1a5129f05fe61dfca72562a48080ac256e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>ReleaseInterface</name></member>
+      <member refid="classDagorMat_1a5e7745a51cea4e6b19ceb84b1b4b65cc" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Requirements</name></member>
+      <member refid="classDagorMat_1a052f5d93de389e14f911d4bdb23b1c22" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Reset</name></member>
+      <member refid="classDagorMat_1a6533e0b4aeedf0ac1265f5fb5f450aeb" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Save</name></member>
+      <member refid="classDagorMat_1a6bc21d543e25b564ba8bd6b590eaf267" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>script</name></member>
+      <member refid="classDagorMat_1a232a5e93c184d6ec2942f0fe363f3c33" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_2sided</name></member>
+      <member refid="classDagorMat_1a9a5416f6e0a1a0d3d317682d796faf9c" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_amb</name></member>
+      <member refid="classDagorMat_1ab91a17e1822bc6cdf0f1b979c22d4bd8" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_classname</name></member>
+      <member refid="classDagorMat_1ad243355376e35c60f65460d4a690e6a9" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_diff</name></member>
+      <member refid="classDagorMat_1ac7e3e13a7322864556646f3359faf1f5" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_emis</name></member>
+      <member refid="classDagorMat_1aada0ee3846e50d9bec06fe447655bca7" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_param</name></member>
+      <member refid="classDagorMat_1ad9877aa9a6b7dd77cc851c4477eca5f0" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_power</name></member>
+      <member refid="classDagorMat_1a542673506f621ac4b91e8af39e6c7aa5" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_script</name></member>
+      <member refid="classDagorMat_1a6237a49ee641c5857785fef0f23ac9dd" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_spec</name></member>
+      <member refid="classDagorMat_1a016b7395c53e2d29ca06ba63104ebde2" prot="public" virt="virtual"><scope>DagorMat</scope><name>set_texname</name></member>
+      <member refid="classDagorMat_1aadc0817d2af077cfaebfe818a3dc303f" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetAmbient</name></member>
+      <member refid="classDagorMat_1a9cb37de0048c5dd7c5e8768839670b00" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetDiffuse</name></member>
+      <member refid="classDagorMat_1a8a53417cb79e462ceb8624d8a91a1231" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetReference</name></member>
+      <member refid="classDagorMat_1a76c2e11f2e8c85803d983a312a07d65e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetShininess</name></member>
+      <member refid="classDagorMat_1aa8d035df780d412625a1995d592b6aa1" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetSpecular</name></member>
+      <member refid="classDagorMat_1a1cb42f32ddc4b992b744c35ac3b89937" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetSubTexmap</name></member>
+      <member refid="classDagorMat_1a34fb40e4a04595621530b42cc17a6ed2" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SetupGfxMultiMaps</name></member>
+      <member refid="classDagorMat_1aa21252bd0b756d2f0711f6a40f3d9f76" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Shade</name></member>
+      <member refid="classDagorMat_1ad32e80077d80a83e82a3ce754236d975" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>shin</name></member>
+      <member refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Sides</name></member>
+      <member refid="classDagorMat_1a384e681501216827d9df541cb0ed8850" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SubAnim</name></member>
+      <member refid="classDagorMat_1abbfb820ffcd4b61725c6f531f033138e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SubAnimName</name></member>
+      <member refid="classDagorMat_1a5ad7d2555445e9e871c6c781de0155c6" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SubNumToRefNum</name></member>
+      <member refid="classDagorMat_1a35024f401e15af676ac34dfe53f2eb72" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>SuperClassID</name></member>
+      <member refid="classDagorMat_1a56237349cb013952168f67a581098529" prot="private" virt="non-virtual"><scope>DagorMat</scope><name>texHandle</name></member>
+      <member refid="classDagorMat_1ae257556cf6fb7960184ce984a21ff147" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>texmaps</name></member>
+      <member refid="classDagorMat_1a9eeec47e3a87a007968a39992b39862d" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>twosided</name></member>
+      <member refid="classDagorMat_1a85cd220f3e0d160103d8c82f723e551d" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Update</name></member>
+      <member refid="classDagorMat_1a8035bef63501158ff74597fe17aa7505" prot="private" virt="non-virtual"><scope>DagorMat</scope><name>updateViewportTexturesState</name></member>
+      <member refid="classDagorMat_1a5e4cd106d95890a6d078bb1b5e09314e" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>Validity</name></member>
+      <member refid="classDagorMat_1a54333ebd7b2323c51d4d2dd19b38b67d" prot="public" virt="non-virtual"><scope>DagorMat</scope><name>~DagorMat</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

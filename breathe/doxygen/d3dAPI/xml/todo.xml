@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="todo" kind="page">
+    <compoundname>todo</compoundname>
+    <title>Todo List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="namespaced3d_1_1buffers_1ac3d4e3aafd9a7884be161183f8292ede" kindref="member">d3d::buffers::create_ua_byte_address</ref>  (uint32_t size_in_dwords, const char *name)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000002"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1_1buffers_1a9192bf3c86f843993ae9f6d89b010975" kindref="member">d3d::buffers::create_ua_byte_address_readback</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="namespaced3d_1_1buffers_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000003"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1_1buffers_1af0a2c321a3d7e53d01537438f4921710" kindref="member">d3d::buffers::create_ua_sr_byte_address</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="namespaced3d_1_1buffers_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000001"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1abeb28f6ab9a52fb583f488e9ca9523d8" kindref="member">d3d::create_ib</ref>  (int size_bytes, int flags, const char *stat_name=&quot;ib&quot;)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000013"/>Make the name parameter mandatory. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1ac53449f29d7d24cdcaf611d1b2f3daf7" kindref="member">d3d::create_vb</ref>  (int size_bytes, int flags, const char *name=&quot;&quot;)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000012"/>Make the name parameter mandatory. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a64de8a685d98bfcf5ab180aaf92eccab" kindref="member">d3d::create_vdecl</ref>  (VSDTYPE *vsd)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000014"/>Do we really need to support DX8-style vertex declarations? Maybe it&apos;s time to look for a more modern solution. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a46605b89457725fff67d81c99b65d806" kindref="member">d3d::disable_sli</ref>  ()</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000009"/>Remove. We don&apos;t support SLI anymore  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1ac1a05683c30e2b5573fcba415f10edc1" kindref="member">d3d::get_texformat_usage</ref>  (int cflg, D3DResourceType type=<ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98a9ed6f50f63c3af102f036468321d142b" kindref="member">D3DResourceType::TEX</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000011"/>Use enum class as a returned type.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a7faa22a3eee807e8574873fdcc6b3fa3" kindref="member">d3d::set_const_buffer</ref>  (unsigned stage, unsigned slot, <ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *buffer, uint32_t consts_offset=0, uint32_t consts_size=0)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000010"/>consts_offset and consts_size are not used. Remove them?  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000004"/>Candidate for removal if situation for PS4/5 is clarified, there it seems to be not implemented. \someNYI \platformtable{hasAlphaCoverage,c,a,c,a,c,c,c,c,c,c,c}  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000005"/>May need to split into multiple caps as some drivers do not support buffers. </para>
+<para></para>
+</listitem>
+<varlistentry><term>Member <ref refid="structDeviceDriverCapabilitiesPS4_1ac5bd05642d65e301dc4e34cfa3d0fede" kindref="member">DeviceDriverCapabilitiesPS4::hasGather4</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000006"/>Clarify why no support is advertised.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="classDriver3dInitCallback_1a91d3767e5a09998a39df239c2a1c10a7" kindref="member">Driver3dInitCallback::compareDesc</ref>  (<ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref> &amp;A, <ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref> &amp;B) const =0</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000008"/>This fucntion is not used anywhere. Remove it?  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="classDriver3dInitCallback_1a1b92d98c1d83a6256a52b0111626f9cd" kindref="member">Driver3dInitCallback::validateDesc</ref>  (<ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref> &amp;desc) const =0</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000007"/>This fucntion is not used anywhere. Remove it? </para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="todo"/>
+  </compounddef>
+</doxygen>

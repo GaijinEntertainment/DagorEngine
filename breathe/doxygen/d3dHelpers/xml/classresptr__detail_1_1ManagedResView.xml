@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ManagedResView" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ManagedResView</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedResView_1ab8d7adeb5cffbe0a1ec4e5891b631e09" prot="public" static="no">
+        <type>ManagedResType</type>
+        <definition>using resptr_detail::ManagedResView&lt; ManagedResType &gt;::BaseType =  ManagedResType</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>resptr_detail::ManagedResView::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="455" column="3" bodyfile="dag_resPtr.h" bodystart="455" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedResView_1a480235980a6c20dd102a50a3caaccc59" prot="public" static="no">
+        <type>typename BaseType::resource_t</type>
+        <definition>using resptr_detail::ManagedResView&lt; ManagedResType &gt;::ResType =  typename BaseType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::ManagedResView::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="456" column="3" bodyfile="dag_resPtr.h" bodystart="456" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResView_1a10f515515dfd9a3e54acd008776e5243" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedResView&lt; ManagedResType &gt;::ManagedResView</definition>
+        <argsstring>()=default</argsstring>
+        <name>ManagedResView</name>
+        <qualifiedname>resptr_detail::ManagedResView::ManagedResView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="458" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResView_1ad80a1d4e9e60411d5b9e357fbc15c1d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedResView&lt; ManagedResType &gt;::ManagedResView</definition>
+        <argsstring>(const ManagedResType &amp;res)</argsstring>
+        <name>ManagedResView</name>
+        <qualifiedname>resptr_detail::ManagedResView::ManagedResView</qualifiedname>
+        <param>
+          <type>const ManagedResType &amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="459" column="3" bodyfile="dag_resPtr.h" bodystart="459" bodyend="463"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResView_1a086c6233dbbae6a895137885b2814247" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedResView&lt; ManagedResType &gt;::ManagedResView</definition>
+        <argsstring>(ManagedResType &amp;&amp;res)=delete</argsstring>
+        <name>ManagedResView</name>
+        <qualifiedname>resptr_detail::ManagedResView::ManagedResView</qualifiedname>
+        <param>
+          <type>ManagedResType &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="464" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResView&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResView"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResView&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResView"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="452" column="1" bodyfile="dag_resPtr.h" bodystart="453" bodyend="465"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ManagedResView_1ab8d7adeb5cffbe0a1ec4e5891b631e09" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResView</scope><name>BaseType</name></member>
+      <member refid="classresptr__detail_1_1ManagedResView_1a10f515515dfd9a3e54acd008776e5243" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResView</scope><name>ManagedResView</name></member>
+      <member refid="classresptr__detail_1_1ManagedResView_1ad80a1d4e9e60411d5b9e357fbc15c1d1" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResView</scope><name>ManagedResView</name></member>
+      <member refid="classresptr__detail_1_1ManagedResView_1a086c6233dbbae6a895137885b2814247" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResView</scope><name>ManagedResView</name></member>
+      <member refid="classresptr__detail_1_1ManagedResView_1a480235980a6c20dd102a50a3caaccc59" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResView</scope><name>ResType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

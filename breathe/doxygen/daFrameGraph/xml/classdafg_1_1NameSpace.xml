@@ -1,0 +1,574 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1NameSpace" kind="class" language="C++" prot="public">
+    <compoundname>dafg::NameSpace</compoundname>
+    <includes refid="nameSpace_8h" local="no">nameSpace.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1NameSpace_1a691932c65b285509b1c958b40a203893" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct eastl::hash&lt; NameSpace &gt;</definition>
+        <argsstring></argsstring>
+        <name>eastl::hash&lt; NameSpace &gt;</name>
+        <qualifiedname>dafg::NameSpace::hash&lt; NameSpace &gt;</qualifiedname>
+        <param>
+          <type>eastl::hash&lt; <ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref> &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="41" column="20" bodyfile="nameSpace.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1NameSpace_1a8069d5bda88d06acff5dbfeab0b3bed6" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        <definition>NameSpace root</definition>
+        <argsstring>()</argsstring>
+        <name>root</name>
+        <qualifiedname>dafg::NameSpace::root</qualifiedname>
+        <briefdescription>
+<para>Creates a namespace object for the root frame graph namespace. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The object representing the root namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="41" column="20"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1NameSpace_1a774da712956d24dd7062634e236124c3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const NameSpace &amp;, const NameSpace &amp;)=default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>dafg::NameSpace::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref> &amp;</type>
+        </param>
+        <param>
+          <type>const <ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="177" column="15"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1NameSpace_1abcbea3425cd17afda02b280b0f9954fb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator&lt;</definition>
+        <argsstring>(const NameSpace &amp;fst, const NameSpace &amp;snd)</argsstring>
+        <name>operator&lt;</name>
+        <qualifiedname>dafg::NameSpace::operator&lt;</qualifiedname>
+        <param>
+          <type>const <ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>fst</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>snd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="178" column="10" bodyfile="nameSpace.h" bodystart="178" bodyend="178"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1NameSpace_1aa8ebb3a159c09a5215b404a7b7a1ee8f" prot="private" static="no" mutable="no">
+        <type>NameSpaceNameId</type>
+        <definition>NameSpaceNameId dafg::NameSpace::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>dafg::NameSpace::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="185" column="19" bodyfile="nameSpace.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a542130ca220dfade440c96944de5ad1c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NameSpace::NameSpace</definition>
+        <argsstring>()</argsstring>
+        <name>NameSpace</name>
+        <qualifiedname>dafg::NameSpace::NameSpace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="44" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1ad7224cec9b8a76403018a029ccbb1961" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NameSpace::NameSpace</definition>
+        <argsstring>(NameSpaceNameId nid)</argsstring>
+        <name>NameSpace</name>
+        <qualifiedname>dafg::NameSpace::NameSpace</qualifiedname>
+        <param>
+          <type>NameSpaceNameId</type>
+          <declname>nid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="45" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a5446ba4b421314410d66e033ffa32c8e" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::NameSpace::resolveName</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>resolveName</name>
+        <qualifiedname>dafg::NameSpace::resolveName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="183" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a5439b084b763e572a154406697062a83" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        <definition>NameSpace dafg::NameSpace::operator/</definition>
+        <argsstring>(const char *child_name) const</argsstring>
+        <name>operator/</name>
+        <qualifiedname>dafg::NameSpace::operator/</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>child_name</declname>
+        </param>
+        <briefdescription>
+<para>Creates a namespace object for a sub-namespace of this one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>child_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the sub-namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>An object representing the child namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="54" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a54aea8ab5caafcc975df19c64eaab5cb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref></type>
+        <definition>NodeHandle dafg::NameSpace::registerNode</definition>
+        <argsstring>(const char *name, const char *source_location, F &amp;&amp;declaration_callback) const</argsstring>
+        <name>registerNode</name>
+        <qualifiedname>dafg::NameSpace::registerNode</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+<para>Either registers a new node inside the frame graph, or re-registers an already existing one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name that uniquely identifies the node in the current name space. If the function is called twice with the same node name and name space, the second call will overwrite the node resulting from the previous one. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>source_location</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Should always be the DAFG_PP_NODE_SRC macro </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>declaration_callback</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Should be a callback taking a <ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref> instance by value and returning an execution callback, which in turn may accept a <ref refid="structdafg_1_1multiplexing_1_1Index" kindref="compound">dafg::multiplexing::Index</ref> object (or may accept nothing). Basically, a function with signature <ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref> -&gt; (Index -&gt; ()). Note: the declaration and execution callbacks might be called an arbitrary number of times, but only while the resulting node is registered. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A handle that represents the lifetime of the new node. The node will be unregistered when the handle is destroyed. Note that it is safe to call this function even without destroying all previous handles up to a couple hundred of times. The intended use case is doing <computeroutput>classField = register_node(...)</computeroutput> at arbitrary times, without passing these handles anywhere. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="80" column="15" bodyfile="nameSpace.h" bodystart="80" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dafg::NameSpace::setResolution</definition>
+        <argsstring>(const char *type_name, T value)</argsstring>
+        <name>setResolution</name>
+        <qualifiedname>dafg::NameSpace::setResolution</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Updates an auto-resolution of a particular type. Note that this causes a complete resource rescheduling, invalidating all history. It also resets dynamic resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>point type, either IPoint2 or IPoint3. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the auto-res type, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The new resolution value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="116" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1ae03a69748fdad987326fb8372aab8041" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dafg::NameSpace::setDynamicResolution</definition>
+        <argsstring>(const char *type_name, T value)</argsstring>
+        <name>setDynamicResolution</name>
+        <qualifiedname>dafg::NameSpace::setDynamicResolution</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Updates an auto-resolution of a particular type without causing a resource rescheduling, hence preserving history. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>This is only available on platforms that support heaps.</para>
+</simplesect>
+<parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>P</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ndash/> point type, either IPoint2 or IPoint3. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the auto-res type, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The new dynamic resolution value. Must be smaller than the initial resolution for this type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="129" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1ae0c678e180f0677e1ffc4ba4a37b4127" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::NameSpace::fillSlot</definition>
+        <argsstring>(NamedSlot slot, NameSpace res_name_space, const char *res_name)</argsstring>
+        <name>fillSlot</name>
+        <qualifiedname>dafg::NameSpace::fillSlot</qualifiedname>
+        <param>
+          <type><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+          <declname>res_name_space</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Sets a value to a named slot. Named slots are basically links that allow for an indirection when looking up a resource name. As an example, volumetric fog is an intrusive feature that requires a bunch of different rendering nodes to read some kind of a downsampled depth resource for tracing the fog, but this depth might be different depending on the current settings. In this situation, it makes sense to introduce a fog_depth slot and fill it in with different resources, allowing one to avoid settings-dependent ifs in node declarations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the slot, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res_name_space</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name space to look up res_name in. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to fill this slot with, looked up in <computeroutput>res_name_space</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="145" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a969d24afa74d4613e616bc206b5fb700" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::NameSpace::updateExternallyConsumedResourceSet</definition>
+        <argsstring>(eastl::span&lt; const char *const &gt; res_names)</argsstring>
+        <name>updateExternallyConsumedResourceSet</name>
+        <qualifiedname>dafg::NameSpace::updateExternallyConsumedResourceSet</qualifiedname>
+        <param>
+          <type>eastl::span&lt; const char *const &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of resource names to assign, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="153" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a67cc8c72b86912962ad71d1a8ec6be32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::NameSpace::updateExternallyConsumedResourceSet</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; res_names)</argsstring>
+        <name>updateExternallyConsumedResourceSet</name>
+        <qualifiedname>dafg::NameSpace::updateExternallyConsumedResourceSet</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of resource names to assign, looked up in this namespace.   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="156" column="8" bodyfile="nameSpace.h" bodystart="156" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a0a7cf65859a94385851ae68a2afb3c20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::NameSpace::markResourceExternallyConsumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>markResourceExternallyConsumed</name>
+        <qualifiedname>dafg::NameSpace::markResourceExternallyConsumed</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Marks a single resource as being externally consumed. See dafg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to mark, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="167" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1a9e21fe6d39b7936f5a5526da5297190e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::NameSpace::unmarkResourceExternallyConsumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>unmarkResourceExternallyConsumed</name>
+        <qualifiedname>dafg::NameSpace::unmarkResourceExternallyConsumed</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Unmarks a single resource as being externally consumed. See dafg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to unmark, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="175" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classdafg_1_1NameSpace_1ab279bdee66372fee604f57659ce72ae3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        <definition>static NameSpace dafg::NameSpace::_make_namespace</definition>
+        <argsstring>(dafg::NameSpaceNameId nid)</argsstring>
+        <name>_make_namespace</name>
+        <qualifiedname>dafg::NameSpace::_make_namespace</qualifiedname>
+        <param>
+          <type>dafg::NameSpaceNameId</type>
+          <declname>nid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="180" column="27" bodyfile="nameSpace.h" bodystart="180" bodyend="180"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A type representing some namespace in the frame graph. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="nameSpace.h" line="39" column="1" bodyfile="nameSpace.h" bodystart="40" bodyend="186"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1NameSpace_1ab279bdee66372fee604f57659ce72ae3" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>_make_namespace</name></member>
+      <member refid="classdafg_1_1NameSpace_1a691932c65b285509b1c958b40a203893" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>eastl::hash&lt; NameSpace &gt;</name></member>
+      <member refid="classdafg_1_1NameSpace_1ae0c678e180f0677e1ffc4ba4a37b4127" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>fillSlot</name></member>
+      <member refid="classdafg_1_1NameSpace_1a0a7cf65859a94385851ae68a2afb3c20" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>markResourceExternallyConsumed</name></member>
+      <member refid="classdafg_1_1NameSpace_1aa8ebb3a159c09a5215b404a7b7a1ee8f" prot="private" virt="non-virtual"><scope>dafg::NameSpace</scope><name>nameId</name></member>
+      <member refid="classdafg_1_1NameSpace_1a542130ca220dfade440c96944de5ad1c" prot="private" virt="non-virtual"><scope>dafg::NameSpace</scope><name>NameSpace</name></member>
+      <member refid="classdafg_1_1NameSpace_1ad7224cec9b8a76403018a029ccbb1961" prot="private" virt="non-virtual"><scope>dafg::NameSpace</scope><name>NameSpace</name></member>
+      <member refid="classdafg_1_1NameSpace_1a5439b084b763e572a154406697062a83" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>operator/</name></member>
+      <member refid="classdafg_1_1NameSpace_1abcbea3425cd17afda02b280b0f9954fb" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>operator&lt;</name></member>
+      <member refid="classdafg_1_1NameSpace_1a774da712956d24dd7062634e236124c3" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>operator==</name></member>
+      <member refid="classdafg_1_1NameSpace_1a54aea8ab5caafcc975df19c64eaab5cb" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>registerNode</name></member>
+      <member refid="classdafg_1_1NameSpace_1a5446ba4b421314410d66e033ffa32c8e" prot="private" virt="non-virtual"><scope>dafg::NameSpace</scope><name>resolveName</name></member>
+      <member refid="classdafg_1_1NameSpace_1a8069d5bda88d06acff5dbfeab0b3bed6" prot="private" virt="non-virtual"><scope>dafg::NameSpace</scope><name>root</name></member>
+      <member refid="classdafg_1_1NameSpace_1ae03a69748fdad987326fb8372aab8041" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>setDynamicResolution</name></member>
+      <member refid="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>setResolution</name></member>
+      <member refid="classdafg_1_1NameSpace_1a9e21fe6d39b7936f5a5526da5297190e" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>unmarkResourceExternallyConsumed</name></member>
+      <member refid="classdafg_1_1NameSpace_1a969d24afa74d4613e616bc206b5fb700" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>updateExternallyConsumedResourceSet</name></member>
+      <member refid="classdafg_1_1NameSpace_1a67cc8c72b86912962ad71d1a8ec6be32" prot="public" virt="non-virtual"><scope>dafg::NameSpace</scope><name>updateExternallyConsumedResourceSet</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

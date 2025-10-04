@@ -1,0 +1,436 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__ringDynBuf_8h" kind="file" language="C++">
+    <compoundname>dag_ringDynBuf.h</compoundname>
+    <includes local="no">drv/3d/dag_vertexIndexBuffer.h</includes>
+    <includes local="no">drv/3d/dag_buffers.h</includes>
+    <includes local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">drv/3d/dag_info.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes refid="dag__lockSbuffer_8h" local="no">3d/dag_lockSbuffer.h</includes>
+    <includes refid="dag__resPtr_8h" local="no">3d/dag_resPtr.h</includes>
+    <includedby refid="dag__multidrawContext_8h" local="no">dag_multidrawContext.h</includedby>
+    <incdepgraph>
+      <node id="7">
+        <label>3d/dag_lockSbuffer.h</label>
+        <link refid="dag__lockSbuffer_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>3d/dag_resPtr.h</label>
+        <link refid="dag__resPtr_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_ringDynBuf.h</label>
+        <link refid="dag__ringDynBuf_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="28">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_commands.h</label>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="23">
+        <label>drv/3d/dag_heap.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_info.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_renderTarget.h</label>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_texture.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_vertexIndexBuffer.h</label>
+      </node>
+      <node id="27">
+        <label>gameRes/dag_gameResources.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="21">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="15">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="26">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="17">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="29">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="16">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_multidrawContext.h</label>
+        <link refid="dag__multidrawContext_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_ringDynBuf.h</label>
+        <link refid="dag__ringDynBuf_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classRingDynamicBuffer" prot="public">RingDynamicBuffer</innerclass>
+    <innerclass refid="classRingDynamicVB" prot="public">RingDynamicVB</innerclass>
+    <innerclass refid="classRingDynamicSB" prot="public">RingDynamicSB</innerclass>
+    <innerclass refid="classRingDynamicIB" prot="public">RingDynamicIB</innerclass>
+    <innerclass refid="classRingDynamicIB32" prot="public">RingDynamicIB32</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_vertexIndexBuffer.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_buffers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_info.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__lockSbuffer_8h" kindref="compound">3d/dag_lockSbuffer.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resPtr_8h" kindref="compound">3d/dag_resPtr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>BUF,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="17" refid="classRingDynamicBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="20" refid="classRingDynamicBuffer_1aef26ed4ab02486bb9c09fd1e5c769a47" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicBuffer_1aef26ed4ab02486bb9c09fd1e5c769a47" kindref="member">RingDynamicBuffer</ref>()<sp/>:<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>(0),<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>(0),<sp/><ref refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" kindref="member">refCount</ref>(0),<sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>(0),<sp/><ref refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" kindref="member">sPos</ref>(0)<sp/>{}</highlight></codeline>
+<codeline lineno="21" refid="classRingDynamicBuffer_1a185e388bba8d1a022dc702f01460d8c1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicBuffer_1a185e388bba8d1a022dc702f01460d8c1" kindref="member">RingDynamicBuffer</ref>(<ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22" refid="classRingDynamicBuffer_1a108e11565a39459feab495f024726ebe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicBuffer_1a108e11565a39459feab495f024726ebe" kindref="member">~RingDynamicBuffer</ref>()<sp/>{<sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classRingDynamicBuffer_1a6fd3aeef18c27ad0a3235b0a0c2cbcc5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a6fd3aeef18c27ad0a3235b0a0c2cbcc5" kindref="member">addData</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>*__restrict<sp/>data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+<sp/>count<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(count<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>++;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>-&gt;updateData(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>count<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>data,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>VBLOCK_WRITEONLY<sp/>|<sp/>VBLOCK_NOSYSLOCK<sp/>|<sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>==<sp/>0<sp/>?<sp/>VBLOCK_DISCARD<sp/>:<sp/>VBLOCK_NOOVERWRITE));</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cp<sp/>=<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+=<sp/>count;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cp;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classRingDynamicBuffer_1a76348ea1bcf986f012fbdfcbe789f4fc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a76348ea1bcf986f012fbdfcbe789f4fc" kindref="member">unlockData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>used_count)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+=<sp/>used_count;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>-&gt;unlock();</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48" refid="classRingDynamicBuffer_1a1f8dce232b006a8cb44faa9b056b74d4" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>*<ref refid="classRingDynamicBuffer_1a1f8dce232b006a8cb44faa9b056b74d4" kindref="member">lockData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_count)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>T<sp/>*p;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+<sp/>max_count<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(max_count<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(T<sp/>*)NULL;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>++;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>-&gt;lockEx(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>max_count<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>(T<sp/>**)&amp;p,<sp/>VBLOCK_WRITEONLY<sp/>|<sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>==<sp/>0<sp/>?<sp/>VBLOCK_DISCARD<sp/>:<sp/>VBLOCK_NOOVERWRITE)))</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>p;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(T<sp/>*)NULL;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>U<sp/>=<sp/>T&gt;</highlight></codeline>
+<codeline lineno="67" refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;U&gt;</ref><sp/><ref refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" kindref="member">lockBufferAs</ref>(uint32_t<sp/>max_count,<sp/>uint32_t<sp/>&amp;prev_pos)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(U)<sp/>%<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>maxCountInInnerElems<sp/>=<sp/>max_count<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(U)<sp/>/<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+<sp/>maxCountInInnerElems<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(maxCountInInnerElems<sp/>&gt;<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;U&gt;</ref>();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>++;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>prev_pos<sp/>=<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>+=<sp/>maxCountInInnerElems;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lock_sbuffer&lt;U&gt;(<ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.getBuf(),<sp/>prev_pos<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>max_count,</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>VBLOCK_WRITEONLY<sp/>|<sp/>(prev_pos<sp/>==<sp/>0<sp/>?<sp/>VBLOCK_DISCARD<sp/>:<sp/>VBLOCK_NOOVERWRITE));</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" kindref="member">getBuf</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.getBuf();<sp/>}</highlight></codeline>
+<codeline lineno="88" refid="classRingDynamicBuffer_1a42fe788220de1f0b9ab59130dd7adbda" refkind="member"><highlight class="normal"><sp/><sp/>D3DRESID<sp/><ref refid="classRingDynamicBuffer_1a42fe788220de1f0b9ab59130dd7adbda" kindref="member">getBufId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.getBufId();<sp/>}</highlight></codeline>
+<codeline lineno="89" refid="classRingDynamicBuffer_1a3eb781ae723963ab73cccd08d06bbed9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a3eb781ae723963ab73cccd08d06bbed9" kindref="member">bufSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="90" refid="classRingDynamicBuffer_1a99f83b78cfb029f6fa87df44ab3bdc69" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a99f83b78cfb029f6fa87df44ab3bdc69" kindref="member">bufLeft</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>-<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="91" refid="classRingDynamicBuffer_1a4e0d95c1429454d1f09a78c57a434159" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a4e0d95c1429454d1f09a78c57a434159" kindref="member">getStride</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="92" refid="classRingDynamicBuffer_1ad1849e9221154bfaf08b94c133351fb9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ad1849e9221154bfaf08b94c133351fb9" kindref="member">getPos</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94" refid="classRingDynamicBuffer_1af182f9a7ad89013cfd194bf9ab0ff839" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1af182f9a7ad89013cfd194bf9ab0ff839" kindref="member">getProcessedCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref><sp/>*<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>+<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>-<sp/><ref refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" kindref="member">sPos</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="classRingDynamicBuffer_1ab13297bc225050733eedaa4ca0cc38d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ab13297bc225050733eedaa4ca0cc38d6" kindref="member">resetPos</ref>()</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>++;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101" refid="classRingDynamicBuffer_1acf950570109455ccc7f9ca4514966550" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1acf950570109455ccc7f9ca4514966550" kindref="member">resetCounters</ref>()</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" kindref="member">sPos</ref><sp/>=<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">close</ref>()</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.close();</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="classRingDynamicBuffer_1abb2c1590689241835b1f60c8bd2bd789" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1abb2c1590689241835b1f60c8bd2bd789" kindref="member">addRef</ref>()<sp/>{<sp/><ref refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" kindref="member">refCount</ref>++;<sp/>}</highlight></codeline>
+<codeline lineno="115" refid="classRingDynamicBuffer_1a5083a83dd1e56a9a010e67cde5db9f2f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a5083a83dd1e56a9a010e67cde5db9f2f" kindref="member">delRef</ref>()</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" kindref="member">refCount</ref>--;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" kindref="member">refCount</ref><sp/>==<sp/>0<sp/>?<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/>this<sp/>:<sp/>(void)0;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="122" refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" refkind="member"><highlight class="normal"><sp/><sp/>BUF<sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>;</highlight></codeline>
+<codeline lineno="123" refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref>,<sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref>,<sp/><ref refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" kindref="member">sPos</ref>;</highlight></codeline>
+<codeline lineno="124" refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" refkind="member"><highlight class="normal"><sp/><sp/>int16_t<sp/><ref refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" kindref="member">refCount</ref>,<sp/><ref refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" kindref="member">rounds</ref>;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="classRingDynamicVB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingDynamicVB" kindref="compound">RingDynamicVB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref>&lt;UniqueBuf,<sp/>void&gt;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="131" refid="classRingDynamicVB_1aa9f14c55e5a474077efafbda8db1e4e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicVB_1aa9f14c55e5a474077efafbda8db1e4e9" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v_count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v_stride,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stat_name)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref><sp/>=<sp/>dag::create_vb(v_count<sp/>*<sp/>v_stride,<sp/>SBCF_DYNAMIC,<sp/>stat_name);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>=<sp/>v_stride;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>=<sp/>v_count;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140" refid="classRingDynamicSB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref>&lt;UniqueBuf,<sp/>void&gt;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="143" refid="classRingDynamicSB_1a049aa4300fac664f7c7e5a9cb1041e0e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicSB_1a049aa4300fac664f7c7e5a9cb1041e0e" kindref="member">RingDynamicSB</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="144" refid="classRingDynamicSB_1a3f45432cb8140910ee46435d417d95d7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicSB_1a3f45432cb8140910ee46435d417d95d7" kindref="member">RingDynamicSB</ref>(<ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="145" refid="classRingDynamicSB_1a3dfaa6824bbffd930ec30ce558414ac9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicSB_1a3dfaa6824bbffd930ec30ce558414ac9" kindref="member">~RingDynamicSB</ref>()<sp/>{<sp/><ref refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="146" refid="classRingDynamicSB_1a0c4d958e3aeda5b5231b5269c1e54f1c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicSB_1a0c4d958e3aeda5b5231b5269c1e54f1c" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v_count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v_stride,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>elem_size,<sp/>uint32_t<sp/>flags,<sp/>uint32_t<sp/>format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stat_name)</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(v_stride<sp/>%<sp/>elem_size<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueBuf</ref><sp/>stagingBuf;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>!(d3d::get_driver_code().is(d3d::dx11)<sp/>&amp;&amp;<sp/>(flags<sp/>&amp;<sp/>SBCF_MISC_DRAWINDIRECT)))</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>flags<sp/>|=<sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">//<sp/>not<sp/>optimal,<sp/>since<sp/>we<sp/>allocate<sp/>in<sp/>gpu<sp/>memory<sp/>too<sp/>much.<sp/>todo:<sp/>optimize</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>stagingName(0,<sp/></highlight><highlight class="stringliteral">&quot;%s_staging&quot;</highlight><highlight class="normal">,<sp/>stat_name);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>stagingBuf<sp/>=<sp/>dag::create_sbuffer(elem_size,<sp/>v_count<sp/>*<sp/>(v_stride<sp/>/<sp/>elem_size),</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_BIND_VERTEX<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE,<sp/>0,<sp/>stagingName.c_str());<sp/></highlight><highlight class="comment">//<sp/>we<sp/>don&apos;t<sp/>need<sp/>SBCF_BIND_VERTEX,<sp/>but</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>DX<sp/>driver<sp/>demands<sp/>it</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref><sp/>=<sp/>dag::create_sbuffer(elem_size,<sp/>v_count<sp/>*<sp/>(v_stride<sp/>/<sp/>elem_size),<sp/>flags,<sp/>format,<sp/>stat_name);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stagingBuf)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref><sp/>=<sp/>eastl::move(<ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref><sp/>=<sp/>eastl::move(stagingBuf);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>=<sp/>v_stride;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>=<sp/>v_count;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="170" refid="classRingDynamicSB_1a8413718fd66ae56dcdfac394d6c8e99e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicSB_1a8413718fd66ae56dcdfac394d6c8e99e" kindref="member">unlockData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>used_count)<sp/></highlight><highlight class="comment">//<sp/>not<sp/>optimal,<sp/>since<sp/>we<sp/>allocate<sp/>in<sp/>gpu<sp/>memory<sp/>too<sp/>much</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a76348ea1bcf986f012fbdfcbe789f4fc" kindref="member">RingDynamicBuffer&lt;UniqueBuf, void&gt;::unlockData</ref>(used_count);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref><sp/>||<sp/>!used_count)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.getBuf()-&gt;copyTo(<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>.getBuf(),<sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>-<sp/>used_count)<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>(<ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>-<sp/>used_count)<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>used_count<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>);</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="177" refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" kindref="member">close</ref>()</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">RingDynamicBuffer&lt;UniqueBuf, void&gt;::close</ref>();</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182" refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" kindref="member">getRenderBuf</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref><sp/>?<sp/><ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref><sp/>:<sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>).<ref refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" kindref="member">getBuf</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="183" refid="classRingDynamicSB_1aa45f2c157872419cd531216b1c7fce07" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicSB_1aa45f2c157872419cd531216b1c7fce07" kindref="member">addData</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*__restrict<sp/>data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(count<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>previousPos<sp/>=<sp/><ref refid="classRingDynamicBuffer_1a6fd3aeef18c27ad0a3235b0a0c2cbcc5" kindref="member">RingDynamicBuffer&lt;UniqueBuf, void&gt;::addData</ref>(data,<sp/>count);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(previousPos<sp/>==<sp/>-1)</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref>.getBuf()-&gt;copyTo(<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>.getBuf(),<sp/>previousPos<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>previousPos<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>,<sp/>count<sp/>*<sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref>);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" kindref="member">pos</ref><sp/>-<sp/>count;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="194" refid="classRingDynamicSB_1a8a0a503015adf7c6b10b98719be5f1fd" refkind="member"><highlight class="normal"><sp/><sp/>D3DRESID<sp/><ref refid="classRingDynamicSB_1a8a0a503015adf7c6b10b98719be5f1fd" kindref="member">getBufId</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="195"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>)</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>.getBufId();</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer_1a42fe788220de1f0b9ab59130dd7adbda" kindref="member">RingDynamicBuffer&lt;UniqueBuf, void&gt;::getBufId</ref>();</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="202" refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueBuf</ref><sp/><ref refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" kindref="member">renderBuf</ref>;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="classRingDynamicIB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingDynamicIB" kindref="compound">RingDynamicIB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref>&lt;UniqueBuf,<sp/>uint16_t&gt;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="208" refid="classRingDynamicIB_1aa873285258055ca2fa264233d7671327" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicIB_1aa873285258055ca2fa264233d7671327" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref><sp/>=<sp/>dag::create_ib(i_count<sp/>*<sp/>2,<sp/>SBCF_DYNAMIC,<sp/>name);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>=<sp/>i_count;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="classRingDynamicIB32" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingDynamicIB32" kindref="compound">RingDynamicIB32</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicBuffer" kindref="compound">RingDynamicBuffer</ref>&lt;UniqueBuf,<sp/>uint32_t&gt;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="220" refid="classRingDynamicIB32_1a9535f558488cfdf57a06e35cadd7129a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingDynamicIB32_1a9535f558488cfdf57a06e35cadd7129a" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" kindref="member">buf</ref><sp/>=<sp/>dag::create_ib(i_count<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_INDEX32,<sp/>name);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" kindref="member">stride</ref><sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" kindref="member">size</ref><sp/>=<sp/>i_count;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_ringDynBuf.h"/>
+  </compounddef>
+</doxygen>

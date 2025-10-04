@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpKeyLabel" kind="struct" language="C++" prot="public">
+    <compoundname>ExpKeyLabel</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpKeyLabel_1a5cef4fb83c9a0f49cb3d4727dc63c712" prot="public" static="no" mutable="no">
+        <type><ref refid="expUtil_8cpp_1ab95f123a6c9bcfee6a343170ef8c5f69" kindref="member">ushort</ref></type>
+        <definition>ushort ExpKeyLabel::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>ExpKeyLabel::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1136" column="10" bodyfile="expUtil.cpp" bodystart="1136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpKeyLabel_1a658f63333c4b170a167ed406fbd02cb1" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue ExpKeyLabel::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>ExpKeyLabel::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1137" column="13" bodyfile="expUtil.cpp" bodystart="1137" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="1134" column="1" bodyfile="expUtil.cpp" bodystart="1135" bodyend="1138"/>
+    <listofallmembers>
+      <member refid="structExpKeyLabel_1a5cef4fb83c9a0f49cb3d4727dc63c712" prot="public" virt="non-virtual"><scope>ExpKeyLabel</scope><name>id</name></member>
+      <member refid="structExpKeyLabel_1a658f63333c4b170a167ed406fbd02cb1" prot="public" virt="non-virtual"><scope>ExpKeyLabel</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1923 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderableEditableObject" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>RenderableEditableObject</compoundname>
+    <basecompoundref refid="classEditableObject" prot="public" virt="non-virtual">EditableObject</basecompoundref>
+    <includes refid="ec__rendEdObject_8h" local="no">ec_rendEdObject.h</includes>
+    <innerclass refid="classRenderableEditableObject_1_1UndoMatrix" prot="protected">RenderableEditableObject::UndoMatrix</innerclass>
+    <innerclass refid="classRenderableEditableObject_1_1UndoMove" prot="protected">RenderableEditableObject::UndoMove</innerclass>
+    <innerclass refid="classRenderableEditableObject_1_1UndoObjFlags" prot="protected">RenderableEditableObject::UndoObjFlags</innerclass>
+      <sectiondef kind="user-defined">
+      <header>Property Panel methods.</header>
+      <memberdef kind="enum" id="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>RenderableEditableObject</qualifiedname>
+        <enumvalue id="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a19a4aad95091c5fa0284520f830dc5bb" prot="public">
+          <name>PID_COMMON_GROUP</name>
+          <initializer>= 100000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a1ed2b40f6ad5c92835b0061dafaf0c57" prot="public">
+          <name>PID_TRANSFORM_GROUP</name>
+          <initializer>= 200000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a8bc7df03361ecfce2002c2d74aec845d" prot="public">
+          <name>PID_SEED_GROUP</name>
+          <initializer>= 300000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Property Panel common group and property PID values. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="275" column="3" bodyfile="ec_rendEdObject.h" bodystart="276" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="friend" id="classRenderableEditableObject_1a02eb971f479bd708e3475bd3852f00cf" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ObjectEditor</definition>
+        <argsstring></argsstring>
+        <name>ObjectEditor</name>
+        <qualifiedname>RenderableEditableObject::ObjectEditor</qualifiedname>
+        <param>
+          <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="335" column="16" bodyfile="ec_rendEdObject.h" bodystart="335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderableEditableObject::objFlags</definition>
+        <argsstring></argsstring>
+        <name>objFlags</name>
+        <qualifiedname>RenderableEditableObject::objFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="337" column="7" bodyfile="ec_rendEdObject.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" prot="protected" static="no" mutable="no">
+        <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+        <definition>ObjectEditor* RenderableEditableObject::objEditor</definition>
+        <argsstring></argsstring>
+        <name>objEditor</name>
+        <qualifiedname>RenderableEditableObject::objEditor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="338" column="16" bodyfile="ec_rendEdObject.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderableEditableObject::surfaceDist</definition>
+        <argsstring></argsstring>
+        <name>surfaceDist</name>
+        <qualifiedname>RenderableEditableObject::surfaceDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="340" column="8" bodyfile="ec_rendEdObject.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderableEditableObject::savedPlacementNormal</definition>
+        <argsstring></argsstring>
+        <name>savedPlacementNormal</name>
+        <qualifiedname>RenderableEditableObject::savedPlacementNormal</qualifiedname>
+        <initializer>= Point3(0, 1, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="341" column="10" bodyfile="ec_rendEdObject.h" bodystart="341" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1aab374e4bfce280e3e3ebdbbb6bb139fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>DClassID</type>
+        <definition>virtual DClassID RenderableEditableObject::getCommonClassId</definition>
+        <argsstring>(RenderableEditableObject **objects, int num)</argsstring>
+        <name>getCommonClassId</name>
+        <qualifiedname>RenderableEditableObject::getCommonClassId</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> **</type>
+          <declname>objects</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>RTTI method<linebreak/>
+Get Common Class Id. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">num</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- number of objects in array </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>CID_RenderableEditableObject</bold> if all objects are of class <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> or derived from it, <bold>NullCID</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="272" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a4aaedfd67f8e3db54745d320c987ab10" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::fillProps</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel, DClassID for_class_id, dag::ConstSpan&lt; RenderableEditableObject * &gt; objects)</argsstring>
+        <name>fillProps</name>
+        <qualifiedname>RenderableEditableObject::fillProps</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>DClassID</type>
+          <declname>for_class_id</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Fill Property Panel with object properties. Used to place object (group of objects) properties on Property Panel. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">for_class_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- class ID of object(s) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="287" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a46a06cda89d6ea40701563fda78b1d7d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onPPChange</definition>
+        <argsstring>(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &amp;panel, dag::ConstSpan&lt; RenderableEditableObject * &gt; objects)=0</argsstring>
+        <name>onPPChange</name>
+        <qualifiedname>RenderableEditableObject::onPPChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pid</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>edit_finished</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called when parameter changing on Property Panel is performed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- parameter ID </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">edit_finished</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if edit finished, <bold>false</bold> in other case </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="295" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a492b2982fa165520b37a654c8b897ee0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onPPClose</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel, dag::ConstSpan&lt; RenderableEditableObject * &gt; objects)</argsstring>
+        <name>onPPClose</name>
+        <qualifiedname>RenderableEditableObject::onPPClose</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called when button &apos;Close&apos; on Property Panel is pressed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="301" column="16" bodyfile="ec_rendEdObject.h" bodystart="301" bodyend="303"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a9d8199bfb6c44530daba8f69605c39a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onPPClear</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel, dag::ConstSpan&lt; RenderableEditableObject * &gt; objects)</argsstring>
+        <name>onPPClear</name>
+        <qualifiedname>RenderableEditableObject::onPPClear</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called before Property Panel will be cleared. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="308" column="16" bodyfile="ec_rendEdObject.h" bodystart="308" bodyend="310"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a21ecfa77d4b7f6752411a9790512cc72" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onPPBtnPressed</definition>
+        <argsstring>(int pid, PropPanel::ContainerPropertyControl &amp;panel, dag::ConstSpan&lt; RenderableEditableObject * &gt; objects)</argsstring>
+        <name>onPPBtnPressed</name>
+        <qualifiedname>RenderableEditableObject::onPPBtnPressed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pid</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> * &gt;</type>
+          <declname>objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called when button on Property Panel is pressed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- button ID </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">objects</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of pointers to objects </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="316" column="16" bodyfile="ec_rendEdObject.h" bodystart="316" bodyend="318"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a6512b8c1cb62e568a715c18ab920f421" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onRemove</definition>
+        <argsstring>(ObjectEditor *obj_ed)</argsstring>
+        <name>onRemove</name>
+        <qualifiedname>RenderableEditableObject::onRemove</qualifiedname>
+        <param>
+          <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+          <declname>obj_ed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="321" column="16" bodyfile="ec_rendEdObject.h" bodystart="321" bodyend="321"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a294704ab3e7513cb0d62258ff18ad2ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onAdd</definition>
+        <argsstring>(ObjectEditor *obj_ed)</argsstring>
+        <name>onAdd</name>
+        <qualifiedname>RenderableEditableObject::onAdd</qualifiedname>
+        <param>
+          <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+          <declname>obj_ed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="322" column="16" bodyfile="ec_rendEdObject.h" bodystart="322" bodyend="322"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a33c6ca8973b9ad33bf4bb8fb2f3728aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::rememberSurfaceDist</definition>
+        <argsstring>()</argsstring>
+        <name>rememberSurfaceDist</name>
+        <qualifiedname>RenderableEditableObject::rememberSurfaceDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="324" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ac926e61901551954429edc683af9751c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::zeroSurfaceDist</definition>
+        <argsstring>()</argsstring>
+        <name>zeroSurfaceDist</name>
+        <qualifiedname>RenderableEditableObject::zeroSurfaceDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="325" column="16" bodyfile="ec_rendEdObject.h" bodystart="325" bodyend="325"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ae591b0b52a5dbddc85f1d17df01cd7a8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>real</type>
+        <definition>virtual real RenderableEditableObject::getSurfaceDist</definition>
+        <argsstring>() const</argsstring>
+        <name>getSurfaceDist</name>
+        <qualifiedname>RenderableEditableObject::getSurfaceDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="326" column="16" bodyfile="ec_rendEdObject.h" bodystart="326" bodyend="326"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a07904d5b33c8debfb483b7cf0eb43721" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Point3 &amp;</type>
+        <definition>const Point3 &amp; RenderableEditableObject::getSavedPlacementNormal</definition>
+        <argsstring>() const</argsstring>
+        <name>getSavedPlacementNormal</name>
+        <qualifiedname>RenderableEditableObject::getSavedPlacementNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="328" column="16" bodyfile="ec_rendEdObject.h" bodystart="328" bodyend="328"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a0f5c5299848d547f1dd807249c7269c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::setSavedPlacementNormal</definition>
+        <argsstring>(const Point3 &amp;n)</argsstring>
+        <name>setSavedPlacementNormal</name>
+        <qualifiedname>RenderableEditableObject::setSavedPlacementNormal</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="329" column="8" bodyfile="ec_rendEdObject.h" bodystart="329" bodyend="329"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1acac6b268838555b0324a49e74266ae9f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::usesRendinstPlacement</definition>
+        <argsstring>() const</argsstring>
+        <name>usesRendinstPlacement</name>
+        <qualifiedname>RenderableEditableObject::usesRendinstPlacement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="330" column="16" bodyfile="ec_rendEdObject.h" bodystart="330" bodyend="330"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a9bff7d8d64a5749daefc21535397f529" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::setCollisionIgnored</definition>
+        <argsstring>()</argsstring>
+        <name>setCollisionIgnored</name>
+        <qualifiedname>RenderableEditableObject::setCollisionIgnored</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="331" column="16" bodyfile="ec_rendEdObject.h" bodystart="331" bodyend="331"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a6496e954921f658b51aeb38f10dc834f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::resetCollisionIgnored</definition>
+        <argsstring>()</argsstring>
+        <name>resetCollisionIgnored</name>
+        <qualifiedname>RenderableEditableObject::resetCollisionIgnored</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="332" column="16" bodyfile="ec_rendEdObject.h" bodystart="332" bodyend="332"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Render methods.</header>
+      <memberdef kind="function" id="classRenderableEditableObject_1a3c14ce348d46f0072fffa0a6abbaef3a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::update</definition>
+        <argsstring>(real dt)=0</argsstring>
+        <name>update</name>
+        <qualifiedname>RenderableEditableObject::update</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>dt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Object&apos;s act stage. If object plays animation or performs some actions on itself it does that in this method. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the time passed from last call to <ref refid="classRenderableEditableObject_1a3c14ce348d46f0072fffa0a6abbaef3a" kindref="member">update()</ref> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a61bc2b31cce925ccd37b517e2ced60ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::beforeRender</definition>
+        <argsstring>()=0</argsstring>
+        <name>beforeRender</name>
+        <qualifiedname>RenderableEditableObject::beforeRender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The function is called before <ref refid="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" kindref="member">render()</ref>. In this method object prepares for rendering if needed. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="74" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::render</definition>
+        <argsstring>()=0</argsstring>
+        <name>render</name>
+        <qualifiedname>RenderableEditableObject::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render object. Rendered objects may be in selected and frozen status only, <ref refid="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" kindref="member">render()</ref> is not called for hidden objects. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="79" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ac138a64ca29e7af2c228c66944ad0eb4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::renderTrans</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderTrans</name>
+        <qualifiedname>RenderableEditableObject::renderTrans</qualifiedname>
+        <briefdescription>
+<para>Render transparent object elements. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="82" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Flags get / set methods.</header>
+      <description><para>see. enum <ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563e" kindref="member">RenderableEditableObject::RenderableEditableObjectFlags</ref> </para>
+</description>
+      <memberdef kind="function" id="classRenderableEditableObject_1a3a6e24f567c5719c7b29139b10da5416" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::isHidden</definition>
+        <argsstring>() const</argsstring>
+        <name>isHidden</name>
+        <qualifiedname>RenderableEditableObject::isHidden</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether the object is hidden. <simplesect kind="return"><para><bold>true</bold> if object is hidden, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="91" column="16" bodyfile="ec_rendEdObject.h" bodystart="91" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a9fd18c20df73aa41a91b00227bba740c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::isFrozen</definition>
+        <argsstring>() const</argsstring>
+        <name>isFrozen</name>
+        <qualifiedname>RenderableEditableObject::isFrozen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether the object is frozen. <simplesect kind="return"><para><bold>true</bold> if object is frozen, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="95" column="16" bodyfile="ec_rendEdObject.h" bodystart="95" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a5c4c0c38278965a5c15f8ec664479781" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderableEditableObject::isSelected</definition>
+        <argsstring>() const</argsstring>
+        <name>isSelected</name>
+        <qualifiedname>RenderableEditableObject::isSelected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether the object is selected. <simplesect kind="return"><para><bold>true</bold> if object is selected, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="99" column="15" bodyfile="ec_rendEdObject.h" bodystart="99" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a8358625555b455c5f31f2c670a26015c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderableEditableObject::isHighlighted</definition>
+        <argsstring>() const</argsstring>
+        <name>isHighlighted</name>
+        <qualifiedname>RenderableEditableObject::isHighlighted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether the object is highlighted. <simplesect kind="return"><para><bold>true</bold> if object is highlighted, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="103" column="15" bodyfile="ec_rendEdObject.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a528a9a8b53df52e5395eb6be9c89d525" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderableEditableObject::getFlags</definition>
+        <argsstring>() const</argsstring>
+        <name>getFlags</name>
+        <qualifiedname>RenderableEditableObject::getFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object flags. <simplesect kind="return"><para>object flags </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="108" column="7" bodyfile="ec_rendEdObject.h" bodystart="108" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::setFlags</definition>
+        <argsstring>(int value, int mask, bool use_undo=true)</argsstring>
+        <name>setFlags</name>
+        <qualifiedname>RenderableEditableObject::setFlags</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mask</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_undo</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object flags. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mask used </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">use_undo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>true</bold> a corresponding record will be created in undo system </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="115" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a92babd4def099db839aa246c87e39209" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::hideObject</definition>
+        <argsstring>(bool hide=true)</argsstring>
+        <name>hideObject</name>
+        <qualifiedname>RenderableEditableObject::hideObject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>hide</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Hide / show object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">hide</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false</bold>: hide / show object </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="119" column="16" bodyfile="ec_rendEdObject.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ad9654b59c59a730fb7a10149fda59b75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::freezeObject</definition>
+        <argsstring>(bool freeze=true)</argsstring>
+        <name>freezeObject</name>
+        <qualifiedname>RenderableEditableObject::freezeObject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>freeze</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Freeze / unfreeze object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">freeze</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false: freeze / unfreeze</bold> object </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="123" column="16" bodyfile="ec_rendEdObject.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a60e06c8828a3ae705a53c5d4b14d2e60" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::highlightObject</definition>
+        <argsstring>(bool highlight=true)</argsstring>
+        <name>highlightObject</name>
+        <qualifiedname>RenderableEditableObject::highlightObject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>highlight</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object highlighting on / off. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">highlight</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false</bold>: set object highlight <bold>on / off</bold> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="128" column="16" bodyfile="ec_rendEdObject.h" bodystart="128" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a22666616046bc27f87d01510e7d2c433" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::selectObject</definition>
+        <argsstring>(bool select=true)</argsstring>
+        <name>selectObject</name>
+        <qualifiedname>RenderableEditableObject::selectObject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>select</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object selection on / off. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">select</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false</bold>: set object selection <bold>on / off</bold> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="133" column="16" bodyfile="ec_rendEdObject.h" bodystart="133" bodyend="133"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Object properties get / set methods</header>
+      <memberdef kind="function" id="classRenderableEditableObject_1a15ecb9a0dc275931c74ce17d20fb08f5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::isSelectedByRectangle</definition>
+        <argsstring>(IGenViewportWnd *vp, const EcRect &amp;rect) const =0</argsstring>
+        <name>isSelectedByRectangle</name>
+        <qualifiedname>RenderableEditableObject::isSelectedByRectangle</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>vp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>rect</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether part of the object is inside rectangle. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">vp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport where test is performed </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">rect</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- rectangle </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if object is inside rectangle, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="143" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a7167c50bbc6b5fec855b81e51823579a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::getWorldBox</definition>
+        <argsstring>(BBox3 &amp;box) const =0</argsstring>
+        <name>getWorldBox</name>
+        <qualifiedname>RenderableEditableObject::getWorldBox</qualifiedname>
+        <param>
+          <type>BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object bounding box. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">box</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object bounding box </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if object has bounding box </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="148" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a3cf284f83e12136cd591dc0c671b12ff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool RenderableEditableObject::setName</definition>
+        <argsstring>(const char *nm) override</argsstring>
+        <name>setName</name>
+        <qualifiedname>RenderableEditableObject::setName</qualifiedname>
+        <reimplements refid="classEditableObject_1ac421b839e1f07233e7926966c65880e2">setName</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>nm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object name. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to name string </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="153" column="8" bodyfile="ec_rendEdObject.h" bodystart="153" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a241b8406e5271652d99e7ea95eeac463" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool RenderableEditableObject::setPos</definition>
+        <argsstring>(const Point3 &amp;p) override</argsstring>
+        <name>setPos</name>
+        <qualifiedname>RenderableEditableObject::setPos</qualifiedname>
+        <reimplements refid="classEditableObject_1aa62e59924f2f7e080ec4c11be04c08be">setPos</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object position. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object position </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="162" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a46daaeba0c8cbdf5e4bdd805531e41d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::setSize</definition>
+        <argsstring>(const Point3 &amp;p)</argsstring>
+        <name>setSize</name>
+        <qualifiedname>RenderableEditableObject::setSize</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object scaling in local X,Y,Z-directions. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object scalings </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="167" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a62f822a783c93493f3a7e6644c832ac8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 RenderableEditableObject::getSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getSize</name>
+        <qualifiedname>RenderableEditableObject::getSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object scaling in local X,Y,Z-directions. <simplesect kind="return"><para>object scalings </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="171" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a7ed68c6d79bd4aa08c71f7a82b31cbcb" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::setRotM3</definition>
+        <argsstring>(const Matrix3 &amp;tm)</argsstring>
+        <name>setRotM3</name>
+        <qualifiedname>RenderableEditableObject::setRotM3</qualifiedname>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rotate object (with #Matrix3). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- rotation matrix (see #Matrix3) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="176" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a4a9bc4e91fbe8507e0fa3f5975ecd369" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::setRotTm</definition>
+        <argsstring>(const TMatrix &amp;tm)</argsstring>
+        <name>setRotTm</name>
+        <qualifiedname>RenderableEditableObject::setRotTm</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rotate object (with #TMatrix). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- rotation matrix (see #TMatrix) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="180" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a92b1339e57e830e9e38f639ac6f70e78" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>Matrix3</type>
+        <definition>virtual Matrix3 RenderableEditableObject::getRotM3</definition>
+        <argsstring>() const</argsstring>
+        <name>getRotM3</name>
+        <qualifiedname>RenderableEditableObject::getRotM3</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object rotate matrix (#Matrix3). <simplesect kind="return"><para>object rotate matrix (#Matrix3) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="184" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ad484e758d0dd3fbd132f6f122beb28ac" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>TMatrix</type>
+        <definition>virtual TMatrix RenderableEditableObject::getRotTm</definition>
+        <argsstring>() const</argsstring>
+        <name>getRotTm</name>
+        <qualifiedname>RenderableEditableObject::getRotTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object rotate matrix (#TMatrix). <simplesect kind="return"><para>object rotate matrix (#TMatrix) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="187" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1afff36c49c3aa27b08690219616fb2066" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>Matrix3</type>
+        <definition>virtual Matrix3 RenderableEditableObject::getMatrix</definition>
+        <argsstring>() const</argsstring>
+        <name>getMatrix</name>
+        <qualifiedname>RenderableEditableObject::getMatrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object matrix (#Matrix3). <simplesect kind="return"><para>object matrix (#Matrix3) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="191" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a5782c3f563f28adf8412f246f8dd0135" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::setMatrix</definition>
+        <argsstring>(const Matrix3 &amp;tm)</argsstring>
+        <name>setMatrix</name>
+        <qualifiedname>RenderableEditableObject::setMatrix</qualifiedname>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object matrix (from #Matrix3). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- new matrix </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="194" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ab62cf6ff5f8d9510326c5616cbe5f932" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const TMatrix &amp;</type>
+        <definition>virtual const TMatrix &amp; RenderableEditableObject::getWtm</definition>
+        <argsstring>() const</argsstring>
+        <name>getWtm</name>
+        <qualifiedname>RenderableEditableObject::getWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get object matrix (#TMatrix). return object matrix (#TMatrix) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="198" column="25" bodyfile="ec_rendEdObject.h" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a10e1a75cf5d27a8cb73ce197154f675b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::setWtm</definition>
+        <argsstring>(const TMatrix &amp;wtm)</argsstring>
+        <name>setWtm</name>
+        <qualifiedname>RenderableEditableObject::setWtm</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set object matrix (#TMatrix). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wtm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- new matrix </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="201" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Object edit methods.</header>
+      <memberdef kind="function" id="classRenderableEditableObject_1a38b62158a69f67d0452c30b514c48b2b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::moveObject</definition>
+        <argsstring>(const Point3 &amp;delta, IEditorCoreEngine::BasisType basis)</argsstring>
+        <name>moveObject</name>
+        <qualifiedname>RenderableEditableObject::moveObject</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+          <declname>basis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Move object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object movement relative to current position </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">basis</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="210" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ae95e10c2d79fe9e0dece7c780f8b77e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::moveSurfObject</definition>
+        <argsstring>(const Point3 &amp;delta, IEditorCoreEngine::BasisType basis)</argsstring>
+        <name>moveSurfObject</name>
+        <qualifiedname>RenderableEditableObject::moveSurfObject</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+          <declname>basis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Move object over surface. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object movement relative to current position </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">basis</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="215" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ae2c4a2cf380aab0d1879ca065e0dab1d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::rotateObject</definition>
+        <argsstring>(const Point3 &amp;delta, const Point3 &amp;origin, IEditorCoreEngine::BasisType basis)</argsstring>
+        <name>rotateObject</name>
+        <qualifiedname>RenderableEditableObject::rotateObject</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>origin</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+          <declname>basis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rotate object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object rotation in Euler angles relative to current position </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">origin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- center of rotation (if Gizmo&apos;s basis != BASIS_Local) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">basis</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="222" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a14e8116d45cacdddb3a295870a714cb1" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::scaleObject</definition>
+        <argsstring>(const Point3 &amp;delta, const Point3 &amp;origin, IEditorCoreEngine::BasisType basis)</argsstring>
+        <name>scaleObject</name>
+        <qualifiedname>RenderableEditableObject::scaleObject</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>origin</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+          <declname>basis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Scale object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object scalings relative to current sizes </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">origin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- center of scaling (if Gizmo&apos;s basis != BASIS_Local) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">basis</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="228" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Undo / redo methods.</header>
+      <memberdef kind="function" id="classRenderableEditableObject_1a101e1fe224a6fba8a1c7f2a1bb0b7a32" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::putMoveUndo</definition>
+        <argsstring>()</argsstring>
+        <name>putMoveUndo</name>
+        <qualifiedname>RenderableEditableObject::putMoveUndo</qualifiedname>
+        <briefdescription>
+<para>Put &apos;undo move&apos; data to undo system. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="235" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ade20ebf97c90b25dd9fba87b76598463" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::putRotateUndo</definition>
+        <argsstring>()</argsstring>
+        <name>putRotateUndo</name>
+        <qualifiedname>RenderableEditableObject::putRotateUndo</qualifiedname>
+        <briefdescription>
+<para>Put &apos;undo rotate&apos; data to undo system. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="237" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a286a09a8c6ca58f78ddbc4eef5353b1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::putScaleUndo</definition>
+        <argsstring>()</argsstring>
+        <name>putScaleUndo</name>
+        <qualifiedname>RenderableEditableObject::putScaleUndo</qualifiedname>
+        <briefdescription>
+<para>Put &apos;undo scale&apos; data to undo system. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="239" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1afb4e0bc1b2fae32a0c0519542e19d7ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::mayDelete</definition>
+        <argsstring>()</argsstring>
+        <name>mayDelete</name>
+        <qualifiedname>RenderableEditableObject::mayDelete</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether object may be deleted. <simplesect kind="return"><para><bold>true</bold> if object may be deleted, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="245" column="16" bodyfile="ec_rendEdObject.h" bodystart="245" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1afaa1fbf641b4d47988f7d79d27e060bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool RenderableEditableObject::mayRename</definition>
+        <argsstring>()</argsstring>
+        <name>mayRename</name>
+        <qualifiedname>RenderableEditableObject::mayRename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether object may be renamed. <simplesect kind="return"><para><bold>true</bold> if object may be renamed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="249" column="16" bodyfile="ec_rendEdObject.h" bodystart="249" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a221e8db23dc5b4db1af7cafe00c46e8e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void RenderableEditableObject::onObjectNameChange</definition>
+        <argsstring>(RenderableEditableObject *obj, const char *old_name, const char *new_name)</argsstring>
+        <name>onObjectNameChange</name>
+        <qualifiedname>RenderableEditableObject::onObjectNameChange</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>old_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>new_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called when renaming object is performed. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">obj</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to object to be renamed </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">old_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to old name string </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">new_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to new name string </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="255" column="16" bodyfile="ec_rendEdObject.h" bodystart="255" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1aa7a4d3b350be0728a5900e88fa9ee2f6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+        <definition>ObjectEditor * RenderableEditableObject::getObjEditor</definition>
+        <argsstring>() const</argsstring>
+        <name>getObjEditor</name>
+        <qualifiedname>RenderableEditableObject::getObjEditor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get <ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref>. <simplesect kind="return"><para>pointer to <ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> instance whose functions the object uses </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="261" column="16" bodyfile="ec_rendEdObject.h" bodystart="261" bodyend="261"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563e" prot="public" static="no" strong="no">
+        <type></type>
+        <name>RenderableEditableObjectFlags</name>
+        <qualifiedname>RenderableEditableObject::RenderableEditableObjectFlags</qualifiedname>
+        <enumvalue id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" prot="public">
+          <name>FLG_SELECTED</name>
+          <initializer>= 1 &lt;&lt; 0</initializer>
+          <briefdescription>
+<para>Object is selected. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" prot="public">
+          <name>FLG_HIDDEN</name>
+          <initializer>= 1 &lt;&lt; 1</initializer>
+          <briefdescription>
+<para>Object is hidden. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" prot="public">
+          <name>FLG_FROZEN</name>
+          <initializer>= 1 &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Object is &quot;frozen&quot;. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" prot="public">
+          <name>FLG_HIGHLIGHTED</name>
+          <initializer>= 1 &lt;&lt; 3</initializer>
+          <briefdescription>
+<para>Object is highlighted. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea7ae65b762a55e4953cb65f72472f151f" prot="public">
+          <name>FLG_WANTRESELECT</name>
+          <initializer>= 1 &lt;&lt; 4</initializer>
+          <briefdescription>
+<para>Object wants receive every select (even if already selected) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Object flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="42" column="3" bodyfile="ec_rendEdObject.h" bodystart="43" bodyend="49"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderableEditableObject_1a8b123a3f946e97bcc975a44833a51d13" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::RenderableEditableObject</definition>
+        <argsstring>()</argsstring>
+        <name>RenderableEditableObject</name>
+        <qualifiedname>RenderableEditableObject::RenderableEditableObject</qualifiedname>
+        <briefdescription>
+<para>Constructor 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="52" column="3" bodyfile="ec_rendEdObject.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1ae77e35fa59f08be83977fa715c94301d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::RenderableEditableObject</definition>
+        <argsstring>(const RenderableEditableObject *fo)</argsstring>
+        <name>RenderableEditableObject</name>
+        <qualifiedname>RenderableEditableObject::RenderableEditableObject</qualifiedname>
+        <param>
+          <type>const <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+          <declname>fo</declname>
+        </param>
+        <briefdescription>
+<para>Constructor 2. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="55" column="3" bodyfile="ec_rendEdObject.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a1be6b5fb857e060eec0d75b6e7d9b29f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::~RenderableEditableObject</definition>
+        <argsstring>() override</argsstring>
+        <name>~RenderableEditableObject</name>
+        <qualifiedname>RenderableEditableObject::~RenderableEditableObject</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="58" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1a35d711ee430929be10d48ab82a5b6b0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::removeFromEditor</definition>
+        <argsstring>()</argsstring>
+        <name>removeFromEditor</name>
+        <qualifiedname>RenderableEditableObject::removeFromEditor</qualifiedname>
+        <briefdescription>
+<para>Remove object from <ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="61" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Base class for Editor objects with render, undo / redo etc possibilities. Has rendering functions, parameters set methods, some undo / redo operations, base operations for working with #PropertyPanel. Generally used by class <ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref>. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>DObject</label>
+      </node>
+      <node id="2">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderableEditableObject</label>
+        <link refid="classRenderableEditableObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DObject</label>
+      </node>
+      <node id="2">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="5">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="11">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="7">
+        <label>IObjectsList</label>
+        <link refid="classIObjectsList"/>
+      </node>
+      <node id="8">
+        <label>IWndManagerWindowHandler</label>
+        <link refid="classIWndManagerWindowHandler"/>
+      </node>
+      <node id="4">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>sample</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>creator</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>objectPropBar</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>ObjectEditorPropPanelBar</label>
+        <link refid="classObjectEditorPropPanelBar"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>objEd</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>PropPanel::ControlEventHandler</label>
+      </node>
+      <node id="9">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+      <node id="1">
+        <label>RenderableEditableObject</label>
+        <link refid="classRenderableEditableObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>objEditor</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_rendEdObject.h" line="36" column="1" bodyfile="ec_rendEdObject.h" bodystart="37" bodyend="413"/>
+    <listofallmembers>
+      <member refid="classRenderableEditableObject_1a61bc2b31cce925ccd37b517e2ced60ec" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>beforeRender</name></member>
+      <member refid="classEditableObject_1a46185d4332bf3b2a09ef0c5260c7c0bd" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>EditableObject</name></member>
+      <member refid="classEditableObject_1af5fe3ddda76d699056a11180641dfac2" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>EditableObject</name></member>
+      <member refid="classRenderableEditableObject_1a4aaedfd67f8e3db54745d320c987ab10" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>fillProps</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>FLG_FROZEN</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>FLG_HIDDEN</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>FLG_HIGHLIGHTED</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>FLG_SELECTED</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea7ae65b762a55e4953cb65f72472f151f" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>FLG_WANTRESELECT</name></member>
+      <member refid="classRenderableEditableObject_1ad9654b59c59a730fb7a10149fda59b75" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>freezeObject</name></member>
+      <member refid="classEditableObject_1a0c28f3f141cd36487be51f380871c86c" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getClassId</name></member>
+      <member refid="classRenderableEditableObject_1aab374e4bfce280e3e3ebdbbb6bb139fe" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getCommonClassId</name></member>
+      <member refid="classRenderableEditableObject_1a528a9a8b53df52e5395eb6be9c89d525" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>getFlags</name></member>
+      <member refid="classRenderableEditableObject_1afff36c49c3aa27b08690219616fb2066" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getMatrix</name></member>
+      <member refid="classEditableObject_1ad90c8161c547a36da0b29b5f6c63a528" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getName</name></member>
+      <member refid="classRenderableEditableObject_1aa7a4d3b350be0728a5900e88fa9ee2f6" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>getObjEditor</name></member>
+      <member refid="classEditableObject_1a4e7f96802efb46c6b2b609f04d57733a" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getPos</name></member>
+      <member refid="classRenderableEditableObject_1a92b1339e57e830e9e38f639ac6f70e78" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getRotM3</name></member>
+      <member refid="classRenderableEditableObject_1ad484e758d0dd3fbd132f6f122beb28ac" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getRotTm</name></member>
+      <member refid="classRenderableEditableObject_1a07904d5b33c8debfb483b7cf0eb43721" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>getSavedPlacementNormal</name></member>
+      <member refid="classRenderableEditableObject_1a62f822a783c93493f3a7e6644c832ac8" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getSize</name></member>
+      <member refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>getStaticClassId</name></member>
+      <member refid="classRenderableEditableObject_1ae591b0b52a5dbddc85f1d17df01cd7a8" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getSurfaceDist</name></member>
+      <member refid="classEditableObject_1ac6b2206396d5ac77b14f07edabd583a7" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getTm</name></member>
+      <member refid="classRenderableEditableObject_1a7167c50bbc6b5fec855b81e51823579a" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>getWorldBox</name></member>
+      <member refid="classRenderableEditableObject_1ab62cf6ff5f8d9510326c5616cbe5f932" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>getWtm</name></member>
+      <member refid="classRenderableEditableObject_1a92babd4def099db839aa246c87e39209" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>hideObject</name></member>
+      <member refid="classRenderableEditableObject_1a60e06c8828a3ae705a53c5d4b14d2e60" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>highlightObject</name></member>
+      <member refid="classRenderableEditableObject_1a9fd18c20df73aa41a91b00227bba740c" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>isFrozen</name></member>
+      <member refid="classRenderableEditableObject_1a3a6e24f567c5719c7b29139b10da5416" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>isHidden</name></member>
+      <member refid="classRenderableEditableObject_1a8358625555b455c5f31f2c670a26015c" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>isHighlighted</name></member>
+      <member refid="classRenderableEditableObject_1a5c4c0c38278965a5c15f8ec664479781" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>isSelected</name></member>
+      <member refid="classEditableObject_1acb3a28374d78f23831c7ba6585dad631" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>isSelectedByPointClick</name></member>
+      <member refid="classRenderableEditableObject_1a15ecb9a0dc275931c74ce17d20fb08f5" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>isSelectedByRectangle</name></member>
+      <member refid="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>isSubOf</name></member>
+      <member refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>matrix</name></member>
+      <member refid="classRenderableEditableObject_1afb4e0bc1b2fae32a0c0519542e19d7ed" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>mayDelete</name></member>
+      <member refid="classRenderableEditableObject_1afaa1fbf641b4d47988f7d79d27e060bb" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>mayRename</name></member>
+      <member refid="classRenderableEditableObject_1a38b62158a69f67d0452c30b514c48b2b" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>moveObject</name></member>
+      <member refid="classRenderableEditableObject_1ae95e10c2d79fe9e0dece7c780f8b77e3" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>moveSurfObject</name></member>
+      <member refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>name</name></member>
+      <member refid="classRenderableEditableObject_1a02eb971f479bd708e3475bd3852f00cf" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>ObjectEditor</name></member>
+      <member refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>objEditor</name></member>
+      <member refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>objFlags</name></member>
+      <member refid="classRenderableEditableObject_1a294704ab3e7513cb0d62258ff18ad2ee" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onAdd</name></member>
+      <member refid="classRenderableEditableObject_1a221e8db23dc5b4db1af7cafe00c46e8e" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onObjectNameChange</name></member>
+      <member refid="classRenderableEditableObject_1a21ecfa77d4b7f6752411a9790512cc72" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onPPBtnPressed</name></member>
+      <member refid="classRenderableEditableObject_1a46a06cda89d6ea40701563fda78b1d7d" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>onPPChange</name></member>
+      <member refid="classRenderableEditableObject_1a9d8199bfb6c44530daba8f69605c39a6" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onPPClear</name></member>
+      <member refid="classRenderableEditableObject_1a492b2982fa165520b37a654c8b897ee0" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onPPClose</name></member>
+      <member refid="classRenderableEditableObject_1a6512b8c1cb62e568a715c18ab920f421" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>onRemove</name></member>
+      <member refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a19a4aad95091c5fa0284520f830dc5bb" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>PID_COMMON_GROUP</name></member>
+      <member refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a8bc7df03361ecfce2002c2d74aec845d" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>PID_SEED_GROUP</name></member>
+      <member refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a1ed2b40f6ad5c92835b0061dafaf0c57" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>PID_TRANSFORM_GROUP</name></member>
+      <member refid="classRenderableEditableObject_1a101e1fe224a6fba8a1c7f2a1bb0b7a32" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>putMoveUndo</name></member>
+      <member refid="classRenderableEditableObject_1ade20ebf97c90b25dd9fba87b76598463" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>putRotateUndo</name></member>
+      <member refid="classRenderableEditableObject_1a286a09a8c6ca58f78ddbc4eef5353b1e" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>putScaleUndo</name></member>
+      <member refid="classRenderableEditableObject_1a33c6ca8973b9ad33bf4bb8fb2f3728aa" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>rememberSurfaceDist</name></member>
+      <member refid="classRenderableEditableObject_1a35d711ee430929be10d48ab82a5b6b0b" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>removeFromEditor</name></member>
+      <member refid="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>render</name></member>
+      <member refid="classRenderableEditableObject_1a8b123a3f946e97bcc975a44833a51d13" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>RenderableEditableObject</name></member>
+      <member refid="classRenderableEditableObject_1ae77e35fa59f08be83977fa715c94301d" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>RenderableEditableObject</name></member>
+      <member refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563e" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>RenderableEditableObjectFlags</name></member>
+      <member refid="classRenderableEditableObject_1ac138a64ca29e7af2c228c66944ad0eb4" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>renderTrans</name></member>
+      <member refid="classRenderableEditableObject_1a6496e954921f658b51aeb38f10dc834f" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>resetCollisionIgnored</name></member>
+      <member refid="classRenderableEditableObject_1ae2c4a2cf380aab0d1879ca065e0dab1d" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>rotateObject</name></member>
+      <member refid="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>savedPlacementNormal</name></member>
+      <member refid="classRenderableEditableObject_1a14e8116d45cacdddb3a295870a714cb1" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>scaleObject</name></member>
+      <member refid="classRenderableEditableObject_1a22666616046bc27f87d01510e7d2c433" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>selectObject</name></member>
+      <member refid="classRenderableEditableObject_1a9bff7d8d64a5749daefc21535397f529" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setCollisionIgnored</name></member>
+      <member refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setFlags</name></member>
+      <member refid="classRenderableEditableObject_1a5782c3f563f28adf8412f246f8dd0135" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setMatrix</name></member>
+      <member refid="classRenderableEditableObject_1a3cf284f83e12136cd591dc0c671b12ff" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setName</name></member>
+      <member refid="classRenderableEditableObject_1a241b8406e5271652d99e7ea95eeac463" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setPos</name></member>
+      <member refid="classRenderableEditableObject_1a7ed68c6d79bd4aa08c71f7a82b31cbcb" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setRotM3</name></member>
+      <member refid="classRenderableEditableObject_1a4a9bc4e91fbe8507e0fa3f5975ecd369" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setRotTm</name></member>
+      <member refid="classRenderableEditableObject_1a0f5c5299848d547f1dd807249c7269c2" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>setSavedPlacementNormal</name></member>
+      <member refid="classRenderableEditableObject_1a46daaeba0c8cbdf5e4bdd805531e41d6" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setSize</name></member>
+      <member refid="classRenderableEditableObject_1a10e1a75cf5d27a8cb73ce197154f675b" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>setWtm</name></member>
+      <member refid="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" prot="protected" virt="non-virtual"><scope>RenderableEditableObject</scope><name>surfaceDist</name></member>
+      <member refid="classRenderableEditableObject_1a3c14ce348d46f0072fffa0a6abbaef3a" prot="public" virt="pure-virtual"><scope>RenderableEditableObject</scope><name>update</name></member>
+      <member refid="classRenderableEditableObject_1acac6b268838555b0324a49e74266ae9f" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>usesRendinstPlacement</name></member>
+      <member refid="classRenderableEditableObject_1ac926e61901551954429edc683af9751c" prot="public" virt="virtual"><scope>RenderableEditableObject</scope><name>zeroSurfaceDist</name></member>
+      <member refid="classEditableObject_1a76e739cbdae45c89f3eaa185c951ba55" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>~EditableObject</name></member>
+      <member refid="classRenderableEditableObject_1a1be6b5fb857e060eec0d75b6e7d9b29f" prot="public" virt="non-virtual"><scope>RenderableEditableObject</scope><name>~RenderableEditableObject</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

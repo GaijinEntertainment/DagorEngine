@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodePassRegInfo" kind="struct" language="C++" prot="public">
+    <compoundname>StcodePassRegInfo</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodePassRegInfo_1a21e6340311e7dd27e2e2e5049210386c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::pair&lt; eastl::string, int &gt; &gt;</type>
+        <definition>Tab&lt;eastl::pair&lt;eastl::string, int&gt; &gt; StcodePassRegInfo::regsByName</definition>
+        <argsstring></argsstring>
+        <name>regsByName</name>
+        <qualifiedname>StcodePassRegInfo::regsByName</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="430" column="7" bodyfile="cppStcodeAssembly.h" bodystart="430" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodePassRegInfo_1ab850e38fbe84130d2e4ff2235b220f8b" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange StcodePassRegInfo::vsCstRange</definition>
+        <argsstring></argsstring>
+        <name>vsCstRange</name>
+        <qualifiedname>StcodePassRegInfo::vsCstRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="431" column="16" bodyfile="cppStcodeAssembly.h" bodystart="431" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodePassRegInfo_1a415b97fa0cd5af24f4c75a9ca09022bd" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange StcodePassRegInfo::psOrCsCstRange</definition>
+        <argsstring></argsstring>
+        <name>psOrCsCstRange</name>
+        <qualifiedname>StcodePassRegInfo::psOrCsCstRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="431" column="27" bodyfile="cppStcodeAssembly.h" bodystart="431" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodePassRegInfo_1a72e721db638f8ca00f0479a73f9ca5c3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool StcodePassRegInfo::isCompute</definition>
+        <argsstring></argsstring>
+        <name>isCompute</name>
+        <qualifiedname>StcodePassRegInfo::isCompute</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="432" column="8" bodyfile="cppStcodeAssembly.h" bodystart="432" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>HlslRegRange</label>
+        <link refid="structHlslRegRange"/>
+      </node>
+      <node id="1">
+        <label>StcodePassRegInfo</label>
+        <link refid="structStcodePassRegInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>psOrCsCstRange</edgelabel>
+          <edgelabel>vsCstRange</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="428" column="1" bodyfile="cppStcodeAssembly.h" bodystart="429" bodyend="433"/>
+    <listofallmembers>
+      <member refid="structStcodePassRegInfo_1a72e721db638f8ca00f0479a73f9ca5c3" prot="public" virt="non-virtual"><scope>StcodePassRegInfo</scope><name>isCompute</name></member>
+      <member refid="structStcodePassRegInfo_1a415b97fa0cd5af24f4c75a9ca09022bd" prot="public" virt="non-virtual"><scope>StcodePassRegInfo</scope><name>psOrCsCstRange</name></member>
+      <member refid="structStcodePassRegInfo_1a21e6340311e7dd27e2e2e5049210386c" prot="public" virt="non-virtual"><scope>StcodePassRegInfo</scope><name>regsByName</name></member>
+      <member refid="structStcodePassRegInfo_1ab850e38fbe84130d2e4ff2235b220f8b" prot="public" virt="non-virtual"><scope>StcodePassRegInfo</scope><name>vsCstRange</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

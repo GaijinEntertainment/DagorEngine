@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>DagUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagUtilDesc_1afe713b9e92bbcc7b88e2cf2c3edca95e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>DagUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="411" column="7" bodyfile="util.cpp" bodystart="411" bodyend="411"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1ad7a466803b863b6515f789bfc84e59df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DagUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>DagUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="412" column="8" bodyfile="util.cpp" bodystart="412" bodyend="412"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1ad044e5d3e30a13c8196a28a1fc10b07e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>DagUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="413" column="15" bodyfile="util.cpp" bodystart="413" bodyend="413"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1a56c96f8e04f0a93678a7864a410947ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>DagUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="417" column="15" bodyfile="util.cpp" bodystart="417" bodyend="417"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1a76030af638ba20d0c33bb0631171388d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="419" column="13" bodyfile="util.cpp" bodystart="419" bodyend="419"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1aa161d6a4e12c64a1cbabed66b55b7e8e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="420" column="12" bodyfile="util.cpp" bodystart="420" bodyend="420"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1a935bc4e06a0c4d59905374e04e3c2417" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>DagUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="421" column="15" bodyfile="util.cpp" bodystart="421" bodyend="421"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1a2ddf5859857de2254bdcfd7b7703a4df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>DagUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="422" column="8" bodyfile="util.cpp" bodystart="422" bodyend="422"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1a1c04d3f55119b5c3619be6c7c7ffba09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>DagUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="423" column="12" bodyfile="util.cpp" bodystart="438" bodyend="497"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagUtilDesc_1adbf253ea1e4e3ccbbd76b9e230add655" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>DagUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="424" column="12" bodyfile="util.cpp" bodystart="499" bodyend="571"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagUtilDesc</label>
+        <link refid="classDagUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagUtilDesc</label>
+        <link refid="classDagUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="408" column="1" bodyfile="util.cpp" bodystart="409" bodyend="425"/>
+    <listofallmembers>
+      <member refid="classDagUtilDesc_1a935bc4e06a0c4d59905374e04e3c2417" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>Category</name></member>
+      <member refid="classDagUtilDesc_1aa161d6a4e12c64a1cbabed66b55b7e8e" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classDagUtilDesc_1ad044e5d3e30a13c8196a28a1fc10b07e" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classDagUtilDesc_1ad7a466803b863b6515f789bfc84e59df" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>Create</name></member>
+      <member refid="classDagUtilDesc_1afe713b9e92bbcc7b88e2cf2c3edca95e" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classDagUtilDesc_1adbf253ea1e4e3ccbbd76b9e230add655" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>Load</name></member>
+      <member refid="classDagUtilDesc_1a2ddf5859857de2254bdcfd7b7703a4df" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classDagUtilDesc_1a56c96f8e04f0a93678a7864a410947ce" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classDagUtilDesc_1a1c04d3f55119b5c3619be6c7c7ffba09" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>Save</name></member>
+      <member refid="classDagUtilDesc_1a76030af638ba20d0c33bb0631171388d" prot="public" virt="non-virtual"><scope>DagUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

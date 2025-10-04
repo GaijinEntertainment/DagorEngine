@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="max__cpt_8h" kind="file" language="C++">
+    <compoundname>max_cpt.h</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">assert.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>max_cpt.h</label>
+        <link refid="max__cpt_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>assert.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="max__cpt_8h_1a4b8679f2290082869d2b9c3a83aebbba" prot="public" static="no">
+        <name>STR_DEST</name>
+        <param><defname>s</defname></param>
+        <initializer>s</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="19" column="10" bodyfile="max_cpt.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" prot="public" static="no">
+        <name>MCHAR</name>
+        <initializer>TCHAR</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="20" column="9" bodyfile="max_cpt.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="max__cpt_8h_1a90283def5c6725e1865152fc21f035c4" prot="public" static="no">
+        <name>M_STD_OSTRINGSTREAM</name>
+        <initializer>std::ostringstream</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="29" column="10" bodyfile="max_cpt.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="max__cpt_8h_1a85594b6b90182b59c26cb08c0536e7fc" prot="public" static="no">
+        <name>M_STD_ISTRINGSTREAM</name>
+        <initializer>std::istringstream</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="30" column="9" bodyfile="max_cpt.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" prot="public" static="no">
+        <name>M_STD_STRING</name>
+        <initializer>std::string</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="47" column="10" bodyfile="max_cpt.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="max__cpt_8h_1a8d2f585b61931548923953c378682bae" prot="public" static="no">
+        <name>verify</name>
+        <param><defname>x</defname></param>
+        <initializer>assert(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="55" column="10" bodyfile="max_cpt.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BitArray &amp;</type>
+        <definition>BitArray &amp; mesh_face_sel</definition>
+        <argsstring>(Mesh &amp;m)</argsstring>
+        <name>mesh_face_sel</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="62" column="17" bodyfile="max_cpt.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BitArray &amp;</type>
+        <definition>BitArray &amp; mesh_vert_sel</definition>
+        <argsstring>(Mesh &amp;m)</argsstring>
+        <name>mesh_vert_sel</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="63" column="17" bodyfile="max_cpt.h" bodystart="63" bodyend="63"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R9)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R9</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NoRemap<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DefaultRemapDir</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MakeRefByID(x,<sp/>y,<sp/>z)<sp/>ReplaceReference(y,<sp/>z)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R15)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STR_DEST(s)<sp/>s.dataForWrite()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STR_DEST(s)<sp/>s</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="max__cpt_8h_1a4b8679f2290082869d2b9c3a83aebbba" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>STR_DEST(s)<sp/>s</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MCHAR<sp/><sp/><sp/><sp/><sp/><sp/><sp/>TCHAR</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!defined(M_STD_OSTRINGSTREAM)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_UNICODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_OSTRINGSTREAM<sp/>std::wostringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_ISTRINGSTREAM<sp/>std::wistringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="max__cpt_8h_1a90283def5c6725e1865152fc21f035c4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_OSTRINGSTREAM<sp/>std::ostringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="max__cpt_8h_1a85594b6b90182b59c26cb08c0536e7fc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_ISTRINGSTREAM<sp/>std::istringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!defined(M_STD_ISTRINGSTREAM)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_UNICODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_ISTRINGSTREAM<sp/>std::wistringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_ISTRINGSTREAM<sp/>std::istringstream</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!defined(M_STD_STRING)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_UNICODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_STRING<sp/>std::wstring</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>M_STD_STRING<sp/>std::string</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>NDEBUG</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>verify(x)<sp/>x</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="max__cpt_8h_1a8d2f585b61931548923953c378682bae" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>verify(x)<sp/>assert(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R26)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R26</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.FaceSel();<sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" kindref="member">mesh_vert_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.VertSel();<sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.faceSel;<sp/>}</highlight></codeline>
+<codeline lineno="63" refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" kindref="member">mesh_vert_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.vertSel;<sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="max_cpt.h"/>
+  </compounddef>
+</doxygen>

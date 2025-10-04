@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classExpTMAnimCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ExpTMAnimCB</compoundname>
+    <derivedcompoundref refid="classMyExpTMAnimCB" prot="public" virt="non-virtual">MyExpTMAnimCB</derivedcompoundref>
+    <includes refid="expanim_8h" local="no">expanim.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ExpTMAnimCB::interp_tm</definition>
+        <argsstring>(TimeValue, Matrix3 &amp;)=0</argsstring>
+        <name>interp_tm</name>
+        <qualifiedname>ExpTMAnimCB::interp_tm</qualifiedname>
+        <reimplementedby refid="classMyExpTMAnimCB_1a4fec60070b816ac49c8fa15feccfdd3a">interp_tm</reimplementedby>
+        <param>
+          <type>TimeValue</type>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="7" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpTMAnimCB_1af5f3138f4c485c75b29c1b0026c70b0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ExpTMAnimCB::non_orthog_tm</definition>
+        <argsstring>(TimeValue)=0</argsstring>
+        <name>non_orthog_tm</name>
+        <qualifiedname>ExpTMAnimCB::non_orthog_tm</qualifiedname>
+        <reimplementedby refid="classMyExpTMAnimCB_1ab20e90d905e37ffac44ba069818e1aad">non_orthog_tm</reimplementedby>
+        <param>
+          <type>TimeValue</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="8" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpTMAnimCB_1a7d8141f5773d9d46f76cbb0231e55089" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const TCHAR *</type>
+        <definition>virtual const TCHAR * ExpTMAnimCB::get_name</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_name</name>
+        <qualifiedname>ExpTMAnimCB::get_name</qualifiedname>
+        <reimplementedby refid="classMyExpTMAnimCB_1a0ec63c4a891bd14c0dfdecfa4bf3ed41">get_name</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="9" column="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ExpTMAnimCB</label>
+        <link refid="classExpTMAnimCB"/>
+      </node>
+      <node id="2">
+        <label>MyExpTMAnimCB</label>
+        <link refid="classMyExpTMAnimCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="expanim.h" line="4" column="1" bodyfile="expanim.h" bodystart="5" bodyend="10"/>
+    <listofallmembers>
+      <member refid="classExpTMAnimCB_1a7d8141f5773d9d46f76cbb0231e55089" prot="public" virt="pure-virtual"><scope>ExpTMAnimCB</scope><name>get_name</name></member>
+      <member refid="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" prot="public" virt="pure-virtual"><scope>ExpTMAnimCB</scope><name>interp_tm</name></member>
+      <member refid="classExpTMAnimCB_1af5f3138f4c485c75b29c1b0026c70b0b" prot="public" virt="pure-virtual"><scope>ExpTMAnimCB</scope><name>non_orthog_tm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

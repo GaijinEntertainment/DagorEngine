@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1Col4" kind="struct" language="C++" prot="public">
+    <compoundname>shc::Col4</compoundname>
+    <includes refid="shVarVecTypes_8h" local="no">shVarVecTypes.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shc::Col4::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>shc::Col4::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="8" column="9" bodyfile="shVarVecTypes.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shc::Col4::g</definition>
+        <argsstring></argsstring>
+        <name>g</name>
+        <qualifiedname>shc::Col4::g</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="8" column="11" bodyfile="shVarVecTypes.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shc::Col4::b</definition>
+        <argsstring></argsstring>
+        <name>b</name>
+        <qualifiedname>shc::Col4::b</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="8" column="13" bodyfile="shVarVecTypes.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shc::Col4::a</definition>
+        <argsstring></argsstring>
+        <name>a</name>
+        <qualifiedname>shc::Col4::a</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="8" column="15" bodyfile="shVarVecTypes.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1Col4_1a4a8974b196ba794b2986bd94cc8acf7d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void shc::Col4::set</definition>
+        <argsstring>(const T &amp;c)</argsstring>
+        <name>set</name>
+        <qualifiedname>shc::Col4::set</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="11" column="8" bodyfile="shVarVecTypes.h" bodystart="11" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Col4_1af84457fbf68f10d53886d0fbed2f5f10" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::Col4::set</definition>
+        <argsstring>(float _r, float _g, float _b, float _a)</argsstring>
+        <name>set</name>
+        <qualifiedname>shc::Col4::set</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>_r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_b</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="15" column="8" bodyfile="shVarVecTypes.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shVarVecTypes.h" line="6" column="1" bodyfile="shVarVecTypes.h" bodystart="7" bodyend="16"/>
+    <listofallmembers>
+      <member refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>a</name></member>
+      <member refid="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>b</name></member>
+      <member refid="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>g</name></member>
+      <member refid="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>r</name></member>
+      <member refid="structshc_1_1Col4_1a4a8974b196ba794b2986bd94cc8acf7d" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>set</name></member>
+      <member refid="structshc_1_1Col4_1af84457fbf68f10d53886d0fbed2f5f10" prot="public" virt="non-virtual"><scope>shc::Col4</scope><name>set</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

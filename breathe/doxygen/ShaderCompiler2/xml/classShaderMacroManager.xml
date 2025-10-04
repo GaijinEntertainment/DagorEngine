@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderMacroManager" kind="class" language="C++" prot="public">
+    <compoundname>ShaderMacroManager</compoundname>
+    <includes refid="shMacro_8h" local="no">shMacro.h</includes>
+    <innerclass refid="structShaderMacroManager_1_1MacroCode" prot="private">ShaderMacroManager::MacroCode</innerclass>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderMacroManager_1ab0e75272caee18d4188578ba790aca69" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderMacro</definition>
+        <argsstring></argsstring>
+        <name>ShaderMacro</name>
+        <qualifiedname>ShaderMacroManager::ShaderMacro</qualifiedname>
+        <param>
+          <type><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="83" column="16" bodyfile="shMacro.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderMacroManager_1af9eb619b548e959f166307462eec688a" prot="private" static="no" mutable="no">
+        <type>Tab&lt; eastl::unique_ptr&lt; <ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref> &gt; &gt;</type>
+        <definition>Tab&lt;eastl::unique_ptr&lt;ShaderMacro&gt; &gt; ShaderMacroManager::objList</definition>
+        <argsstring></argsstring>
+        <name>objList</name>
+        <qualifiedname>ShaderMacroManager::objList</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="99" column="7" bodyfile="shMacro.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMacroManager_1a8f6a848eec5f8cd13a203fd49e13554c" prot="private" static="no" mutable="no">
+        <type>FastNameMap</type>
+        <definition>FastNameMap ShaderMacroManager::objNameMap</definition>
+        <argsstring></argsstring>
+        <name>objNameMap</name>
+        <qualifiedname>ShaderMacroManager::objNameMap</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="100" column="15" bodyfile="shMacro.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMacroManager_1a8aeefb9127ca0f57a418621e6d31c4e2" prot="private" static="no" mutable="no">
+        <type>Tab&lt; MacroCode * &gt;</type>
+        <definition>Tab&lt;MacroCode *&gt; ShaderMacroManager::codeStack</definition>
+        <argsstring></argsstring>
+        <name>codeStack</name>
+        <qualifiedname>ShaderMacroManager::codeStack</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="101" column="7" bodyfile="shMacro.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMacroManager_1a73c3fcb076ba2f80c1585b51e6b3286d" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderMacroManager::inMacroDefinition</definition>
+        <argsstring></argsstring>
+        <name>inMacroDefinition</name>
+        <qualifiedname>ShaderMacroManager::inMacroDefinition</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="104" column="8" bodyfile="shMacro.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderMacroManager_1a99f538ae10fd51eae66fb2d3470ee4bb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMacroManager::parseDefinition</definition>
+        <argsstring>(Lexer &amp;parser, bool optional)</argsstring>
+        <name>parseDefinition</name>
+        <qualifiedname>ShaderMacroManager::parseDefinition</qualifiedname>
+        <param>
+          <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="108" column="8" bodyfile="shMacro.cpp" bodystart="443" bodyend="470"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMacroManager_1a58334851d0aeec425a2a5ba3249d147a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMacroManager::tryExpandMacro</definition>
+        <argsstring>(Lexer &amp;parser, ShaderParser::TokenInfo &amp;token)</argsstring>
+        <name>tryExpandMacro</name>
+        <qualifiedname>ShaderMacroManager::tryExpandMacro</qualifiedname>
+        <param>
+          <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref> &amp;</type>
+          <declname>token</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="111" column="8" bodyfile="shMacro.cpp" bodystart="473" bodyend="498"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMacroManager_1af009ed17c15add625be52ca0bc1e77f4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShaderMacroManager::getMacroDesc</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getMacroDesc</name>
+        <qualifiedname>ShaderMacroManager::getMacroDesc</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="114" column="16" bodyfile="shMacro.cpp" bodystart="511" bodyend="521"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMacroManager_1a46de780ac1eafcd0e9c25b88748fb585" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMacroManager::getToken</definition>
+        <argsstring>(ShaderParser::TokenInfo &amp;out_info)</argsstring>
+        <name>getToken</name>
+        <qualifiedname>ShaderMacroManager::getToken</qualifiedname>
+        <param>
+          <type><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref> &amp;</type>
+          <declname>out_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="117" column="8" bodyfile="shMacro.cpp" bodystart="524" bodyend="551"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMacroManager_1af28da1b0c28648241c8dc1e05e5ca4d9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShaderMacroManager::getCurrentMacroDesc</definition>
+        <argsstring>(Lexer &amp;lexer) const</argsstring>
+        <name>getCurrentMacroDesc</name>
+        <qualifiedname>ShaderMacroManager::getCurrentMacroDesc</qualifiedname>
+        <param>
+          <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+          <declname>lexer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="120" column="16" bodyfile="shMacro.cpp" bodystart="553" bodyend="584"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderMacroManager_1a7b946af816fa363b86d106bf05b3ecd0" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMacroManager::findMacro</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>findMacro</name>
+        <qualifiedname>ShaderMacroManager::findMacro</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="124" column="7" bodyfile="shMacro.cpp" bodystart="502" bodyend="508"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMacroManager_1a1c9e5ddf3fb0b94df68d6886f8a05bb0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMacroManager::parseMacroDefinition</definition>
+        <argsstring>(Lexer &amp;lexer, ShaderMacro &amp;macro)</argsstring>
+        <name>parseMacroDefinition</name>
+        <qualifiedname>ShaderMacroManager::parseMacroDefinition</qualifiedname>
+        <param>
+          <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+          <declname>lexer</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref> &amp;</type>
+          <declname>macro</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="128" column="8" bodyfile="shMacro.cpp" bodystart="93" bodyend="176"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shMacro.h" line="81" column="1" bodyfile="shMacro.h" bodystart="82" bodyend="129"/>
+    <listofallmembers>
+      <member refid="classShaderMacroManager_1a8aeefb9127ca0f57a418621e6d31c4e2" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>codeStack</name></member>
+      <member refid="classShaderMacroManager_1a7b946af816fa363b86d106bf05b3ecd0" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>findMacro</name></member>
+      <member refid="classShaderMacroManager_1af28da1b0c28648241c8dc1e05e5ca4d9" prot="public" virt="non-virtual"><scope>ShaderMacroManager</scope><name>getCurrentMacroDesc</name></member>
+      <member refid="classShaderMacroManager_1af009ed17c15add625be52ca0bc1e77f4" prot="public" virt="non-virtual"><scope>ShaderMacroManager</scope><name>getMacroDesc</name></member>
+      <member refid="classShaderMacroManager_1a46de780ac1eafcd0e9c25b88748fb585" prot="public" virt="non-virtual"><scope>ShaderMacroManager</scope><name>getToken</name></member>
+      <member refid="classShaderMacroManager_1a73c3fcb076ba2f80c1585b51e6b3286d" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>inMacroDefinition</name></member>
+      <member refid="classShaderMacroManager_1af9eb619b548e959f166307462eec688a" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>objList</name></member>
+      <member refid="classShaderMacroManager_1a8f6a848eec5f8cd13a203fd49e13554c" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>objNameMap</name></member>
+      <member refid="classShaderMacroManager_1a99f538ae10fd51eae66fb2d3470ee4bb" prot="public" virt="non-virtual"><scope>ShaderMacroManager</scope><name>parseDefinition</name></member>
+      <member refid="classShaderMacroManager_1a1c9e5ddf3fb0b94df68d6886f8a05bb0" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>parseMacroDefinition</name></member>
+      <member refid="classShaderMacroManager_1ab0e75272caee18d4188578ba790aca69" prot="private" virt="non-virtual"><scope>ShaderMacroManager</scope><name>ShaderMacro</name></member>
+      <member refid="classShaderMacroManager_1a58334851d0aeec425a2a5ba3249d147a" prot="public" virt="non-virtual"><scope>ShaderMacroManager</scope><name>tryExpandMacro</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

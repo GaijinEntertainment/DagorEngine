@@ -1,0 +1,211 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1BottomAccelerationStructureBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::BottomAccelerationStructureBuildInfo</compoundname>
+    <basecompoundref refid="structraytrace_1_1BottomAccelerationCreateInfo" prot="public" virt="non-virtual">raytrace::BottomAccelerationCreateInfo</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a3fe9827a4cccd6ed0d88d12efcdb0c15" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::BottomAccelerationStructureBuildInfo::doUpdate</definition>
+        <argsstring></argsstring>
+        <name>doUpdate</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::doUpdate</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Do an update instead of a rebuild. Only valid to use when previous rebuilds had the flag <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a079a30b0592505b5965a5db0388c511c" kindref="member">RaytraceBuildFlags::ALLOW_UPDATE</ref> set. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="184" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a857531c7812eb496188178946c49cdc9" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::BottomAccelerationStructureBuildInfo::compactedSizeOutputBuffer</definition>
+        <argsstring></argsstring>
+        <name>compactedSizeOutputBuffer</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::compactedSizeOutputBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Needs to be set when <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8585657419da99db0fece0a26d2e432a" kindref="member">RaytraceBuildFlags::ALLOW_COMPACTION</ref> flag is set, otherwise ignored. At the end of the build process, the GPU will write the required size of a compacted variant of resulting data structure content to this buffer at the offset location. This can be used to create smaller compacted acceleration structures. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="189" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa0c39c94a88cc21433247a9691a483c2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::BottomAccelerationStructureBuildInfo::compactedSizeOutputBufferOffsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>compactedSizeOutputBufferOffsetInBytes</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::compactedSizeOutputBufferOffsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Ignored when compactedSizeOutputBuffer is nullptr. compactedSizeOutputBuffer has to be large enough to store a uint64_t at that offset. Offset has to be 64 bit aligned. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="193" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa691f78681c696f0e3bc622126784682" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBuffer</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBuffer</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Buffer that provides scratch space needed for the build, size requirements are derived from scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. <simplesect kind="note"><para>Multiple builds can safely use the same buffer without synchronization as long as they do not overlap in used region of the buffer. </para>
+</simplesect>
+<simplesect kind="note"><para>May be nullptr when the corresponding scratch buffer size provided by d3d::create_raytrace_bottom_acceleration_structure was 0. </para>
+</simplesect>
+<simplesect kind="note"><para>A frame end is a implicit flush of every buffer. So no synchronization in between frames is needed. </para>
+</simplesect>
+<simplesect kind="warning"><para>Currently this is optional, but this behavior is deprecated until all users have updated to provide this buffer when needed. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="204" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a0c2e8b7a9f3a8fedd329477d19861adf" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBufferOffsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferOffsetInBytes</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBufferOffsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset into scratchSpaceBuffer, buffer has to be large enough to provide space for scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="207" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="207" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a48bbc58152d391a3999c0f5da9cd965f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBufferSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferSizeInBytes</name>
+        <qualifiedname>raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBufferSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Usable space of scratchSpaceBuffer, this has to be at least as large as the provided build_scratch_size_in_bytes value for the build structure for a rebuild or update_scratch_size_in_bytes for updates. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="211" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Provides all necessary information to build or update a ray trace bottom acceleration structure. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::BottomAccelerationCreateInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationCreateInfo"/>
+      </node>
+      <node id="1">
+        <label>raytrace::BottomAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationStructureBuildInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="7">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="3">
+        <label>RaytraceGeometryDescription</label>
+        <link refid="structRaytraceGeometryDescription"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>RaytraceGeometryDescription::AnyInfo</label>
+        <link refid="unionRaytraceGeometryDescription_1_1AnyInfo"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>aabbs</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>triangles</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="6">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::BottomAccelerationCreateInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationCreateInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>geometryDesc</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::BottomAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationStructureBuildInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>compactedSizeOutputBuffer</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="180" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="181" bodyend="212"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a857531c7812eb496188178946c49cdc9" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>compactedSizeOutputBuffer</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa0c39c94a88cc21433247a9691a483c2" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>compactedSizeOutputBufferOffsetInBytes</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a3fe9827a4cccd6ed0d88d12efcdb0c15" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>doUpdate</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a08b2b87e1886d937d9ff43e6ba5d97ba" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>flags</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a00d0d9477498782178c362b54a8efb30" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>geometryDesc</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a7fdae582d957f54a415d9e56072c6f16" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>geometryDescCount</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa691f78681c696f0e3bc622126784682" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>scratchSpaceBuffer</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a0c2e8b7a9f3a8fedd329477d19861adf" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>scratchSpaceBufferOffsetInBytes</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a48bbc58152d391a3999c0f5da9cd965f" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationStructureBuildInfo</scope><name>scratchSpaceBufferSizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

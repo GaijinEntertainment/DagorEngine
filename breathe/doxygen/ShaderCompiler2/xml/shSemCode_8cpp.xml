@@ -1,0 +1,1326 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shSemCode_8cpp" kind="file" language="C++">
+    <compoundname>shSemCode.cpp</compoundname>
+    <includes refid="shSemCode_8h" local="yes">shSemCode.h</includes>
+    <includes refid="shCompiler_8h" local="yes">shCompiler.h</includes>
+    <includes refid="shVariantContext_8h" local="yes">shVariantContext.h</includes>
+    <includes refid="globalConfig_8h" local="yes">globalConfig.h</includes>
+    <includes local="no">shaders/shInternalTypes.h</includes>
+    <includes refid="shaderVariant_8h" local="yes">shaderVariant.h</includes>
+    <includes local="no">shaders/shUtils.h</includes>
+    <includes local="no">shaders/shOpcodeFormat.h</includes>
+    <includes local="no">shaders/shOpcode.h</includes>
+    <includes local="no">generic/dag_tabUtils.h</includes>
+    <includes local="no">generic/dag_carray.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <includes local="no">EASTL/numeric.h</includes>
+    <includes local="no">osApiWrappers/dag_miscApi.h</includes>
+    <includes local="no">math/random/dag_random.h</includes>
+    <includes refid="linkShaders_8h" local="yes">linkShaders.h</includes>
+    <includes refid="varMap_8h" local="yes">varMap.h</includes>
+    <includes local="no">dag/dag_vectorMap.h</includes>
+    <includes local="no">osApiWrappers/dag_stackHlp.h</includes>
+    <incdepgraph>
+      <node id="91">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="84">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="76">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="73">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="92">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="67">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="62">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="114">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="85">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="63">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="94">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shCompiler.h</label>
+        <link refid="shCompiler_8h"/>
+      </node>
+      <node id="81">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="103">
+        <label>shLocVar.h</label>
+        <link refid="shLocVar_8h"/>
+      </node>
+      <node id="32">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="66">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="102">
+        <label>shMessages.h</label>
+        <link refid="shMessages_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+        <childnode refid="107" relation="include">
+        </childnode>
+        <childnode refid="108" relation="include">
+        </childnode>
+        <childnode refid="109" relation="include">
+        </childnode>
+        <childnode refid="110" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="111" relation="include">
+        </childnode>
+        <childnode refid="112" relation="include">
+        </childnode>
+        <childnode refid="113" relation="include">
+        </childnode>
+        <childnode refid="114" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="115" relation="include">
+        </childnode>
+        <childnode refid="116" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="5">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="95" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="96" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+        <childnode refid="102" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="101">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+      </node>
+      <node id="61">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="4">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+        <childnode refid="104" relation="include">
+        </childnode>
+      </node>
+      <node id="71">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="98">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="95">
+        <label>shaderVariantSrc.h</label>
+        <link refid="shaderVariantSrc_8h"/>
+      </node>
+      <node id="96">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="97" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="99" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="100">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+      </node>
+      <node id="80">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="60">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="86">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="27">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="35">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="89">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="87">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="88">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="111">
+        <label>EASTL/numeric.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="68">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="74">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="43">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="77">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="83">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="93">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="36">
+        <label>cstdint</label>
+      </node>
+      <node id="30">
+        <label>cstring</label>
+      </node>
+      <node id="26">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="115">
+        <label>dag/dag_vectorMap.h</label>
+      </node>
+      <node id="25">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="82">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="42">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="70">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="59">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="110">
+        <label>generic/dag_carray.h</label>
+      </node>
+      <node id="33">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="34">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="47">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="97">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="23">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="109">
+        <label>generic/dag_tabUtils.h</label>
+      </node>
+      <node id="29">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="52">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="56">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="57">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="113">
+        <label>math/random/dag_random.h</label>
+      </node>
+      <node id="75">
+        <label>memory</label>
+      </node>
+      <node id="38">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="78">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="104">
+        <label>memory/dag_regionMemAlloc.h</label>
+      </node>
+      <node id="112">
+        <label>osApiWrappers/dag_miscApi.h</label>
+      </node>
+      <node id="116">
+        <label>osApiWrappers/dag_stackHlp.h</label>
+      </node>
+      <node id="99">
+        <label>shaders/dag_shaderCommon.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="50">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="39">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="40">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="105">
+        <label>shaders/shInternalTypes.h</label>
+      </node>
+      <node id="108">
+        <label>shaders/shOpcode.h</label>
+      </node>
+      <node id="107">
+        <label>shaders/shOpcodeFormat.h</label>
+      </node>
+      <node id="106">
+        <label>shaders/shUtils.h</label>
+      </node>
+      <node id="45">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="64">
+        <label>shsyn.h</label>
+      </node>
+      <node id="44">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="24">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="22">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="79">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="54">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="49">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="10">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shSemCode_8cpp_1a9d5126adea9eafeb93403ed8b06ebbe9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_semcode_var_name</definition>
+        <argsstring>(const ShaderSemCode::Var &amp;var, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_semcode_var_name</name>
+        <param>
+          <type>const <ref refid="structShaderSemCode_1_1Var" kindref="compound">ShaderSemCode::Var</ref> &amp;</type>
+          <declname>var</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.cpp" line="351" column="12" bodyfile="shSemCode.cpp" bodystart="351" bodyend="354"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shSemCode_8h" kindref="compound">shSemCode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompiler_8h" kindref="compound">shCompiler.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVariantContext_8h" kindref="compound">shVariantContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globalConfig_8h" kindref="compound">globalConfig.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shInternalTypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariant_8h" kindref="compound">shaderVariant.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shOpcodeFormat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shOpcode.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_carray.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/numeric.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_miscApi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/random/dag_random.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="linkShaders_8h" kindref="compound">linkShaders.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompiler_8h" kindref="compound">shCompiler.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varMap_8h" kindref="compound">varMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vectorMap.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_stackHlp.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;dx12/asmShaderDXIL.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><ref refid="classShaderSemCode_1a47557d06e0cb28e5bf0069124e4acb20" kindref="member">ShaderSemCode::ShaderSemCode</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx)<sp/>:<sp/>ctx{a_ctx},<sp/>flags(0),<sp/>renderStageIdx(-1)<sp/>{}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1a5152815192d39ea106f827b07955b044" kindref="member">ShaderSemCode::initPassMap</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pass_id)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.empty()<sp/>||<sp/>!<ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id])</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id]-&gt;varmap.resize(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.size());</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.begin();<sp/>it<sp/>!=<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.end();<sp/>++it)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>eastl::distance(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.begin(),<sp/>it);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id]-&gt;varmap[id]<sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1a0f6ee922626b00aaf01a7268de9b742a" kindref="member">ShaderSemCode::mergeVars</ref>(Tab&lt;Var&gt;<sp/>&amp;&amp;other_vars,<sp/>Tab&lt;StVarMapping&gt;<sp/>&amp;&amp;other_stvarmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pass_id)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>dag::VectorMap&lt;int,<sp/>Var<sp/>*&gt;<sp/>ownedVarsByNameId{};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>eastl::transform(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.begin(),<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.end(),<sp/>eastl::inserter(ownedVarsByNameId,<sp/>ownedVarsByNameId.end()),</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>[</highlight><highlight class="keyword">this</highlight><highlight class="normal">](Var<sp/>&amp;var)<sp/>{<sp/>return<sp/>eastl::make_pair(var.nameId,<sp/>&amp;var);<sp/>});</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>otherStvarmapDirect{};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>otherStvarmapDirect.resize(other_stvarmap.size(),<sp/>-1);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>StVarMapping<sp/>&amp;mapping<sp/>:<sp/>other_stvarmap)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mapping.v<sp/>&gt;=<sp/>otherStvarmapDirect.size())</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>otherStvarmapDirect.resize(mapping.v<sp/>+<sp/>1,<sp/>-1);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>otherStvarmapDirect[mapping.v]<sp/>=<sp/>mapping.sv;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id]-&gt;varmap.reserve(<ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id]-&gt;varmap.size()<sp/>+<sp/>other_vars.size());</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/>other_vars.begin();<sp/>it<sp/>!=<sp/>other_vars.end();<sp/>++it)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>stIt<sp/>=<sp/>ownedVarsByNameId.find(it-&gt;nameId);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>Var<sp/>*staticVar<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stIt<sp/>==<sp/>ownedVarsByNameId.end())</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.push_back(eastl::move(*it));</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lastId<sp/>=<sp/>(int)(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.size()<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" kindref="member">staticStcodeVars</ref>.<ref refid="structStcodeStaticVars_1a308290d19e9ced6925e09b2eb1fc2525" kindref="member">add</ref>(<ref refid="shSemCode_8h_1a9d5126adea9eafeb93403ed8b06ebbe9" kindref="member">get_semcode_var_name</ref>(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.back(),<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>),<sp/>lastId);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>staticVar<sp/>=<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.begin()<sp/>+<sp/>lastId;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sv<sp/>=<sp/>otherStvarmapDirect[(int)eastl::distance(other_vars.begin(),<sp/>it)];</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sv<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>.push_back({lastId,<sp/>sv});</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>staticVar<sp/>=<sp/>stIt-&gt;second;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>staticVar-&gt;used<sp/>=<sp/>it-&gt;used<sp/>?<sp/>true<sp/>:<sp/>staticVar-&gt;used;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[pass_id]-&gt;varmap.push_back(eastl::distance(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.data(),<sp/>staticVar));</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><ref refid="classShaderCode" kindref="compound">ShaderCode</ref><sp/>*<ref refid="classShaderSemCode_1aef25e17512cd2562d12377a47b3433b5" kindref="member">ShaderSemCode::generateShaderCode</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">ShaderVariant::VariantTableSrc</ref><sp/>&amp;dynVariants)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><ref refid="classShaderCode" kindref="compound">ShaderCode</ref><sp/>*code<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>(midmem)<sp/><ref refid="classShaderCode" kindref="compound">ShaderCode</ref>();</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>dynVariants.<ref refid="classShaderVariant_1_1VariantTableSrc_1a12f71e20d3075788de6e0799705e73aa" kindref="member">fillVariantTable</ref>(code-&gt;<ref refid="classShaderCode_1ae2d89e351341ad71ff1ddf415730a61a" kindref="member">dynVariants</ref>);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a036e9771fd21e59f772c4f71eb9a25e5" kindref="member">flags</ref><sp/>=<sp/><ref refid="classShaderSemCode_1ac5254af5ecdf0f52e2d648e94a90d2e8" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a769c07a6bbe80c0b095305767e65b453" kindref="member">channel</ref><sp/>=<sp/><ref refid="classShaderSemCode_1a8b32469ee07d07ba8dd9b6a7d2d20805" kindref="member">channel</ref>;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>compute<sp/>var<sp/>offsets</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>cvar(tmpmem);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>cvar.resize(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.size());</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].type)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(int);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT4:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(int)<sp/>*<sp/>4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_REAL:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(real);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_COLOR4:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(Color4);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TEXTURE:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(shaders_internal::Tex);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_SAMPLER:<sp/>sz<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(d3d::SamplerHandle);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);<sp/>sz<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>cvar[i]<sp/>=<sp/>ofs;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" kindref="member">staticStcodeVars</ref>.<ref refid="structStcodeStaticVars_1a466f2bf0bb5779dfa8aea2a7dc8235f0" kindref="member">patch</ref>(i,<sp/>ofs);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>ofs<sp/>+=<sp/>sz;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().addTextureType<sp/>&amp;&amp;<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].slot<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].slot<sp/>&gt;=<sp/>code-&gt;<ref refid="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" kindref="member">staticTextureTypes</ref>.size())</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j<sp/>=<sp/>code-&gt;<ref refid="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" kindref="member">staticTextureTypes</ref>.size();<sp/>j<sp/>&lt;=<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].slot;<sp/>j++)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" kindref="member">staticTextureTypes</ref>.push_back(ShaderVarTextureType::SHVT_TEX_UNKNOWN);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" kindref="member">staticTextureTypes</ref>[<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].slot]<sp/>=<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[i].texType;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>.<ref refid="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" kindref="member">cppStcode</ref>().<ref refid="structStcodeShader_1a328a8dc795491ff3da3d032bc46c7f51" kindref="member">addStaticVarLocations</ref>(eastl::move(<ref refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" kindref="member">staticStcodeVars</ref>));</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1af08607fbfc2596265f1479a33b708bfd" kindref="member">varsize</ref><sp/>=<sp/>ofs;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a3f1c696950cae074dbbf278d2ecd0ca5" kindref="member">regsize</ref><sp/>=<sp/><ref refid="classShaderSemCode_1af8edbdef53e3a9de78f27f09f1611ddd" kindref="member">regsize</ref>;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>convert<sp/>init<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1ac99942179d18ba4169439667d7682396" kindref="member">initcode</ref><sp/>=<sp/><ref refid="classShaderSemCode_1a63a202d1e669c2a0a09e709e8e962d93" kindref="member">initcode</ref>;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>code-&gt;<ref refid="classShaderCode_1ac99942179d18ba4169439667d7682396" kindref="member">initcode</ref>.size();<sp/>i<sp/>+=<sp/>2)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vi<sp/>=<sp/>code-&gt;<ref refid="classShaderCode_1ac99942179d18ba4169439667d7682396" kindref="member">initcode</ref>[i];</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>code-&gt;<ref refid="classShaderCode_1ac99942179d18ba4169439667d7682396" kindref="member">initcode</ref>[i]<sp/>=<sp/>cvar[vi];</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>convert<sp/>stvarmap</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1a8f3bcc390fc20994f8679e0d7b207788" kindref="member">stvarmap</ref>.reserve(<ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>.size());</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>StVarMapping<sp/>&amp;mapping<sp/>:<sp/><ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/>code-&gt;<ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>.push_back({cvar[mapping.v],<sp/>mapping.sv});</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>convert<sp/>passes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>tabutils::safeResize(code-&gt;<ref refid="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" kindref="member">passes</ref>,<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>.size());</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderCode::Pass&gt;<sp/>all_passid(tmpmem);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;otherPasses<sp/>=<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[i];</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(otherPasses)</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderCode_1_1PassTab" kindref="compound">ShaderCode::PassTab</ref><sp/>*currPasses<sp/>=<sp/>code-&gt;<ref refid="classShaderCode_1ae6e3dad36e7b670bedac778ae199c467" kindref="member">createPasses</ref>(i);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>clear_and_shrink(currPasses-&gt;<ref refid="structShaderCode_1_1PassTab_1a72990da48c33ec5962477ae0cf0c77fb" kindref="member">suppBlk</ref>);</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>currPasses-&gt;<ref refid="structShaderCode_1_1PassTab_1a72990da48c33ec5962477ae0cf0c77fb" kindref="member">suppBlk</ref>.resize(otherPasses-&gt;suppBlk.size());</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>otherPasses-&gt;suppBlk.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>currPasses-&gt;<ref refid="structShaderCode_1_1PassTab_1a72990da48c33ec5962477ae0cf0c77fb" kindref="member">suppBlk</ref>[i]<sp/>=<sp/>otherPasses-&gt;suppBlk[i];</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>clear_and_shrink(otherPasses-&gt;suppBlk);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(otherPasses-&gt;pass)</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref><sp/>p;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>convert_passes(*otherPasses-&gt;pass,<sp/>p,<sp/>cvar,<sp/>otherPasses-&gt;varmap);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>found<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j<sp/>=<sp/>0;<sp/>j<sp/>&lt;<sp/>all_passid.size();<sp/>j++)</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(memcmp(&amp;p,<sp/>&amp;all_passid[j],<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(p))<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>found<sp/>=<sp/>j;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(found<sp/>==<sp/>-1)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>found<sp/>=<sp/>all_passid.size();</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>all_passid.push_back(p);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>currPasses-&gt;<ref refid="structShaderCode_1_1PassTab_1ae6a673af2561707440b5b16ee1af51a3" kindref="member">rpass</ref><sp/>=<sp/>(<ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref><sp/>*)intptr_t(found);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>otherPasses-&gt;pass-&gt;target<sp/>=<sp/>currPasses-&gt;<ref refid="structShaderCode_1_1PassTab_1ae6a673af2561707440b5b16ee1af51a3" kindref="member">rpass</ref>;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>code-&gt;<ref refid="classShaderCode_1aa9442b7b4eee7a82ae4f54a789eb5485" kindref="member">allPasses</ref><sp/>=<sp/>all_passid;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>clear_and_shrink(all_passid);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[i]<sp/>&amp;&amp;<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[i]-&gt;pass)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>(int)intptr_t(<ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[i]-&gt;pass-&gt;target);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>[i]-&gt;pass-&gt;target<sp/>=<sp/>&amp;code-&gt;<ref refid="classShaderCode_1aa9442b7b4eee7a82ae4f54a789eb5485" kindref="member">allPasses</ref>[id];</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>code-&gt;<ref refid="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" kindref="member">passes</ref>.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(code-&gt;<ref refid="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" kindref="member">passes</ref>[i])</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>code-&gt;<ref refid="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" kindref="member">passes</ref>[i]-&gt;toPtr(make_span(code-&gt;<ref refid="classShaderCode_1aa9442b7b4eee7a82ae4f54a789eb5485" kindref="member">allPasses</ref>));</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>code;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>ShaderSemCode::convert_stcode(dag::Span&lt;int&gt;<sp/>cod,<sp/>Tab&lt;int&gt;<sp/>&amp;cvar,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>&amp;var_map)</highlight></codeline>
+<codeline lineno="205"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>cod.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>op<sp/>=<sp/>shaderopcode::getOp(cod[i]);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(op)</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_INVERSE:</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_LVIEW:</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TMWORLD:</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_G_TM:</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_FSH_CONST:</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_VPR_CONST:</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CS_CONST:</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GLOB_SAMPLER:</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TEXTURE:</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TEXTURE_VS:</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_REG_BINDLESS:</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_BUFFER:</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CONST_BUFFER:</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TLAS:</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_RWTEX:</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_RWBUF:</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GINT:</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GREAL:</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GTEX:</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GBUF:</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GTLAS:</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GVEC:</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GMAT44:</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_ADD_REAL:</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SUB_REAL:</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MUL_REAL:</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_DIV_REAL:</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_ADD_VEC:</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SUB_VEC:</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MUL_VEC:</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_DIV_VEC:</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GINT_TOREAL:</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GIVEC_TOREAL:</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_REAL1:</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_SVEC1:</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_INT_TOREAL:</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IVEC_TOREAL:</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_COPY_REAL:</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_COPY_VEC:<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_STATIC_BLOCK:</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_STATIC_MULTIDRAW_BLOCK:</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_REAL:</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MAKE_VEC:<sp/>i++;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_VEC:<sp/>i<sp/>+=<sp/>4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CALL_FUNCTION:</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i<sp/>+=<sp/>shaderopcode::getOp3p3(cod[i]);<sp/></highlight><highlight class="comment">//<sp/>skip<sp/>params</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_TEX:</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_INT:</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_REAL:</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_VEC:</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_INT_TOREAL:</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_IVEC_TOREAL:</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vi<sp/>=<sp/>var_map[shaderopcode::getOp2p2s(cod[i])];</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(vi<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cod[i]<sp/>=<sp/>shaderopcode::patchOp2p2(cod[i],<sp/>cvar[vi]);<sp/></highlight><highlight class="comment">//<sp/>replace<sp/>var<sp/>id<sp/>with<sp/>var<sp/>offset</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SAMPLER:</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vi<sp/>=<sp/>var_map[shaderopcode::getOpStageSlot_Reg(cod[i])];</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cod[i]<sp/>=<sp/>shaderopcode::makeOpStageSlot(op,<sp/>shaderopcode::getOpStageSlot_Stage(cod[i]),</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>shaderopcode::getOpStageSlot_Slot(cod[i]),<sp/>cvar[vi]);</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>debug(</highlight><highlight class="stringliteral">&quot;cod:<sp/>%d<sp/>&apos;%s&apos;<sp/>not<sp/>processed!&quot;</highlight><highlight class="normal">,<sp/>cod[i],<sp/>ShUtils::shcod_tokname(op));<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="287"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>ShaderSemCode::convert_passes(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;semP,<sp/><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref><sp/>&amp;p,<sp/>Tab&lt;int&gt;<sp/>&amp;cvar,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>&amp;var_map)</highlight></codeline>
+<codeline lineno="290"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(semP.<ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">cs</ref>.size())</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a420b34cee2ab0e7d568a5abac637560f" kindref="member">fsh</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1aa26fc4d6261cf25ea202c85a47deed61" kindref="member">add_fshader</ref>(semP.<ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">cs</ref>,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a6f897137d8a481e0de3621c3ebb19f95" kindref="member">vprog</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(use_two_phase_compilation(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().targetPlatform))</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>idents<sp/>=<sp/><ref refid="linkShaders_8cpp_1ab063c21a0baeb0b136cf1f1d2e0e0a41" kindref="member">add_phase_one_progs</ref>(semP.<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">vpr</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">hs</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">ds</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">gs</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">fsh</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a9bf7beb92808cc36ccdefe438f102444" kindref="member">enableFp16</ref>,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a6f897137d8a481e0de3621c3ebb19f95" kindref="member">vprog</ref><sp/>=<sp/>idents.vprog;</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a420b34cee2ab0e7d568a5abac637560f" kindref="member">fsh</ref><sp/>=<sp/>idents.fsh;</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>fragment<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a420b34cee2ab0e7d568a5abac637560f" kindref="member">fsh</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1aa26fc4d6261cf25ea202c85a47deed61" kindref="member">add_fshader</ref>(semP.<ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">fsh</ref>,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"></highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>vertex<sp/>program</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a6f897137d8a481e0de3621c3ebb19f95" kindref="member">vprog</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1a58a37ce7dcfb6642f4498171a2a8f2cd" kindref="member">add_vprog</ref>(semP.<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">vpr</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">hs</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">ds</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">gs</ref>,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>convert<sp/>state<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>stblkcode{};</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/>stblkcode<sp/>=<sp/>semP.<ref refid="structSemanticShaderPass_1a95cfbada8dc84fc6b43cc084c21ec41c" kindref="member">stblkcode</ref>;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/>convert_stcode(make_span(stblkcode),<sp/>cvar,<sp/>var_map);</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a70645976588f87b6804728f045b12e6d" kindref="member">stblkcodeNo</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1a96fa1850596561b85a77a8b6e78407fd" kindref="member">add_stcode</ref>(stblkcode,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().compileCppStcode())</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().generateCppStcodeValidationData)</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="linkShaders_8cpp_1ace100897f3e189920a57708fbc77bbaa" kindref="member">add_stcode_validation_mask</ref>(p.<ref refid="structShaderCode_1_1Pass_1a70645976588f87b6804728f045b12e6d" kindref="member">stblkcodeNo</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref>.<ref refid="structStcodePass_1ab7862ff68f12bb13c123a66f608226a2" kindref="member">cppStblkcode</ref>.<ref refid="structStcodeRoutine_1a90bea292e40f565eee2602e7bcb781ff" kindref="member">constMask</ref>.release(),<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>we<sp/>don&apos;t<sp/>use<sp/>branches<sp/>for<sp/>stblkcode<sp/>due<sp/>to<sp/>the<sp/>fact<sp/>that<sp/>they<sp/>have<sp/>to<sp/>access<sp/>global<sp/>vars<sp/>from<sp/>threads</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a016c5569a5042729fe83389ec35e1f4a" kindref="member">branchlessCppStblkcodeId</ref><sp/>=<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>.<ref refid="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" kindref="member">cppStcode</ref>().<ref refid="structStcodeShader_1af574f4aa9ce369abcfeaccee84e198a6" kindref="member">addCode</ref>(eastl::move(semP.<ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref>.<ref refid="structStcodePass_1ab7862ff68f12bb13c123a66f608226a2" kindref="member">cppStblkcode</ref>),<sp/>semP.<ref refid="structSemanticShaderPass_1a30d5ae5be555e0ca2f008666c081bb00" kindref="member">bufferedConstRange</ref>,</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>semP.<ref refid="structSemanticShaderPass_1adbd7751cbda4b402f3cf48ad98cfee85" kindref="member">psTexSmpRange</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a1e2a4969a9c01d5d8ec9a2732f297c7a" kindref="member">vsTexSmpRange</ref>);</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>{};</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><ref refid="namespacestcode" kindref="compound">stcode</ref><sp/>=<sp/>semP.<ref refid="structSemanticShaderPass_1a3be6b5c08d771a3e5e57d89b08f9315d" kindref="member">stcode</ref>;</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/>convert_stcode(make_span(<ref refid="namespacestcode" kindref="compound">stcode</ref>),<sp/>cvar,<sp/>var_map);</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a62888e06f98c3d42ff10990c767a2a42" kindref="member">stcodeNo</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1a96fa1850596561b85a77a8b6e78407fd" kindref="member">add_stcode</ref>(<ref refid="namespacestcode" kindref="compound">stcode</ref>,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().compileCppStcode())</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().generateCppStcodeValidationData)</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="linkShaders_8cpp_1ace100897f3e189920a57708fbc77bbaa" kindref="member">add_stcode_validation_mask</ref>(p.<ref refid="structShaderCode_1_1Pass_1a62888e06f98c3d42ff10990c767a2a42" kindref="member">stcodeNo</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref>.<ref refid="structStcodePass_1afa8af3e7f8aeba50095318fbd536a0c4" kindref="member">cppStcode</ref>.<ref refid="structStcodeRoutine_1a90bea292e40f565eee2602e7bcb781ff" kindref="member">constMask</ref>.release(),<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().cppStcodeMode<sp/>==<sp/>shader_layout::ExternalStcodeMode::BRANCHLESS_CPP)</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a1a5a0042ff2ee0c01d735afcfaf5e51c" kindref="member">branchlessCppStcodeId</ref><sp/>=</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>.<ref refid="classshc_1_1TargetContext_1a27d8cc3aa5ee309d0c1e3fca7ea3cbdf" kindref="member">cppStcode</ref>().<ref refid="structStcodeShader_1af574f4aa9ce369abcfeaccee84e198a6" kindref="member">addCode</ref>(eastl::move(semP.<ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref>.<ref refid="structStcodePass_1afa8af3e7f8aeba50095318fbd536a0c4" kindref="member">cppStcode</ref>),<sp/>semP.<ref refid="structSemanticShaderPass_1a0a93717959f273d97c583d31f37d93f4" kindref="member">psOrCsConstRange</ref>,<sp/>semP.<ref refid="structSemanticShaderPass_1a70495e6029e8dae0d7e1c59dcb31a17b" kindref="member">vsConstRange</ref>);</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a0653591817da00efd7ea2c0382b526f7" kindref="member">renderStateNo</ref><sp/>=<sp/><ref refid="linkShaders_8cpp_1a07de43c7fcfd3647d78f0a2111368280" kindref="member">add_render_state</ref>(semP,<sp/><ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>);</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1aa86735cccfeafe4612b3bbc73edaeb62" kindref="member">threadGroupSizes</ref><sp/>=<sp/>semP.<ref refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" kindref="member">threadGroupSizes</ref>;</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/>p.<ref refid="structShaderCode_1_1Pass_1a779705ff482200ba318acf68dadb18fc" kindref="member">scarlettWave32</ref><sp/>=<sp/>semP.<ref refid="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" kindref="member">scarlettWave32</ref>;</highlight></codeline>
+<codeline lineno="349"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"></highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="shSemCode_8cpp_1a9d5126adea9eafeb93403ed8b06ebbe9" kindref="member">get_semcode_var_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1Var" kindref="compound">ShaderSemCode::Var</ref><sp/>&amp;var,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="352"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ctx.<ref refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" kindref="member">varNameMap</ref>().<ref refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" kindref="member">getName</ref>(var.<ref refid="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" kindref="member">nameId</ref>);</highlight></codeline>
+<codeline lineno="354"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="shSemCode.cpp"/>
+  </compounddef>
+</doxygen>

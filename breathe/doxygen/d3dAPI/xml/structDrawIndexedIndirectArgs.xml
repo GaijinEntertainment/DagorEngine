@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDrawIndexedIndirectArgs" kind="struct" language="C++" prot="public">
+    <compoundname>DrawIndexedIndirectArgs</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgs_1a8b01207a56094c54e00127ddcdeccaa0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::indexCountPerInstance</definition>
+        <argsstring></argsstring>
+        <name>indexCountPerInstance</name>
+        <qualifiedname>DrawIndexedIndirectArgs::indexCountPerInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="232" column="12" bodyfile="dag_decl.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgs_1a285913c5095296757713bb1ddade71e0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::instanceCount</definition>
+        <argsstring></argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>DrawIndexedIndirectArgs::instanceCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="233" column="12" bodyfile="dag_decl.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgs_1a81eb5b19603c0cc425fcd31d2275fc11" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::startIndexLocation</definition>
+        <argsstring></argsstring>
+        <name>startIndexLocation</name>
+        <qualifiedname>DrawIndexedIndirectArgs::startIndexLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="234" column="12" bodyfile="dag_decl.h" bodystart="234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgs_1a3a69831c51c2a9d5da9bda70e77c1171" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t DrawIndexedIndirectArgs::baseVertexLocation</definition>
+        <argsstring></argsstring>
+        <name>baseVertexLocation</name>
+        <qualifiedname>DrawIndexedIndirectArgs::baseVertexLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="235" column="11" bodyfile="dag_decl.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgs_1a9d4d56220fe132708c94c3e0d954ac95" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::startInstanceLocation</definition>
+        <argsstring></argsstring>
+        <name>startInstanceLocation</name>
+        <qualifiedname>DrawIndexedIndirectArgs::startInstanceLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="236" column="12" bodyfile="dag_decl.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="230" column="1" bodyfile="dag_decl.h" bodystart="231" bodyend="237"/>
+    <listofallmembers>
+      <member refid="structDrawIndexedIndirectArgs_1a3a69831c51c2a9d5da9bda70e77c1171" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>baseVertexLocation</name></member>
+      <member refid="structDrawIndexedIndirectArgs_1a8b01207a56094c54e00127ddcdeccaa0" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>indexCountPerInstance</name></member>
+      <member refid="structDrawIndexedIndirectArgs_1a285913c5095296757713bb1ddade71e0" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>instanceCount</name></member>
+      <member refid="structDrawIndexedIndirectArgs_1a81eb5b19603c0cc425fcd31d2275fc11" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>startIndexLocation</name></member>
+      <member refid="structDrawIndexedIndirectArgs_1a9d4d56220fe132708c94c3e0d954ac95" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>startInstanceLocation</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

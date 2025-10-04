@@ -1,0 +1,505 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTpsCameraElem" kind="class" language="C++" prot="public">
+    <compoundname>TpsCameraElem</compoundname>
+    <basecompoundref refid="classCCameraElem" prot="public" virt="non-virtual">CCameraElem</basecompoundref>
+    <derivedcompoundref refid="classCarCameraElem" prot="public" virt="non-virtual">CarCameraElem</derivedcompoundref>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+    <innerclass refid="structTpsCameraElem_1_1Cam" prot="protected">TpsCameraElem::Cam</innerclass>
+    <innerclass refid="structTpsCameraElem_1_1Target" prot="protected">TpsCameraElem::Target</innerclass>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classTpsCameraElem_1af5b734521f0c07c022a271ba761d70a1" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structTpsCameraElem_1_1Target" kindref="compound">TpsCameraElem::Target</ref></type>
+        <definition>struct TpsCameraElem::Target TpsCameraElem::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>TpsCameraElem::target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="242" column="10"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTpsCameraElem_1ac13a51e1b1b265ed5c52a2ae27c05616" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraElem::maxDist</definition>
+        <argsstring></argsstring>
+        <name>maxDist</name>
+        <qualifiedname>TpsCameraElem::maxDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="243" column="9" bodyfile="ec_camera_elem.h" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTpsCameraElem_1afc25ec1ed10607340af0bba72dff56ac" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structTpsCameraElem_1_1Cam" kindref="compound">TpsCameraElem::Cam</ref></type>
+        <definition>struct TpsCameraElem::Cam TpsCameraElem::cam</definition>
+        <argsstring></argsstring>
+        <name>cam</name>
+        <qualifiedname>TpsCameraElem::cam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="249" column="7"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTpsCameraElem_1af292a9359ddb0c5ddd67a5b6b9ae854e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TpsCameraElem::TpsCameraElem</definition>
+        <argsstring>()</argsstring>
+        <name>TpsCameraElem</name>
+        <qualifiedname>TpsCameraElem::TpsCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="222" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a3930f59c6daaf02250f5beb24d30b02d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TpsCameraElem::TpsCameraElem</definition>
+        <argsstring>(int cam_type)</argsstring>
+        <name>TpsCameraElem</name>
+        <qualifiedname>TpsCameraElem::TpsCameraElem</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>cam_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="223" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a555bd3567b646ed01cc0d1d305e860b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::actInternal</definition>
+        <argsstring>() override</argsstring>
+        <name>actInternal</name>
+        <qualifiedname>TpsCameraElem::actInternal</qualifiedname>
+        <reimplements refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0">actInternal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="225" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1ac1b7862595f342627e12dd1bdaa849cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>TpsCameraElem::render</qualifiedname>
+        <reimplements refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="226" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::clear</definition>
+        <argsstring>() override</argsstring>
+        <name>clear</name>
+        <qualifiedname>TpsCameraElem::clear</qualifiedname>
+        <reimplements refid="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054">clear</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="227" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::handleKeyboardInput</definition>
+        <argsstring>(unsigned viewport_id) override</argsstring>
+        <name>handleKeyboardInput</name>
+        <qualifiedname>TpsCameraElem::handleKeyboardInput</qualifiedname>
+        <reimplements refid="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39">handleKeyboardInput</reimplements>
+        <param>
+          <type>unsigned</type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+<para>Handle keyboard input using polling. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="228" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::rotate</definition>
+        <argsstring>(real dX, real dY, bool multiplySencetive, bool aroundSelection) override</argsstring>
+        <name>rotate</name>
+        <qualifiedname>TpsCameraElem::rotate</qualifiedname>
+        <reimplements refid="classCCameraElem_1a2785cf40d68476457beae35149a99b5c">rotate</reimplements>
+        <param>
+          <type>real</type>
+          <declname>dX</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>dY</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>aroundSelection</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rotate camera. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dX</parametername>
+<parametername direction="in">dY</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- rotation angles for X,Y axes </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiplySencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">aroundSelection</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use rotation center, <bold>false:</bold> rotation center is not used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="229" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::moveForward</definition>
+        <argsstring>(real deltaZ, bool multiply_sensitive, IGenViewportWnd *wnd) override</argsstring>
+        <name>moveForward</name>
+        <qualifiedname>TpsCameraElem::moveForward</qualifiedname>
+        <reimplements refid="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4">moveForward</reimplements>
+        <param>
+          <type>real</type>
+          <declname>dZ</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Move camera in Z direction. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dZ</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera Z-shift </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiplySencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="230" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::strife</definition>
+        <argsstring>(real dx, real dy, bool multiply_sensitive, bool config_sensitive) override</argsstring>
+        <name>strife</name>
+        <qualifiedname>TpsCameraElem::strife</qualifiedname>
+        <reimplements refid="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622">strife</reimplements>
+        <param>
+          <type>real</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiply_sencetive</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>config_sencetive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Strife camera (move along X,Y surface). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dx</parametername>
+<parametername direction="in">dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera shift in X,Y directions </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiply_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">config_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use camera&apos;s &apos;Turbo&apos; coefficient (acceleration for &apos;free&apos; / &apos;FPS&apos; camera if [Shift] key pressed), <bold>false:</bold> &apos;Turbo&apos; coefficient is not used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="231" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1ae4335cc5eff4da95f2907d83b2b1c70c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::moveOn</definition>
+        <argsstring>(const Point3 &amp;dpos)</argsstring>
+        <name>moveOn</name>
+        <qualifiedname>TpsCameraElem::moveOn</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dpos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="232" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTpsCameraElem_1a0734be832c4f0c259e60ee2c52c4031b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraElem::handleMouseWheel</definition>
+        <argsstring>(int dz) override</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>TpsCameraElem::handleMouseWheel</qualifiedname>
+        <reimplements refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63">handleMouseWheel</reimplements>
+        <param>
+          <type>int</type>
+          <declname>delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse wheel rotation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if it&apos;s &gt; 0 then the wheel was rotated forward (away from user), if &lt; 0 then it was rotated backward </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="234" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+      </node>
+      <node id="3">
+        <label>CarCameraElem</label>
+        <link refid="classCarCameraElem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TpsCameraElem</label>
+        <link refid="classTpsCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>vpw</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+      <node id="4">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+      <node id="1">
+        <label>TpsCameraElem</label>
+        <link refid="classTpsCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>target</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>cam</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>TpsCameraElem::Cam</label>
+        <link refid="structTpsCameraElem_1_1Cam"/>
+      </node>
+      <node id="6">
+        <label>TpsCameraElem::Target</label>
+        <link refid="structTpsCameraElem_1_1Target"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_elem.h" line="219" column="1" bodyfile="ec_camera_elem.h" bodystart="220" bodyend="250"/>
+    <listofallmembers>
+      <member refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>aboveSurface</name></member>
+      <member refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>act</name></member>
+      <member refid="classTpsCameraElem_1a555bd3567b646ed01cc0d1d305e860b7" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>actInternal</name></member>
+      <member refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>bow</name></member>
+      <member refid="classTpsCameraElem_1afc25ec1ed10607340af0bba72dff56ac" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>cam</name></member>
+      <member refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" prot="protected" virt="virtual"><scope>TpsCameraElem</scope><name>canPutCapsule</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>CAR_CAMERA</name></member>
+      <member refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>CCameraElem</name></member>
+      <member refid="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>clear</name></member>
+      <member refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>config</name></member>
+      <member refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>currentType</name></member>
+      <member refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>forwardZCurrent</name></member>
+      <member refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>forwardZFuture</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>FPS_CAMERA</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>FREE_CAMERA</name></member>
+      <member refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>freeCamEnterPos</name></member>
+      <member refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>getCamera</name></member>
+      <member refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>getConfig</name></member>
+      <member refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>getMultiplier</name></member>
+      <member refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>getSurfPos</name></member>
+      <member refid="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>handleKeyboardInput</name></member>
+      <member refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>handleMouseMove</name></member>
+      <member refid="classTpsCameraElem_1a0734be832c4f0c259e60ee2c52c4031b" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>handleMouseWheel</name></member>
+      <member refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>initPosition</name></member>
+      <member refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>load</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>MAX_CAMERA</name></member>
+      <member refid="classTpsCameraElem_1ac13a51e1b1b265ed5c52a2ae27c05616" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>maxDist</name></member>
+      <member refid="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>moveForward</name></member>
+      <member refid="classTpsCameraElem_1ae4335cc5eff4da95f2907d83b2b1c70c" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>moveOn</name></member>
+      <member refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>moveUp</name></member>
+      <member refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>multiply</name></member>
+      <member refid="classTpsCameraElem_1ac1b7862595f342627e12dd1bdaa849cf" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>render</name></member>
+      <member refid="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>rotate</name></member>
+      <member refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>rotateXCurrent</name></member>
+      <member refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>rotateXFuture</name></member>
+      <member refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>rotateYCurrent</name></member>
+      <member refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>rotateYFuture</name></member>
+      <member refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>save</name></member>
+      <member refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>setAboveSurf</name></member>
+      <member refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>setAboveSurface</name></member>
+      <member refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>setAboveSurfFuture</name></member>
+      <member refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>setCamera</name></member>
+      <member refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>setMultiply</name></member>
+      <member refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>setViewportWindow</name></member>
+      <member refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>showConfigDlg</name></member>
+      <member refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>stop</name></member>
+      <member refid="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>strife</name></member>
+      <member refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>strifeXCurrent</name></member>
+      <member refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>strifeXFuture</name></member>
+      <member refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>strifeYCurrent</name></member>
+      <member refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>strifeYFuture</name></member>
+      <member refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>switchCamera</name></member>
+      <member refid="classTpsCameraElem_1af5b734521f0c07c022a271ba761d70a1" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>target</name></member>
+      <member refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>thisCamType</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>TPS_CAMERA</name></member>
+      <member refid="classTpsCameraElem_1af292a9359ddb0c5ddd67a5b6b9ae854e" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>TpsCameraElem</name></member>
+      <member refid="classTpsCameraElem_1a3930f59c6daaf02250f5beb24d30b02d" prot="public" virt="non-virtual"><scope>TpsCameraElem</scope><name>TpsCameraElem</name></member>
+      <member refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>upYCurrent</name></member>
+      <member refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>upYFuture</name></member>
+      <member refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" prot="protected" virt="non-virtual"><scope>TpsCameraElem</scope><name>vpw</name></member>
+      <member refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" prot="public" virt="virtual"><scope>TpsCameraElem</scope><name>~CCameraElem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

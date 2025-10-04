@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1SamplerInfo" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::SamplerInfo</compoundname>
+    <includes refid="dag__sampler_8h" local="no">dag_sampler.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1a26e8e5b65a3575fde6ab343ada5ef599" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1aea6114c753431df075c9eae6250f6ebc" kindref="member">MipMapMode</ref></type>
+        <definition>MipMapMode d3d::SamplerInfo::mip_map_mode</definition>
+        <argsstring></argsstring>
+        <name>mip_map_mode</name>
+        <qualifiedname>d3d::SamplerInfo::mip_map_mode</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1aea6114c753431df075c9eae6250f6ebca32a843da6ea40ab3b17a3421ccdf671b" kindref="member">MipMapMode::Linear</ref></initializer>
+        <briefdescription>
+<para>MipMapMode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="90" column="14" bodyfile="dag_sampler.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1acbe701f4402ce9494f2a67aabc154e37" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befa" kindref="member">FilterMode</ref></type>
+        <definition>FilterMode d3d::SamplerInfo::filter_mode</definition>
+        <argsstring></argsstring>
+        <name>filter_mode</name>
+        <qualifiedname>d3d::SamplerInfo::filter_mode</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa32a843da6ea40ab3b17a3421ccdf671b" kindref="member">FilterMode::Linear</ref></initializer>
+        <briefdescription>
+<para>FilterMode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="91" column="14" bodyfile="dag_sampler.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1ad56ca2145d10af60add0c2702508e807" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caa" kindref="member">AddressMode</ref></type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_u</definition>
+        <argsstring></argsstring>
+        <name>address_mode_u</name>
+        <qualifiedname>d3d::SamplerInfo::address_mode_u</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaaa212b19ef5f2fb30acf92e6cbccc1f2d" kindref="member">AddressMode::Wrap</ref></initializer>
+        <briefdescription>
+<para>AddressMode for U coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="92" column="15" bodyfile="dag_sampler.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1a2ac0af9e9b248fdbad8790c9f724b08a" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caa" kindref="member">AddressMode</ref></type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_v</definition>
+        <argsstring></argsstring>
+        <name>address_mode_v</name>
+        <qualifiedname>d3d::SamplerInfo::address_mode_v</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaaa212b19ef5f2fb30acf92e6cbccc1f2d" kindref="member">AddressMode::Wrap</ref></initializer>
+        <briefdescription>
+<para>AddressMode for V coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="93" column="15" bodyfile="dag_sampler.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1a4813fc992b79bf424b6f94938335dd29" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caa" kindref="member">AddressMode</ref></type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_w</definition>
+        <argsstring></argsstring>
+        <name>address_mode_w</name>
+        <qualifiedname>d3d::SamplerInfo::address_mode_w</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaaa212b19ef5f2fb30acf92e6cbccc1f2d" kindref="member">AddressMode::Wrap</ref></initializer>
+        <briefdescription>
+<para>AddressMode for W coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="94" column="15" bodyfile="dag_sampler.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1a4b28c754ed57009aafd34c5455b1f3dd" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1BorderColor" kindref="compound">BorderColor</ref></type>
+        <definition>BorderColor d3d::SamplerInfo::border_color</definition>
+        <argsstring></argsstring>
+        <name>border_color</name>
+        <qualifiedname>d3d::SamplerInfo::border_color</qualifiedname>
+        <briefdescription>
+<para>Border color. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="95" column="15" bodyfile="dag_sampler.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1aa6995e09239865420f627faf61797c6d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float d3d::SamplerInfo::anisotropic_max</definition>
+        <argsstring></argsstring>
+        <name>anisotropic_max</name>
+        <qualifiedname>d3d::SamplerInfo::anisotropic_max</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+<para>Max anisotropic value. Only positive power of two values &lt;= 16 are valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="96" column="9" bodyfile="dag_sampler.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1SamplerInfo_1abb55a1469a05358397ca59173528b7f0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float d3d::SamplerInfo::mip_map_bias</definition>
+        <argsstring></argsstring>
+        <name>mip_map_bias</name>
+        <qualifiedname>d3d::SamplerInfo::mip_map_bias</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+<para>MipMap bias. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="97" column="9" bodyfile="dag_sampler.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1SamplerInfo_1a6edfec03c7088ec5e393fce87220b767" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator==</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>d3d::SamplerInfo::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1SamplerInfo" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="113" column="8" bodyfile="dag_sampler.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1SamplerInfo_1a5dce46d89d11228f7ebf2dedbaf500cc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator!=</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>d3d::SamplerInfo::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1SamplerInfo" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="114" column="8" bodyfile="dag_sampler.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1SamplerInfo_1a6602fd48eacc0babfdfff2d079dc6802" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator&lt;</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator&lt;</name>
+        <qualifiedname>d3d::SamplerInfo::operator&lt;</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1SamplerInfo" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="115" column="3" bodyfile="dag_sampler.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para><ref refid="structd3d_1_1SamplerInfo" kindref="compound">SamplerInfo</ref> struct. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This struct contains the information needed to create a sampler </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>d3d::BorderColor</label>
+        <link refid="structd3d_1_1BorderColor"/>
+      </node>
+      <node id="1">
+        <label>d3d::SamplerInfo</label>
+        <link refid="structd3d_1_1SamplerInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>border_color</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_sampler.h" line="88" column="1" bodyfile="dag_sampler.h" bodystart="89" bodyend="122"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1SamplerInfo_1ad56ca2145d10af60add0c2702508e807" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_u</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a2ac0af9e9b248fdbad8790c9f724b08a" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_v</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a4813fc992b79bf424b6f94938335dd29" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_w</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1aa6995e09239865420f627faf61797c6d" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>anisotropic_max</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a4b28c754ed57009aafd34c5455b1f3dd" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>border_color</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1acbe701f4402ce9494f2a67aabc154e37" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>filter_mode</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1abb55a1469a05358397ca59173528b7f0" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>mip_map_bias</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a26e8e5b65a3575fde6ab343ada5ef599" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>mip_map_mode</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a5dce46d89d11228f7ebf2dedbaf500cc" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator!=</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a6602fd48eacc0babfdfff2d079dc6802" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator&lt;</name></member>
+      <member refid="structd3d_1_1SamplerInfo_1a6edfec03c7088ec5e393fce87220b767" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

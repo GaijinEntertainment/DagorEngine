@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__gpuEventRingBuffer_8h" kind="file" language="C++">
+    <compoundname>dag_gpuEventRingBuffer.h</compoundname>
+    <includes refid="dag__fencedRingBuffer_8h" local="no">3d/dag_fencedRingBuffer.h</includes>
+    <includes local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">drv/3d/dag_query.h</includes>
+    <includes local="no">drv/3d/dag_resetDevice.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>3d/dag_fencedRingBuffer.h</label>
+        <link refid="dag__fencedRingBuffer_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_gpuEventRingBuffer.h</label>
+        <link refid="dag__gpuEventRingBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/deque.h</label>
+      </node>
+      <node id="5">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_resetDevice.h</label>
+      </node>
+      <node id="4">
+        <label>stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classGPUEventRingBuffer" prot="public">GPUEventRingBuffer</innerclass>
+    <innerclass refid="structGPUEventRingBuffer_1_1EventQuery" prot="public">GPUEventRingBuffer::EventQuery</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__fencedRingBuffer_8h" kindref="compound">3d/dag_fencedRingBuffer.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_query.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resetDevice.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="classGPUEventRingBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGPUEventRingBuffer" kindref="compound">GPUEventRingBuffer</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>uint32_t<sp/>resetCounter;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="structGPUEventRingBuffer_1_1EventQuery" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="19" refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>D3dEventQuery<sp/>*<ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="20" refid="structGPUEventRingBuffer_1_1EventQuery_1a25c86e625af435c041b95208423d26a9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1a25c86e625af435c041b95208423d26a9" kindref="member">EventQuery</ref>(D3dEventQuery<sp/>*a<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>:<sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref>(a)<sp/>{}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>rule<sp/>of<sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="structGPUEventRingBuffer_1_1EventQuery_1a1dfd170f3e23916e7a6dab1e0980d07e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1a1dfd170f3e23916e7a6dab1e0980d07e" kindref="member">~EventQuery</ref>()<sp/>{<sp/>d3d::release_event_query(<ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="23" refid="structGPUEventRingBuffer_1_1EventQuery_1a48ae72341f0d913cc03e810b41a1282e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1a48ae72341f0d913cc03e810b41a1282e" kindref="member">EventQuery</ref>(<ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;&amp;a)<sp/>:<sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref>(a.<ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref>)<sp/>{<sp/>a.q<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="24" refid="structGPUEventRingBuffer_1_1EventQuery_1a93e1dbbdb160a4ebf0c53fdd387b6306" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;<ref refid="structGPUEventRingBuffer_1_1EventQuery_1a93e1dbbdb160a4ebf0c53fdd387b6306" kindref="member">operator=</ref>(<ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;&amp;a)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::swap(<ref refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" kindref="member">q</ref>,<sp/>a.q);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29" refid="structGPUEventRingBuffer_1_1EventQuery_1a489f8a39df91246c25940ac476131d78" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery_1a489f8a39df91246c25940ac476131d78" kindref="member">EventQuery</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;a)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30" refid="structGPUEventRingBuffer_1_1EventQuery_1a0450ef3b54c1f172dc0719316cabf6c8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;<ref refid="structGPUEventRingBuffer_1_1EventQuery_1a0450ef3b54c1f172dc0719316cabf6c8" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref><sp/>&amp;a)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="32" refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/>=<sp/><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">FencedRingBuffer&lt;EventQuery&gt;::offset_type_t</ref>;</highlight></codeline>
+<codeline lineno="33" refid="classGPUEventRingBuffer_1a6e607952edc3b922426b1245ed310539" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/><ref refid="classGPUEventRingBuffer_1a6e607952edc3b922426b1245ed310539" kindref="member">invalid_offset</ref><sp/>=<sp/><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref>(~<ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref>(0));</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer&lt;EventQuery&gt;</ref><sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>;</highlight></codeline>
+<codeline lineno="36" refid="classGPUEventRingBuffer_1a35d5678c67421f66c8cd3bc701a313cc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGPUEventRingBuffer_1a35d5678c67421f66c8cd3bc701a313cc" kindref="member">GPUEventRingBuffer</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sz)<sp/>:<sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>(sz),<sp/>resetCounter(get_d3d_reset_counter())<sp/>{}</highlight></codeline>
+<codeline lineno="37" refid="classGPUEventRingBuffer_1ac399a1dcbd909f90017e0f0a696d637d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1ac399a1dcbd909f90017e0f0a696d637d" kindref="member">finishCurrentFrame</ref>()</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>D3dEventQuery<sp/>*q<sp/>=<sp/>d3d::create_event_query();</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>d3d::issue_event_query(q);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.finishCurrentFrame(<ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref>{q});</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classGPUEventRingBuffer_1a2c2df8bebff5e1d1bd65b0ac6ab3a4d2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/><ref refid="classGPUEventRingBuffer_1a2c2df8bebff5e1d1bd65b0ac6ab3a4d2" kindref="member">allocate</ref>(<ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/>size,<sp/><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/>alignment)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>cReset<sp/>=<sp/>get_d3d_reset_counter();</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(resetCounter<sp/>!=<sp/>cReset)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.forceReset();</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>resetCounter<sp/>=<sp/>cReset;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.allocate(size,<sp/>alignment);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53" refid="classGPUEventRingBuffer_1a77ee86f45d6089aa2705fe317e7d051b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1a77ee86f45d6089aa2705fe317e7d051b" kindref="member">forceReset</ref>()<sp/>{<sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.forceReset();<sp/>}</highlight></codeline>
+<codeline lineno="54" refid="classGPUEventRingBuffer_1ad220440733f16c58c5649b8c5f8318c1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1ad220440733f16c58c5649b8c5f8318c1" kindref="member">reset</ref>(<ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref><sp/>max_sz)<sp/>{<sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.reset(max_sz);<sp/>}</highlight></codeline>
+<codeline lineno="55" refid="classGPUEventRingBuffer_1add0fe3d2f99919c8dd1d379c107c7ed5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1add0fe3d2f99919c8dd1d379c107c7ed5" kindref="member">releaseCompletedFrames</ref>()</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.releaseCompletedFrames([&amp;](</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;f)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d::get_event_query_status(f.q,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/>});</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59" refid="classGPUEventRingBuffer_1ac5db04cee96d64ccaeb8da7d560fa0b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGPUEventRingBuffer_1ac5db04cee96d64ccaeb8da7d560fa0b5" kindref="member">updateLast</ref>(intptr_t<sp/>allocated_minus_actual_used)<sp/>{<sp/><ref refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" kindref="member">buffer</ref>.updateLast(allocated_minus_actual_used);<sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_gpuEventRingBuffer.h"/>
+  </compounddef>
+</doxygen>

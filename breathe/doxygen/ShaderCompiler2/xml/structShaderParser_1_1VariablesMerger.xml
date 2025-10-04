@@ -1,0 +1,455 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1VariablesMerger" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::VariablesMerger</compoundname>
+    <includes refid="variablesMerger_8h" local="no">variablesMerger.h</includes>
+    <innerclass refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" prot="public">ShaderParser::VariablesMerger::MergedVarInfo</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ShaderParser::VariablesMerger</qualifiedname>
+        <enumvalue id="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" prot="public">
+          <name>TYPE_FLOAT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a590b802a1c05f6326ae2e1a25d30854d" prot="public">
+          <name>TYPE_INT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" prot="public">
+          <name>TYPE_UINT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" prot="public">
+          <name>TYPE_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="30" column="3" bodyfile="variablesMerger.h" bodystart="31" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" prot="public" static="no">
+        <type>Tab&lt; ShaderTerminal::state_block_stat * &gt;</type>
+        <definition>using ShaderParser::VariablesMerger::MergeableStateBlocks =  Tab&lt;ShaderTerminal::state_block_stat *&gt;</definition>
+        <argsstring></argsstring>
+        <name>MergeableStateBlocks</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergeableStateBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="65" column="3" bodyfile="variablesMerger.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" prot="public" static="no">
+        <type>eastl::array&lt; <ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref>,(int) ShaderStage::STAGE_MAX &gt;</type>
+        <definition>using ShaderParser::VariablesMerger::MergeableStateBlocksPerStage =  eastl::array&lt;MergeableStateBlocks, (int)ShaderStage::STAGE_MAX&gt;</definition>
+        <argsstring></argsstring>
+        <name>MergeableStateBlocksPerStage</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergeableStateBlocksPerStage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="66" column="3" bodyfile="variablesMerger.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" prot="public" static="no">
+        <type>eastl::fixed_vector&lt; <ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" kindref="compound">MergedVarInfo</ref>, 4 &gt;</type>
+        <definition>using ShaderParser::VariablesMerger::MergedVars =  eastl::fixed_vector&lt;MergedVarInfo, 4&gt;</definition>
+        <argsstring></argsstring>
+        <name>MergedVars</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="67" column="3" bodyfile="variablesMerger.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" prot="public" static="no">
+        <type>ska::flat_hash_map&lt; eastl::string, <ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref> &gt;</type>
+        <definition>using ShaderParser::VariablesMerger::MergedVarsMap =  ska::flat_hash_map&lt;eastl::string, MergedVars&gt;</definition>
+        <argsstring></argsstring>
+        <name>MergedVarsMap</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarsMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="68" column="3" bodyfile="variablesMerger.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" prot="public" static="no">
+        <type>eastl::array&lt; <ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref>,(int) ShaderStage::STAGE_MAX &gt;</type>
+        <definition>using ShaderParser::VariablesMerger::MergedVarsMapsPerStage =  eastl::array&lt;MergedVarsMap, (int)ShaderStage::STAGE_MAX&gt;</definition>
+        <argsstring></argsstring>
+        <name>MergedVarsMapsPerStage</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarsMapsPerStage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="69" column="3" bodyfile="variablesMerger.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" kindref="member">MergeableStateBlocksPerStage</ref></type>
+        <definition>MergeableStateBlocksPerStage ShaderParser::VariablesMerger::constBlocks</definition>
+        <argsstring></argsstring>
+        <name>constBlocks</name>
+        <qualifiedname>ShaderParser::VariablesMerger::constBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="71" column="32" bodyfile="variablesMerger.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">MergedVarsMapsPerStage</ref></type>
+        <definition>MergedVarsMapsPerStage ShaderParser::VariablesMerger::constVarsMaps</definition>
+        <argsstring></argsstring>
+        <name>constVarsMaps</name>
+        <qualifiedname>ShaderParser::VariablesMerger::constVarsMaps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="72" column="26" bodyfile="variablesMerger.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref></type>
+        <definition>MergeableStateBlocks ShaderParser::VariablesMerger::bufferedBlocks</definition>
+        <argsstring></argsstring>
+        <name>bufferedBlocks</name>
+        <qualifiedname>ShaderParser::VariablesMerger::bufferedBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="73" column="24" bodyfile="variablesMerger.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref></type>
+        <definition>MergedVarsMap ShaderParser::VariablesMerger::bufferedVarsMap</definition>
+        <argsstring></argsstring>
+        <name>bufferedVarsMap</name>
+        <qualifiedname>ShaderParser::VariablesMerger::bufferedVarsMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="74" column="17" bodyfile="variablesMerger.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderParser::VariablesMerger::bufferedStatsNames</definition>
+        <argsstring></argsstring>
+        <name>bufferedStatsNames</name>
+        <qualifiedname>ShaderParser::VariablesMerger::bufferedStatsNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="78" column="17" bodyfile="variablesMerger.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1aa68ebe4816e00de90bd62b65a4d38641" prot="public" static="no" mutable="no">
+        <type>eastl::bitvector</type>
+        <definition>eastl::bitvector ShaderParser::VariablesMerger::bufferedDeclaredInVs</definition>
+        <argsstring></argsstring>
+        <name>bufferedDeclaredInVs</name>
+        <qualifiedname>ShaderParser::VariablesMerger::bufferedDeclaredInVs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="79" column="4" bodyfile="variablesMerger.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1a5472b091b57e039f8ad569eea39aad53" prot="public" static="no" mutable="no">
+        <type>eastl::bitvector</type>
+        <definition>eastl::bitvector ShaderParser::VariablesMerger::bufferedDeclaredInPsOrCs</definition>
+        <argsstring></argsstring>
+        <name>bufferedDeclaredInPsOrCs</name>
+        <qualifiedname>ShaderParser::VariablesMerger::bufferedDeclaredInPsOrCs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="79" column="25" bodyfile="variablesMerger.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1a2e882ecad9fe2a972513e6746dcf03cc" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; ShaderParser::VariablesMerger::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>ShaderParser::VariablesMerger::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="81" column="22" bodyfile="variablesMerger.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1aeb5ca5d7a5e0fb3290cbb8e580e6efc6" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderParser::VariablesMerger::VariablesMerger</definition>
+        <argsstring>(shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>VariablesMerger</name>
+        <qualifiedname>ShaderParser::VariablesMerger::VariablesMerger</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="83" column="12" bodyfile="variablesMerger.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1acf31bd757796e4f7b3300dcb6e84bfbd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::VariablesMerger::addConstStat</definition>
+        <argsstring>(ShaderTerminal::state_block_stat &amp;state_block, ShaderStage stage)</argsstring>
+        <name>addConstStat</name>
+        <qualifiedname>ShaderParser::VariablesMerger::addConstStat</qualifiedname>
+        <param>
+          <type>ShaderTerminal::state_block_stat &amp;</type>
+          <declname>state_block</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="85" column="8" bodyfile="variablesMerger.h" bodystart="85" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1a92a153d67693ab2a85fb236214497778" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::VariablesMerger::addBufferedStat</definition>
+        <argsstring>(ShaderTerminal::state_block_stat &amp;state_block, ShaderStage stage)</argsstring>
+        <name>addBufferedStat</name>
+        <qualifiedname>ShaderParser::VariablesMerger::addBufferedStat</qualifiedname>
+        <param>
+          <type>ShaderTerminal::state_block_stat &amp;</type>
+          <declname>state_block</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="89" column="8" bodyfile="variablesMerger.cpp" bodystart="33" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1ad2e11edcf1bbad9c52da74741be55717" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::VariablesMerger::mergeAllVars</definition>
+        <argsstring>(AssembleShaderEvalCB *ascb)</argsstring>
+        <name>mergeAllVars</name>
+        <qualifiedname>ShaderParser::VariablesMerger::mergeAllVars</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1AssembleShaderEvalCB" kindref="compound">AssembleShaderEvalCB</ref> *</type>
+          <declname>ascb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="91" column="8" bodyfile="variablesMerger.h" bodystart="91" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1adf6147e427a59714cc526033e12e928a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref> *</type>
+        <definition>const MergedVars * ShaderParser::VariablesMerger::findOriginalConstVarsInfo</definition>
+        <argsstring>(const eastl::string merged_var_name, ShaderStage stage) const</argsstring>
+        <name>findOriginalConstVarsInfo</name>
+        <qualifiedname>ShaderParser::VariablesMerger::findOriginalConstVarsInfo</qualifiedname>
+        <param>
+          <type>const eastl::string</type>
+          <declname>merged_var_name</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="98" column="20" bodyfile="variablesMerger.h" bodystart="98" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1af42dedfbb8fca7c623510e5e8e972316" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref> *</type>
+        <definition>const MergedVars * ShaderParser::VariablesMerger::findOriginalBufferedVarsInfo</definition>
+        <argsstring>(const eastl::string merged_var_name) const</argsstring>
+        <name>findOriginalBufferedVarsInfo</name>
+        <qualifiedname>ShaderParser::VariablesMerger::findOriginalBufferedVarsInfo</qualifiedname>
+        <param>
+          <type>const eastl::string</type>
+          <declname>merged_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="102" column="20" bodyfile="variablesMerger.h" bodystart="102" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::VariablesMerger::mergeVars</definition>
+        <argsstring>(AssembleShaderEvalCB *ascb, MergeableStateBlocks &amp;blocks, MergedVarsMap &amp;var_map, ShaderStage stage)</argsstring>
+        <name>mergeVars</name>
+        <qualifiedname>ShaderParser::VariablesMerger::mergeVars</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1AssembleShaderEvalCB" kindref="compound">AssembleShaderEvalCB</ref> *</type>
+          <declname>ascb</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref> &amp;</type>
+          <declname>blocks</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref> &amp;</type>
+          <declname>var_map</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="107" column="8" bodyfile="variablesMerger.cpp" bodystart="49" bodyend="305"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref> *</type>
+        <definition>static const MergedVars * ShaderParser::VariablesMerger::findOriginalVarsInfo</definition>
+        <argsstring>(const eastl::string merged_var_name, const MergedVarsMap &amp;map)</argsstring>
+        <name>findOriginalVarsInfo</name>
+        <qualifiedname>ShaderParser::VariablesMerger::findOriginalVarsInfo</qualifiedname>
+        <param>
+          <type>const eastl::string</type>
+          <declname>merged_var_name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref> &amp;</type>
+          <declname>map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="108" column="27" bodyfile="variablesMerger.h" bodystart="108" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::VariablesMerger</label>
+        <link refid="structShaderParser_1_1VariablesMerger"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="variablesMerger.h" line="28" column="1" bodyfile="variablesMerger.h" bodystart="29" bodyend="116"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1VariablesMerger_1a92a153d67693ab2a85fb236214497778" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>addBufferedStat</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1acf31bd757796e4f7b3300dcb6e84bfbd" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>addConstStat</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>bufferedBlocks</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a5472b091b57e039f8ad569eea39aad53" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>bufferedDeclaredInPsOrCs</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aa68ebe4816e00de90bd62b65a4d38641" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>bufferedDeclaredInVs</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>bufferedStatsNames</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>bufferedVarsMap</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>constBlocks</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>constVarsMaps</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a2e882ecad9fe2a972513e6746dcf03cc" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>ctx</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1af42dedfbb8fca7c623510e5e8e972316" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>findOriginalBufferedVarsInfo</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1adf6147e427a59714cc526033e12e928a" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>findOriginalConstVarsInfo</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>findOriginalVarsInfo</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>MergeableStateBlocks</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>MergeableStateBlocksPerStage</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1ad2e11edcf1bbad9c52da74741be55717" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>mergeAllVars</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>MergedVars</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>MergedVarsMap</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>MergedVarsMapsPerStage</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>mergeVars</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>TYPE_COUNT</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>TYPE_FLOAT</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a590b802a1c05f6326ae2e1a25d30854d" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>TYPE_INT</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>TYPE_UINT</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1aeb5ca5d7a5e0fb3290cbb8e580e6efc6" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger</scope><name>VariablesMerger</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

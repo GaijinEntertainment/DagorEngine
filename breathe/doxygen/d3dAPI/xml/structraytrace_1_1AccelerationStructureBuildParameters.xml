@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1AccelerationStructureBuildParameters" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::AccelerationStructureBuildParameters</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureBuildParameters_1a1cfb0c14f4d0ed4cf6eca13ea0e75c17" prot="public" static="no" mutable="no">
+        <type>eastl::span&lt; <ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" kindref="compound">BatchedBottomAccelerationStructureBuildInfo</ref> &gt;</type>
+        <definition>eastl::span&lt;BatchedBottomAccelerationStructureBuildInfo&gt; raytrace::AccelerationStructureBuildParameters::bottomBuilds</definition>
+        <argsstring></argsstring>
+        <name>bottomBuilds</name>
+        <qualifiedname>raytrace::AccelerationStructureBuildParameters::bottomBuilds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Span of bottom level acceleration structures to build TODO can not be const for the moment... </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="412" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="412" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureBuildParameters_1a2060fb119d2c7aa19b548c28b545e86c" prot="public" static="no" mutable="no">
+        <type>eastl::span&lt; <ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" kindref="compound">BatchedTopAccelerationStructureBuildInfo</ref> &gt;</type>
+        <definition>eastl::span&lt;BatchedTopAccelerationStructureBuildInfo&gt; raytrace::AccelerationStructureBuildParameters::topBuilds</definition>
+        <argsstring></argsstring>
+        <name>topBuilds</name>
+        <qualifiedname>raytrace::AccelerationStructureBuildParameters::topBuilds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Span of top level acceleration structures to build TODO can not be const for the moment... </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="415" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="415" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureBuildParameters_1ab83f12d318ed190cf92a772525564980" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::AccelerationStructureBuildParameters::flushAfterBottomBuild</definition>
+        <argsstring></argsstring>
+        <name>flushAfterBottomBuild</name>
+        <qualifiedname>raytrace::AccelerationStructureBuildParameters::flushAfterBottomBuild</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Should the driver automatically insert a barrier to flush all bottom builds. Beware of that some drivers will always do a flush after a batch of builds. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="418" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="418" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureBuildParameters_1a7199a8b4aeb9b4b06d502e6bf0b4f612" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::AccelerationStructureBuildParameters::flushAfterTopBuild</definition>
+        <argsstring></argsstring>
+        <name>flushAfterTopBuild</name>
+        <qualifiedname>raytrace::AccelerationStructureBuildParameters::flushAfterTopBuild</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Should the driver automatically insert a barrier to flush all top builds. Beware of that some drivers will always do a flush after a batch of builds. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="421" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="421" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Holds all data for a acceleration structure build command. The structure allows to issue builds of top and bottom structures at the same time. The execution order of the data structure is as follows: 1) Build all bottom level structures 2) Flush bottom level builds, when requested 3) Build all top level structures 4) Flush top level builds, when requested </para>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="408" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="409" bodyend="422"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1AccelerationStructureBuildParameters_1a1cfb0c14f4d0ed4cf6eca13ea0e75c17" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureBuildParameters</scope><name>bottomBuilds</name></member>
+      <member refid="structraytrace_1_1AccelerationStructureBuildParameters_1ab83f12d318ed190cf92a772525564980" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureBuildParameters</scope><name>flushAfterBottomBuild</name></member>
+      <member refid="structraytrace_1_1AccelerationStructureBuildParameters_1a7199a8b4aeb9b4b06d502e6bf0b4f612" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureBuildParameters</scope><name>flushAfterTopBuild</name></member>
+      <member refid="structraytrace_1_1AccelerationStructureBuildParameters_1a2060fb119d2c7aa19b548c28b545e86c" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureBuildParameters</scope><name>topBuilds</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

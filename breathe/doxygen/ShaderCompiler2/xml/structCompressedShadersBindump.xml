@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCompressedShadersBindump" kind="struct" language="C++" prot="public">
+    <compoundname>CompressedShadersBindump</compoundname>
+    <basecompoundref refid="structShadersBindumpHeader" prot="public" virt="non-virtual">ShadersBindumpHeader</basecompoundref>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCompressedShadersBindump_1a722663c55a1b03bbb7720165212b8eb0" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t CompressedShadersBindump::decompressed_size</definition>
+        <argsstring></argsstring>
+        <name>decompressed_size</name>
+        <qualifiedname>CompressedShadersBindump::decompressed_size</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="58" column="12" bodyfile="linkShaders.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompressedShadersBindump_1a608bf222c046f653259c2fd7f3bc7e24" prot="public" static="no" mutable="no">
+        <type>bindump::vector&lt; uint8_t &gt;</type>
+        <definition>bindump::vector&lt;uint8_t&gt; CompressedShadersBindump::compressed_shaders</definition>
+        <argsstring></argsstring>
+        <name>compressed_shaders</name>
+        <qualifiedname>CompressedShadersBindump::compressed_shaders</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="59" column="19" bodyfile="linkShaders.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompressedShadersBindump_1ad676cf4e01ce5b406b14b15b07995bbf" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompressedShadersBindump::eof</definition>
+        <argsstring></argsstring>
+        <name>eof</name>
+        <qualifiedname>CompressedShadersBindump::eof</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="60" column="7" bodyfile="linkShaders.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CompressedShadersBindump</label>
+        <link refid="structCompressedShadersBindump"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadersBindumpHeader</label>
+        <link refid="structShadersBindumpHeader"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CompressedShadersBindump</label>
+        <link refid="structCompressedShadersBindump"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadersBindumpHeader</label>
+        <link refid="structShadersBindumpHeader"/>
+      </node>
+    </collaborationgraph>
+    <location file="linkShaders.h" line="56" column="1" bodyfile="linkShaders.h" bodystart="57" bodyend="61"/>
+    <listofallmembers>
+      <member refid="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>cache_sign</name></member>
+      <member refid="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>cache_version</name></member>
+      <member refid="structCompressedShadersBindump_1a608bf222c046f653259c2fd7f3bc7e24" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>compressed_shaders</name></member>
+      <member refid="structCompressedShadersBindump_1a722663c55a1b03bbb7720165212b8eb0" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>decompressed_size</name></member>
+      <member refid="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>dependency_files</name></member>
+      <member refid="structCompressedShadersBindump_1ad676cf4e01ce5b406b14b15b07995bbf" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>eof</name></member>
+      <member refid="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>hash</name></member>
+      <member refid="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1" prot="public" virt="non-virtual"><scope>CompressedShadersBindump</scope><name>last_blk_hash</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

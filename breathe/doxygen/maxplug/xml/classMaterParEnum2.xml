@@ -1,0 +1,332 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterParEnum2" kind="class" language="C++" prot="public">
+    <compoundname>MaterParEnum2</compoundname>
+    <basecompoundref refid="classMaterPar2" prot="public" virt="non-virtual">MaterPar2</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMaterParEnum2_1af33e71e546323a4484bba6ad31bf0e88" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MaterParEnum2::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>MaterParEnum2::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="153" column="7" bodyfile="mater2.cpp" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterParEnum2_1a2811cb3b60cd992e27cc26ece601a0f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MaterParEnum2::MaterParEnum2</definition>
+        <argsstring>(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p)</argsstring>
+        <name>MaterParEnum2</name>
+        <qualifiedname>MaterParEnum2::MaterParEnum2</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type><ref refid="classMaterDlg2" kindref="compound">MaterDlg2</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="135" column="3" bodyfile="mater2.cpp" bodystart="2388" bodyend="2391"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1a3041fa8db4bff4f093c5c3142fad76b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MaterParEnum2::~MaterParEnum2</definition>
+        <argsstring>() override</argsstring>
+        <name>~MaterParEnum2</name>
+        <qualifiedname>MaterParEnum2::~MaterParEnum2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="136" column="3" bodyfile="mater2.cpp" bodystart="2393" bodyend="2393"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1a89e13c1d5ceae3ceb07dbc91ba6a9df0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL MaterParEnum2::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>MaterParEnum2::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="138" column="8" bodyfile="mater2.cpp" bodystart="2395" bodyend="2472"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1ac3e975da68ebc40a8f9d8c48ab39d7b6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MaterParEnum2::GetType</definition>
+        <argsstring>() const override</argsstring>
+        <name>GetType</name>
+        <qualifiedname>MaterParEnum2::GetType</qualifiedname>
+        <reimplements refid="classMaterPar2_1a0b8cf2388c9fb114b5e1739b46077a5d">GetType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="140" column="15" bodyfile="mater2.cpp" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1a1cf877edd967a09a1be14e599a83cebe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterParEnum2::GetCount</definition>
+        <argsstring>()</argsstring>
+        <name>GetCount</name>
+        <qualifiedname>MaterParEnum2::GetCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="142" column="7" bodyfile="mater2.cpp" bodystart="2504" bodyend="2504"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1a546a4bb0108f7783166f0df85cd1ea5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TCHAR *</type>
+        <definition>TCHAR * MaterParEnum2::GetRadioName</definition>
+        <argsstring>(int at)</argsstring>
+        <name>GetRadioName</name>
+        <qualifiedname>MaterParEnum2::GetRadioName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="144" column="9" bodyfile="mater2.cpp" bodystart="2506" bodyend="2506"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1a2296c5d2f35e7f2ebfccef6809778aeb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterParEnum2::GetRadioState</definition>
+        <argsstring>(int at)</argsstring>
+        <name>GetRadioState</name>
+        <qualifiedname>MaterParEnum2::GetRadioState</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="145" column="7" bodyfile="mater2.cpp" bodystart="2508" bodyend="2508"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1af73a201823d911065345785d00f3051f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterParEnum2::GetRadioSelected</definition>
+        <argsstring>()</argsstring>
+        <name>GetRadioSelected</name>
+        <qualifiedname>MaterParEnum2::GetRadioSelected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="147" column="7" bodyfile="mater2.cpp" bodystart="2510" bodyend="2510"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMaterParEnum2_1a2376bb288321094def6e37a74b9f1321" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterParEnum2::GetValue</definition>
+        <argsstring>()</argsstring>
+        <name>GetValue</name>
+        <qualifiedname>MaterParEnum2::GetValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="150" column="8" bodyfile="mater2.cpp" bodystart="2474" bodyend="2489"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParEnum2_1aba3f5c399ce24a8ee0fa6f3b8ee1a831" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterParEnum2::SetValue</definition>
+        <argsstring>(const M_STD_STRING v)</argsstring>
+        <name>SetValue</name>
+        <qualifiedname>MaterParEnum2::SetValue</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="151" column="8" bodyfile="mater2.cpp" bodystart="2491" bodyend="2502"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>MaterPar2</label>
+        <link refid="classMaterPar2"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>MaterParEnum2</label>
+        <link refid="classMaterParEnum2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="5">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="4">
+        <label>MaterDlg2</label>
+        <link refid="classMaterDlg2"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>MaterPar2</label>
+        <link refid="classMaterPar2"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>MaterParEnum2</label>
+        <link refid="classMaterParEnum2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>Mtl</label>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="11">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="9">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="8">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="132" column="1" bodyfile="mater2.cpp" bodystart="133" bodyend="154"/>
+    <listofallmembers>
+      <member refid="classMaterPar2_1a4c1afd44df04af1b5a358b82524e3f22" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>ActivateDlg</name></member>
+      <member refid="classMaterPar2_1afd08ab5f3e5637587baad64779533bc7" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>ClassID</name></member>
+      <member refid="classMaterParEnum2_1af33e71e546323a4484bba6ad31bf0e88" prot="private" virt="non-virtual"><scope>MaterParEnum2</scope><name>count</name></member>
+      <member refid="classMaterPar2_1afe179f9a5b922f729e6371ad81a0a1b9" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>creating</name></member>
+      <member refid="classMaterPar2_1aae35c6c2e4f7c22735bd18d35bdb4835" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>DeleteThis</name></member>
+      <member refid="classMaterParEnum2_1a1cf877edd967a09a1be14e599a83cebe" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetCount</name></member>
+      <member refid="classMaterParEnum2_1a546a4bb0108f7783166f0df85cd1ea5e" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetRadioName</name></member>
+      <member refid="classMaterParEnum2_1af73a201823d911065345785d00f3051f" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetRadioSelected</name></member>
+      <member refid="classMaterParEnum2_1a2296c5d2f35e7f2ebfccef6809778aeb" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetRadioState</name></member>
+      <member refid="classMaterPar2_1a2b2995b8fb828becb93e2e3f428e60aa" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetThing</name></member>
+      <member refid="classMaterParEnum2_1ac3e975da68ebc40a8f9d8c48ab39d7b6" prot="public" virt="virtual"><scope>MaterParEnum2</scope><name>GetType</name></member>
+      <member refid="classMaterParEnum2_1a2376bb288321094def6e37a74b9f1321" prot="private" virt="non-virtual"><scope>MaterParEnum2</scope><name>GetValue</name></member>
+      <member refid="classMaterPar2_1a9258279f740a6788db10f4c5318a7b64" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>hPanel</name></member>
+      <member refid="classMaterPar2_1a9b604df5d9881b1c7e7d53e44c72da09" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>hSType</name></member>
+      <member refid="classMaterPar2_1aceef5132505ae851ce1db7387e0fc9bf" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>MaterPar2</name></member>
+      <member refid="classMaterParEnum2_1a2811cb3b60cd992e27cc26ece601a0f5" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>MaterParEnum2</name></member>
+      <member refid="classMaterPar2_1a529d1fd6063f458be42f344bd8950dfc" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>name</name></member>
+      <member refid="classMaterPar2_1a65b6047e9dff9f727b33c4e04600a415" prot="protected" virt="non-virtual"><scope>MaterParEnum2</scope><name>parent</name></member>
+      <member refid="classMaterPar2_1a37973b73a4569ba68bba9d1565e3b9ed" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>ReloadDialog</name></member>
+      <member refid="classMaterPar2_1a7afc13b720bbedc63db3546adb562998" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>SetThing</name></member>
+      <member refid="classMaterPar2_1ab296ff842d59c7b23e4a311cbb055503" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>SetTime</name></member>
+      <member refid="classMaterParEnum2_1aba3f5c399ce24a8ee0fa6f3b8ee1a831" prot="private" virt="non-virtual"><scope>MaterParEnum2</scope><name>SetValue</name></member>
+      <member refid="classMaterPar2_1a463c0df61e6a80c84e70d94b2311cacf" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>value</name></member>
+      <member refid="classMaterParEnum2_1a89e13c1d5ceae3ceb07dbc91ba6a9df0" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>WndProc</name></member>
+      <member refid="classMaterPar2_1ae89020e13bb7b7e89468dee35282d566" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>~MaterPar2</name></member>
+      <member refid="classMaterParEnum2_1a3041fa8db4bff4f093c5c3142fad76b7" prot="public" virt="non-virtual"><scope>MaterParEnum2</scope><name>~MaterParEnum2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

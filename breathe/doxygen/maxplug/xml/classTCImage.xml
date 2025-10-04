@@ -1,0 +1,194 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTCImage" kind="class" language="C++" prot="public">
+    <compoundname>TCImage</compoundname>
+    <includes refid="tPixel_8h" local="no">tPixel.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTCImage_1ab57f6cca526f8f02d9dc9f10f4e2c328" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TCImage::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>TCImage::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="40" column="7" bodyfile="tPixel.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1a9664a9f962cb9d5746e4388385dbd68d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TCImage::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>TCImage::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="41" column="7" bodyfile="tPixel.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1a622159b3e0442ffa39cf2732c3267994" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TCImage::byte_pitch</definition>
+        <argsstring></argsstring>
+        <name>byte_pitch</name>
+        <qualifiedname>TCImage::byte_pitch</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="42" column="7" bodyfile="tPixel.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1a0b32643469c4a10784d71b4b23fcefb8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TCImage::nPlanes</definition>
+        <argsstring></argsstring>
+        <name>nPlanes</name>
+        <qualifiedname>TCImage::nPlanes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="43" column="7" bodyfile="tPixel.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1aed2e01aa0477b542e2e7196f993fe4af" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TCImage::nPlanesInFile</definition>
+        <argsstring></argsstring>
+        <name>nPlanesInFile</name>
+        <qualifiedname>TCImage::nPlanesInFile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="44" column="7" bodyfile="tPixel.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1a354333be586a8bb39a9dcc80f72977bf" prot="public" static="no" mutable="no">
+        <type><ref refid="tPixel_8h_1a60883d4958a60b91661e97027a85072a" kindref="member">PixelFormat</ref></type>
+        <definition>PixelFormat TCImage::pf</definition>
+        <argsstring></argsstring>
+        <name>pf</name>
+        <qualifiedname>TCImage::pf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="46" column="15" bodyfile="tPixel.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1abac529a4026032c49cd801939a357ae8" prot="public" static="no" mutable="no">
+        <type><ref refid="uniontPixel" kindref="compound">tPixel</ref> *</type>
+        <definition>tPixel* TCImage::pixels</definition>
+        <argsstring></argsstring>
+        <name>pixels</name>
+        <qualifiedname>TCImage::pixels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="49" column="12" bodyfile="tPixel.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1a3dfd7640d25bd52cf671e5a75d4d7d10" prot="public" static="no" mutable="no">
+        <type><ref refid="structfpPixel" kindref="compound">fpPixel</ref> *</type>
+        <definition>fpPixel* TCImage::fppixels</definition>
+        <argsstring></argsstring>
+        <name>fppixels</name>
+        <qualifiedname>TCImage::fppixels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="50" column="13" bodyfile="tPixel.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTCImage_1aeded12699ab7c714aa0b4f716e3f165a" prot="public" static="no" mutable="no">
+        <type>union <ref refid="classTCImage" kindref="compound">TCImage</ref></type>
+        <definition>union TCImage TCImage</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>TCImage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="51" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTCImage_1ac6266092c4e806cccc4e765502a1b24d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TCImage::TCImage</definition>
+        <argsstring>()</argsstring>
+        <name>TCImage</name>
+        <qualifiedname>TCImage::TCImage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="52" column="3" bodyfile="tPixel.h" bodystart="52" bodyend="56"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>TCImage</label>
+        <link refid="classTCImage"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pixels</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>fppixels</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>fpPixel</label>
+        <link refid="structfpPixel"/>
+      </node>
+      <node id="3">
+        <label>rgba_t</label>
+        <link refid="structrgba__t"/>
+      </node>
+      <node id="2">
+        <label>tPixel</label>
+        <link refid="uniontPixel"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>c</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tPixel.h" line="37" column="1" bodyfile="tPixel.h" bodystart="38" bodyend="57"/>
+    <listofallmembers>
+      <member refid="classTCImage_1a622159b3e0442ffa39cf2732c3267994" prot="public" virt="non-virtual"><scope>TCImage</scope><name>byte_pitch</name></member>
+      <member refid="classTCImage_1a3dfd7640d25bd52cf671e5a75d4d7d10" prot="public" virt="non-virtual"><scope>TCImage</scope><name>fppixels</name></member>
+      <member refid="classTCImage_1a9664a9f962cb9d5746e4388385dbd68d" prot="public" virt="non-virtual"><scope>TCImage</scope><name>height</name></member>
+      <member refid="classTCImage_1a0b32643469c4a10784d71b4b23fcefb8" prot="public" virt="non-virtual"><scope>TCImage</scope><name>nPlanes</name></member>
+      <member refid="classTCImage_1aed2e01aa0477b542e2e7196f993fe4af" prot="public" virt="non-virtual"><scope>TCImage</scope><name>nPlanesInFile</name></member>
+      <member refid="classTCImage_1a354333be586a8bb39a9dcc80f72977bf" prot="public" virt="non-virtual"><scope>TCImage</scope><name>pf</name></member>
+      <member refid="classTCImage_1abac529a4026032c49cd801939a357ae8" prot="public" virt="non-virtual"><scope>TCImage</scope><name>pixels</name></member>
+      <member refid="classTCImage_1ac6266092c4e806cccc4e765502a1b24d" prot="public" virt="non-virtual"><scope>TCImage</scope><name>TCImage</name></member>
+      <member refid="classTCImage_1ab57f6cca526f8f02d9dc9f10f4e2c328" prot="public" virt="non-virtual"><scope>TCImage</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorMat2PostLoadCallback" kind="class" language="C++" prot="public">
+    <compoundname>DagorMat2PostLoadCallback</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PostLoadCallback</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDagorMat2PostLoadCallback_1ac81819b0a1afa37553cb10ef1f79c8f9" prot="public" static="no" mutable="no">
+        <type><ref refid="classDagorMat2" kindref="compound">DagorMat2</ref> *</type>
+        <definition>DagorMat2* DagorMat2PostLoadCallback::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>DagorMat2PostLoadCallback::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="276" column="13" bodyfile="mater2.cpp" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagorMat2PostLoadCallback_1ad4ace1e15c637bd0d4dd5c2f0ae3a203" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagorMat2PostLoadCallback::DagorMat2PostLoadCallback</definition>
+        <argsstring>()</argsstring>
+        <name>DagorMat2PostLoadCallback</name>
+        <qualifiedname>DagorMat2PostLoadCallback::DagorMat2PostLoadCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="278" column="3" bodyfile="mater2.cpp" bodystart="278" bodyend="278"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorMat2PostLoadCallback_1a2d8d2ed2f0cc41a23ecb96c0489be963" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorMat2PostLoadCallback::proc</definition>
+        <argsstring>(ILoad *iload) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>DagorMat2PostLoadCallback::proc</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <declname>iload</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="280" column="8" bodyfile="mater2.cpp" bodystart="1108" bodyend="1122"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PostLoadCallback</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="6">
+        <label>MaterDlg2</label>
+        <link refid="classMaterDlg2"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Mtl</label>
+      </node>
+      <node id="7">
+        <label>ParamDlg</label>
+      </node>
+      <node id="2">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="9">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="8">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="273" column="1" bodyfile="mater2.cpp" bodystart="274" bodyend="281"/>
+    <listofallmembers>
+      <member refid="classDagorMat2PostLoadCallback_1ad4ace1e15c637bd0d4dd5c2f0ae3a203" prot="public" virt="non-virtual"><scope>DagorMat2PostLoadCallback</scope><name>DagorMat2PostLoadCallback</name></member>
+      <member refid="classDagorMat2PostLoadCallback_1ac81819b0a1afa37553cb10ef1f79c8f9" prot="public" virt="non-virtual"><scope>DagorMat2PostLoadCallback</scope><name>parent</name></member>
+      <member refid="classDagorMat2PostLoadCallback_1a2d8d2ed2f0cc41a23ecb96c0489be963" prot="public" virt="non-virtual"><scope>DagorMat2PostLoadCallback</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

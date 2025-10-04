@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2DagCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2DagCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2DagCB_1a6f020826cb385e5d12105eef8cb1ffc9" prot="public" static="no" mutable="no">
+        <type><ref refid="classCfgShader" kindref="compound">CfgShader</ref> *</type>
+        <definition>CfgShader* Dag2DagCB::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <qualifiedname>Dag2DagCB::cfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2155" column="13" bodyfile="util.cpp" bodystart="2155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagCB_1aee7078d0a17b101fbabd0bc23fb4c0ce" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a0e673fb099db630ac89da5dd6a661e11" kindref="member">StrMap</ref></type>
+        <definition>StrMap Dag2DagCB::mats_name</definition>
+        <argsstring></argsstring>
+        <name>mats_name</name>
+        <qualifiedname>Dag2DagCB::mats_name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2157" column="10" bodyfile="util.cpp" bodystart="2157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagCB_1aa4f71a65ac985d79ddc7e258e5f5c346" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a0e673fb099db630ac89da5dd6a661e11" kindref="member">StrMap</ref></type>
+        <definition>StrMap Dag2DagCB::mats_script</definition>
+        <argsstring></argsstring>
+        <name>mats_script</name>
+        <qualifiedname>Dag2DagCB::mats_script</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2158" column="10" bodyfile="util.cpp" bodystart="2158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagCB_1ad6c96bfdccb7cab9764950a90f56183c" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* Dag2DagCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dag2DagCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2160" column="13" bodyfile="util.cpp" bodystart="2160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagCB_1ad24fb422647ff0bc653e0b5414cf576b" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue Dag2DagCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>Dag2DagCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2161" column="13" bodyfile="util.cpp" bodystart="2161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2DagCB_1a708a2c25987dad081d9b17959ecddbdc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2DagCB::Dag2DagCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>Dag2DagCB</name>
+        <qualifiedname>Dag2DagCB::Dag2DagCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2163" column="3" bodyfile="util.cpp" bodystart="2163" bodyend="2193"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagCB_1a4d92a4947f1b5ae69646baaff0421bc4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2DagCB::~Dag2DagCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dag2DagCB</name>
+        <qualifiedname>Dag2DagCB::~Dag2DagCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2195" column="3" bodyfile="util.cpp" bodystart="2195" bodyend="2195"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagCB_1a8b5805a3b79e2b324884c4aac02c86f0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Dag2DagCB::conv_mat</definition>
+        <argsstring>(Mtl *&amp;m)</argsstring>
+        <name>conv_mat</name>
+        <qualifiedname>Dag2DagCB::conv_mat</qualifiedname>
+        <param>
+          <type>Mtl *&amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2197" column="7" bodyfile="util.cpp" bodystart="2197" bodyend="2227"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagCB_1a5df50369583ae29cba6d0af8da67b1fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2DagCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2DagCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2229" column="7" bodyfile="util.cpp" bodystart="2229" bodyend="2255"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2DagCB</label>
+        <link refid="classDag2DagCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="3">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Dag2DagCB</label>
+        <link refid="classDag2DagCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cfg</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2152" column="1" bodyfile="util.cpp" bodystart="2153" bodyend="2256"/>
+    <listofallmembers>
+      <member refid="classDag2DagCB_1a6f020826cb385e5d12105eef8cb1ffc9" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>cfg</name></member>
+      <member refid="classDag2DagCB_1a8b5805a3b79e2b324884c4aac02c86f0" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>conv_mat</name></member>
+      <member refid="classDag2DagCB_1a708a2c25987dad081d9b17959ecddbdc" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>Dag2DagCB</name></member>
+      <member refid="classDag2DagCB_1ad6c96bfdccb7cab9764950a90f56183c" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>ip</name></member>
+      <member refid="classDag2DagCB_1aee7078d0a17b101fbabd0bc23fb4c0ce" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>mats_name</name></member>
+      <member refid="classDag2DagCB_1aa4f71a65ac985d79ddc7e258e5f5c346" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>mats_script</name></member>
+      <member refid="classDag2DagCB_1a5df50369583ae29cba6d0af8da67b1fe" prot="public" virt="virtual"><scope>Dag2DagCB</scope><name>proc</name></member>
+      <member refid="classDag2DagCB_1ad24fb422647ff0bc653e0b5414cf576b" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>time</name></member>
+      <member refid="classDag2DagCB_1a4d92a4947f1b5ae69646baaff0421bc4" prot="public" virt="non-virtual"><scope>Dag2DagCB</scope><name>~Dag2DagCB</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>Dag2DagCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

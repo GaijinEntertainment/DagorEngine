@@ -1,0 +1,313 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderClass" kind="class" language="C++" prot="public">
+    <compoundname>ShaderClass</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+    <innerclass refid="structShaderClass_1_1AssumedIntervalInfo" prot="public">ShaderClass::AssumedIntervalInfo</innerclass>
+    <innerclass refid="unionShaderClass_1_1StVarValue" prot="public">ShaderClass::StVarValue</innerclass>
+    <innerclass refid="classShaderClass_1_1Var" prot="public">ShaderClass::Var</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderClass_1abb3479bae66a8a5da2f495d7c6dde8db" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1VariantTable" kindref="compound">ShaderVariant::VariantTable</ref></type>
+        <definition>ShaderVariant::VariantTable ShaderClass::staticVariants</definition>
+        <argsstring></argsstring>
+        <name>staticVariants</name>
+        <qualifiedname>ShaderClass::staticVariants</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="126" column="31" bodyfile="shcode.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1afd05a0478ecbe5c13b066e4456580359" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classShaderCode" kindref="compound">ShaderCode</ref> * &gt;</type>
+        <definition>SerializableTab&lt;ShaderCode *&gt; ShaderClass::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>ShaderClass::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="128" column="19" bodyfile="shcode.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="classShaderClass_1_1Var" kindref="compound">Var</ref> &gt;</type>
+        <definition>SerializableTab&lt;Var&gt; ShaderClass::stvar</definition>
+        <argsstring></argsstring>
+        <name>stvar</name>
+        <qualifiedname>ShaderClass::stvar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="149" column="19" bodyfile="shcode.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1ae43775f78533c08cf3075fd7b1cf952c" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int &gt;</type>
+        <definition>SerializableTab&lt;int&gt; ShaderClass::shInitCode</definition>
+        <argsstring></argsstring>
+        <name>shInitCode</name>
+        <qualifiedname>ShaderClass::shInitCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="150" column="19" bodyfile="shcode.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1a7dade6337edb610925324439779864b4" prot="public" static="no" mutable="no">
+        <type>bindump::string</type>
+        <definition>bindump::string ShaderClass::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderClass::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="153" column="19" bodyfile="shcode.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1aa05c7b177b55b9d479cf7cea255a3677" prot="public" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t ShaderClass::timestamp</definition>
+        <argsstring></argsstring>
+        <name>timestamp</name>
+        <qualifiedname>ShaderClass::timestamp</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="154" column="11" bodyfile="shcode.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1a8590eaad07d664558e4a8a5453372c2d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderClass::isSelectedForDebug</definition>
+        <argsstring></argsstring>
+        <name>isSelectedForDebug</name>
+        <qualifiedname>ShaderClass::isSelectedForDebug</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="155" column="8" bodyfile="shcode.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1a86c11cc80ea041d5a25082ef6457fca3" prot="public" static="no" mutable="no">
+        <type>bindump::vector&lt; bindump::string &gt;</type>
+        <definition>bindump::vector&lt;bindump::string&gt; ShaderClass::messages</definition>
+        <argsstring></argsstring>
+        <name>messages</name>
+        <qualifiedname>ShaderClass::messages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="157" column="19" bodyfile="shcode.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClass_1aab73a00a13fd0fb68e6001548b5de6f5" prot="public" static="no" mutable="no">
+        <type>bindump::vector&lt; <ref refid="structShaderClass_1_1AssumedIntervalInfo" kindref="compound">AssumedIntervalInfo</ref> &gt;</type>
+        <definition>bindump::vector&lt;AssumedIntervalInfo&gt; ShaderClass::assumedIntervals</definition>
+        <argsstring></argsstring>
+        <name>assumedIntervals</name>
+        <qualifiedname>ShaderClass::assumedIntervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="165" column="19" bodyfile="shcode.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderClass_1a6c2558dcce5e7ee63e7d4ec9ecf77dd9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(eastl::bitvector&lt;&gt; stvarsAreDynamic)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderClass::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>eastl::bitvector&lt;&gt;</type>
+          <declname>stvarsAreDynamic</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="151" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClass_1a71349b90da635bb843b482b93db0ca87" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(SCFastNameMap uniqueStrings)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderClass::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+          <declname>uniqueStrings</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="158" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClass_1a4f0d150fdd74093642b0f81671717cf2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::ShaderClass</definition>
+        <argsstring>(const char *n=&quot;&quot;)</argsstring>
+        <name>ShaderClass</name>
+        <qualifiedname>ShaderClass::ShaderClass</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>n</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="167" column="3" bodyfile="shcode.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClass_1af8b779ffe8fece23a241478253f9b0d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::~ShaderClass</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderClass</name>
+        <qualifiedname>ShaderClass::~ShaderClass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="169" column="3" bodyfile="shcode.h" bodystart="169" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClass_1a353a7b59af68266e0eb08fd3cf64e70f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderClass::sortStaticVarsByMode</definition>
+        <argsstring>()</argsstring>
+        <name>sortStaticVarsByMode</name>
+        <qualifiedname>ShaderClass::sortStaticVarsByMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="178" column="8" bodyfile="shCode.cpp" bodystart="73" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClass_1a50005ffa656290b8617a38a80ecda50f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderClass::find_static_var</definition>
+        <argsstring>(const int variable_name_id) const</argsstring>
+        <name>find_static_var</name>
+        <qualifiedname>ShaderClass::find_static_var</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="180" column="7" bodyfile="shCode.cpp" bodystart="104" bodyend="110"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>SerializableTab&lt; ShaderClass::Var &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>SerializableTab&lt; ShaderCode * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderClass</label>
+        <link refid="classShaderClass"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>staticVariants</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>stvar</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>shInitCode</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::VariantTable</label>
+        <link refid="classShaderVariant_1_1VariantTable"/>
+      </node>
+      <node id="6">
+        <label>Tab&lt; ShaderClass::Var &gt;</label>
+      </node>
+      <node id="4">
+        <label>Tab&lt; ShaderCode * &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="shcode.h" line="121" column="1" bodyfile="shcode.h" bodystart="122" bodyend="181"/>
+    <listofallmembers>
+      <member refid="classShaderClass_1aab73a00a13fd0fb68e6001548b5de6f5" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>assumedIntervals</name></member>
+      <member refid="classShaderClass_1a6c2558dcce5e7ee63e7d4ec9ecf77dd9" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classShaderClass_1a71349b90da635bb843b482b93db0ca87" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classShaderClass_1afd05a0478ecbe5c13b066e4456580359" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>code</name></member>
+      <member refid="classShaderClass_1a50005ffa656290b8617a38a80ecda50f" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>find_static_var</name></member>
+      <member refid="classShaderClass_1a8590eaad07d664558e4a8a5453372c2d" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>isSelectedForDebug</name></member>
+      <member refid="classShaderClass_1a86c11cc80ea041d5a25082ef6457fca3" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>messages</name></member>
+      <member refid="classShaderClass_1a7dade6337edb610925324439779864b4" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>name</name></member>
+      <member refid="classShaderClass_1a4f0d150fdd74093642b0f81671717cf2" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>ShaderClass</name></member>
+      <member refid="classShaderClass_1ae43775f78533c08cf3075fd7b1cf952c" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>shInitCode</name></member>
+      <member refid="classShaderClass_1a353a7b59af68266e0eb08fd3cf64e70f" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>sortStaticVarsByMode</name></member>
+      <member refid="classShaderClass_1abb3479bae66a8a5da2f495d7c6dde8db" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>staticVariants</name></member>
+      <member refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>stvar</name></member>
+      <member refid="classShaderClass_1aa05c7b177b55b9d479cf7cea255a3677" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>timestamp</name></member>
+      <member refid="classShaderClass_1af8b779ffe8fece23a241478253f9b0d8" prot="public" virt="non-virtual"><scope>ShaderClass</scope><name>~ShaderClass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

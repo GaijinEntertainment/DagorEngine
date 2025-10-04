@@ -1,0 +1,192 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCode_1_1Pass" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCode::Pass</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a420b34cee2ab0e7d568a5abac637560f" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ShaderCode::Pass::fsh</definition>
+        <argsstring></argsstring>
+        <name>fsh</name>
+        <qualifiedname>ShaderCode::Pass::fsh</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="78" column="13" bodyfile="shcode.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a6f897137d8a481e0de3621c3ebb19f95" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ShaderCode::Pass::vprog</definition>
+        <argsstring></argsstring>
+        <name>vprog</name>
+        <qualifiedname>ShaderCode::Pass::vprog</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="79" column="13" bodyfile="shcode.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a62888e06f98c3d42ff10990c767a2a42" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::stcodeNo</definition>
+        <argsstring></argsstring>
+        <name>stcodeNo</name>
+        <qualifiedname>ShaderCode::Pass::stcodeNo</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="80" column="9" bodyfile="shcode.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a70645976588f87b6804728f045b12e6d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::stblkcodeNo</definition>
+        <argsstring></argsstring>
+        <name>stblkcodeNo</name>
+        <qualifiedname>ShaderCode::Pass::stblkcodeNo</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="81" column="9" bodyfile="shcode.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a1a5a0042ff2ee0c01d735afcfaf5e51c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::branchlessCppStcodeId</definition>
+        <argsstring></argsstring>
+        <name>branchlessCppStcodeId</name>
+        <qualifiedname>ShaderCode::Pass::branchlessCppStcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="82" column="9" bodyfile="shcode.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a016c5569a5042729fe83389ec35e1f4a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::branchlessCppStblkcodeId</definition>
+        <argsstring></argsstring>
+        <name>branchlessCppStblkcodeId</name>
+        <qualifiedname>ShaderCode::Pass::branchlessCppStblkcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="83" column="9" bodyfile="shcode.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1ad510e23c576679fcdb54263c5c10b477" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::branchedCppStcodeTableOffset</definition>
+        <argsstring></argsstring>
+        <name>branchedCppStcodeTableOffset</name>
+        <qualifiedname>ShaderCode::Pass::branchedCppStcodeTableOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="84" column="9" bodyfile="shcode.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1abe9e2f0474f5c213a15316126bde6eca" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::branchedCppStblkcodeTableOffset</definition>
+        <argsstring></argsstring>
+        <name>branchedCppStblkcodeTableOffset</name>
+        <qualifiedname>ShaderCode::Pass::branchedCppStblkcodeTableOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="85" column="9" bodyfile="shcode.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a0653591817da00efd7ea2c0382b526f7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::Pass::renderStateNo</definition>
+        <argsstring></argsstring>
+        <name>renderStateNo</name>
+        <qualifiedname>ShaderCode::Pass::renderStateNo</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="86" column="9" bodyfile="shcode.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1aa86735cccfeafe4612b3bbc73edaeb62" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; uint16_t, 3 &gt;</type>
+        <definition>eastl::array&lt;uint16_t, 3&gt; ShaderCode::Pass::threadGroupSizes</definition>
+        <argsstring></argsstring>
+        <name>threadGroupSizes</name>
+        <qualifiedname>ShaderCode::Pass::threadGroupSizes</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="87" column="18" bodyfile="shcode.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCode_1_1Pass_1a779705ff482200ba318acf68dadb18fc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderCode::Pass::scarlettWave32</definition>
+        <argsstring></argsstring>
+        <name>scarlettWave32</name>
+        <qualifiedname>ShaderCode::Pass::scarlettWave32</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="88" column="10" bodyfile="shcode.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shcode.h" line="76" column="3" bodyfile="shcode.h" bodystart="77" bodyend="89"/>
+    <listofallmembers>
+      <member refid="structShaderCode_1_1Pass_1abe9e2f0474f5c213a15316126bde6eca" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>branchedCppStblkcodeTableOffset</name></member>
+      <member refid="structShaderCode_1_1Pass_1ad510e23c576679fcdb54263c5c10b477" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>branchedCppStcodeTableOffset</name></member>
+      <member refid="structShaderCode_1_1Pass_1a016c5569a5042729fe83389ec35e1f4a" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>branchlessCppStblkcodeId</name></member>
+      <member refid="structShaderCode_1_1Pass_1a1a5a0042ff2ee0c01d735afcfaf5e51c" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>branchlessCppStcodeId</name></member>
+      <member refid="structShaderCode_1_1Pass_1a420b34cee2ab0e7d568a5abac637560f" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>fsh</name></member>
+      <member refid="structShaderCode_1_1Pass_1a0653591817da00efd7ea2c0382b526f7" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>renderStateNo</name></member>
+      <member refid="structShaderCode_1_1Pass_1a779705ff482200ba318acf68dadb18fc" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>scarlettWave32</name></member>
+      <member refid="structShaderCode_1_1Pass_1a70645976588f87b6804728f045b12e6d" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>stblkcodeNo</name></member>
+      <member refid="structShaderCode_1_1Pass_1a62888e06f98c3d42ff10990c767a2a42" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>stcodeNo</name></member>
+      <member refid="structShaderCode_1_1Pass_1aa86735cccfeafe4612b3bbc73edaeb62" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>threadGroupSizes</name></member>
+      <member refid="structShaderCode_1_1Pass_1a6f897137d8a481e0de3621c3ebb19f95" prot="public" virt="non-virtual"><scope>ShaderCode::Pass</scope><name>vprog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
