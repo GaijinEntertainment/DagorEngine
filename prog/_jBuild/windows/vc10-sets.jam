@@ -21,8 +21,8 @@ switch $(PlatformArch) {
 }
 if $(BuildDagorEngineIndependentCode) != yes {
   _DEF_C_CMDLINE +=
-    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -DNOMINMAX
-    -D_TARGET_SIMD_SSE=$(SSEVersion)
+    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -D_TARGET_SIMD_SSE=$(SSEVersion)
+    -DWIN32_LEAN_AND_MEAN= -DNOMINMAX
     /Zc:forScope /bigobj
   ;
   switch $(PlatformArch) {

@@ -13,17 +13,9 @@ local _DEF_COM_CMDLINE =
   -Wno-deprecated-declarations # e.g. auto_ptr<>
   -Wno-maybe-uninitialized # EASTL's string SSO seems to cause this
   -Wno-stringop-overflow -Wno-stringop-overread # too many false-positives
-  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall=
+  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3 -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 -D_TARGET_SIMD_SSE=$(SSEVersion)
   -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
-  -D_snprintf=snprintf
-  -D_vsnprintf=vsnprintf
-  -Dstricmp=strcasecmp
-  -Dstrnicmp=strncasecmp
-  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3
-  -D_TARGET_64BIT
-  -D_TARGET_ARCH_X86_64
   -D__LINUX__=64
-  -D_TARGET_SIMD_SSE=$(SSEVersion)
   -D__STDC_CONSTANT_MACROS
 ;
 if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB ; }
@@ -98,5 +90,7 @@ for inc in $(_INCLUDE) {
   _CPP_BASE_INCLUDES += -I $(inc) ;
   _C_BASE_INCLUDES   += -I $(inc) ;
 }
+_CPP_BASE_INCLUDES += -include supp/dag_compatibility_defines_posix.h ;
+_C_BASE_INCLUDES   += -include supp/dag_compatibility_defines_posix.h ;
 
 _DEF_C_CMDLINE = ;

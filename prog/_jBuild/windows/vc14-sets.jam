@@ -24,9 +24,8 @@ switch $(PlatformArch) {
 }
 if $(BuildDagorEngineIndependentCode) != yes {
   _DEF_C_CMDLINE +=
-    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
-    -DNOMINMAX
-    -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
+    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -D_TARGET_SIMD_SSE=$(SSEVersion)
+    -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES -DNOMINMAX -D_ALLOW_KEYWORD_MACROS=
     -DDELAYIMP_INSECURE_WRITABLE_HOOKS
     /Zc:forScope
     /Zc:inline /bigobj

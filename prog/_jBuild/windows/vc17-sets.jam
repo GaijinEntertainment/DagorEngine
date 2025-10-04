@@ -23,9 +23,8 @@ switch $(PlatformArch) {
 if $(BuildDagorEngineIndependentCode) != yes {
   local sse0 = 2 ; local sse2 = 2 ; local sse4 = 4 ; # SSE0 -> SSE2
   _DEF_C_CMDLINE +=
-    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
-    -DNOMINMAX
-    -D_TARGET_SIMD_SSE=$(sse$(SSEVersion)) -D_ALLOW_KEYWORD_MACROS=
+    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -D_TARGET_SIMD_SSE=$(sse$(SSEVersion))
+    -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES -DNOMINMAX -D_ALLOW_KEYWORD_MACROS=
     -D_USING_V110_SDK71_
     -DDELAYIMP_INSECURE_WRITABLE_HOOKS
     /Zc:forScope /J

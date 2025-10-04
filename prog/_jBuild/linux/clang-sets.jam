@@ -14,18 +14,9 @@ local _DEF_COM_CMDLINE =
   -ffunction-sections -fdata-sections -fno-omit-frame-pointer
   -ffast-math -ffinite-math-only -mrecip=none -minline-all-stringops
   -fdiagnostics-absolute-paths
-  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall=
-  -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
-  -D_snprintf=snprintf
-  -D_vsnprintf=vsnprintf
-  -Dstricmp=strcasecmp
-  -Dstrnicmp=strncasecmp
-  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3
-  -D_TARGET_64BIT
-  -D_TARGET_ARCH_X86_64
+  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3 -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 -D_TARGET_SIMD_SSE=$(SSEVersion)
   -D__LINUX__=64
-  -D_TARGET_SIMD_SSE=$(SSEVersion)
-  -D__STDC_CONSTANT_MACROS
+  -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS
 ;
 
 if $(ClangThreadSafety) = yes {
@@ -101,5 +92,7 @@ for inc in $(_INCLUDE) {
   _CPP_BASE_INCLUDES += -I $(inc) ;
   _C_BASE_INCLUDES   += -I $(inc) ;
 }
+_CPP_BASE_INCLUDES += -include supp/dag_compatibility_defines_posix.h ;
+_C_BASE_INCLUDES   += -include supp/dag_compatibility_defines_posix.h ;
 
 _DEF_C_CMDLINE = ;
