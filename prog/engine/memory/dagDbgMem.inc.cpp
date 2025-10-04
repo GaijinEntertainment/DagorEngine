@@ -851,40 +851,40 @@ protected:
     out_debug_str_fmt("[ERR] ptr not valid p=%p chk=%d  %s", dataptr, chk, label);
     G_UNUSED(skip_frames);
 #if MEM_DEBUGALLOC >= 4
-    {__asm { mov eax, chk;
-    mov ebx, dataptr asm ud2;
-  }
-}(label); // used
+    __asm mov eax, chk;
+    __asm mov ebx, dataptr;
+    __asm ud2;
+    G_UNUSED(label);
 #else
     if (chk <= -6)
       debug("invalid ptr %p, allocated: %s", dataptr, getCallStack(DebugChunk::getChunk(dataptr)->stack));
     DAG_FATAL("invalid pointer=%p in %s (chk=%d)", dataptr, label, chk);
 #endif
-}
-
-void registerPtr(DebugChunk *dc)
-{
-  dc->allocator = this;
-  if (MEM_DEBUGALLOC >= 5)
-    out_debug_str_fmt("[regPtr] dc=%p, p=%p ptrNum=%d", dc, dc->data, ptrNum);
-
-  if (!ptrList)
-  {
-    dc->next = NULL;
-    dc->prev = NULL;
-    ptrList = dc;
-    ptrNum = 1;
-    return;
   }
-  ptrList->prev = dc;
-  dc->prev = NULL;
-  dc->next = ptrList;
-  ptrList = dc;
-  ptrNum++;
-}
+
+  void registerPtr(DebugChunk *dc)
+  {
+    dc->allocator = this;
+    if (MEM_DEBUGALLOC >= 5)
+      out_debug_str_fmt("[regPtr] dc=%p, p=%p ptrNum=%d", dc, dc->data, ptrNum);
+
+    if (!ptrList)
+    {
+      dc->next = NULL;
+      dc->prev = NULL;
+      ptrList = dc;
+      ptrNum = 1;
+      return;
+    }
+    ptrList->prev = dc;
+    dc->prev = NULL;
+    dc->next = ptrList;
+    ptrList = dc;
+    ptrNum++;
+  }
 
 #if MEM_DEBUGALLOC < 4
-bool findPtr(DebugChunk *) { return true; }
+  bool findPtr(DebugChunk *) { return true; }
 #else
   bool findPtr(DebugChunk *dc)
   {
@@ -904,76 +904,75 @@ bool findPtr(DebugChunk *) { return true; }
   }
 #endif
 
-void unregisterPtr(DebugChunk *dc)
-{
-  if (MEM_DEBUGALLOC >= 5)
-    out_debug_str_fmt("[unregPtr] dc=%p, p=%p ptrNum=%d", dc, dc->data, ptrNum);
-
-  if (dc == ptrList)
+  void unregisterPtr(DebugChunk *dc)
   {
-    ptrList = ptrList->next;
-  }
-  else
-  {
-    if (dc->prev)
-      dc->prev->next = dc->next;
-    if (dc->next)
-      dc->next->prev = dc->prev;
-  }
-  ptrNum--;
-}
+    if (MEM_DEBUGALLOC >= 5)
+      out_debug_str_fmt("[unregPtr] dc=%p, p=%p ptrNum=%d", dc, dc->data, ptrNum);
 
-inline void integrityCheck()
-{
-  if (!thoroughChecks)
-    return;
-
-  DebugChunk *dc = ptrList;
-  int idx = 0, num = 0;
-
-  while (dc)
-  {
-    int chk = isPtrValid(dc->data);
-    if (chk != 1)
+    if (dc == ptrList)
     {
-      debug("last good memmgr call: %s", getCallStack(checkStack));
+      ptrList = ptrList->next;
+    }
+    else
+    {
+      if (dc->prev)
+        dc->prev->next = dc->next;
+      if (dc->next)
+        dc->next->prev = dc->prev;
+    }
+    ptrNum--;
+  }
+
+  inline void integrityCheck()
+  {
+    if (!thoroughChecks)
+      return;
+
+    DebugChunk *dc = ptrList;
+    int idx = 0, num = 0;
+
+    while (dc)
+    {
+      int chk = isPtrValid(dc->data);
+      if (chk != 1)
+      {
+        debug("last good memmgr call: %s", getCallStack(checkStack));
 #if MEM_DEBUGALLOC >= 3
-      reportInvalidPointer(dc->data, chk, 1, "integrityCheck");
+        reportInvalidPointer(dc->data, chk, 1, "integrityCheck");
 #endif
-      debug("  invalid pointer #%d: %p (chk=%d)", idx, dc->data, chk);
-      if (chk <= -6)
-        debug("  %s", getCallStack(dc->stack));
+        debug("  invalid pointer #%d: %p (chk=%d)", idx, dc->data, chk);
+        if (chk <= -6)
+          debug("  %s", getCallStack(dc->stack));
+        debug_flush(false);
+        DAG_FATAL("invalid pointer");
+        return;
+      }
+      num++;
+      dc = dc->next;
+      idx++;
+    }
+    if (num != ptrNum)
+    {
+      debug("  inconsistent number of pointers: %d != %d", num, ptrNum);
       debug_flush(false);
-      DAG_FATAL("invalid pointer");
+      DAG_FATAL("inconsistent number of pointers: %d != %d", num, ptrNum);
       return;
     }
-    num++;
-    dc = dc->next;
-    idx++;
+
+    fillStack(checkStack);
   }
-  if (num != ptrNum)
+
+  static int sort_chunks_stack_size(DebugChunk *const *a, DebugChunk *const *b)
   {
-    debug("  inconsistent number of pointers: %d != %d", num, ptrNum);
-    debug_flush(false);
-    DAG_FATAL("inconsistent number of pointers: %d != %d", num, ptrNum);
-    return;
+    int ret = memcmp(a[0]->stack, b[0]->stack, sizeof(a[0]->stack));
+    if (!ret)
+      ret = int(b[0]->dataSize - a[0]->dataSize);
+    return ret;
   }
-
-  fillStack(checkStack);
-}
-
-static int sort_chunks_stack_size(DebugChunk *const *a, DebugChunk *const *b)
-{
-  int ret = memcmp(a[0]->stack, b[0]->stack, sizeof(a[0]->stack));
-  if (!ret)
-    ret = int(b[0]->dataSize - a[0]->dataSize);
-  return ret;
-}
-static int sort_pg_total_size(PointerGroup const *a, PointerGroup const *b) { return int(b->totalSize - a->totalSize); }
-static int sort_chunks_addr(DebugChunk *const *a, DebugChunk *const *b) { return *a > *b ? 1 : *a < *b ? -1 : 0; }
-static int sort_seg_ascend(DlMemSpan const *a, DlMemSpan const *b) { return a->s > b->s ? 1 : a->s < b->s ? -1 : 0; }
-}
-;
+  static int sort_pg_total_size(PointerGroup const *a, PointerGroup const *b) { return int(b->totalSize - a->totalSize); }
+  static int sort_chunks_addr(DebugChunk *const *a, DebugChunk *const *b) { return *a > *b ? 1 : *a < *b ? -1 : 0; }
+  static int sort_seg_ascend(DlMemSpan const *a, DlMemSpan const *b) { return a->s > b->s ? 1 : a->s < b->s ? -1 : 0; }
+};
 
 
 int DagDebugMemAllocator::generation = 0x100;
