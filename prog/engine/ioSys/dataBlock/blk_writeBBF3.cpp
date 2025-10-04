@@ -47,7 +47,7 @@ public:
     if (idx == -1)
     {
       fastMap.insert(name, LambdaStrcmp(), 32);
-      int len = i_strlen(name);
+      int len = (int)strlen(name);
       totalSz += len + encode_len_sz(len);
     }
   }
@@ -72,7 +72,7 @@ public:
     for (int i = 0; i < fastMap.size(); i++)
     {
       char buf[4];
-      int len = i_strlen(fastMap[i]);
+      int len = (int)strlen(fastMap[i]);
       int sz_len = encode_len(len, buf);
       cwr.write(buf, sz_len);
       cwr.write(fastMap[i], len);

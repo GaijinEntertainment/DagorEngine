@@ -796,7 +796,7 @@ void CurveControlStandalone::handleKeyPresses(unsigned canvas_id)
     if (const char *text = ImGui::GetClipboardText())
     {
       DataBlock blk;
-      dblk::load_text(blk, make_span(text, i_strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
+      dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
       if (blk.isValid())
         mEventHandler->onWcClipboardPaste(nullptr, blk);
     }

@@ -10,7 +10,7 @@ extern "C" void dd_simplify_fname_c(char *s)
 {
   if (!s)
     return;
-  int i, len = i_strlen(s);
+  int i, len = (int)strlen(s);
 
   // check for URL format to prevent removal of ://
   if (char *semi = (char *)memchr(s, ':', len > 8 ? 8 : len))
@@ -164,7 +164,7 @@ extern "C" void dd_append_slash_c(char *fn)
 {
   if (!fn)
     return;
-  int l = i_strlen(fn);
+  int l = (int)strlen(fn);
   if (l > 0)
     if (fn[l - 1] != PATH_DELIM_BACK && fn[l - 1] != PATH_DELIM)
     {

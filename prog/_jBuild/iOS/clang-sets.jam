@@ -25,7 +25,6 @@ local _DEF_COM_CMDLINE =
   -Dstrnicmp=strncasecmp
   -D_TARGET_APPLE=2 -D_TARGET_IOS -D_TARGET_STATIC_LIB
   -D__APPLE_IOS__ -DARM_NEON_GCC_COMPATIBILITY
-  -Di_strlen=strlen
 ;
 
 if $(ClangThreadSafety) = yes {

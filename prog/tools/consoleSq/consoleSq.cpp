@@ -887,7 +887,7 @@ static String find_sqconfig_path(String &sq_config_dir)
     cur = dir;
     dir += "../";
     dd_simplify_fname_c(dir.data());
-    int newLen = i_strlen(dir.str());
+    int newLen = (int)strlen(dir.str());
     if (newLen < dir.length())
       dir.resize(newLen + 1);
     if (cur == dir)

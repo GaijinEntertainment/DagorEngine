@@ -360,7 +360,7 @@ public:
   {
     if (int max_sz = a.props.getInt("thumbnailMaxDataSize", 0))
     {
-      int aname_len = i_strlen(a.getName());
+      int aname_len = (int)strlen(a.getName());
       if (!write_built_dds_final || aname_len < 4 || strcmp(a.getName() + aname_len - 3, "$tq") != 0)
       {
         log.addMessage(log.ERROR, "%s: internal error, thumbnailMaxDataSize=%d while write_built_dds_final=%p or wrong asset",

@@ -42,7 +42,7 @@ void *dfa_open_for_read(const char *fpath, bool non_cached)
       return NULL;
     }
 
-  int fpath_slen = i_strlen(fpath);
+  int fpath_slen = (int)strlen(fpath);
   wchar_t *fpath_u16 = (wchar_t *)alloca((fpath_slen + 1) * sizeof(wchar_t));
   if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fpath, fpath_slen + 1, fpath_u16, fpath_slen + 1) == 0)
     MultiByteToWideChar(CP_ACP, 0, fpath, fpath_slen + 1, fpath_u16, fpath_slen + 1);

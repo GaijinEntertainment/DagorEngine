@@ -272,7 +272,7 @@ public:
     if (!key)
     {
       const char *dbg_string = "'\"^`";
-      int n = i_strlen(dbg_string);
+      int n = (int)strlen(dbg_string);
       if (out)
       {
         strncpy(out, dbg_string, n);

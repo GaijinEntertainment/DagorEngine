@@ -387,7 +387,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
     }
     String game_dir(0, "%s/%s", wsp->getAppDir(), appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
     simplify_fname(game_dir);
-    int game_dir_prefix_len = i_strlen(game_dir);
+    int game_dir_prefix_len = (int)strlen(game_dir);
 
     if (packlist && expBlk.getBlockByNameEx("destination")->getStr("PC", NULL))
     {

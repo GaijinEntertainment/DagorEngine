@@ -34,7 +34,7 @@ static void writeString(IGenSave &cb, const char *s)
 {
   if (!s || !*s)
     return;
-  int l = i_strlen(s);
+  int l = (int)strlen(s);
   cb.write(s, l);
 }
 

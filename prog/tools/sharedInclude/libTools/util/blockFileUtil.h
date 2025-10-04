@@ -159,7 +159,7 @@ public:
       return insert(1, &c);
     }
 
-    return insert(i_strlen(s) + 1, s);
+    return insert((int)strlen(s) + 1, s);
   }
 
   // get various data
@@ -208,7 +208,7 @@ public:
   char *getstrz()
   {
     char *p = ptr();
-    skip(i_strlen(p) + 1);
+    skip((int)strlen(p) + 1);
     return p;
   }
   // erase data at current position

@@ -43,7 +43,7 @@ void split_path(const char *path, String &location, String &filename)
     path = "";
 
   int i;
-  for (i = i_strlen(path) - 1; i >= 0; --i)
+  for (i = (int)strlen(path) - 1; i >= 0; --i)
     if (path[i] == '/' || path[i] == '\\' || path[i] == ':')
       break;
 
@@ -66,7 +66,7 @@ bool find_in_base(const char *path, const char *base, String &new_path)
   if (!path || !*path || !base || !*base)
     return false;
 
-  const int pathLen = i_strlen(path) - 1;
+  const int pathLen = (int)strlen(path) - 1;
 
   for (int i = pathLen; i >= 0; --i)
   {
@@ -344,8 +344,8 @@ String bytes_to_mb(uint64_t bytes) { return String(32, "%.2f Mb", bytes / (1024.
 //==============================================================================
 bool trail_strcmp(const char *str, const char *trail_str)
 {
-  int s_len = i_strlen(str);
-  int t_len = i_strlen(trail_str);
+  int s_len = (int)strlen(str);
+  int t_len = (int)strlen(trail_str);
   if (s_len < t_len)
     return false;
   return strcmp(str + (s_len - t_len), trail_str) == 0;
@@ -355,8 +355,8 @@ bool trail_strcmp(const char *str, const char *trail_str)
 //==============================================================================
 bool trail_stricmp(const char *str, const char *trail_str)
 {
-  int s_len = i_strlen(str);
-  int t_len = i_strlen(trail_str);
+  int s_len = (int)strlen(str);
+  int t_len = (int)strlen(trail_str);
   if (s_len < t_len)
     return false;
   return stricmp(str + (s_len - t_len), trail_str) == 0;
@@ -366,8 +366,8 @@ bool trail_stricmp(const char *str, const char *trail_str)
 //==============================================================================
 void remove_trailing_string(String &target, const char *trail_str)
 {
-  int s_len = i_strlen(target);
-  int t_len = i_strlen(trail_str);
+  int s_len = (int)strlen(target);
+  int t_len = (int)strlen(trail_str);
   if (s_len < t_len || stricmp(target.c_str() + (s_len - t_len), trail_str) != 0)
     return;
   erase_items(target, s_len - t_len, t_len);

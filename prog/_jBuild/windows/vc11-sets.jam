@@ -13,7 +13,6 @@ local _DEF_C_CMDLINE =
   -X -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -DWIN64 -Dasm=__asm -DWIN32_LEAN_AND_MEAN=
   -DNOMINMAX
   -D_TARGET_SIMD_SSE=$(SSEVersion) -D_TARGET_64BIT -D_ALLOW_KEYWORD_MACROS=
-  -Di_strlen=(int)strlen
   /c /nologo /Zc:forScope /Zp8 /J /bigobj /Zc:wchar_t
 ;
 if $(BuildDagorEngineIndependentCode) = yes { _DEF_C_CMDLINE = -X /c /nologo /Zp8 /J /Zc:wchar_t -DWIN64 ; }

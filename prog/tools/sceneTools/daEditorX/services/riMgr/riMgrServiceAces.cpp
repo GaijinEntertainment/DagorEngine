@@ -2717,7 +2717,7 @@ protected:
     {
       tmpOfs[i] = cwr.tell();
       const char *nm = blk.getBlock(i)->getStr("land");
-      cwr.writeRaw(nm, i_strlen(nm) + 1);
+      cwr.writeRaw(nm, (int)strlen(nm) + 1);
     }
 
     cwr.align8();
@@ -2814,7 +2814,7 @@ protected:
       {
         cwr.writeInt32eAt(cwr.tell(), pos + riPoolReMap[i] * (2 * cwr.PTR_SZ + 4 * sizeof(int)) + cwr.PTR_SZ);
         const char *nm = riPool.getPools()[i]->riResName;
-        cwr.writeRaw(nm, i_strlen(nm) + 1);
+        cwr.writeRaw(nm, (int)strlen(nm) + 1);
       }
     cwr.align16();
 

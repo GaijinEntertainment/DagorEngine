@@ -396,8 +396,8 @@ int dag_path_compare(const char *path1, const char *path2)
   if (!*path2)
     return 1;
 
-  const int l1 = i_strlen(path1);
-  const int l2 = i_strlen(path2);
+  const int l1 = (int)strlen(path1);
+  const int l2 = (int)strlen(path2);
 
   for (int i = 0; i < l1 && i < l2; ++i)
   {

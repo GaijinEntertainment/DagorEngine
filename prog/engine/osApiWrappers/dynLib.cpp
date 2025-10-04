@@ -19,7 +19,7 @@ void *os_dll_load(const char *filename)
 
 #elif _TARGET_PC_WIN | _TARGET_XBOX
 
-  int fn_slen = i_strlen(filename);
+  int fn_slen = (int)strlen(filename);
   wchar_t *fn_u16 = (wchar_t *)alloca((fn_slen + 1) * sizeof(wchar_t));
   if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename, fn_slen + 1, fn_u16, fn_slen + 1) == 0)
     MultiByteToWideChar(CP_ACP, 0, filename, fn_slen + 1, fn_u16, fn_slen + 1);

@@ -24,7 +24,7 @@ static int rotate_debug_files(const char *debugPath, const char *debugExt, const
   memset(debug, '\0', DAGOR_MAX_PATH);
   SNPRINTF(debug, sizeof(debug), "%s/", debugPath);
 
-  const int filenameOffset = i_strlen(debug);
+  const int filenameOffset = (int)strlen(debug);
   const int debugBufferLenght = sizeof(debug) - filenameOffset;
   char *debugFilename = debug + filenameOffset;
 
@@ -93,7 +93,7 @@ void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime
   {
     DagorDateTime t;
     get_local_time(&t);
-    int sb = i_strlen(logDirPath);
+    int sb = (int)strlen(logDirPath);
     SNPRINTF(logDirPath + sb, sizeof(logDirPath) - sb - 1, "-%04d.%02d.%02d-%02d.%02d.%02d", t.year, t.month, t.day, t.hour, t.minute,
       t.second);
   }

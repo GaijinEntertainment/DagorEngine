@@ -16,11 +16,11 @@ void win32_set_window_title_utf8(const char *title)
   if (hwnd)
   {
     wchar_t wTitle[4096];
-    int used = MultiByteToWideChar(CP_UTF8, 0, title, i_strlen(title) + 1, wTitle, 4096);
+    int used = MultiByteToWideChar(CP_UTF8, 0, title, (int)strlen(title) + 1, wTitle, 4096);
     if (used && used < 4096)
       SetWindowTextW(hwnd, wTitle);
     else
-      DAG_FATAL("title is incorrect or too big (srclen=%d, title=%s, err=%08X)", i_strlen(title), title, GetLastError());
+      DAG_FATAL("title is incorrect or too big (srclen=%u, title=%s, err=%08X)", strlen(title), title, GetLastError());
   }
 }
 

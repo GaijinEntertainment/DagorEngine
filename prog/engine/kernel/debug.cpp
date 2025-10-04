@@ -241,7 +241,7 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
   }
 #if _TARGET_STATIC_LIB
   char sbuf[256];
-  int sz = i_strlen(dagor_get_build_stamp_str(sbuf, sizeof(sbuf), "\n\n"));
+  int sz = (int)strlen(dagor_get_build_stamp_str(sbuf, sizeof(sbuf), "\n\n"));
 
   if (!debug_internal::append_files || debug_internal::append_files_stage < 2)
   {
@@ -504,7 +504,7 @@ void start_debug_system(const char *exe_fname, const char *prefix, bool datetime
       get_home_or_temp_dir_name(buf, sizeof(buf));
 #endif
     SNPRINTF(lastDbgPath, sizeof(lastDbgPath), "%s/%slast_debug", buf, prefix);
-    int sb = i_strlen(buf);
+    int sb = (int)strlen(buf);
     _snprintf(buf + sb, sizeof(buf) - sb - 1, "/%s%s", prefix, dd_get_fname(exe_fname));
     buf[sizeof(buf) - 1] = 0;
   }
@@ -516,12 +516,12 @@ void start_debug_system(const char *exe_fname, const char *prefix, bool datetime
 
     time(&rawtime);
     t = localtime(&rawtime);
-    int sb = i_strlen(buf);
+    int sb = (int)strlen(buf);
     _snprintf(buf + sb, sizeof(buf) - sb - 1, "-%04d.%02d.%02d-%02d.%02d.%02d", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday,
       t->tm_hour, t->tm_min, t->tm_sec);
     if (dd_dir_exists(buf))
     {
-      sb = i_strlen(buf);
+      sb = (int)strlen(buf);
       _snprintf(buf + sb, sizeof(buf) - sb - 1, "__%d", get_process_uid());
     }
   }

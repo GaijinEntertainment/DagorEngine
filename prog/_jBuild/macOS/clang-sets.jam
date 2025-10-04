@@ -24,7 +24,6 @@ local _DEF_COM_CMDLINE =
   -Dstrnicmp=strncasecmp
   -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT
   -D__MACOSX__
-  -Di_strlen=strlen
 ;
 
 if $(ClangThreadSafety) = yes {

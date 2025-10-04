@@ -74,7 +74,7 @@ static ID3D10Blob *compile_hlsl(const char *hlsl_text, const char *entry, const 
   ID3D10Blob *errors = NULL;
 
   G_ASSERT(d3d_compile);
-  HRESULT hr = d3d_compile(hlsl_text, i_strlen(hlsl_text), NULL, NULL, NULL, entry, profile,
+  HRESULT hr = d3d_compile(hlsl_text, (int)strlen(hlsl_text), NULL, NULL, NULL, entry, profile,
     D3DCOMPILE_OPTIMIZATION_LEVEL3 /*|D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY*/, NULL, &bytecode, &errors);
 
   drv3d_dx11::last_hres = hr;

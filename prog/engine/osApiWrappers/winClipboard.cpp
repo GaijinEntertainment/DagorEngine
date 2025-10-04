@@ -37,7 +37,7 @@ bool get_clipboard_ansi_text(char *dest, int bufSize)
 
 bool set_clipboard_ansi_text(const char *buf)
 {
-  int len = i_strlen(buf);
+  int len = (int)strlen(buf);
   if (len && OpenClipboard(NULL))
   {
     HGLOBAL clipbuffer;
@@ -79,7 +79,7 @@ bool get_clipboard_utf8_text(char *dest, int bufSize)
 
 bool set_clipboard_utf8_text(const char *buf)
 {
-  int len = i_strlen(buf);
+  int len = (int)strlen(buf);
   if (len && OpenClipboard(NULL))
   {
     HGLOBAL clipbuffer;

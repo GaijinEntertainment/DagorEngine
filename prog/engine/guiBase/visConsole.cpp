@@ -35,7 +35,7 @@ static bool paste_from_clipboard(String &edit_text, int &edit_pos)
 
   edit_text.insert(edit_pos, buf);
 
-  edit_pos += i_strlen(buf);
+  edit_pos += (int)strlen(buf);
   if (edit_pos > edit_text.length())
     edit_pos = edit_text.length();
 
@@ -180,7 +180,7 @@ bool DefaultDagorVisualConsoleDriver::processKey(int btn_id, int wchar, bool han
     {
       onCommandModified();
       editText.insert(editPos, buf);
-      editPos += i_strlen(buf);
+      editPos += (int)strlen(buf);
       if (editPos > editText.length())
         editPos = editText.length();
     }

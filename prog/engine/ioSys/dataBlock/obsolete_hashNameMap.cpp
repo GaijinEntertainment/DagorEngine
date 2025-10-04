@@ -31,7 +31,7 @@ void HashNameMap::save(IGenSave &cb, bool save_le) const
     for (int i = 0; i < names.size(); ++i)
     {
       const char *str = names[i];
-      int len32 = str ? i_strlen(str) : 0;
+      int len32 = str ? (int)strlen(str) : 0;
       G_ASSERT(len32 >= 0 && len32 < MAX_STRING_SIZE);
       writeInt16(cb, (uint16_t)len32, save_le);
     }
@@ -44,7 +44,7 @@ void HashNameMap::save(IGenSave &cb, bool save_le) const
     for (int i = 0; i < names.size(); ++i)
     {
       const char *str = names[i];
-      int len32 = str ? i_strlen(str) : 0;
+      int len32 = str ? (int)strlen(str) : 0;
       G_ASSERT(len32 >= 0 && len32 < MAX_STRING_SIZE);
       if (len32)
         cb.write(str, len32);
@@ -68,7 +68,7 @@ void HashNameMap::saveCompact(class IGenSave &cwr, bool save_le) const
     for (int j = 0; j < buckets[i].size(); ++j)
     {
       char buf[4];
-      int len = i_strlen(buckets[i][j]);
+      int len = (int)strlen(buckets[i][j]);
       int sz_len = encode_len(len, buf);
       cwr.write(buf, sz_len);
       cwr.write(buckets[i][j], len);

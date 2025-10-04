@@ -55,7 +55,7 @@ static void __cdecl hard_except_handler_named(EXCEPTION_POINTERS *eptr, char *bu
   {
     WinHwExceptionUtils::setupCrashDumpFileName();
 
-    int fn_slen = i_strlen(debug_internal::dbgCrashDumpPath);
+    int fn_slen = (int)strlen(debug_internal::dbgCrashDumpPath);
     wchar_t *fn_u16 = (wchar_t *)alloca((fn_slen + 1) * sizeof(wchar_t));
     if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, debug_internal::dbgCrashDumpPath, fn_slen + 1, fn_u16, fn_slen + 1) == 0)
       MultiByteToWideChar(CP_ACP, 0, debug_internal::dbgCrashDumpPath, fn_slen + 1, fn_u16, fn_slen + 1);

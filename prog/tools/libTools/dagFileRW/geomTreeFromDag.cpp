@@ -114,7 +114,7 @@ void GeomNodeTreeBuilder::buildFromDagNodes(Node *sc_root, const char *unimporta
 
   if (unimportant_nodes_prefix && *unimportant_nodes_prefix)
   {
-    int un_prefix_len = i_strlen(unimportant_nodes_prefix);
+    int un_prefix_len = (int)strlen(unimportant_nodes_prefix);
     Tab<int> n_remap;
     n_remap.resize(nodes.size());
     mem_set_ff(n_remap);

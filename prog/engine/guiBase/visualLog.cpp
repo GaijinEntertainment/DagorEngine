@@ -125,7 +125,7 @@ void logmsg(const char *text, LogItemCBProc cb, void *param, E3DCOLOR color, int
     int n = append_items(tabItems, 1);
     LogItem &li = tabItems[n];
 
-    int slen = i_strlen(text);
+    int slen = (int)strlen(text);
     li.text.setStr(text, slen < 6000 ? slen : 6000);
     li.color = color;
     li.cb = cb;

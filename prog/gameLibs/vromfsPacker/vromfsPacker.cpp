@@ -264,7 +264,7 @@ static bool write_digital_signature(FullFileSaveCB &cwr, const char *infname, Me
       retval = false;
       goto done;
     }
-    int fileNameLength = i_strlen(fileName);
+    int fileNameLength = (int)strlen(fileName);
     if (!EVP_SignUpdate(ctx, fileName, fileNameLength))
       goto sign_fail;
     if (!EVP_SignFinal(ctx, signature, &real_sign_size, pkey))

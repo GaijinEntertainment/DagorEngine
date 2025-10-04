@@ -1617,7 +1617,7 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
 
 
   //  DEBUG_CTX("scanning for GRP in %s", path);
-  gameresprivate::curRelFnOfs = i_strlen(path);
+  gameresprivate::curRelFnOfs = (int)strlen(path);
   gameresprivate::gameResPatchInProgress = allow_override;
 
   // scan gameres packs

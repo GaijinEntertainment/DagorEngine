@@ -97,7 +97,7 @@ int wchar_to_symbol(wchar_t wc, char *buffer, int buffer_sz)
   if (!wchar_to_utf8(wc, buffer, buffer_sz - 1))
     return 0;
 
-  return buffer[0] ? i_strlen(buffer) : 0;
+  return buffer[0] ? (int)strlen(buffer) : 0;
 }
 
 

@@ -25,7 +25,6 @@ local _DEF_COM_CMDLINE =
   -D_TARGET_ARCH_X86_64
   -D__LINUX__=64
   -D_TARGET_SIMD_SSE=$(SSEVersion)
-  -Di_strlen=(int)strlen
   -D__STDC_CONSTANT_MACROS
 ;
 

@@ -268,7 +268,7 @@ static void preprocess(char *buf, int &len, const char *target, bool keepLines, 
 static int getBlockEnd(const char *str, const char block_chr)
 {
   if (block_chr == '\0')
-    return i_strlen(str);
+    return (int)strlen(str);
 
   int i = 0;
   while (str[i] != '\0')

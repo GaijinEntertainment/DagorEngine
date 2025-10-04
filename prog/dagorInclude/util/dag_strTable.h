@@ -32,7 +32,7 @@ struct StrTable
     int old_len = len;
     int l = 0;
     for (int i = 0; i < in_out_table.size(); i++)
-      l += i_strlen(pred(in_out_table[i])) + 1;
+      l += (int)strlen(pred(in_out_table[i])) + 1;
     len = l;
 
     char *m = (char *)memalloc(l, strmem);
@@ -40,7 +40,7 @@ struct StrTable
     for (int i = 0; i < in_out_table.size(); ++i)
     {
       char *&s = pred(in_out_table[i]);
-      int ll = i_strlen(s) + 1;
+      int ll = (int)strlen(s) + 1;
       strcpy(m, s);
       if (replace)
       {

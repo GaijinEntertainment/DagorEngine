@@ -48,7 +48,6 @@ local _DEF_C_CMDLINE =
   -DNOMINMAX
   -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
   -D_USING_V110_SDK71_
-  -Di_strlen=(int)strlen
   -DDELAYIMP_INSECURE_WRITABLE_HOOKS
   /c /nologo /Zc:forScope /J /Zc:inline
   /Zc:dllexportInlines-

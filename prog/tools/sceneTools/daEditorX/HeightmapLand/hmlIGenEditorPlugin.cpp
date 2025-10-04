@@ -4539,7 +4539,7 @@ bool HmapLandPlugin::getAllSunSettings()
 template <class T>
 bool flushDataTo(const char *base_path, const char *orig_base_path, T &map)
 {
-  int base_path_slen = i_strlen(base_path);
+  int base_path_slen = (int)strlen(base_path);
   if (strcmp(base_path, orig_base_path) == 0)
   {
     if (strncmp(map.getFileName(), base_path, base_path_slen) != 0)
@@ -4549,7 +4549,7 @@ bool flushDataTo(const char *base_path, const char *orig_base_path, T &map)
 
   debug("SaveAs: flushDataTo(%s, %s, %p(%s))", base_path, orig_base_path, &map, map.getFileName());
 
-  int orig_base_path_slen = i_strlen(orig_base_path);
+  int orig_base_path_slen = (int)strlen(orig_base_path);
   if (strncmp(map.getFileName(), orig_base_path, orig_base_path_slen) != 0)
   {
     DAEDITOR3.conError("Internal error: map=%s, orig_base_path=%s", map.getFileName(), orig_base_path);

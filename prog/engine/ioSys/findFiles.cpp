@@ -68,7 +68,7 @@ static void find_vromfs_files_in_folder(Tab<SimpleString> &out_list, const char 
       base_path_prefix = df_base_path[bpi];
     }
 
-    int suffix_len = i_strlen(file_suffix_to_match);
+    int suffix_len = (int)strlen(file_suffix_to_match);
     String prefix(0, "%s%s/", base_path_prefix, *dir_path ? dir_path : ".");
     String suffix(file_suffix_to_match);
     dd_simplify_fname_c(prefix);
@@ -76,10 +76,10 @@ static void find_vromfs_files_in_folder(Tab<SimpleString> &out_list, const char 
     dd_strlwr(prefix);
     dd_strlwr(suffix);
 
-    iterate_vroms([&](VirtualRomFsData *entry, size_t) {
+    iterate_vroms([&](VirtualRomFsData *entry, size_t) { //-V657
       const bool ret_status_continue = true;
       const char *mnt_path = get_vromfs_mount_path(entry);
-      int mnt_path_len = mnt_path ? i_strlen(mnt_path) : 0;
+      int mnt_path_len = mnt_path ? (int)strlen(mnt_path) : 0;
       if (mnt_path_len && strncmp(mnt_path, prefix, mnt_path_len) != 0)
         return ret_status_continue;
 
@@ -89,7 +89,7 @@ static void find_vromfs_files_in_folder(Tab<SimpleString> &out_list, const char 
       {
         if (strncmp(entry->files.map[j], pfx, pfx_len) == 0 && (subdirs || !strchr(entry->files.map[j] + pfx_len, '/')))
         {
-          int name_len = i_strlen(entry->files.map[j] + pfx_len);
+          int name_len = (int)strlen(entry->files.map[j] + pfx_len);
           if (name_len >= suffix_len && strcmp(entry->files.map[j] + pfx_len + name_len - suffix_len, suffix) == 0)
           {
             if (mnt_path_len)

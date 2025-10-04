@@ -32,7 +32,7 @@ clang_args = []
 is64bit = False
 isPs4 = False
 isPs5 = False
-clang_defines = ['-Dstricmp=strcasecmp', '-Di_strlen=(int)strlen',
+clang_defines = ['-Dstricmp=strcasecmp',
                  '-D__forceinline=inline',
                  '-DSEH_DISABLED', '-D_WINSOCK_DEPRECATED_NO_WARNINGS',
                  '-D_HAS_CHAR16_T_LANGUAGE_SUPPORT', '-D_CRT_SECURE_NO_WARNINGS', '-D_CRTRESTRICT', '-D_CRTNOALIAS',

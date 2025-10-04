@@ -168,7 +168,7 @@ static String make_hash_by_path(const char *path)
   if (!name)
     return String();
 
-  int len = i_strlen(++name);
+  int len = (int)strlen(++name);
   if (const char *p = strchr(name, '.'))
     len = p - name;
   if (len < 32 + 2 + (D1 ? 1 : 0) + (D2 ? 1 : 0))
@@ -257,7 +257,7 @@ bool write_index_hash(const char *out_dir, const char *idx_fn, const DataBlock &
         FullFileSaveCB cwr(hash_txt);
         if (cwr.fileHandle)
         {
-          cwr.write(hash.data(), i_strlen(hash));
+          cwr.write(hash.data(), (int)strlen(hash));
           if (!quiet)
             conlog.addMessage(conlog.NOTE, "%s SHA1 %s", idx_fn, hash);
           if (const char *fn = cfgBlk.getStr("indexHashBlk", NULL))
@@ -530,7 +530,7 @@ static int do_sweep_pass(const DataBlock &cfgBlk, bool quiet, bool sweep_erase_i
 
   // rebuild new index BLK
   FastNameMapEx guids;
-  for (int i = 0, suff_len = i_strlen(type) + 5; i < blk_list.size(); i++)
+  for (int i = 0, suff_len = (int)strlen(type) + 5; i < blk_list.size(); i++)
     if (guids.addNameId(dd_get_fname(String(0, "%.*s", strlen(blk_list[i]) - suff_len, blk_list[i]))) != i)
     {
       conlog.addMessage(conlog.ERROR, "internal error while adding blk[%d]=%s", i, blk_list[i]);

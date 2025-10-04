@@ -60,7 +60,7 @@ public:
   }
 
   // string length and emptiness test
-  int length() const { return string ? i_strlen(string) : 0; }
+  int length() const { return string ? (int)strlen(string) : 0; }
   bool empty() const { return !string || !string[0]; }
 
   // explicit cast to char* and const char*: empty string always returns ""

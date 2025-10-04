@@ -506,7 +506,7 @@ public:
   }
   void writeDwString(const char *s)
   {
-    int len = s ? i_strlen(s) : 0;
+    int len = s ? (int)strlen(s) : 0;
     writeInt32e(len);
     writeRaw(s, len);
     if (len & 3)

@@ -519,7 +519,7 @@ int CfgReader::readtext(char *text, bool clr, bool read_comments)
       }
       //      debug("<%s>",p);
       int i;
-      for (i = i_strlen(p) - 1; i >= 0; --i)
+      for (i = (int)strlen(p) - 1; i >= 0; --i)
       {
         //        debug("i=%d '%c' %d %d",i,p[i],(p[i]==qc),(iswhite(p[i])));
         if (p[i] == qc || !(iswhite(p[i])))

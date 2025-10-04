@@ -66,7 +66,7 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
   const DataBlock *b;
   int nid = blk.getNameId("pack");
   b = blk.getBlockByNameEx("ddsxTexPacks");
-  gameresprivate::curRelFnOfs = i_strlen(buf);
+  gameresprivate::curRelFnOfs = (int)strlen(buf);
   int num_dxp = 0;
   for (int i = 0; load_tex && i < b->paramCount(); i++)
     if (b->getParamType(i) == DataBlock::TYPE_STRING && b->getParamNameId(i) == nid)

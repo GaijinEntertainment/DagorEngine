@@ -17,7 +17,7 @@ static void print_header()
 
 static bool clean_extra_res_files(const char *root_dir, const char *vrom_name, const char *res_blk_name, bool clean, bool validate)
 {
-  int root_prefix_len = i_strlen(root_dir) + 1;
+  int root_prefix_len = (int)strlen(root_dir) + 1;
   String vfs_fn(0, "%s/%s", root_dir, vrom_name);
   VirtualRomFsData *vfs = load_vromfs_dump(vfs_fn, tmpmem);
   if (!vfs)

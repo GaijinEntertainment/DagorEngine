@@ -88,7 +88,6 @@ local _DEF_COM_CMDLINE =
   -D_vsnprintf=vsnprintf
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
-  -Di_strlen=strlen
   -Dstrcpy_s=strcpy
   -D_countof=countof
 ;

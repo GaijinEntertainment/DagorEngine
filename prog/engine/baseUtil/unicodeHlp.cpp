@@ -27,7 +27,7 @@ wchar_t *convert_utf8_to_u16(const char *s, int len)
 wchar_t *convert_utf8_to_u16_buf(Tab<wchar_t> &tmpU16, const char *s, int len)
 {
   if (len < 0)
-    len = i_strlen(s);
+    len = (int)strlen(s);
   else
   {
     const char *e = (const char *)memchr(s, 0, len);
@@ -48,7 +48,7 @@ wchar_t *convert_utf8_to_u16_buf(Tab<wchar_t> &tmpU16, const char *s, int len)
 wchar_t *convert_path_to_u16(Tab<wchar_t> &dest_u16, const char *s, int len)
 {
   if (len < 0)
-    len = i_strlen(s);
+    len = (int)strlen(s);
   dest_u16.resize(len + 1);
 #if _TARGET_PC_WIN && defined(_MSC_VER)
   int new_sz = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s, len + 1, dest_u16.data(), len + 1);
@@ -63,7 +63,7 @@ wchar_t *convert_path_to_u16(Tab<wchar_t> &dest_u16, const char *s, int len)
 wchar_t *convert_path_to_u16_c(wchar_t *dest_u16, int dest_sz, const char *s, int len)
 {
   if (len < 0)
-    len = i_strlen(s);
+    len = (int)strlen(s);
 
   if (len == 0 && dest_sz >= 1)
   {
@@ -99,7 +99,7 @@ char *acp_to_utf8(char *in_str, Tab<char> &out_str, int dir)
   out_str[0] = 0;
   if (!in_str)
     return out_str.data();
-  int sz = i_strlen(in_str);
+  int sz = (int)strlen(in_str);
   int buflen = sz + 1;
   wchar_t *tmp = (wchar_t *)alloca(buflen * sizeof(wchar_t));
   int cnt = MultiByteToWideChar(dir > 0 ? CP_ACP : CP_UTF8, 0, in_str, -1, tmp, buflen);

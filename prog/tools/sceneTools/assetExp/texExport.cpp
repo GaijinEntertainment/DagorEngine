@@ -398,7 +398,7 @@ public:
       {
         int i = ordmap[j];
         const char *enc_tex_nm = ordname[j];
-        int enc_tex_nm_len = i_strlen(enc_tex_nm);
+        int enc_tex_nm_len = (int)strlen(enc_tex_nm);
         if (const char *s = strchr(enc_tex_nm, '*'))
           enc_tex_nm_len = s - enc_tex_nm;
 

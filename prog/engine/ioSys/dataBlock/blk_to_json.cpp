@@ -36,7 +36,7 @@ static void writeString(IGenSave &cb, const char *s)
 {
   if (!s || !*s)
     return;
-  int l = i_strlen(s);
+  int l = (int)strlen(s);
   cb.write(s, l);
 }
 
@@ -65,7 +65,7 @@ static void writeJsonIdent(IGenSave &cb, const char *nm, bool allow_unquoted)
       return writeJsonStrQuoted(cb, nm);
   if (strcmp(nm, "true") == 0 || strcmp(nm, "false") == 0 || strcmp(nm, "null") == 0)
     return writeJsonStrQuoted(cb, nm);
-  cb.write(nm, i_strlen(nm));
+  cb.write(nm, (int)strlen(nm));
 }
 static int getAvgParamCount(const DataBlock *b)
 {

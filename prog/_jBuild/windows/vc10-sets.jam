@@ -26,8 +26,8 @@ if $(BuildDagorEngineIndependentCode) != yes {
     /Zc:forScope /bigobj
   ;
   switch $(PlatformArch) {
-    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -Di_strlen=strlen ;
-    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -Di_strlen=(int)strlen ;
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__ ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT ;
   }
 }
 if $(Analyze) = yes { _DEF_C_CMDLINE += -analyze -WX ; }

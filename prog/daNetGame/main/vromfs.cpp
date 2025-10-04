@@ -130,7 +130,7 @@ static inline dag::ConstSpan<uint8_t> *get_name_buf(dag::ConstSpan<uint8_t> &sto
 {
   if ((name = name ? dd_get_fname(name) : nullptr) != nullptr)
   {
-    stor.set((const uint8_t *)name, i_strlen(name));
+    stor.set((const uint8_t *)name, (int)strlen(name));
     return &stor;
   }
   return nullptr;

@@ -26,8 +26,8 @@ if $(BuildDagorEngineIndependentCode) != yes {
     /Zc:inline /bigobj
   ;
   switch $(PlatformArch) {
-    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -D_TARGET_ARCH_X86 -Di_strlen=strlen ;
-    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 -Di_strlen=(int)strlen ; #-D_STD_RTL_MEMORY
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -D_TARGET_ARCH_X86 ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 ; #-D_STD_RTL_MEMORY
   }
 } else {
   _DEF_C_CMDLINE += /FS ;

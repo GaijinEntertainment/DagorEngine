@@ -256,7 +256,7 @@ void ShaderMaterialsSaver::writeMatVdata(mkbindump::BinDumpSaveCB &cwr, ShaderTe
     for (int i = 0; i < shname.nameCount(); ++i)
     {
       ofs[mats.size() + i] = cwr_d.tell();
-      cwr_d.writeRaw(shname.getStringDataUnsafe(i), i_strlen(shname.getStringDataUnsafe(i)) + 1);
+      cwr_d.writeRaw(shname.getStringDataUnsafe(i), (int)strlen(shname.getStringDataUnsafe(i)) + 1);
     }
     cwr_d.align8();
 

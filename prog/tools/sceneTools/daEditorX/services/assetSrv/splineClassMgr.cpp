@@ -516,7 +516,7 @@ bool SharedSplineClassAssetData::loadGenEntities(splineclass::GenEntities &gen, 
       const char *pattern = gen_b.getStr("genTagSeq", NULL);
       if (pattern && *pattern)
       {
-        clear_and_resize(sgeg.genTagSeq, i_strlen(pattern));
+        clear_and_resize(sgeg.genTagSeq, (int)strlen(pattern));
         for (int i = 0; i < sgeg.genTagSeq.size(); i++)
         {
           if (tag_to_id[pattern[i]] == -1)
@@ -529,7 +529,7 @@ bool SharedSplineClassAssetData::loadGenEntities(splineclass::GenEntities &gen, 
       }
       if (const char *tags = gen_b.getStr("genTagFirst", NULL))
       {
-        clear_and_resize(sgeg.genTagFirst, i_strlen(tags));
+        clear_and_resize(sgeg.genTagFirst, (int)strlen(tags));
         for (int i = 0; i < sgeg.genTagFirst.size(); i++)
         {
           if (tag_to_id[tags[i]] == -1)
@@ -542,7 +542,7 @@ bool SharedSplineClassAssetData::loadGenEntities(splineclass::GenEntities &gen, 
       }
       if (const char *tags = gen_b.getStr("genTagLast", NULL))
       {
-        clear_and_resize(sgeg.genTagLast, i_strlen(tags));
+        clear_and_resize(sgeg.genTagLast, (int)strlen(tags));
         for (int i = 0; i < sgeg.genTagLast.size(); i++)
         {
           if (tag_to_id[tags[i]] == -1)
