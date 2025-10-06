@@ -49,7 +49,7 @@ public:
   {
     if (s && *s)
     {
-      int l = i_strlen(s) + 1;
+      int l = (int)strlen(s) + 1;
       resize(l);
       memcpy(data(), s, l);
     }
@@ -77,7 +77,7 @@ public:
   {
     if (s && *s)
     {
-      int l = i_strlen(s) + 1;
+      int l = (int)strlen(s) + 1;
       resize(l);
       memcpy(data(), s, l);
     }
@@ -106,8 +106,8 @@ public:
   void setSubStr(const char *begin, const char *end) { setStr(begin, end - begin); }
   void setStrCat(const char *s1, const char *s2)
   {
-    int l1 = s1 ? i_strlen(s1) : 0;
-    int l2 = s2 ? i_strlen(s2) : 0;
+    int l1 = s1 ? (int)strlen(s1) : 0;
+    int l2 = s2 ? (int)strlen(s2) : 0;
     resize(l1 + l2 + 1);
     if (l1)
       memcpy(data(), s1, l1);
@@ -117,9 +117,9 @@ public:
   }
   void setStrCat3(const char *s1, const char *s2, const char *s3)
   {
-    int l1 = i_strlen(s1);
-    int l2 = i_strlen(s2);
-    int l3 = i_strlen(s3);
+    int l1 = (int)strlen(s1);
+    int l2 = (int)strlen(s2);
+    int l3 = (int)strlen(s3);
     resize(l1 + l2 + l3 + 1);
     char *p = data();
     memcpy(p, s1, l1);
@@ -132,10 +132,10 @@ public:
   }
   void setStrCat4(const char *s1, const char *s2, const char *s3, const char *s4)
   {
-    int l1 = i_strlen(s1);
-    int l2 = i_strlen(s2);
-    int l3 = i_strlen(s3);
-    int l4 = i_strlen(s4);
+    int l1 = (int)strlen(s1);
+    int l2 = (int)strlen(s2);
+    int l3 = (int)strlen(s3);
+    int l4 = (int)strlen(s4);
     resize(l1 + l2 + l3 + l4 + 1);
     char *p = data();
     memcpy(p, s1, l1);
@@ -150,7 +150,7 @@ public:
   }
   int updateSz()
   {
-    int l = i_strlen(data());
+    int l = (int)strlen(data());
     Tab<char>::resize(l + 1);
     return l;
   };
@@ -205,11 +205,11 @@ public:
 
   /// insert text - returns position or -1 on error
   KRNLIMP int insert(int at, const char *p, int n);
-  KRNLIMP int insert(int at, const char *p) { return insert(at, p, p ? i_strlen(p) : 0); }
+  KRNLIMP int insert(int at, const char *p) { return insert(at, p, p ? (int)strlen(p) : 0); }
 
   /// append text - returns position or -1 on error
   KRNLIMP int append(const char *p, int n);
-  KRNLIMP int append(const char *p) { return append(p, p ? i_strlen(p) : 0); }
+  KRNLIMP int append(const char *p) { return append(p, p ? (int)strlen(p) : 0); }
 
   KRNLIMP int cvprintf(int est_sz, const char *fmt, va_list);         ///< replaces string
   KRNLIMP int cvprintf(int at, int est_sz, const char *fmt, va_list); ///< inserts text

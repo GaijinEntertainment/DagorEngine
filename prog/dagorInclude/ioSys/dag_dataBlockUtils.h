@@ -198,7 +198,7 @@ inline const DataBlock *get_data_block_or_file(const DataBlock &blk, const char 
     strncpy(buf, path, sizeof(buf) - 1);                                                   \
     buf[sizeof(buf) - 1] = 0;                                                              \
                                                                                            \
-    int len = i_strlen(buf);                                                               \
+    int len = (int)strlen(buf);                                                            \
     int param = 0;                                                                         \
     for (int i = 0; i < len; i++)                                                          \
     {                                                                                      \
@@ -241,7 +241,7 @@ inline const DataBlock *get_data_block_or_file(const DataBlock &blk, const char 
     strncpy(buf, path, sizeof(buf) - 1);                                                         \
     buf[sizeof(buf) - 1] = 0;                                                                    \
                                                                                                  \
-    int len = i_strlen(buf);                                                                     \
+    int len = (int)strlen(buf);                                                                  \
     int param = 0;                                                                               \
     for (int i = 0; i < len; i++)                                                                \
     {                                                                                            \
@@ -284,7 +284,7 @@ inline DataBlock *blk_cd(DataBlock *blk, const char *path)
   strncpy(buf, path, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = 0;
 
-  int len = i_strlen(buf);
+  int len = (int)strlen(buf);
   for (int i = 0; i < len; i++)
   {
     if (buf[i] == '/')
@@ -376,7 +376,7 @@ inline bool blk_path_exists(const DataBlock *blk, const char *path)
   strncpy(buf, path, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = 0;
 
-  int len = i_strlen(buf);
+  int len = (int)strlen(buf);
   int param = 0;
   for (int i = 0; i < len; i++)
   {

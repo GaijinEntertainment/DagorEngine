@@ -48,7 +48,7 @@ inline void writeObjsToPlaceDump(mkbindump::BinDumpSaveCB &cwr, dag::Span<SrcObj
     if (!objs[i].tm.size())
       continue;
     objs[i].nameOfs = cwr.tell();
-    cwr.writeRaw((char *)objs[i].resName, i_strlen(objs[i].resName) + 1);
+    cwr.writeRaw((char *)objs[i].resName, (int)strlen(objs[i].resName) + 1);
   }
   cwr.align8();
 

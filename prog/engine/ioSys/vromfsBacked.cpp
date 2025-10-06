@@ -265,14 +265,14 @@ static VirtualRomFsPack *find_backed_vromfs_file_entry(const char *fname, bool f
       const char *vromfsMp = get_vromfs_mount_path(fs);
       if (vromfsMp)
       {
-        int vromfsMpLen = i_strlen(vromfsMp);
+        int vromfsMpLen = (int)strlen(vromfsMp);
         if (strncmp(name, vromfsMp, vromfsMpLen) == 0)
           name += vromfsMpLen;
         else
           return true; // continue
       }
 
-      int idx = fn_is_prefix ? getPartialNameId(fs->files.map, name, i_strlen(name)) : fs->files.getNameId(name);
+      int idx = fn_is_prefix ? getPartialNameId(fs->files.map, name, (int)strlen(name)) : fs->files.getNameId(name);
       if (idx >= 0)
       {
         out_idx = idx;

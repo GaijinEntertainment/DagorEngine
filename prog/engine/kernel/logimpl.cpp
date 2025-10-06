@@ -137,7 +137,7 @@ static bool file_was_created_this_launch = false;
   do                                                                                   \
   {                                                                                    \
     snprintf(buf + buf_used_len, sizeof(vlog_buf) - buf_used_len, fmt, ##__VA_ARGS__); \
-    buf_used_len += i_strlen(buf + buf_used_len);                                      \
+    buf_used_len += (int)strlen(buf + buf_used_len);                                   \
   } while (0)
 
 #define LOG_TAIL_BUF (_TARGET_XBOX || _TARGET_C1 || _TARGET_C2 || _TARGET_ANDROID || _TARGET_IOS)
@@ -412,7 +412,7 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   if (!logimpl_ctors_inited)
     return;
   char *buf = vlog_buf;
-  int buf_used_len = i_strlen(buf);
+  int buf_used_len = (int)strlen(buf);
 
 #if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   if (!dbg_tid_enabled || (&dbg_ctx)->threadId)

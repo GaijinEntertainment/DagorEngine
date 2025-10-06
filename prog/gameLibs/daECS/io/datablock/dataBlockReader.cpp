@@ -571,7 +571,7 @@ static void resolve_one_import(ecs::EntityManager &mgr, TemplateRefs &templates,
     G_ASSERTF(strchr(imp_fn, '*') >= fn_with_ext, "imp_fn=%s%s", abs_path ? "#" : "", imp_fn);
 
     String fn_match_re;
-    fn_match_re.reserve(i_strlen(fn_with_ext) * 2 + 1);
+    fn_match_re.reserve((int)strlen(fn_with_ext) * 2 + 1);
     for (const char *p = fn_with_ext; *p; p++)
       if (*p == '*')
         fn_match_re += ".*";
@@ -627,7 +627,7 @@ static void resolve_templates_imports(ecs::EntityManager &mgr, const char *path,
   if (src_fn)
   {
     String src_folder;
-    src_folder.allocBuffer(i_strlen(src_fn) + 2);
+    src_folder.allocBuffer((int)strlen(src_fn) + 2);
     dd_get_fname_location(src_folder.data(), src_fn);
     dd_append_slash_c(src_folder.data());
     src_folder.updateSz();

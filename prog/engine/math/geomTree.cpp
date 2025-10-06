@@ -305,7 +305,7 @@ void GeomNodeTree::load(IGenLoad &_cb)
     n.child.patch(old_data.data());
     n.parent.patch(old_data.data());
     n.name.patch(old_data.data());
-    name_pool_sz += i_strlen(n.name) + 1;
+    name_pool_sz += (int)strlen(n.name) + 1;
   }
 
   // build new layout
@@ -337,7 +337,7 @@ void GeomNodeTree::load(IGenLoad &_cb)
     parentId[i] = (n.parent && n.parent != &n) ? Index16(n.parent.get() - old_nodes.data()) : Index16();
 
     nameOfs[i] = nm_cur_ofs;
-    int nm_len = i_strlen(n.name);
+    int nm_len = (int)strlen(n.name);
     memcpy(&data[nameOfs_ofs + nm_cur_ofs], n.name, nm_len + 1);
     nm_cur_ofs += nm_len + 1;
 

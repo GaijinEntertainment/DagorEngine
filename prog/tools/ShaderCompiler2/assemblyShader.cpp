@@ -2164,7 +2164,7 @@ void CompileShaderJob::doJobBody()
   }
 #endif
 
-  const unsigned sourceLen = i_strlen(source);
+  const unsigned sourceLen = (unsigned)strlen(source);
   if (shc::config().useSha1Cache)
   {
     const bool enableBindlessVar = shc::config().enableBindless;

@@ -134,7 +134,7 @@ unsigned get_crc32(const char *s)
     0x23D967BF, 0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D};
 
   unsigned crc32 = 0xFFFFFFFF;
-  const int strLen = i_strlen(s);
+  const int strLen = (int)strlen(s);
 
   for (int i = 0; i < strLen; ++i)
     crc32 = CRCTable[(crc32 ^ s[i]) & 0xFF] ^ (crc32 >> 8);

@@ -1817,7 +1817,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     }
     String game_dir(0, "%s/%s", app_dir, appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
     simplify_fname(game_dir);
-    int game_dir_prefix_len = i_strlen(game_dir);
+    int game_dir_prefix_len = (int)strlen(game_dir);
 
     if (packlist && expBlk.getBlockByNameEx("destination")->getStr("PC", NULL))
     {
@@ -2579,7 +2579,7 @@ static void copy_asset_props_to_stream(DagorAsset *a, IGenSave &cwr, bool add_as
   if (add_asset_closure)
   {
     tmp.printf(0, "%s {\n", a->getName());
-    cwr.write(tmp.str(), i_strlen(tmp));
+    cwr.write(tmp.str(), (int)strlen(tmp));
   }
 
   if (a->isVirtual())
@@ -2591,7 +2591,7 @@ static void copy_asset_props_to_stream(DagorAsset *a, IGenSave &cwr, bool add_as
   else
     tmp.printf(0, "// %s", a->getSrcFilePath());
   tmp.append("\n");
-  cwr.write(tmp.str(), i_strlen(tmp));
+  cwr.write(tmp.str(), (int)strlen(tmp));
   a->props.saveToTextStream(cwr);
   if (add_asset_closure)
     cwr.write("}\n\n", 3);
@@ -2599,13 +2599,13 @@ static void copy_asset_props_to_stream(DagorAsset *a, IGenSave &cwr, bool add_as
 static void copy_terse_lod_asset_props_to_stream(DagorAsset *a, IGenSave &cwr)
 {
   String tmp(0, "%s { ", a->getName());
-  cwr.write(tmp.str(), i_strlen(tmp));
+  cwr.write(tmp.str(), (int)strlen(tmp));
   int lodIndex = 0;
   for (int i = 0, nid = a->props.getNameId("lod"); i < a->props.blockCount(); i++)
     if (a->props.getBlock(i)->getBlockNameId() == nid)
     {
       tmp.printf(0, "lod%d:r=%g; ", lodIndex, a->props.getBlock(i)->getReal("range", 0));
-      cwr.write(tmp.str(), i_strlen(tmp));
+      cwr.write(tmp.str(), (int)strlen(tmp));
       ++lodIndex;
     }
   cwr.write("}\n", 2);
@@ -3323,7 +3323,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
               DynamicMemGeneralSaveCB cwr(tmpmem, 0, 4 << 10);
               String tmp(0, "// folder %s (%s)\n", f->folderName, f->folderPath);
-              cwr.write(tmp, i_strlen(tmp));
+              cwr.write(tmp, (int)strlen(tmp));
               for (int j = out_start_idx; j < out_end_idx; j++)
               {
                 DagorAsset &a = assetMgr.getAsset(j);

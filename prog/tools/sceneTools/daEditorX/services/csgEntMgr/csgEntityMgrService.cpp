@@ -832,7 +832,7 @@ public:
       if (stepW > 1)
       {
         mpat = fblk->getStr("genPattern", "*");
-        mpatLen = i_strlen(mpat);
+        mpatLen = (int)strlen(mpat);
         if (!mpatLen)
           mpat = " ", mpatLen = 1;
       }

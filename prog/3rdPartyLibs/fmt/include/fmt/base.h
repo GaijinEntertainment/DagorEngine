@@ -419,6 +419,9 @@ inline auto map(int128_opt) -> monostate { return {}; }
 inline auto map(uint128_opt) -> monostate { return {}; }
 #endif
 
+#if defined(__clang__) && defined(__e2k__) && (FMT_CLANG_VERSION < 1800) && !defined(FMT_USE_BITINT)
+#  define FMT_USE_BITINT 0
+#endif
 #ifndef FMT_USE_BITINT
 #  define FMT_USE_BITINT (FMT_CLANG_VERSION >= 1500)
 #endif

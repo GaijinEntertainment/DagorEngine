@@ -1515,7 +1515,7 @@ int DagorWinMain(bool debugmode)
     }
 
     const char *s2 = jap ? process_japanese_string(s.data(), sep_char) : process_chinese_string(s.data(), sep_char);
-    df_write(fpOut, s2, i_strlen(s2));
+    df_write(fpOut, s2, (int)strlen(s2));
     df_close(fpOut);
     printf("%s word breaks to %s text\n  %s -> %s\n%d bytes -> %d bytes\n", (s.size() - 1 != strlen(s2)) ? "added" : "no new",
       jap ? "japanese" : "chinese", dgs_argv[1], dgs_argv[3], int(s.size() - 1), int(strlen(s2)));

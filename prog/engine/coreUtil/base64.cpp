@@ -11,7 +11,7 @@ static const char sixtet_to_base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn
 
 void Base64::operator=(const char *s)
 {
-  int l = i_strlen(s);
+  int l = (int)strlen(s);
   ensureAlloced(l + 1);
   strcpy((char *)data, s);
   len = l;

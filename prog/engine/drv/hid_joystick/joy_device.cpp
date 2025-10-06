@@ -96,7 +96,7 @@ bool Di8JoystickDevice::isEqual(Di8JoystickDevice *dev)
 void Di8JoystickDevice::setDeviceName(const char *nm)
 {
   name = nm;
-  for (int l = i_strlen(name) - 1; l >= 0; l--)
+  for (int l = (int)strlen(name) - 1; l >= 0; l--)
     if (strchr(" \t\n\r", name[l]))
       name[l] = 0;
     else
@@ -183,7 +183,7 @@ void Di8JoystickDevice::addPovHat(const char *hat_name)
   PovHatData &phd = povHats.push_back();
   phd.name = hat_name;
   for (int i = 0; i < 2; i++)
-    phd.axisName[i].printf(i_strlen(hat_name) + 4, "%s%d", hat_name, i ? "_V" : "_H");
+    phd.axisName[i].printf(0, "%s%d", hat_name, i ? "_V" : "_H");
 }
 
 

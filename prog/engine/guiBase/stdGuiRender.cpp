@@ -39,7 +39,7 @@
 
 #define CVT_TO_UTF16_ON_STACK(tmpU16, s, len)                       \
   if (len < 0)                                                      \
-    len = i_strlen(s);                                              \
+    len = (int)strlen(s);                                           \
   else                                                              \
   {                                                                 \
     const char *e = (const char *)memchr(s, 0, len);                \

@@ -421,7 +421,7 @@ public:
         if (fp)
         {
           const char *p = proc ? proc->getUserFriendlyName() : "=READY=";
-          int len = i_strlen(p) + 1;
+          int len = (int)strlen(p) + 1;
 
           fwrite(p, 1, len, fp);
           fclose(fp);

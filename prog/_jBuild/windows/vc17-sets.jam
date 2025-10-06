@@ -23,18 +23,17 @@ switch $(PlatformArch) {
 if $(BuildDagorEngineIndependentCode) != yes {
   local sse0 = 2 ; local sse2 = 2 ; local sse4 = 4 ; # SSE0 -> SSE2
   _DEF_C_CMDLINE +=
-    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
-    -DNOMINMAX
-    -D_TARGET_SIMD_SSE=$(sse$(SSEVersion)) -D_ALLOW_KEYWORD_MACROS=
+    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -D_TARGET_SIMD_SSE=$(sse$(SSEVersion))
+    -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES -DNOMINMAX -D_ALLOW_KEYWORD_MACROS=
     -D_USING_V110_SDK71_
     -DDELAYIMP_INSECURE_WRITABLE_HOOKS
     /Zc:forScope /J
     /Zc:inline /bigobj /Zc:wchar_t
   ;
   switch $(PlatformArch) {
-    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -D_TARGET_ARCH_X86 -Di_strlen=strlen ;
-    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 -Di_strlen=(int)strlen ; #-D_STD_RTL_MEMORY
-    case arm64 :  _DEF_C_CMDLINE =  -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(sse$(SSEVersion)) ] -D_TARGET_SIMD_NEON -Di_strlen=(int)strlen /wd4746 ;
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -D_TARGET_ARCH_X86 ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 ; #-D_STD_RTL_MEMORY
+    case arm64 :  _DEF_C_CMDLINE =  -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(sse$(SSEVersion)) ] -D_TARGET_SIMD_NEON /wd4746 ;
   }
 }
 if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : -D_USING_V110_SDK71_ ] -analyze -WX ; }

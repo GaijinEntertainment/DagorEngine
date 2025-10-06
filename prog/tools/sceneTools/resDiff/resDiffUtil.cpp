@@ -306,7 +306,7 @@ bool GrpBinData::findRes(dag::Span<GrpBinData> grp, int pair_idx, const char *re
 bool DxpBinData::findTex(dag::ConstSpan<DxpBinData> dxp, int pair_idx, const char *tex_name, const ddsx::Header &hdr, int &old_idx,
   int &old_rec_idx)
 {
-  int name_len = i_strlen(tex_name);
+  int name_len = (int)strlen(tex_name);
   if (pair_idx >= 0)
   {
     old_rec_idx = DxpBinData::resolveNameId(dxp[pair_idx].data->texNames.map, tex_name, name_len);
@@ -848,7 +848,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       else
         tmpStr = name;
       simplify_fname(tmpStr);
-      cwr.writeRaw(tmpStr, i_strlen(tmpStr) + 1);
+      cwr.writeRaw(tmpStr, (int)strlen(tmpStr) + 1);
       i++;
     });
 

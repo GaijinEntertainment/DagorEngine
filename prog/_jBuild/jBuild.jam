@@ -1865,7 +1865,7 @@ if $(ReproducibleExeBuild) = yes {
 rule GatherUsedLibs
 {
   for t_jamfile in $($(1)__Dependencies) { $(2) += $($($(t_jamfile)_Target)__UseLibs) ; }
-  for t_jamfile in $($(1)__Dependencies) { if $($(t_jamfile)_Target:S) != ".dll" { GatherUsedLibs $($(t_jamfile)_Target) : $(2) ; } }
+  for t_jamfile in $($(1)__Dependencies) { if ! $($(t_jamfile)_Target:S) in .dll .so .dylib { GatherUsedLibs $($(t_jamfile)_Target) : $(2) ; } }
 }
 
 rule MarkSourcesChanged # sources : tmp_dir : recompile_list_varname : suffixes

@@ -16,7 +16,7 @@ static int fn_remove_cnt = 0;
 
 static inline const char *fn_dup(const char *fn)
 {
-  int len = i_strlen(fn) + 1;
+  int len = (int)strlen(fn) + 1;
   if (fn_next_ptr + len - fn_storage > sizeof(fn_storage))
   {
     if (!fn_remove_cnt)

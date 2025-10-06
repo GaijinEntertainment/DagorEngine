@@ -434,7 +434,7 @@ public:
       return NULL;
     }
 
-    int real_name_len = i_strlen(real_name);
+    int real_name_len = (int)strlen(real_name);
     DDSxTexturePack2 *pack = nullptr;
     unsigned file_struct_ofs = 0;
     if (hdr[1] == 3)

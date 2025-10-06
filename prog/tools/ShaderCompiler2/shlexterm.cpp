@@ -247,7 +247,7 @@ static InputFile open_input_file(const char *fn)
   String inc_fpath;
   if (dd_file_exists(fn))
     inc_fpath.setStrCat(get_cwd(), fn);
-  else if (!process_include(inc_fpath, fn, i_strlen(fn)))
+  else if (!process_include(inc_fpath, fn, (int)strlen(fn)))
     inc_fpath = fn;
 
   if (!input.include_alefile(inc_fpath))

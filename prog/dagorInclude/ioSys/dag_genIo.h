@@ -114,7 +114,7 @@ public:
       return;
     }
 
-    int len = i_strlen(s);
+    int len = (int)strlen(s);
     writeInt(len);
     write(s, len);
     alignOnDword(len);
@@ -141,7 +141,7 @@ public:
       return;
     }
 
-    int len = i_strlen(s);
+    int len = (int)strlen(s);
     if (len > 0xFFFF)
       len = 0xFFFF;
     writeIntP<2>(len);

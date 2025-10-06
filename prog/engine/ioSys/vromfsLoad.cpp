@@ -1122,7 +1122,7 @@ void close_vromfs_pack(VirtualRomFsPack *fs, IMemAlloc *mem)
 VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_file_link(IMemAlloc *mem, const char *dest_fn, int base_ofs, int data_len,
   const char *rel_fn)
 {
-  int dest_fn_lenz = i_strlen(dest_fn) + 1, rel_fn_lenz = rel_fn ? i_strlen(rel_fn) + 1 : 0;
+  int dest_fn_lenz = (int)strlen(dest_fn) + 1, rel_fn_lenz = rel_fn ? (int)strlen(rel_fn) + 1 : 0;
 
   VirtualRomFsSingleFile *fs = (VirtualRomFsSingleFile *)mem->alloc(
     sizeof(VirtualRomFsSingleFile) + sizeof(PatchableTab<const char>) + sizeof(PatchablePtr<const char>) + dest_fn_lenz + rel_fn_lenz);
@@ -1160,7 +1160,7 @@ VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_file_link(IMemAlloc *mem, c
 VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_mem_data(IMemAlloc *mem, void *data, int data_len, const char *rel_fn,
   bool copy_data)
 {
-  int rel_fn_lenz = i_strlen(rel_fn) + 1;
+  int rel_fn_lenz = (int)strlen(rel_fn) + 1;
 
   VirtualRomFsSingleFile *fs =
     (VirtualRomFsSingleFile *)mem->alloc(sizeof(VirtualRomFsSingleFile) + sizeof(PatchableTab<const char>) +

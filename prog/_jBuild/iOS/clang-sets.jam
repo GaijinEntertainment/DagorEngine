@@ -18,14 +18,8 @@ local _DEF_COM_CMDLINE =
   -Wno-nan-infinity-disabled
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only -mrecip=none
-  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall
-  -D_snprintf=snprintf
-  -D_vsnprintf=vsnprintf
-  -Dstricmp=strcasecmp
-  -Dstrnicmp=strncasecmp
   -D_TARGET_APPLE=2 -D_TARGET_IOS -D_TARGET_STATIC_LIB
   -D__APPLE_IOS__ -DARM_NEON_GCC_COMPATIBILITY
-  -Di_strlen=strlen
 ;
 
 if $(ClangThreadSafety) = yes {
@@ -105,6 +99,8 @@ for inc in $(_INCLUDE) {
   _CPP_BASE_INCLUDES += -I $(inc) ;
   _C_BASE_INCLUDES   += -I $(inc) ;
 }
+_CPP_BASE_INCLUDES += -include supp/dag_compatibility_defines_posix.h ;
+_C_BASE_INCLUDES   += -include supp/dag_compatibility_defines_posix.h ;
 
 _DEF_C_CMDLINE = ;
 

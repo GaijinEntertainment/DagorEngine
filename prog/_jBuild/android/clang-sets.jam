@@ -70,27 +70,18 @@ local _DEF_COM_CMDLINE =
   -resource-dir "$(_A_NDK_DIR)/toolchains/llvm/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/$(_AndroidClangLibFolder)/clang/$(_AndroidClangVer)"
   -isystem $(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++/include
   -isystem $(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++abi/include
-  -D__ANDROID_API__=$(AndroidApiMinVer)
   -Werror -Wno-trigraphs -Wno-multichar -Wno-pointer-sign -Wno-varargs
   -Wno-deprecated-register -Wno-null-dereference -Wno-unused-value
   -Wno-constant-conversion -Wno-pointer-bool-conversion -Wno-nullability-completeness
   -Wno-inconsistent-missing-override -Wno-c++17-compat-mangling
   -Wno-nonportable-include-path
-  -DANDROID_NDK -DANDROID -D__ANDROID__ -D__ARM_EABI__
   -fno-strict-aliasing #-fno-omit-frame-pointer -fno-short-enums
   -fpic -fstack-protector
   -ffunction-sections -fno-data-sections
   -ffast-math -ffinite-math-only -mrecip=none
-  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall=
-  -D_TARGET_ANDROID
-  -D_TARGET_STATIC_LIB
-  -D_snprintf=snprintf
-  -D_vsnprintf=vsnprintf
-  -Dstricmp=strcasecmp
-  -Dstrnicmp=strncasecmp
-  -Di_strlen=strlen
-  -Dstrcpy_s=strcpy
-  -D_countof=countof
+  -D_TARGET_ANDROID -D_TARGET_STATIC_LIB
+  -DANDROID_NDK -DANDROID -D__ANDROID__ -D__ARM_EABI__
+  -D__ANDROID_API__=$(AndroidApiMinVer)
 ;
 
 if $(ClangThreadSafety) = yes {
@@ -185,8 +176,16 @@ _INCLUDE      =
 ;
 
 # make compiler cmd-line ###
-_CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -isystem $(Root)/prog/dagorInclude "-I "$(Root)/prog/1stPartyLibs "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;
-_C_BASE_INCLUDES   = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -isystem $(Root)/prog/dagorInclude "-I "$(Root)/prog/1stPartyLibs ;
+_CPP_BASE_INCLUDES =
+  "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude)
+  -isystem $(Root)/prog/dagorInclude -include supp/dag_compatibility_defines_android.h
+  "-I "$(Root)/prog/1stPartyLibs "-I "$(Root)/prog/3rdPartyLibs/eastl/include
+;
+_C_BASE_INCLUDES =
+  "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude)
+  -isystem $(Root)/prog/dagorInclude -include supp/dag_compatibility_defines_android.h
+  "-I "$(Root)/prog/1stPartyLibs
+;
 
 # _CPP_BASE_INCLUDES +=
 #   -I $(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++/include

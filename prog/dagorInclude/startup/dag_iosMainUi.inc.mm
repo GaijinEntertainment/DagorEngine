@@ -768,7 +768,7 @@ static int rotate_debug_files(const char *log_name, const char *debug_path, cons
   memset(debug, '\0', DAGOR_MAX_PATH);
   SNPRINTF(debug, sizeof(debug), "%s/", debug_path);
 
-  const int filenameOffset = i_strlen(debug);
+  const int filenameOffset = (int)strlen(debug);
   const int debugBufferLenght = sizeof(debug) - filenameOffset;
   char *debugFilename = debug + filenameOffset;
 

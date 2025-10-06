@@ -84,7 +84,7 @@ static void mask_to_ofs(int mask, int &ofs, int &shift, int target_sz)
   __bit_scan_forward(o, mask);
   __bit_scan_reverse(s, mask);
 #else
-  asm
+  __asm
     {
     mov eax, 32
     mov ebx, mask

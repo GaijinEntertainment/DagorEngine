@@ -105,7 +105,7 @@ static void calc_bounding_bbox(const DagorAsset *asset, const AScene &dag_scene,
   bool forceBoxCollision = asset->props.getBool("forceBoxCollision", false);
 
   bool treeCapsule = false;
-  if (!dd_strnicmp(dag_obj.name, "_Clip", i_strlen("_Clip")))
+  if (!dd_strnicmp(dag_obj.name, "_Clip", (int)strlen("_Clip")))
     ;
   else if (forceBoxCollision)
     ;
@@ -281,7 +281,7 @@ static void calc_tm(Node *node)
 
 void remove_suffix(char *buff, const char *str, const char *suffix)
 {
-  int suffixLen = i_strlen(suffix);
+  int suffixLen = (int)strlen(suffix);
   if (suffixLen > 0)
   {
     if (const char *suffixPos = strstr(str, suffix))

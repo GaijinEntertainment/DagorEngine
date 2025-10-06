@@ -147,7 +147,7 @@ void ConstantBuffers::create()
       DXFATAL(dx_device->CreateBuffer(&desc, NULL, &psConstBuffer[i]), "ps ConstBuffer");
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
       if (psConstBuffer[i])
-        psConstBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen("PS_CONST_BUFFER"), "PS_CONST_BUFFER");
+        psConstBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen("PS_CONST_BUFFER"), "PS_CONST_BUFFER");
 #endif
     }
 
@@ -159,7 +159,7 @@ void ConstantBuffers::create()
     DXFATAL(dx_device->CreateBuffer(&desc, NULL, &csConstBuffer[0]), "cs ConstBuffer");
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
     if (csConstBuffer[0])
-      csConstBuffer[0]->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen("CS_CONST_BUFFER0"), "CS_CONST_BUFFER0");
+      csConstBuffer[0]->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen("CS_CONST_BUFFER0"), "CS_CONST_BUFFER0");
 #endif
     csCurrentBuffer = 0;
   }
@@ -184,7 +184,7 @@ static ID3D11Buffer *create_const_buffer(int size, const char *name)
   DXFATAL(dx_device->CreateBuffer(&desc, NULL, &buffer), "cbuffer: %s", name);
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
   if (buffer)
-    buffer->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(name), name);
+    buffer->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(name), name);
 #endif
 
   return buffer;
@@ -621,7 +621,7 @@ void set_vertex_shader_debug_info(VPROG vpr, const char *debug_info)
   {
     VertexShader &vs = g_vertex_shaders[vpr];
     if (vs.shader)
-      vs.shader->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(debug_info), debug_info);
+      vs.shader->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(debug_info), debug_info);
   }
 }
 
@@ -631,7 +631,7 @@ void set_pixel_shader_debug_info(FSHADER fsh, const char *debug_info)
   {
     PixelShader &ps = g_pixel_shaders[fsh];
     if (ps.shader)
-      ps.shader->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(debug_info), debug_info);
+      ps.shader->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(debug_info), debug_info);
   }
 }
 

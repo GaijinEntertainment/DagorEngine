@@ -497,7 +497,7 @@ public:
 
       int type = COLLISION_NODE_TYPE_MESH;
       bool tree_capsule = false;
-      if (!dd_strnicmp(dagObjectsList[objectNo].name, "_Clip", i_strlen("_Clip")))
+      if (!dd_strnicmp(dagObjectsList[objectNo].name, "_Clip", (int)strlen("_Clip")))
       {
         type = COLLISION_NODE_TYPE_POINTS;
       }

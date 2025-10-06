@@ -15,7 +15,7 @@ void mkbindump::StrCollector::writeStrings(BinDumpSaveCB &cwr)
 {
   clear_and_resize(ofs, str.nameCount());
   iterate_names_in_lexical_order(str, [&, this](int id, const char *name) {
-    int len = i_strlen(name);
+    int len = (int)strlen(name);
     ofs[id] = cwr.tell();
     cwr.writeRaw(name, len + 1);
   });
@@ -37,7 +37,7 @@ void mkbindump::StrCollector::writeStringsEx(BinDumpSaveCB &cwr, dag::Span<StrCo
 
     if (!found)
     {
-      int len = i_strlen(m_name);
+      int len = (int)strlen(m_name);
       ofs[m_id] = cwr.tell();
       cwr.writeRaw(m_name, len + 1);
     }

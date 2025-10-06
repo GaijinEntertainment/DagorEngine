@@ -6,7 +6,7 @@
 #include <malloc.h>
 
 #define CVT_TO_U16(NM)                                                      \
-  int NM##_slen = i_strlen(NM);                                             \
+  int NM##_slen = (int)strlen(NM);                                          \
   wchar_t *NM##_u16 = (wchar_t *)alloca((NM##_slen + 1) * sizeof(wchar_t)); \
   NM##_u16[0] = '\0';                                                       \
   MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, NM, NM##_slen + 1, NM##_u16, NM##_slen + 1)

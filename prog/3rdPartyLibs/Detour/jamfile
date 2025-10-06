@@ -32,7 +32,7 @@ if $(Platform) = linux || $(PlatformSpec) = clang {
     if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
   } else {
     CPPopt += -ffast-math ;
-    if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }
+    if ! $(Platform) in iOS nswitch && ! $(PlatformArch) in e2k { CPPopt += -fno-unsafe-math-optimizations ; }
   }
 }
 

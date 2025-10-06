@@ -488,7 +488,7 @@ protected:
             k.name = 0;
             k.time = b->getInt(i) < 0 ? maxt : b->getInt(i) * RATE_DIV;
             while (k.name < namePool.size() && strcmp(&namePool[k.name], key) != 0)
-              k.name += i_strlen(&namePool[k.name]) + 1;
+              k.name += (int)strlen(&namePool[k.name]) + 1;
             if (k.name >= namePool.size())
               k.name = append_items(namePool, strlen(key) + 1, key);
             // debug("added key (%d %d) %s, poolSz=%d", k.name, k.time, &namePool[k.name], namePool.size());
@@ -654,7 +654,7 @@ protected:
           }
           else if (trail_strcmp(namedKey.getMapRaw()[i].name, "_start"))
           {
-            int prefix_len = i_strlen(namedKey.getMapRaw()[i].name) - 6;
+            int prefix_len = (int)strlen(namedKey.getMapRaw()[i].name) - 6;
             end_key_name.printf(0, "%.*s_end", prefix_len, namedKey.getMapRaw()[i].name);
             ref_key_name.printf(0, "%.*s_%s", prefix_len, namedKey.getMapRaw()[i].name, additive_key_suffix);
           }
@@ -938,7 +938,7 @@ protected:
         if (new_names.getStrId(nm) < 0)
         {
           new_names.addStrId(nm, new_names_sz);
-          new_names_sz += i_strlen(nm) + 1;
+          new_names_sz += (int)strlen(nm) + 1;
         }
       }
     for (auto &k : noteTrackPool)
@@ -947,7 +947,7 @@ protected:
       if (new_names.getStrId(nm) < 0)
       {
         new_names.addStrId(nm, new_names_sz);
-        new_names_sz += i_strlen(nm) + 1;
+        new_names_sz += (int)strlen(nm) + 1;
       }
     }
 

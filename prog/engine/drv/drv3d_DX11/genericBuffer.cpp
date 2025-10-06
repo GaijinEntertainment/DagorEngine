@@ -11,7 +11,7 @@ static void set_buffer_name(ID3D11Buffer *buffer, const char *name)
 {
 #if DAGOR_DBGLEVEL > 0
   if (buffer)
-    if (auto len = i_strlen(name))
+    if (auto len = (int)strlen(name))
       buffer->SetPrivateData(WKPDID_D3DDebugObjectName, len, name);
 #endif
   G_UNUSED(buffer);

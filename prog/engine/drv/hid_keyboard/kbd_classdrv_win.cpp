@@ -159,7 +159,7 @@ bool WinKeyboardClassDriver::init()
     if (len)
     {
       wcs_to_utf8(kname, kname_ut8, sizeof(kname_ut8));
-      len = i_strlen(kname_ut8);
+      len = (int)strlen(kname_ut8);
       append_items(keyNames, len + 1, kname_ut8);
     }
 
@@ -176,7 +176,7 @@ bool WinKeyboardClassDriver::init()
         break;
       }
 #endif
-    int len = i_strlen(kname_ut8);
+    int len = (int)strlen(kname_ut8);
     HumanInput::key_name[i] = (char *)(intptr_t)(len ? (int)keyNames.size() : -1);
     append_items(keyNames, len + 1, kname_ut8);
 #endif

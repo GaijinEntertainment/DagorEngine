@@ -184,7 +184,7 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
               const char *cmask = "";
               if (cmaskobj.GetType() == OT_STRING)
                 cmask = cmaskobj.GetVar<const char *>().value;
-              int cmasklen = i_strlen(cmask);
+              int cmasklen = (int)strlen(cmask);
 
               Tab<wchar_t> w_inp;
               char utf8_buf[4];
@@ -231,7 +231,7 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
           {
             const char *cmask = cmaskobj.GetVar<const char *>().value;
             Tab<wchar_t> wmask(framemem_ptr());
-            int cmasklen = i_strlen(cmask);
+            int cmasklen = (int)strlen(cmask);
             utf_to_wchar(cmask, cmasklen, wmask);
             if (cmasklen > 0 && wcsrchr(wmask.data(), wc) == NULL)
             {
@@ -485,7 +485,7 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int stat
     if (cmaskobj.GetType() == OT_STRING)
     {
       const char *cmask = cmaskobj.GetVar<const char *>().value;
-      if (i_strlen(cmask) > 0)
+      if (strlen(cmask) > 0)
       {
         Tab<wchar_t> w_inp;
         char utf8_buf[4];

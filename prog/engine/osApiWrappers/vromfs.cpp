@@ -87,7 +87,7 @@ void add_vromfs(VirtualRomFsData *fs, bool insert_first, char *mount_path)
       {
         dd_simplify_fname_c(mount_path);
         dd_strlwr(mount_path);
-        vromfsMpLen[i] = i_strlen(mount_path);
+        vromfsMpLen[i] = (int)strlen(mount_path);
       }
       else
         vromfsMpLen[i] = 0;
@@ -164,7 +164,7 @@ char *set_vromfs_mount_path(VirtualRomFsData *fs, char *mount_path)
       {
         dd_simplify_fname_c(mount_path);
         dd_strlwr(mount_path);
-        vromfsMpLen[i] = i_strlen(mount_path);
+        vromfsMpLen[i] = (int)strlen(mount_path);
       }
       else
         vromfsMpLen[i] = 0;

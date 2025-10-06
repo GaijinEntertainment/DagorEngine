@@ -26,7 +26,7 @@ void out_debug_str(const char *str)
   if (out_debug_file_handle != invalid_console_handle)
   {
     DWORD cWritten = 0;
-    ::WriteFile((HANDLE)out_debug_file_handle, str, i_strlen(str), &cWritten, NULL);
+    ::WriteFile((HANDLE)out_debug_file_handle, str, (int)strlen(str), &cWritten, NULL);
   }
 #endif
 }

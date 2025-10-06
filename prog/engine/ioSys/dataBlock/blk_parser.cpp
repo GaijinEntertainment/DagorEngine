@@ -613,7 +613,7 @@ static void makeFullPathFromRelative(String &path, const char *base_filename)
   }
 
   int i;
-  for (i = i_strlen(base_filename) - 1; i >= 0; --i)
+  for (i = (int)strlen(base_filename) - 1; i >= 0; --i)
     if (base_filename[i] == '/' || base_filename[i] == '\\' || base_filename[i] == ':')
       break;
 

@@ -525,8 +525,7 @@ int DagorWinMain(bool debugmode)
       {
         const char *name = mgr.getAssetTypeName(i);
         name = name ? name : "";
-        printf("  %s%*s  ver:%3d  cls:0x%08X\n", name, int(16 - i_strlen(name)), "", exp->getGameResVersion(),
-          exp->getGameResClassId());
+        printf("  %s%*s  ver:%3d  cls:0x%08X\n", name, int(16 - strlen(name)), "", exp->getGameResVersion(), exp->getGameResClassId());
       }
     dabuild->unloadExporterPlugins();
     return 0;

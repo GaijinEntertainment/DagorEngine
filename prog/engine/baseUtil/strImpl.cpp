@@ -164,7 +164,7 @@ bool String::suffix(const char *suff) const
 
 String &String::replace(const char *old_str, const char *new_str)
 {
-  int old_str_len = i_strlen(old_str), new_str_len = i_strlen(new_str);
+  int old_str_len = (int)strlen(old_str), new_str_len = (int)strlen(new_str);
   String dst;
   const char *first = begin(), *last = begin(), *p = old_str;
 
@@ -200,8 +200,8 @@ String &String::replaceAll(const char *old_str, const char *new_str)
   String dst;
   dst.reserve(size());
   const char *s = str();
-  int oldStrLen = i_strlen(old_str);
-  int newStrLen = i_strlen(new_str);
+  int oldStrLen = (int)strlen(old_str);
+  int newStrLen = (int)strlen(new_str);
   int copyCount = 0;
 
   while (*s)
@@ -298,7 +298,7 @@ String stackhelp::ext::get_call_stack_str(stackhelp::CallStackInfo stack, stackh
 const char *stackhelp::ext::get_call_stack(char *buf, unsigned max_buf, stackhelp::CallStackInfo stack,
   stackhelp::ext::CallStackInfo ext_stack)
 {
-  auto len = i_strlen(get_call_stack(buf, max_buf, stack));
+  unsigned len = (unsigned)strlen(get_call_stack(buf, max_buf, stack));
   len += ext_stack(buf + len, max_buf - len);
   buf[len < (max_buf - 1) ? len : (max_buf - 1)] = '\0';
   return buf;

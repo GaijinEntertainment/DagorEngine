@@ -44,11 +44,9 @@ if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit FATAL\: \"$(_DEVTOOL)/nasm\" not found
 
 local _DEF_C_CMDLINE =
   -fms-compatibility-version=$(_MSC_VER)
-  -X -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
-  -DNOMINMAX
-  -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
+  -X -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -D_TARGET_SIMD_SSE=$(SSEVersion)
+  -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES -DNOMINMAX -D_ALLOW_KEYWORD_MACROS=
   -D_USING_V110_SDK71_
-  -Di_strlen=(int)strlen
   -DDELAYIMP_INSECURE_WRITABLE_HOOKS
   /c /nologo /Zc:forScope /J /Zc:inline
   /Zc:dllexportInlines-

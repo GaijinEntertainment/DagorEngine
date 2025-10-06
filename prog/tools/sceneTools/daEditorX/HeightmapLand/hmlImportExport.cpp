@@ -306,7 +306,7 @@ void HmapLandObjectEditor::exportAsComposit()
   if (path.length())
   {
     if (path.suffix(".composit.blk.composit.blk"))
-      path.chop(i_strlen(".composit.blk"));
+      path.chop((int)strlen(".composit.blk"));
     lastAsCompositExportPath = path;
     ::dd_mkpath(path);
 

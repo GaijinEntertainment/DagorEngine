@@ -2522,7 +2522,7 @@ void EnvironmentPlugin::connectToGameHttpServer()
     return fail();
 
   const char *req = "GET / HTTP/1.0\r\n\r\n";
-  ret = send(s, req, i_strlen(req), 0);
+  ret = send(s, req, (int)strlen(req), 0);
   if (ret == SOCKET_ERROR)
     return fail();
 

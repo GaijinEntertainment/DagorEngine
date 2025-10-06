@@ -51,7 +51,7 @@ public:
   }
 
   // these don't write terminating zero
-  inline void append(const char *str) { append(str, i_strlen(str)); }
+  inline void append(const char *str) { append(str, (int)strlen(str)); }
   void append(const char *str, int char_count);
 
   inline int getBufLeft() const { return bufLeft; }

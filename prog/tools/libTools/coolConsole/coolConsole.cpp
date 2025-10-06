@@ -667,7 +667,7 @@ void CoolConsole::getCmds(const char *prefix, Tab<String> &cmds) const
 {
   if (prefix)
   {
-    const int prefLen = i_strlen(prefix);
+    const int prefLen = (int)strlen(prefix);
     const bool startSegment = false;
     for (int i = 0; i < cmdNames.size(); ++i)
     {

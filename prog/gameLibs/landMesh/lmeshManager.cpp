@@ -1204,7 +1204,7 @@ void LandClassDetailTextures::resetGrassMask(const DataBlock &grassBlk, const ch
     String detailName(dd_get_fname(color_name));
 
     if (const char *ext = dd_get_fname_ext(detailName))
-      erase_items(detailName, ext - &detailName[0], i_strlen(ext));
+      erase_items(detailName, ext - &detailName[0], (int)strlen(ext));
     if (detailName.length() > 0 && detailName[detailName.length() - 1] == '*')
       detailName[detailName.length() - 1] = 0;
     grassMaskName.printf(128, "%s*", grassBlk.getStr(detailName.str(), ""));

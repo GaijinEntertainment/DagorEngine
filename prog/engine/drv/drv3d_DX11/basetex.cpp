@@ -268,7 +268,7 @@ static bool createResView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
     }
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
     if (tv.shaderResView)
-      tv.shaderResView->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(tex->getName()), tex->getName());
+      tv.shaderResView->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(tex->getName()), tex->getName());
 #endif
 
     DXFATAL(hr, "CreateShaderResourceView");
@@ -1797,11 +1797,11 @@ void BaseTex::D3DTextures::setPrivateData(const char *name) const
   }
   if (texRes)
   {
-    texRes->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(name), name);
+    texRes->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(name), name);
   }
   if (stagingTex)
   {
-    stagingTex->SetPrivateData(WKPDID_D3DDebugObjectName, i_strlen(name), name);
+    stagingTex->SetPrivateData(WKPDID_D3DDebugObjectName, (int)strlen(name), name);
   }
 #endif
 }

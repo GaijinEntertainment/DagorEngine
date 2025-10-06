@@ -80,7 +80,7 @@ bool DagorAssetMgr::mountBuiltGameRes(const char *mount_folder_name, const DataB
   for (int i = dm_start; i < dm_end; i++)
   {
     String gn_name(256, "%s_skeleton", assets[i]->getName());
-    int nm_len = i_strlen(assets[i]->getName());
+    int nm_len = (int)strlen(assets[i]->getName());
     if (findAsset(gn_name, atype))
       assets[i]->props.setStr("ref_skeleton", gn_name);
     else if (strncmp(assets[i]->getName(), "low_", 4) == 0 && findAsset(&gn_name[4], atype))
