@@ -35,23 +35,15 @@ rem shader compilers
 jam -s Root=../.. -f ../3rdPartyLibs/legacy_parser/dolphin/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -f ../3rdPartyLibs/legacy_parser/whale/jamfile
-  if errorlevel 1 goto error
+  if errorlevel 1 pause
 jam -s Root=../.. -f shaderCompiler2/jamfile-hlsl11
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/jamfile-hlsl2spirv
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/jamfile-hlsl2metal
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/jamfile-dx12
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/jamfile-stub
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/hlslCompiler/jamfile
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/nodeBased/jamfile
-  if errorlevel 1 goto error
 jam -s Root=../.. -f shaderInfo/jamfile
-  if errorlevel 1 goto error
 
 rem common minimal gui shaders for tools
 pushd sceneTools\guiShaders_commonData
@@ -114,6 +106,7 @@ goto EOF
 
 echo.
 echo An error occured
+pause
 exit /b 1
 
 :EOF
