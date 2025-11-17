@@ -1,0 +1,467 @@
+# Copyright (C) WD Studios Corp. Licensed under the BSD-3-Clause, see LICENSE.TXT.
+
+if ! $(__QT_RULES_INCLUDED) {
+  __QT_RULES_INCLUDED = 1 ;
+
+  if ! $(__JCOMMON_RULES_INCLUDED) {
+    include $(Root)/prog/_jBuild/jCommonRules.jam ;
+    __JCOMMON_RULES_INCLUDED = 1 ;
+  }
+
+  QtDefaultModules ?= Core Gui ;
+
+  rule _QtNormalizePath path
+  {
+    return $(path) ;
+  }
+
+  rule _QtEnsureUnique list
+  {
+    local result = ;
+    for item in $(list) {
+      if ! $(item) { continue ; }
+      if ! $(item) in $(result) {
+        result += $(item) ;
+      }
+    }
+    return $(result) ;
+  }
+
+  rule _QtNormalizeModules modules
+  {
+    local normalized = ;
+    for module in $(QtDefaultModules) $(modules) {
+      if ! $(module) { continue ; }
+      local trimmed = [ MATCH "^Qt(.+)" : $(module) ] ;
+      if $(trimmed) {
+        module = $(trimmed[1]) ;
+      }
+      normalized += $(module) ;
+    }
+    return [ _QtEnsureUnique $(normalized) ] ;
+  }
+
+  rule _QtResolveDir
+  {
+    if $(_QT_DIR) { return $(_QT_DIR) ; }
+
+    local candidates =
+      $(QtDir)
+      $(QtSdkDir)
+      $(QtInstallDir)
+      $(QtRoot)
+      $(Qt5Dir)
+      $(Qt5Root)
+      $(QT_DIR)
+      $(QT5_DIR)
+      $(_DEVTOOL)/qt
+      $(_DEVTOOL)/qt5
+      $(_DEVTOOL)/Qt
+    ;
+    for candidate in $(candidates) {
+      if ! $(candidate) { continue ; }
+      if [ GLOB $(candidate)/include : * ] {
+        _QT_DIR = [ _QtNormalizePath $(candidate) ] ;
+        break ;
+      }
+    }
+
+    if ! $(_QT_DIR) {
+      Exit Qt toolkit path not configured. Set 'QtDir' jam variable or 'QT_DIR' environment variable to the Qt kit directory (contains bin/, include/, lib/). ;
+    }
+
+    return $(_QT_DIR) ;
+  }
+
+  rule _QtEnsureTooling
+  {
+    local qt_dir = [ _QtNormalizePath [ _QtResolveDir ] ] ;
+    _QT_INCLUDE_DIR ?= [ _QtNormalizePath $(qt_dir)/include ] ;
+    _QT_LIB_DIR ?= [ _QtNormalizePath $(qt_dir)/lib ] ;
+    _QT_BIN_DIR ?= [ _QtNormalizePath $(qt_dir)/bin ] ;
+
+    _QT_MOC ?= $(QtMoc) ;
+    _QT_MOC ?= $(_QT_BIN_DIR)/moc.exe ;
+
+    _QT_UIC ?= $(QtUic) ;
+    _QT_UIC ?= $(_QT_BIN_DIR)/uic.exe ;
+
+    _QT_RCC ?= $(QtRcc) ;
+    _QT_RCC ?= $(_QT_BIN_DIR)/rcc.exe ;
+  }
+
+  rule _QtSelectLibrary candidates
+  {
+    for candidate in $(candidates) {
+      if [ GLOB $(_QT_LIB_DIR) : $(candidate) ] { return $(candidate) ; }
+    }
+    return $(candidates[1]) ;
+  }
+
+  rule _QtLibraryFile module
+  {
+    local major = $(QtMajorVersion) ;
+    local major_match = [ MATCH "^([0-9]+)" : $(major) ] ;
+    if $(major_match[1]) { major = $(major_match[1]) ; }
+    major ?= 5 ;
+
+    local debug_suffix = ;
+    if $(Config) = dbg { debug_suffix = d ; }
+
+    if $(major) = 4 {
+      if $(module:U) = MAIN {
+        local qt4_candidates =
+          qtmain$(debug_suffix).lib
+          qtmain.lib
+        ;
+        return [ _QtSelectLibrary $(qt4_candidates) ] ;
+      }
+
+      local qt4_release = Qt$(module)4.lib ;
+      local qt4_debug = Qt$(module)d4.lib ;
+      if $(Config) = dbg { return [ _QtSelectLibrary $(qt4_debug) $(qt4_release) ] ; }
+      return [ _QtSelectLibrary $(qt4_release) $(qt4_debug) ] ;
+    }
+
+    if $(module:U) = MAIN {
+      local entry_candidates =
+        Qt$(major)Main$(debug_suffix).lib
+        Qt$(major)Main.lib
+      ;
+
+      if $(major) >= 6 {
+        entry_candidates +=
+          Qt$(major)EntryPoint$(debug_suffix).lib
+          Qt$(major)EntryPoint.lib
+        ;
+      }
+
+      entry_candidates +=
+        qtmain$(debug_suffix).lib
+        qtmain.lib
+      ;
+
+      return [ _QtSelectLibrary $(entry_candidates) ] ;
+    }
+
+    local qt_release = Qt$(major)$(module).lib ;
+    local qt_debug = Qt$(major)$(module)d.lib ;
+    if $(Config) = dbg { return [ _QtSelectLibrary $(qt_debug) $(qt_release) ] ; }
+    return [ _QtSelectLibrary $(qt_release) $(qt_debug) ] ;
+  }
+
+  rule AddQtRuntimeDeploy modules
+  {
+    if $(TargetType) != exe { return ; }
+    if $(CheckOnly) = yes { return ; }
+
+    _QtEnsureTooling ;
+
+    local windeploy = [ MakePathAbsolute $(JAM_CWD) : $(_QT_BIN_DIR)/windeployqt.exe ] ;
+
+    local deploy_mode = --release ;
+    if $(Config) = dbg { deploy_mode = --debug ; }
+
+    for qt_target in $(Target) {
+      local out_dir = $($(qt_target)__OutDir) ;
+      if ! $(out_dir) { continue ; }
+      local exe_path = $(out_dir)/$(qt_target) ;
+      $(qt_target)__POSTLINK_CMD =
+        $($(qt_target)__POSTLINK_CMD)
+        if not exist "$(windeploy)" goto qtdeploy_missing
+        call "$(windeploy)" $(deploy_mode) --dir "$(out_dir)" "$(exe_path)"
+        goto qtdeploy_done
+        :qtdeploy_missing
+        echo Qt runtime deployment requires 'windeployqt.exe'. Expected at $(windeploy)
+        exit /b 13
+        :qtdeploy_done
+      ;
+    }
+  }
+
+  rule AddQtCompileOpt modules : target
+  {
+    _QtEnsureTooling ;
+
+    local resolved_modules = $(modules) ;
+    if ! $(resolved_modules) { resolved_modules = $(UseQtLibs) $(DefQtLibs) ; }
+    resolved_modules = [ _QtNormalizeModules $(resolved_modules) ] ;
+
+    local include_dirs = $(_QT_INCLUDE_DIR) ;
+    local macros = ;
+    local moc_includes = -I$(_QT_INCLUDE_DIR) ;
+
+    for module in $(resolved_modules) {
+      local inc_dir = [ _QtNormalizePath $(_QT_INCLUDE_DIR)/Qt$(module) ] ;
+      include_dirs += $(inc_dir) ;
+      macros += -DQT_$(module:U)_LIB ;
+      moc_includes += -I$(inc_dir) ;
+    }
+
+    include_dirs = [ _QtEnsureUnique $(include_dirs) ] ;
+    macros = [ _QtEnsureUnique $(macros) ] ;
+
+    AddIncludes += $(include_dirs) ;
+    CPPopt += $(macros) ;
+
+    local moc_opt = $(moc_includes) $(macros) $(dll_opt) ;
+    $(target)__MOC_OPT = $(moc_opt) ;
+  }
+
+  rule AddQtLinkOpt modules
+  {
+    if ! $(TargetType) in exe dll { return ; }
+
+    _QtEnsureTooling ;
+
+    local resolved_modules = $(modules) ;
+    if ! $(resolved_modules) { resolved_modules = $(UseQtLibs) $(DefQtLibs) ; }
+    resolved_modules = [ _QtNormalizeModules $(resolved_modules) ] ;
+
+    local libs = ;
+    for module in $(resolved_modules) {
+      libs += [ _QtLibraryFile $(module) ] ;
+    }
+
+    if $(TargetType) = exe {
+      local entry_lib = [ _QtLibraryFile Main ] ;
+      if $(entry_lib) { libs += $(entry_lib) ; }
+      libs += shell32.lib ;
+      AddQtRuntimeDeploy $(resolved_modules) ;
+    }
+
+    libs = [ _QtEnsureUnique $(libs) ] ;
+    LINKopt += -libpath:$(_QT_LIB_DIR) ;
+    AddLibs += $(libs) ;
+  }
+
+    # rule to register Qt ui/moc/qrc inputs for a target
+    #   params: target : modules : ui_forms : moc_headers : qrc_files
+    rule CompileQtObjects target : modules : ui_forms : moc_headers : qrc_files
+    {
+      local location = $(Location) ;
+      if ! $(location) {
+        for qt_target in $(target) {
+          if $($(qt_target)__Location) {
+            location = $($(qt_target)__Location) ;
+            break ;
+          }
+        }
+      }
+
+      if ! $(location) {
+        Exit CompileQtObjects requires 'Location' to be defined before including build.jam ;
+      }
+
+      local ui_rel = ;
+      for ui in $(ui_forms) {
+        if ! $(ui) { continue ; }
+        local rel = $(ui) ;
+        local match_root = [ MATCH "^$(Root)/(.*)" : $(rel) ] ;
+        if $(match_root) { rel = $(match_root[1]) ; }
+        local match_loc = [ MATCH "^$(location)/(.*)" : $(rel) ] ;
+        if $(match_loc) { rel = $(match_loc[1]) ; }
+        if [ MATCH "^[A-Za-z]:" : $(rel) ] {
+          Exit CompileQtObjects expects UI files under $(location) : $(ui) ;
+        }
+        if [ MATCH "^[/\\]" : $(rel) ] {
+          Exit CompileQtObjects expects UI files under $(location) : $(ui) ;
+        }
+        if [ MATCH "^$(location)/" : $(rel) ] {
+          Exit CompileQtObjects expects UI files under $(location) : $(ui) ;
+        }
+        ui_rel += $(rel) ;
+      }
+      ui_rel = [ _QtEnsureUnique $(ui_rel) ] ;
+      for ui in $(ui_rel) {
+        if ! $(ui) in $(Sources) { Sources += $(ui) ; }
+      }
+
+      local moc_rel = ;
+      for header in $(moc_headers) {
+        if ! $(header) { continue ; }
+        local rel_header = $(header) ;
+        local match_root = [ MATCH "^$(Root)/(.*)" : $(rel_header) ] ;
+        if $(match_root) { rel_header = $(match_root[1]) ; }
+        local match_loc = [ MATCH "^$(location)/(.*)" : $(rel_header) ] ;
+        if $(match_loc) { rel_header = $(match_loc[1]) ; }
+        if [ MATCH "^[A-Za-z]:" : $(rel_header) ] {
+          Exit CompileQtObjects expects MOC headers under $(location) : $(header) ;
+        }
+        if [ MATCH "^[/\\]" : $(rel_header) ] {
+          Exit CompileQtObjects expects MOC headers under $(location) : $(header) ;
+        }
+        if [ MATCH "^$(location)/" : $(rel_header) ] {
+          Exit CompileQtObjects expects MOC headers under $(location) : $(header) ;
+        }
+        local moc_marker = $(rel_header:S=.moc) ;
+        moc_rel += $(moc_marker) ;
+      }
+      moc_rel = [ _QtEnsureUnique $(moc_rel) ] ;
+      for moc_path in $(moc_rel) {
+        if ! $(moc_path) in $(Sources) { Sources += $(moc_path) ; }
+      }
+
+      local qrc_rel = ;
+      for qrc in $(qrc_files) {
+        if ! $(qrc) { continue ; }
+        local rel_qrc = $(qrc) ;
+        local match_root = [ MATCH "^$(Root)/(.*)" : $(rel_qrc) ] ;
+        if $(match_root) { rel_qrc = $(match_root[1]) ; }
+        local match_loc = [ MATCH "^$(location)/(.*)" : $(rel_qrc) ] ;
+        if $(match_loc) { rel_qrc = $(match_loc[1]) ; }
+        if [ MATCH "^[A-Za-z]:" : $(rel_qrc) ] {
+          Exit CompileQtObjects expects QRC files under $(location) : $(qrc) ;
+        }
+        if [ MATCH "^[/\\]" : $(rel_qrc) ] {
+          Exit CompileQtObjects expects QRC files under $(location) : $(qrc) ;
+        }
+        if [ MATCH "^$(location)/" : $(rel_qrc) ] {
+          Exit CompileQtObjects expects QRC files under $(location) : $(qrc) ;
+        }
+        qrc_rel += $(rel_qrc) ;
+      }
+      qrc_rel = [ _QtEnsureUnique $(qrc_rel) ] ;
+      for qrc_path in $(qrc_rel) {
+        if ! $(qrc_path) in $(Sources) { Sources += $(qrc_path) ; }
+      }
+
+      local requested_modules = [ _QtNormalizeModules $(modules) ] ;
+      if ! $(requested_modules) {
+        requested_modules = [ _QtNormalizeModules ] ;
+      }
+
+      local link_targets = ;
+      for qt_target in $(target) {
+        local prev_modules = $($(qt_target)__QtConfiguredModules) ;
+        local normalized_prev = ;
+        if $(prev_modules) {
+          normalized_prev = [ _QtNormalizeModules $(prev_modules) ] ;
+        }
+
+        local normalized_modules = $(requested_modules) ;
+        if $(normalized_prev) {
+          normalized_modules = [ _QtEnsureUnique $(normalized_prev) $(requested_modules) ] ;
+        }
+
+        local modules_changed = yes ;
+        if $(normalized_prev) {
+          if $(normalized_prev) = $(normalized_modules) {
+            modules_changed = no ;
+          }
+        }
+
+        if $(modules_changed) || ! $($(qt_target)__MOC_OPT) {
+          AddQtCompileOpt $(normalized_modules) : $(qt_target) ;
+        }
+
+        if $(modules_changed) || ! $($(qt_target)__QtLinkConfigured) {
+          link_targets += $(qt_target) ;
+          $(qt_target)__QtPendingLinkModules = $(normalized_modules) ;
+        }
+
+        $(qt_target)__QtConfiguredModules = $(normalized_modules) ;
+        $(qt_target)__QtCompileConfigured = yes ;
+      }
+
+      if $(link_targets) {
+        local link_modules = ;
+        for qt_target in $(link_targets) {
+          link_modules = [ _QtEnsureUnique $(link_modules) $($(qt_target)__QtPendingLinkModules) ] ;
+          $(qt_target)__QtPendingLinkModules = ;
+          $(qt_target)__QtLinkConfigured = yes ;
+        }
+        if $(link_modules) {
+          AddQtLinkOpt $(link_modules) ;
+        }
+      }
+    }
+
+  # rule how to compile QT .ui target
+  #   params: ( target_pathname : sources : target )
+  rule CompileUI
+  {
+    local tgt = $($(3)__OutDir)/$(3) ;
+    local ui_h = $(Root)/$(1) ;
+    LOCATE on $(2) = $(Root) ;
+    Depends $(ui_h) : $(2) ;
+    Depends $(tgt) : $(ui_h) ;
+    compile_qt_ui $(ui_h) : $(2) ;
+  }
+
+  # rule how to compile QT .moc target
+  #   params: ( target_pathname : sources : target )
+  rule CompileMOC
+  {
+    Depends $(1) : $(Root)/$(2) ;
+    MakeDirectory $(1) : $(1:D) ;
+    opt  on $(1) = $($(3)__MOC_OPT) ;
+    compile_qt_moc $(1) : $(Root)/$(2) ;
+
+    local obj = $(1:S=$(_OBJ_SUFFIX)) ;
+    Depends $(obj) : $(1) ;
+    MakeDirectory $(obj) : $(obj:D) ;
+
+    cpp_opt   on $(obj) = $($(3)__CPP_OPT) ;
+    pre_opt   on $(obj) = $($(3)__PRE_OPT) ;
+
+    compile_cpp $(obj) : $(1) ;
+  }
+
+  # rule how to compile QT .qrc target
+  #   params: ( target_pathname : sources : target )
+  rule CompileQRC
+  {
+    Depends $(1) : $(Root)/$(2) ;
+    MakeDirectory $(1) : $(1:D) ;
+    compile_qt_rcc $(1) : $(Root)/$(2) ;
+
+    local obj = $(1:S=$(_OBJ_SUFFIX)) ;
+    Depends $(obj) : $(1) ;
+    MakeDirectory $(obj) : $(obj:D) ;
+
+    cpp_opt   on $(obj) = $($(3)__CPP_OPT) ;
+    pre_opt   on $(obj) = $($(3)__PRE_OPT) ;
+
+    compile_cpp $(obj) : $(1) ;
+  }
+
+  actions quietly compile_qt_ui
+  {
+  #async
+    echo QT-uic $(2:D=)
+    call $(_QT_UIC) -o $(1) $(2)
+    if errorlevel 1 goto failed
+    if not exist $(1) goto failed
+    goto end
+    :failed
+    set ERRORLEVEL=13
+    :end
+  }
+
+  actions quietly compile_qt_moc
+  {
+  #async
+    echo QT-moc $(2:D=)
+    call $(_QT_MOC) $(opt) $(_CPP_BASE_INCLUDES) -o $(1) $(2)
+    if errorlevel 1 goto failed
+    if not exist $(1) goto failed
+    goto end
+    :failed
+    set ERRORLEVEL=13
+    :end
+  }
+
+  actions quietly compile_qt_rcc
+  {
+  #async
+    echo QT-rcc $(2:D=)
+    call $(_QT_RCC) -o $(1) $(2)
+    if errorlevel 1 goto failed
+    if not exist $(1) goto failed
+    goto end
+    :failed
+    set ERRORLEVEL=13
+    :end
+  }
+}
