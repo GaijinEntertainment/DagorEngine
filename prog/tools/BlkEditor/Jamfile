@@ -1,0 +1,44 @@
+Root    ?= ../../.. ;
+Location = prog/tools/BlkEditor ;
+
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType = exe ;
+Target     = tools/BlkEditor.exe ;
+
+UseQt      = Widgets ;
+QtModules  = Core Gui Widgets ;
+AddQtRuntimeDeploy = tools/BlkEditor.exe ;
+include $(Root)/prog/_jBuild/windows/qt-inc.jam ;
+
+ConsoleExe = no ;
+
+PlatformArch ?= x86_64 ;
+
+CPPopt += -D_USE_MATH_DEFINES -DNOMINMAX ;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+;
+
+Sources    =
+  BlkCodeEditor.cpp
+  BlkSyntaxHighlighter.cpp
+  ParamValueDelegate.cpp
+  VariablesWidget.cpp
+  MainWindow.cpp
+  main.cpp
+  BlkEditorRes.rc
+;
+
+# NOTE: Compile your resources here....
+CompileQtObjects $(Target) : Core Gui Widgets : : BlkCodeEditor.h BlkSyntaxHighlighter.h : QtResources/resources.qrc ;
+
+include $(Root)/prog/_jBuild/build.jam ;
