@@ -1,0 +1,60 @@
+Root    ?= ../../.. ;
+Location = prog/tools/blkEditor ;
+KernelLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+UseD3DMulti = yes ;
+UseD3DMultiList = DX11 stub ;
+
+TargetType  = exe ;
+Target      = tools/blkEditor.exe ;
+include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+;
+
+Sources =
+  main.cpp
+  be_appwnd.cpp
+  scintilla_window.cpp
+  script_panel.cpp
+  
+  guiEditorRes.rc
+;
+
+AddLibs += Comctl32.lib ;
+
+UseProgLibs =
+  engine/startup
+  engine/math
+  engine/workCycle
+  engine/lib3d
+  engine/shaders
+  engine/image
+  engine/imgui
+
+  engine/drv/drv3d_pc_multi
+  engine/drv/hid_mouse
+  engine/drv/hid_keyboard
+
+  tools/libTools/EditorCore
+  tools/libTools/propPanel
+  tools/libTools/winGuiWrapper
+  tools/libTools/scriptPanelWrapper
+  tools/libTools/coolConsole
+  tools/libTools/util
+;
+
+
+ImportProgLibs = tools/libTools/daKernel ;
+
+if ! $(DagoredRel) {
+  LINKopt = -opt:noref ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
