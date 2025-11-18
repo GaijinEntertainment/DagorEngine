@@ -30,11 +30,7 @@
   "paths": ["prog/gameLibs/daRg"], //folders or files list, required,
   "doc_chapter": "quirrel-modules/darg_framework", //internal folder name, required
   "chapter_desc": "Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).", //displayed title, optional
-  "chapter_desc_files": [
-    "prog/gameLibs/daRg/_doc/overview.rst",
-    "prog/gameLibs/daRg/_doc/behaviors.rst",
-    "prog/gameLibs/daRg/_doc/render_objects.rst"
-  ],
+  "chapter_desc_files": ["prog/gameLibs/daRg/daRg_readme.rst"],
   "chapter_title": "daRG Framework", //displayed title, optional
   "extensions": [".cpp"], //optional, list of extensions of files
   "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
