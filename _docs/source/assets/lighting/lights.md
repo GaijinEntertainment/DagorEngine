@@ -196,7 +196,7 @@ If the light source is used with a dynamic model (which cannot be drawn in
 *daEditor*), you can add the following line to the `gameObj` to display the
 model in the editor:
 
-```
+```blk
 ref_dynmodel:t="name_of_dynmodel"
 ```
 

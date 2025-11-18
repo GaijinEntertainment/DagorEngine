@@ -282,7 +282,7 @@ hidden along with the **DeformEnd** layer.
 Assign the following **custom user properties** to the undeformed model to
 ensure correct behavior in Dagor Engine:
 
-```text
+```blk
 animated_node:b=yes
 physObj:b=yes
 collidable:b=no
@@ -419,7 +419,7 @@ Ready-to-export scene:
    To suppress warnings from older files during export, add the following block
    to `application.blk`:
 
-   ```text
+   ```blk
    logerr_to_con{
      AssetViewer{
        exclude_re:t="(warning: node <occluder_box> from)|(Shader 'simple_aces' not found in bin dump)|(Shader 'simple' not found in bin dump)|(Shader 'land_mesh_combined' not found in bin dump)|(has mesh with 0 faces)|(degenerate tri)|(degenerate mesh node)"
@@ -435,7 +435,7 @@ Ready-to-export scene:
 3. Modify the destruction configuration for the vehicle in `rendinst_dmg.blk`
    placed at `<engine_root>/<project_name>/develop/gameBase/config/` directory:
 
-   ```text
+   ```blk
    m123_truck{
      physRes:t="m123_truck_destr_phobj";
      hp:r=40;

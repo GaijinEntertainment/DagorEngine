@@ -1,15 +1,16 @@
-import os
+from os.path    import exists
+
 import bpy
-from   bpy.utils        import user_resource
+from ..helpers.getters  import get_addon_directory
 from ..helpers.texts    import get_text
-from ..helpers.basename import basename
+from ..helpers.names    import texture_basename
 from ..settings         import upd_project
 from ..helpers.version  import get_blender_version
 
 
 def check_remap(name):
-    addon_name = basename(__package__)
-    remap_file = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/remap.txt'
+    addon_dir = get_addon_directory()
+    remap_file = addon_dir + '/extras/remap.txt'
     with open(remap_file,'r') as t:
         lines=t.readlines()
         t.close()
@@ -31,16 +32,16 @@ def _rgb_to_4array(c):
 
 def get_image(tex):
     noncolor = ['_n','_m']
-    tex_name = basename(tex)
+    tex_name = texture_basename(tex)
     #texture should exist no matter what
     if bpy.data.images.get(tex_name) is None:
         # easy to see textures with broken paths, still possible to check UVs.
         bpy.data.images.new(name=tex_name, width=128, height=128)
         # path shouldn't be lost, even if texture doesn't exist
         bpy.data.images[tex_name].filepath = tex
-    if os.path.exists(bpy.data.images[tex_name].filepath):#lost textures should be reversed from purple to generated
+    if exists(bpy.data.images[tex_name].filepath):#lost textures should be reversed from purple to generated
         bpy.data.images[tex_name].source = 'FILE'
-    elif os.path.exists(tex):
+    elif exists(tex):
         bpy.data.images[tex_name].filepath = tex
         bpy.data.images[tex_name].source = 'FILE'
     else:
@@ -64,8 +65,8 @@ def get_node_group(group_name):
     if start_mode == 'EDIT_MESH':
         bpy.ops.object.editmode_toggle()
     group_name = check_remap(group_name)
-    addon_name = basename(__package__)
-    lib_path = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/library.blend/NodeTree'
+    addon_dir = get_addon_directory()
+    lib_path = addon_dir + f'/extras/library.blend/NodeTree'
     file = lib_path+f"/{group_name}"
     bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
     #if nodegroup not found in library it still be a None
@@ -99,15 +100,14 @@ def hide_world_node():
         pass
     return
 
-def buildMaterial(mat):
+def build_dagormat_node_tree(mat):
     mat.use_nodes = True
-
     props       = mat.dagormat.optional
     textures    = mat.dagormat.textures
     nodes       = mat.node_tree.nodes
     links       = mat.node_tree.links
     shader_class= mat.dagormat.shader_class
-    if shader_class == '':
+    if shader_class in ['', 'None'] or shader_class.endswith(':proxymat'):
         return
 
     nodes.clear()

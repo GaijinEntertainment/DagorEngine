@@ -1,9 +1,10 @@
 import bpy
 from re import search
 from mathutils  import Vector
-
-from ..helpers.get_preferences  import *
 from math       import pi
+
+from ..helpers.getters  import get_preferences, get_local_props, get_addon_directory
+from ..helpers.names    import ensure_no_extension
 from ..tools.tools_panel        import apply_modifiers
 from ..tools.tools_functions    import *
 
@@ -238,7 +239,7 @@ def nodes_to_rendinst(nodes, parent_node, parent_collection):
             continue
         found_lod = obj.name[:5]
         if not found_lod in existing_lods:
-            lod_collection = bpy.data.collections.new(basename(parent_collection.name) + "." + found_lod)
+            lod_collection = bpy.data.collections.new(ensure_no_extension(parent_collection.name) + "." + found_lod)
             lod_collection['type'] = 'rendinst'
             existing_lods[found_lod] = lod_collection
             parent_collection.children.link(existing_lods[found_lod])
@@ -419,8 +420,7 @@ def upd_scenes():
 #returns geometry nodegroup that turns collection into single mesh
 def get_converter_ng():
     group_name = "GN_col_to_mesh"
-    addon_name = basename(__package__)
-    lib_path = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/library.blend/NodeTree'
+    lib_path = get_addon_directory() + '/extras/library.blend/NodeTree'
     file = lib_path+f"/{group_name}"
     bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
     node_group = bpy.data.node_groups.get(group_name)

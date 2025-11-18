@@ -1,4 +1,8 @@
-import bpy,os
+from os         import makedirs
+from os.path    import exists, join
+
+import bpy
+
 from   bpy.utils        import register_class, unregister_class
 from   bpy.types        import Operator
 
@@ -9,11 +13,10 @@ from   time             import time
 
 from .cmp_const         import *
 from ..helpers.texts    import get_text_clear, get_text, log
-from ..helpers.basename import basename
-from ..helpers.popup    import show_popup
+from ..helpers.names    import ensure_no_extension
+from ..helpers.getters  import get_local_props
 
-from ..helpers.get_preferences  import get_local_props
-
+from ..popup.popup_functions    import show_popup
 
 TAB = "  "
 EXISTING_NODE_TYPES = [
@@ -98,7 +101,7 @@ def get_node_name(node):
         node_name = instance_col["name"]
     else:
         node_name = instance_col.name
-    node_name = basename(node_name)
+    node_name = ensure_no_extension(node_name)
     if "type" in instance_col.keys():
         node_type = instance_col["type"]
         if node_type in EXISTING_NODE_TYPES:
@@ -180,11 +183,11 @@ def cmp_export(col,path):
         for node in nodes:
            write_node(cmp,node,0)
 #saving bpy.data.texts['cmp'] into an actual file
-    if not os.path.exists(cmp_export_props.dirpath):
-        os.makedirs(cmp_export_props.dirpath)
+    if not exists(cmp_export_props.dirpath):
+        makedirs(cmp_export_props.dirpath)
         msg = f'directory successfully created: {cmp_export_props.dirpath}\n'
         log(msg)
-    path=os.path.join(cmp_export_props.dirpath, cmp_export_props.collection.name + '.composit.blk')
+    path = join(cmp_export_props.dirpath, cmp_export_props.collection.name + '.composit.blk')
     with open((path), 'w') as outfile:#TODO: remove that blend text thing, work directly with .blk
         outfile.write(cmp.as_string())
         outfile.close()

@@ -46,7 +46,7 @@ To create an occluder box for an object, follow these steps:
 
 7. In the **User Defined** tab, input the following:
 
-   ```
+   ```blk
    renderable:b=no
    cast_shadows:b=no
    occluder:b=yes

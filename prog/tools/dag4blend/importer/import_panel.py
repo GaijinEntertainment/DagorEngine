@@ -4,8 +4,8 @@ from bpy.props  import IntProperty, StringProperty
 from bpy.utils  import register_class, unregister_class
 from os.path    import dirname, isfile, isdir
 
-from ..helpers.get_preferences  import get_local_props, get_preferences
-from ..ui.draw_elements         import draw_custom_header
+from ..helpers.getters   import get_local_props, get_preferences
+from ..ui.draw_elements  import draw_custom_header
 
 def is_dirpath_valid(dirpath):
     if dirpath == "":
@@ -108,8 +108,7 @@ class DAGOR_PT_Import(Panel):
         box = layout.box()
         props = get_local_props()
         mode = props.importer.mode
-        draw_custom_header(box, "Help", props.importer, 'help_maximized',
-        control_value = props.importer.help_maximized, icon = 'QUESTION')
+        draw_custom_header(box, "Help", props.importer, 'help_maximized', icon = 'QUESTION')
         if not props.importer.help_maximized:
             return
         if mode == 'SIMPLE':
@@ -280,14 +279,12 @@ class DAGOR_PT_Import(Panel):
         filters = box.column(align = True)
 
         includes = filters.box()
-        draw_custom_header(includes, "Includes", props_import, 'includes_maximized', icon = 'THREE_DOTS',
-            control_value = props_import.includes_maximized)
+        draw_custom_header(includes, "Includes", props_import, 'includes_maximized', icon = 'THREE_DOTS')
         if props_import.includes_maximized:
             self.draw_filters(context, includes, props_import.includes)
 
         excludes = filters.box()
-        draw_custom_header(excludes, "Excludes", props_import, 'excludes_maximized', icon = 'THREE_DOTS',
-            control_value = props_import.excludes_maximized)
+        draw_custom_header(excludes, "Excludes", props_import, 'excludes_maximized', icon = 'THREE_DOTS')
         if props_import.excludes_maximized:
             self.draw_filters(context, excludes, props_import.excludes)
 
@@ -327,14 +324,12 @@ class DAGOR_PT_Import(Panel):
         filters = box.column(align = True)
 
         includes = filters.box()
-        draw_custom_header(includes, "Includes", props_import, 'includes_re_maximized', icon = 'THREE_DOTS',
-            control_value = props_import.includes_re_maximized)
+        draw_custom_header(includes, "Includes", props_import, 'includes_re_maximized', icon = 'THREE_DOTS')
         if props_import.includes_re_maximized:
             self.draw_filters(context, includes, props_import.includes_re)
 
         excludes = filters.box()
-        draw_custom_header(excludes, "Excludes", props_import, 'excludes_re_maximized', icon = 'THREE_DOTS',
-            control_value = props_import.excludes_re_maximized)
+        draw_custom_header(excludes, "Excludes", props_import, 'excludes_re_maximized', icon = 'THREE_DOTS')
         if props_import.excludes_re_maximized:
             self.draw_filters(context, excludes, props_import.excludes_re)
 
@@ -364,8 +359,7 @@ class DAGOR_PT_Import(Panel):
         props_import = props.importer
         box = layout.box()
         toggles = box.column(align = True)
-        draw_custom_header(toggles, "Parameters", prefs, 'imp_props_maximized',
-        control_value = prefs.imp_props_maximized, icon = 'PROPERTIES')
+        draw_custom_header(toggles, "Parameters", prefs, 'imp_props_maximized', icon = 'PROPERTIES')
         if prefs.imp_props_maximized:
             toggles.separator()
 

@@ -192,7 +192,7 @@ Local paint textures are assigned to levels via the `level.blk` file, for
 example: `<project_name>/develop/gameBase/levels/stalingrad.blk`. The syntax is
 as follows:
 
-```text
+```blk
 shader_vars{
   paint_details_tex:t="air_stalingrad_color_tex_palette"
 }
@@ -290,7 +290,7 @@ with inconsistent colors.
 
       **Examples:**
 
-      .. code-block:: text
+      .. code-block:: blk
 
          script:t="paint_points_black=1,0.75,0.2,0"
          script:t="paint_points_white=1,0.75,0.2,0"
@@ -300,7 +300,7 @@ with inconsistent colors.
          paint_white_point=0.2
          paint_black_point=0.2
 
-      .. code-block:: text
+      .. code-block:: blk
 
          script:t="paint_points=0.5,0.5,1,1"
 
@@ -324,7 +324,7 @@ with inconsistent colors.
 
          **Example:**
 
-         .. code-block:: text
+         .. code-block:: blk
 
             script:t="paint_details=0,1,0,0"
             script:t="paint_points=0,1,0.12,0.23"
@@ -338,7 +338,7 @@ with inconsistent colors.
 
          **Example:**
 
-         .. code-block:: text
+         .. code-block:: blk
 
             script:t="paint_details=1,1,0,0"
             script:t="paint_points=0,0.00001,0.12,0.23"
@@ -398,7 +398,7 @@ with inconsistent colors.
 
    The syntax is as follows (the `*` after the texture name is mandatory):
 
-   ```text
+   ```blk
    entity{
      _template:t="shaderVars"
 
@@ -424,7 +424,7 @@ particular node to be painted with a unique color.
 
 **Example:**
 
-```text
+```blk
 node{
   type:t="rendInst"
   name:t="tunis_city_house_window_1200x1900_a_cmp"

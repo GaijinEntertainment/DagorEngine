@@ -26,18 +26,18 @@ For more information, see
 For example, the following block specifies compression parameters for `.tiff`
 textures.
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.tiff$"  // search for any .tiff files
   className:t="tex"      // assign the "texture" class
   contents{              // processing details
     convert:b=yes;fmt:t="DXT1|DXT5"  // convert; use DXT1 or DXT5 format (if alpha is present)
-    mipFilter:t="filterKaiser";mipFilterAlpha:r=40;mipFilterStretch:r=2 // mipmap compression using
-                                     // the Kaiser filter (sharpens); with two parameters
+    mipFilter:t="filterKaiser";mipFilterAlpha:r=40;mipFilterStretch:r=2 /* mipmap compression using the Kaiser filter
+                                                                          (sharpens); with two parameters */
     addrU:t="wrap";addrV:t="wrap"    // define texture tiling behavior, wrap = repeat for repeating textures.
-    hqMip:i=0;mqMip:i=1;lqMip:i=2    // define the displayed mip level based on graphics quality;
-                                     // hq (high quality) uses the original texture,
-                                     // mq uses mip level 1 (50% compression), lq uses mip level 2 (75% compression).
+    hqMip:i=0;mqMip:i=1;lqMip:i=2    /* define the displayed mip level based on graphics quality;
+                                        hq (high quality) uses the original texture,
+                                        mq uses mip level 1 (50% compression), lq uses mip level 2 (75% compression). */
   }
 }
 ```
@@ -46,26 +46,26 @@ There are numerous such processing blocks. Below, we'll examine the key ones.
 
 ## Global Export Parameters
 
-```text
+```blk
 export{
-  package:t="*" // Specify the package to which the asset will be built
-                // (a package is the highest level of asset grouping)
-  forcePackage:t="*" // Some packages might be automatically renamed by hardcoded logic.
-                     // This parameter enforces a specific name. Use this if you want to
-                     // ensure that certain assets are built into only one location.
-  ddsxTexPackPrefix:t="tanks/" // Specify the directory in the built resources where
-                               // texture packs will be stored (a pack is the next level of grouping within a package).
-                               // In this example, texture packs for tanks will be built
-                               // into the "tanks" directory rather than the general directory.
-  ddsxTexPack:t="*name_src"    // Specify the name of the texture pack. If "*name_src" is used,
-                               // the name will be derived from the directory containing the textures.
-  gameResPack:t="aces.grp" // Specify the name of the resource pack. If "*name_src" is used,
-                           // the name will be derived from the folder containing the textures.
-  splitNotSeparate:b=true  // Indicate that textures should not be split between the base client and the full client.
-                           // In the base client, textures are downscaled to 512px so players can download a smaller
-                           // amount of data and start playing sooner. To maintain visual quality, some textures, like
-                           // those for tanks or hangars, are not downscaled but kept at normal quality. This flag is
-                           // set to true to prevent downscaling. The default is false, and it can be omitted.
+  package:t="*"       /* Specify the package to which the asset will be built
+                         (a package is the highest level of asset grouping) */
+  forcePackage:t="*"  /* Some packages might be automatically renamed by hardcoded logic.
+                         This parameter enforces a specific name. Use this if you want to
+                         ensure that certain assets are built into only one location. */
+  ddsxTexPackPrefix:t="tanks/"  /* Specify the directory in the built resources where texture packs will be stored
+                                   (a pack is the next level of grouping within a package).
+                                   In this example, texture packs for tanks will be built
+                                   into the "tanks" directory rather than the general directory. */
+  ddsxTexPack:t="*name_src"     /* Specify the name of the texture pack. If "*name_src" is used,
+                                   the name will be derived from the directory containing the textures.*/
+  gameResPack:t="aces.grp"      /* Specify the name of the resource pack. If "*name_src" is used,
+                                   the name will be derived from the folder containing the textures. */
+  splitNotSeparate:b=true  /* Indicate that textures should not be split between the base client and the full client.
+                              In the base client, textures are downscaled to 512px so players can download a smaller
+                              amount of data and start playing sooner. To maintain visual quality, some textures, like
+                              those for tanks or hangars, are not downscaled but kept at normal quality. This flag is
+                              set to true to prevent downscaling. The default is false, and it can be omitted. */
 }
 ```
 
@@ -80,7 +80,7 @@ The hierarchy of resources can be illustrated as follows:
 In essence, a project can contain several packages, and each package can include
 multiple packs.
 
-### What Is a Package?
+### What Is Package?
 
 A *package* typically serves as a container for resources that we want to
 distribute to or remove from the player's environment. For example, we might
@@ -98,7 +98,7 @@ For more information, see
 [Packages](./packages.md).
 ```
 
-### What Is a Pack?
+### What Is Pack?
 
 A *pack* is a component of a package where the assets are actually built. The
 logic for dividing assets into packs is straightforward:
@@ -197,7 +197,7 @@ Replace `usa_gm` with the name of the pack you need to build. The pack is
 determined by the nearest `.folder.blk` file to the asset, containing lines
 like:
 
-```text
+```blk
 export{
   ddsxTexPack:t="gm_lvl_assets.dxp.bin"
   gameResPack:t="gm_lvl_assets.grp"
@@ -207,25 +207,27 @@ export{
 The `gm_lvl_assets` is an example of the pack name into which the resources will
 be built. It may vary – refer to your specific setup.
 
-```{important}
-Notice that there are two types of packs:
+```{eval-rst}
+.. important::
 
-- `ddsxTexPack`: exports textures
-- `gameResPack`: exports models
+   Notice that there are two types of packs:
 
-It's possible for textures to be exported to one pack and models to another.
-For example:
+   - ``ddsxTexPack``: exports textures
+   - ``gameResPack``: exports models
 
-    ```
-    export{
-      ddsxTexPack:t="gm_lvl_assets.dxp.bin"
-      gameResPack:t="locations.grp"
-    }
-    ```
+   It's possible for textures to be exported to one pack and models to another.
+   For example:
 
-You need to build the packs corresponding to the resources you've modified. If
-you've changed textures, build the texture pack. If you've changed models, build
-the model pack. If both were changed, build both packs.
+   .. code-block:: blk
+
+      export{
+        ddsxTexPack:t="gm_lvl_assets.dxp.bin"
+        gameResPack:t="locations.grp"
+      }
+
+   You need to build the packs corresponding to the resources you've modified.
+   If you've changed textures, build the texture pack. If you've changed models,
+   build the model pack. If both were changed, build both packs.
 ```
 
 ## Local Package Build
@@ -247,7 +249,7 @@ distributed to players independently.
 
 In a `.folder.blk` file, the package entry looks like this:
 
-```text
+```blk
 export{
   package:t="tomoe"
 }
@@ -323,38 +325,38 @@ For all projects, after modifying the package list, you must rebuild the
 In War Thunder, packages are enabled or disabled in the file located at
 `<engine_root>/<project_name>/develop/gameBase/_pc/settings.blk`:
 
-```text
+```blk
 addons{
-  folder:t = "content.hq/hq_tex"
-  folder:t = "content.hq/pkg_cockpits"
-  folder:t = "content/pkg_china"
-  folder:t = "content.hq/pkg_china_hq"
-  folder:t = "content/pkg_dev"
-  folder:t = "content.hq/pkg_dev_hq"
-  folder:t = "content/hc_pacific"
-  folder:t = "content/pkg_user"
-  folder:t = "content/pkg_local"
-  folder:t = "content/tomoe"
-  folder:t = "content.hq/tomoe_hq"
-  folder:t = "content.hq/uhq_vehicles"
-  folder:t = "content.hq/uhq_aircraft"
-  folder:t = "content.hq/uhq_environment"
+  folder:t="content.hq/hq_tex"
+  folder:t="content.hq/pkg_cockpits"
+  folder:t="content/pkg_china"
+  folder:t="content.hq/pkg_china_hq"
+  folder:t="content/pkg_dev"
+  folder:t="content.hq/pkg_dev_hq"
+  folder:t="content/hc_pacific"
+  folder:t="content/pkg_user"
+  folder:t="content/pkg_local"
+  folder:t="content/tomoe"
+  folder:t="content.hq/tomoe_hq"
+  folder:t="content.hq/uhq_vehicles"
+  folder:t="content.hq/uhq_aircraft"
+  folder:t="content.hq/uhq_environment"
 }
 addons_no_check{
-  folder:t = "content.hq/hq_tex"
-  folder:t = "content.hq/pkg_cockpits"
-  folder:t = "content/pkg_china"
-  folder:t = "content.hq/pkg_china_hq"
-  folder:t = "content/pkg_dev"
-  folder:t = "content.hq/pkg_dev_hq"
-  folder:t = "content/hc_pacific"
-  folder:t = "content/pkg_user"
-  folder:t = "content/pkg_local"
-  folder:t = "content/tomoe"
-  folder:t = "content.hq/tomoe_hq"
-  folder:t = "content.hq/uhq_vehicles"
-  folder:t = "content.hq/uhq_aircraft"
-  folder:t = "content.hq/uhq_environment"
+  folder:t="content.hq/hq_tex"
+  folder:t="content.hq/pkg_cockpits"
+  folder:t="content/pkg_china"
+  folder:t="content.hq/pkg_china_hq"
+  folder:t="content/pkg_dev"
+  folder:t="content.hq/pkg_dev_hq"
+  folder:t="content/hc_pacific"
+  folder:t="content/pkg_user"
+  folder:t="content/pkg_local"
+  folder:t="content/tomoe"
+  folder:t="content.hq/tomoe_hq"
+  folder:t="content.hq/uhq_vehicles"
+  folder:t="content.hq/uhq_aircraft"
+  folder:t="content.hq/uhq_environment"
 }
 ```
 

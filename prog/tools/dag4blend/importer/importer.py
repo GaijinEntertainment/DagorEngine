@@ -20,14 +20,15 @@ from ..nodeMaterial                 import MaterialExp
 from ..face                         import FaceExp
 from ..mesh                         import MeshExp
 from ..material                     import Material
-from ..dagormat.build_node_tree     import buildMaterial
+from ..dagormat.build_node_tree     import build_dagormat_node_tree
+from ..dagormat.rw_dagormat_text    import dagormat_to_string
 from ..dagormat.compare_dagormats   import compare_dagormats
 from ..object_properties            import object_properties
-from ..helpers.props                import fix_type
+from ..helpers.props                import fix_type, dagormat_prop_add
 from ..helpers.texts                import log
-from ..helpers.popup                import show_popup
+from ..popup.popup_functions        import show_popup
 from ..helpers.version              import get_blender_version
-from ..helpers.get_preferences      import get_preferences
+from ..helpers.getters              import get_preferences
 from ..smooth_groups.smooth_groups  import uint_to_int, int_to_uint, sg_to_sharp_edges
 from ..tools.tools_panel            import fix_mat_slots, optimize_mat_slots
 
@@ -159,7 +160,7 @@ class Curve:
 class DagImporter(Operator, ImportHelper):
     bl_idname = "import_scene.dag"
     bl_label = "Import DAG"
-    bl_options = {'PRESET','REGISTER', 'UNDO'}
+    bl_options = {'PRESET', 'UNDO'}
 
     filename_ext = ".dag"
 
@@ -407,7 +408,6 @@ class DagImporter(Operator, ImportHelper):
             for index in indices:
                 poly.append(node.mesh.color_attributes_poly[index])
             vcol_lay = me.color_attributes.new(name = "",domain = "CORNER", type = "FLOAT_COLOR")
-            
             col = []
             for index in poly:
                 col.extend(node.mesh.color_attributes[index])
@@ -481,10 +481,7 @@ class DagImporter(Operator, ImportHelper):
                 msg = f'{o.name} materials does not contain "apex_interior_material:t"="{apex_mat}"\n'
                 log(msg, type = 'WARNING')
 #fixing mat_ids:
-        was_broken=fix_mat_slots(o)
-        if was_broken:
-            msg = f'{o.name} had incorrect material indices, fixed\n'
-            log(msg,type = 'WARNING')
+        fix_mat_slots(o)
         if self.mopt:
             before=o.material_slots.__len__()
             optimize_mat_slots(o)
@@ -527,13 +524,13 @@ class DagImporter(Operator, ImportHelper):
         params = []
         type_value = script.split('\n')
         for el in type_value:
-            if el == '':
+            if el.find("=") == -1:
                 continue
             pair = el.split('=')
-            params.append([pair[0],fix_type(pair[1])])
+            params.append([pair[0], pair[1]])
         return params
 
-    def buildMaterials(self):
+    def build_dagormat_node_trees(self):
         for m in self.materials:
             og_mat = bpy.data.materials.get(m.name)
             if og_mat is not None:
@@ -559,12 +556,13 @@ class DagImporter(Operator, ImportHelper):
             if not m.mat.dagormat.is_proxy:
                 if (m.flags & DAG_MF_2SIDED) == DAG_MF_2SIDED:
                     m.mat.dagormat.sides = 1
-                for i in range(DAGTEXNUM):
+                tex_amount = DAGTEXNUM if (m.flags & DAG_MF_16TEX) else 8
+                for i in range(tex_amount):
                     tex='tex'+str(i)
                     if m.tex[i] != DAGBADMATID:
-                        attr_name='tex'+str(i)
-                        if hasattr(m.mat.dagormat.textures, attr_name):
-                            setattr(m.mat.dagormat.textures, tex, self.textures[m.tex[i]])
+                        setattr(m.mat.dagormat.textures, tex, self.textures[m.tex[i]])
+                    else:
+                        setattr(m.mat.dagormat.textures, tex, "")
                 blk = datablock.DataBlock()
                 try:
                     m.script = m.script.replace("(", "")
@@ -574,12 +572,12 @@ class DagImporter(Operator, ImportHelper):
                     params = self.DM_set_params(m.script)
                     for param in params:
                         if param[0] == "real_two_sided":
-                            if param[1]=='yes' or param[1]==1:
+                            if param[1].lower() in ['1', 'yes', 'true']:
                                 m.mat.dagormat.sides = 2
                             continue
                         else:
                             try:
-                                m.mat.dagormat.optional[param[0]] = param[1]
+                                dagormat_prop_add(m.mat.dagormat, param[0], param[1])
                             except:
                                 msg = f'\nsomething wrong happened on reading "{m.mat.name}" parameters!\n'
                                 log(msg,type = 'ERROR')
@@ -591,17 +589,19 @@ class DagImporter(Operator, ImportHelper):
 #merging_mats
             for mat in bpy.data.materials:
                 is_unic=True
-                if mat!=m.mat:
-                    if compare_dagormats(m.mat,mat):
-                        just_imported=m.mat
-                        m.mat=mat
-                        if m.mat.name.startswith(just_imported.name):
-                            m.mat.name=just_imported.name
-                        bpy.data.materials.remove(just_imported)
-                        is_unic=False
-                        break
+                if mat == m.mat:
+                    continue
+                if compare_dagormats(m.mat,mat):
+                    log(f'"{m.mat.name}" remapped to "{mat.name}"\n')
+                    just_imported = m.mat
+                    m.mat=mat
+                    if m.mat.name.startswith(just_imported.name):
+                        m.mat.name=just_imported.name
+                    bpy.data.materials.remove(just_imported)
+                    is_unic=False
+                    break
             if is_unic:
-                buildMaterial(m.mat)
+                build_dagormat_node_tree(m.mat)
         return
 
     def buildCurves(self, node, tm, parent):
@@ -977,7 +977,7 @@ class DagImporter(Operator, ImportHelper):
                 self.reader.endChunk(chunk.size)
             chunk = self.reader.beginChunk()
         self.reader.close()
-        self.buildMaterials()
+        self.build_dagormat_node_trees()
 #searching for existing collection
         col_name = basename(filepath).replace('.dag','')
         self.collection = get_dag_col(col_name,self.replace_existing)

@@ -8,7 +8,7 @@ You can find a list of supported asset types in your project in the
 [`application.blk`](../all-about-blk/application_blk.md) file. This file is a
 key resource for configuring how the tools interact with your project.
 
-```text
+```blk
 assets{
   types{}
 }
@@ -71,7 +71,6 @@ automatically.
 All resource names must be **unique**. While the system generally functions if
 resources are unique within their type, it is advisable to ensure globally
 unique names.
-
 ```
 
 ## Asset Types and Their Rules
@@ -82,7 +81,7 @@ A brief overview of texture asset parameters (all are optional, and for standard
 diffuse `.dds` textures, nothing may need to be specified. For `.tga` files, two
 parameters are typically required: `convert:b=yes`, `fmt:="DXT1|DXT5"`):
 
-```text
+```blk
 contents{
   convert:b=yes; fmt:t="DXT1|DXT5"
   mipmapType:t=mipmapGenerate
@@ -121,7 +120,7 @@ contents{
 
 ### Dynamic Models and Rendering Instances
 
-```text
+```blk
 lod{
   range:r=70; fname:t="$1.lod00.dag";
 }
@@ -158,7 +157,7 @@ Below are the rules for creating a
 [`.skeleton.blk`](../all-about-blk/skeleton_blk.md) file for a composite model,
 using a tank with several turret and gun options as an example:
 
-```text
+```blk
 name:t="tank_body.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_turret"
@@ -224,7 +223,7 @@ new levels before doing that.
 
 A multi-level hierarchy might look like this:
 
-```text
+```blk
 name:t="papa.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_papa"
@@ -255,5 +254,4 @@ attachSubSkel{
 This hierarchy demonstrates a parent model (`papa.lod00.dag`) with multiple
 layers of child models attached, each with its own prefix to ensure uniqueness
 and proper hierarchy management.
-
 

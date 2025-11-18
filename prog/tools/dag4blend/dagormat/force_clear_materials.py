@@ -1,16 +1,16 @@
 import bpy
-from ..helpers.basename import basename
-from ..helpers.version  import get_blender_version
-from ..helpers.get_preferences  import get_preferences
 
-def get_shader_names():
-    shader_names = ["default", "default_uv"]
+from ..helpers.version  import get_blender_version
+from ..helpers.getters  import get_preferences
+
+def get_nodegroups_names():
+    nodegroup_names = ["default", "default_uv"]
     preferences = get_preferences()
-    for category in preferences['shader_categories']:
-        for shader in category['shaders']:
-            shader_names.append(shader['name'])
-            shader_names.append(shader['name']+"_uv")
-    return shader_names
+    shader_names = preferences.shaders.keys()
+    for shader_name in shader_names:
+        nodegroup_names.append(shader_name)
+        nodegroup_names.append(shader_name + "_uv")
+    return nodegroup_names
 
 def loop_clear_shader_nodegroups(shader_nodegroups, preserved_groups):
     was_updated = False
@@ -40,18 +40,15 @@ def loop_clear_shader_nodegroups(shader_nodegroups, preserved_groups):
     return
 
 def force_clear_materials():
-    shader_names = get_shader_names()
+    nodegroup_names = get_nodegroups_names()
 
     shader_nodegroups = [gr for gr in bpy.data.node_groups if gr.type == 'SHADER']
     shader_nodegroups = list(shader_nodegroups)
 
-    preserved_groups = [gr for gr in shader_nodegroups  # this could be preserved by user for a reason
-        if gr.use_fake_user and gr.users == 1 and gr.name not in shader_names]
+    preserved_groups = [group for group in shader_nodegroups  # this could be preserved by user for a reason
+        if group.use_fake_user and group.users == 1 and group.name not in nodegroup_names]
 
-    groups_to_replace = [gr for gr in shader_nodegroups
-        if gr.name in shader_names
-        or gr.name.endswith("_uv") and gr.name[:-3] in shader_names
-        ]
+    groups_to_replace = [group for group in shader_nodegroups if group.name in nodegroup_names]
 
     for group in groups_to_replace:
         group.name = group.name + '_old'

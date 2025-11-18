@@ -100,7 +100,7 @@ empty node, while the second indicates the entity type.
 In the `.composit.blk` file, what is shown in the screenshot might look
 something like this:
 
-```text
+```blk
 node{
   ent{name:t="table_a:rendinst"}
   ent{name:t="table_b:rendinst"}

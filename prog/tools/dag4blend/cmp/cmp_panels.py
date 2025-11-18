@@ -5,12 +5,12 @@ from bpy.types  import Panel, Operator
 from bpy.utils  import register_class, unregister_class, user_resource
 from bpy.props  import IntProperty, BoolProperty, StringProperty
 
-from ..helpers.basename         import basename
-from ..helpers.texts            import log
-from ..helpers.get_preferences  import *
-from ..helpers.version          import get_blender_version
+from ..helpers.names    import ensure_no_extension
+from ..helpers.texts    import log
+from ..helpers.getters  import *
+from ..helpers.version  import get_blender_version
 
-from ..helpers.popup            import show_popup
+from ..popup.popup_functions    import show_popup
 from ..ui.draw_elements         import draw_custom_header, draw_custom_toggle
 
 from .cmp_import        import DAGOR_OP_CmpImport
@@ -224,7 +224,7 @@ class DAGOR_OT_composite_to_rendinst(Operator):
                 continue
             found_lod = obj.name[:5]
             if not found_lod in existing_lods:
-                lod_collection = bpy.data.collections.new(basename(collection_to_convert.name) + "." + found_lod)
+                lod_collection = bpy.data.collections.new(ensure_no_extension(collection_to_convert.name) + "." + found_lod)
                 existing_lods[found_lod] = lod_collection
                 collection_to_convert.children.link(existing_lods[found_lod])
             collection_to_convert.objects.unlink(obj)
@@ -474,8 +474,7 @@ class DAGOR_PT_composits(Panel):
         ent_editor = layout.box()
         pref = get_preferences()
         header = ent_editor.row()
-        draw_custom_header(header, "Entities", pref, 'cmp_entities_maximized',
-            control_value = pref.cmp_entities_maximized, icon = 'MONKEY')
+        draw_custom_header(header, "Entities", pref, 'cmp_entities_maximized', icon = 'MONKEY')
         if not pref.cmp_entities_maximized:
             return
         if node.instance_type!='COLLECTION':
@@ -519,8 +518,7 @@ class DAGOR_PT_composits(Panel):
         props = get_local_props()
         cmp_tools_props = props.cmp.tools
         box = layout.box()
-        draw_custom_header(box, "Nodes to Asset", pref, 'nodes_to_asset_maximized',
-            control_value = pref.nodes_to_asset_maximized, icon = 'STICKY_UVS_LOC')
+        draw_custom_header(box, "Nodes to Asset", pref, 'nodes_to_asset_maximized', icon = 'STICKY_UVS_LOC')
         if not pref.nodes_to_asset_maximized:
             return
 
@@ -566,15 +564,14 @@ class DAGOR_PT_composits(Panel):
         cmp_tools_props = props.cmp.tools
         self.draw_nodes_to_asset_converter(context, layout)
         box = layout.box()
-        draw_custom_header(box, "Edit Sub-Composites", pref, 'cmp_hyerarchy_maximized',
-            control_value = pref.cmp_hyerarchy_maximized, icon = 'ARROW_LEFTRIGHT')
+        draw_custom_header(box, "Edit Sub-Composites", pref, 'cmp_hyerarchy_maximized', icon = 'ARROW_LEFTRIGHT')
         node = context.object
         if not pref.cmp_hyerarchy_maximized:
             return
 
         props = box.column(align = True)
-        draw_custom_toggle(props, cmp_tools_props, 'recursive', cmp_tools_props.recursive)
-        draw_custom_toggle(props, cmp_tools_props, 'destructive', cmp_tools_props.destructive)
+        draw_custom_toggle(props, cmp_tools_props, 'recursive')
+        draw_custom_toggle(props, cmp_tools_props, 'destructive')
         row = props.row()
         button = row.operator('dt.nodes_split', icon = 'FULLSCREEN_ENTER')
         button.recursive = cmp_tools_props.recursive
@@ -597,8 +594,7 @@ class DAGOR_PT_composits(Panel):
         cmp_tools_props = props.cmp.tools
         node = context.object
         box = layout.box()
-        draw_custom_header(box, "Basic Converters", pref, 'basic_converter_maximized',
-            control_value = pref.basic_converter_maximized, icon = 'GEOMETRY_SET')
+        draw_custom_header(box, "Basic Converters", pref, 'basic_converter_maximized', icon = 'GEOMETRY_SET')
         if not pref.basic_converter_maximized:
             return
 
@@ -624,7 +620,6 @@ class DAGOR_PT_composits(Panel):
             if bpy.data.scenes.get(sc) is not None:
                 first_time = False
         draw_custom_header(header, "Scenes", pref, 'cmp_init_maximized',
-            control_value = pref.cmp_init_maximized,
             icon='ERROR' if first_time else 'FILE_REFRESH')
 
         if not pref.cmp_init_maximized:
@@ -637,8 +632,7 @@ class DAGOR_PT_composits(Panel):
     def draw_node_place_type(self, context,layout):
         pref = get_preferences()
         box = layout.box()
-        draw_custom_header(box, "Place Type", pref, 'cmp_place_maximized',
-            control_value = pref.cmp_place_maximized, icon = 'ORIENTATION_LOCAL')
+        draw_custom_header(box, "Place Type", pref, 'cmp_place_maximized', icon = 'ORIENTATION_LOCAL')
         if not pref.cmp_place_maximized:
             return
         node = context.object
@@ -648,8 +642,7 @@ class DAGOR_PT_composits(Panel):
     def draw_node_transforms(self,context,layout):
         pref = get_preferences()
         box = layout.box()
-        draw_custom_header(box, "Transformations", pref, 'cmp_tm_maximized',
-            control_value = pref.cmp_tm_maximized, icon = 'EMPTY_ARROWS')
+        draw_custom_header(box, "Transformations", pref, 'cmp_tm_maximized', icon = 'EMPTY_ARROWS')
         if not pref.cmp_tm_maximized:
             return
         node = context.object
@@ -661,8 +654,7 @@ class DAGOR_PT_composits(Panel):
         props = get_local_props()
         cmp_import_props = props.cmp.importer
         importer = layout.box()
-        draw_custom_header(importer, "Import", pref, 'cmp_imp_maximized',
-            control_value = pref.cmp_imp_maximized, icon = 'IMPORT')
+        draw_custom_header(importer, "Import", pref, 'cmp_imp_maximized', icon = 'IMPORT')
         if pref.cmp_imp_maximized:
             importer.label(text = 'import path:')
             importer.prop(cmp_import_props,'filepath',text='')
@@ -690,8 +682,7 @@ class DAGOR_PT_composits(Panel):
         props = get_local_props()
         cmp_export_props = props.cmp.exporter
         exporter = layout.box()
-        draw_custom_header(exporter, "Export", pref, 'cmp_exp_maximized',
-            control_value = pref.cmp_exp_maximized, icon = 'EXPORT')
+        draw_custom_header(exporter, "Export", pref, 'cmp_exp_maximized', icon = 'EXPORT')
         if pref.cmp_exp_maximized:
             exporter.label(text = 'export path:')
             exporter.prop(cmp_export_props, 'dirpath',text = '')
@@ -704,8 +695,7 @@ class DAGOR_PT_composits(Panel):
     def draw_cmp_tools(self, context, layout):
         pref = get_preferences()
         tools = layout.box()
-        draw_custom_header(tools, "Tools", pref, 'cmp_tools_maximized',
-            control_value = pref.cmp_tools_maximized, icon = 'TOOL_SETTINGS')
+        draw_custom_header(tools, "Tools", pref, 'cmp_tools_maximized', icon = 'TOOL_SETTINGS')
         if not pref.cmp_tools_maximized:
             return
         self.draw_init(context, tools)
@@ -716,8 +706,7 @@ class DAGOR_PT_composits(Panel):
     def draw_node_props(self, context, layout):
         pref = get_preferences()
         node_props = layout.box()
-        draw_custom_header(node_props, "Node Properties", pref, 'cmp_props_maximized',
-            control_value = pref.cmp_props_maximized, icon = 'OPTIONS')
+        draw_custom_header(node_props, "Node Properties", pref, 'cmp_props_maximized', icon = 'OPTIONS')
         if not pref.cmp_props_maximized:
             return
         column = node_props.column(align = True)
@@ -729,8 +718,6 @@ class DAGOR_PT_composits(Panel):
             return
         row = column.row()
         self.draw_entity_editor(context, row)
-        row = column.row()
-        self.draw_node_transforms(context, row)
         row = column.row()
         self.draw_node_place_type(context, row)
         return

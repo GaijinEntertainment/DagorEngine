@@ -1,8 +1,10 @@
-import bpy,os,pickle
-from time                       import time
-from ..helpers.basename         import basename
-from ..helpers.texts            import log
-from ..helpers.get_preferences  import get_preferences
+from os         import walk
+from os.path    import join
+
+import bpy,pickle
+from time                   import time
+from ..helpers.texts        import log
+from ..helpers.getters      import get_preferences, get_addon_directory
 
 def skip(filename):
     skip = True
@@ -36,11 +38,10 @@ def is_gameobj(filename):
 def build_cache():
     entities = {}
     start = time()
-    addon_name = basename(__package__)
     pref = get_preferences()
     index = int(pref.project_active)
     lib_path = pref.projects[index]['path']
-    for subdir,dirs,files in os.walk(lib_path):
+    for subdir,dirs,files in walk(lib_path):
         for file in files:
             filename=file.lower()
             if skip(filename):
@@ -50,18 +51,18 @@ def build_cache():
             if assetname not in entities:
                 entities[assetname] = []
             if is_prefab(filename):
-                entities[assetname].append(['prefab',  os.path.join(subdir,filename)])
+                entities[assetname].append(['prefab', join(subdir,filename)])
 
 #TODO: exclude dynmodels. Dynmodels doesn't work in composits anyway, so this shouldn't be an issue
             elif is_geometry(filename):
-                entities[assetname].append(['rendinst',os.path.join(subdir,filename)])
+                entities[assetname].append(['rendinst',join(subdir,filename)])
 #'rendinst' instead of 'geometry' to skip extra steps on processing, since cmp can contain only RI anyway
             elif is_composit(filename):
-                entities[assetname].append(['composit',os.path.join(subdir,filename)])
+                entities[assetname].append(['composit',join(subdir,filename)])
             elif is_gameobj(filename):
-                entities[assetname].append(['gameobj', os.path.join(subdir,filename)])
+                entities[assetname].append(['gameobj',join(subdir,filename)])
     project_name = pref.projects[index]['name']
-    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'/addons/{addon_name}/{project_name}.bin')
+    cache_path = get_addon_directory() + f'/{project_name}.bin'
     try:
         cache = open(cache_path,'wb')
         pickle.dump(entities,cache)
@@ -75,11 +76,10 @@ def build_cache():
     return entities
 
 def read_cache():
-    addon_name = basename(__package__)
     pref = get_preferences()
     index = int(pref.project_active)
     project_name = pref.projects[index]['name']
-    cache_path = bpy.utils.user_resource('SCRIPTS',path = f'/addons/{addon_name}/{project_name}.bin')
+    cache_path = get_addon_directory() + f'/{project_name}.bin'
     try:
         cache = open(cache_path,'rb')
         entities = pickle.load(cache)

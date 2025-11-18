@@ -15,11 +15,11 @@ from bpy.utils          import user_resource
 from os                 import listdir
 from os.path            import exists, splitext, isfile, join
 
-from .read_config                       import read_config
-from .helpers.popup                     import show_popup
-from .helpers.get_preferences           import get_local_props, get_preferences
-from .projects.draw_project_manager     import draw_project_settings
-from .ui.draw_elements                  import draw_custom_header
+from .dagormat.read_shader_config   import read_shader_config
+from .popup.popup_functions         import show_popup
+from .helpers.getters               import get_local_props, get_preferences, get_addon_directory
+from .projects.draw_project_manager import draw_project_settings
+from .ui.draw_elements              import draw_custom_header, draw_custom_toggle
 
 classes = []
 
@@ -224,24 +224,6 @@ classes.append(DAG_OT_AddProject)
 
 
 #shader classes###########################################################
-
-class DagShaderProp(PropertyGroup):
-    name:   StringProperty()
-    type:   StringProperty()
-classes.append(DagShaderProp)
-
-
-class DagShader(PropertyGroup):
-    name:   bpy.props.StringProperty()
-    props:  CollectionProperty(type = DagShaderProp)
-classes.append(DagShader)
-
-
-class DagShaderClass(PropertyGroup):
-    name:    StringProperty()
-    shaders: CollectionProperty(type = DagShader)
-classes.append(DagShaderClass)
-
 
 def get_obj_prop_presets(self, context):
     pref = get_preferences()
@@ -465,22 +447,17 @@ classes.append(dag4blend_props)
 #UI#######################################################################
 class DagSettings(AddonPreferences):
     bl_idname = __package__
-    def_path='C:/replace_by_correct_path/'
-    def_cfg_path=bpy.utils.user_resource('SCRIPTS') + f"/addons/{__package__}/dagorShaders.cfg"
+    default_config_path = get_addon_directory() + '/dagorShaders.blk'
 #global
-    assets_path:        StringProperty(default = def_path,     subtype = 'DIR_PATH',
-                            description = 'assets location')
-    cfg_path:           StringProperty(default = def_cfg_path, subtype = 'FILE_PATH',
-                            description = 'dagorShaders.cfg location')
-
-    new_project_name:   StringProperty(description = 'name of project')
-    new_project_path:   StringProperty(description = 'where assets(dags, textures, composits) of that project stored?',
-                                        subtype = 'DIR_PATH')
+    shader_config_path:     StringProperty(name = "dagorShaders.blk location",
+                            default = default_config_path, subtype = 'FILE_PATH',
+                            description = 'path to custom shader config location')
 
     projects:           CollectionProperty(type = DagProject)
     project_active:     EnumProperty      (items = get_projects, update = upd_project)
 #shaders
-    shader_categories:     CollectionProperty(type =DagShaderClass)
+    shaders:            PointerProperty(type = Empty_Group)
+    shader_categories:  PointerProperty(type = Empty_Group)  # used to get shader names for category faster
 #Addon features
     projects_maximized:     BoolProperty(default = False, description = 'Projects')
     experimental_maximized: BoolProperty(default = False, description = 'Experimental features')
@@ -488,6 +465,7 @@ class DagSettings(AddonPreferences):
     guess_dag_type:         BoolProperty(default = False,
         description = 'Guess asset type .dag based on name and shader types. Would be used to check shader types on import and export')
     type_maximized:         BoolProperty(default = False, description = '')
+    hide_dagormat_legacy:   BoolProperty(default = True, description = "Hide dagormat parameters that are no longer used")
 #UI/smoothing groups
     sg_live_refresh:        BoolProperty(default = False, description = 'Convert to sharp edges on each change (might be slow!)')
     sg_set_maximized:       BoolProperty(default = False, description = 'Assign smoothing group to selected polygons')
@@ -496,80 +474,75 @@ class DagSettings(AddonPreferences):
     props_presets_path: StringProperty(subtype = 'DIR_PATH',
             default = bpy.utils.user_resource('SCRIPTS') + f"/addons/{__package__}/object_properties/presets")
     props_path_editing:     BoolProperty(default = False, description = "Change props presets directory")
-    props_maximized:        BoolProperty(default = True)
-    props_preset_maximized: BoolProperty(default = True)
-    props_tools_maximized:  BoolProperty(default = True)
+    props_maximized:        BoolProperty(default = False)
+    props_preset_maximized: BoolProperty(default = False)
+    props_tools_maximized:  BoolProperty(default = False)
     prop_preset:            EnumProperty(items = get_obj_prop_presets)
     prop_preset_name:       StringProperty(default = "preset_name")
     prop_name:              StringProperty(default = 'name',description = 'name')
     prop_value:             StringProperty(default = 'value',description = 'value')
 #UI/ColProps
-    colprops_maximized:     BoolProperty(default = True)
-    colprops_all_maximized: BoolProperty(default = True)
+    colprops_maximized:     BoolProperty(default = False)
+    colprops_all_maximized: BoolProperty(default = False)
 #UI/dagormat
-    mat_maximized:          BoolProperty(default = True)
-    backfacing_maximized:   BoolProperty(default = True)
-    tex_maximized:          BoolProperty(default = True)
-    opt_maximized:          BoolProperty(default = True)
-    tools_maximized:        BoolProperty(default = True)
-    proxy_maximized:        BoolProperty(default = True)
+    dagormat_main_maximized:BoolProperty(default = True)
+    legacy_maximized:       BoolProperty(default = False)
+    tex_maximized:          BoolProperty(default = False)
+    optional_maximized:     BoolProperty(default = False)
+    tools_maximized:        BoolProperty(default = False)
+    proxy_maximized:        BoolProperty(default = False)
 
 #UI/dagormat/tools
-    process_materials:      EnumProperty(
-            #(identifier, name, description)
-        items = [('ACTIVE','Active material','Active material only'),
-                 ('ALL','All materials','All supported materials'),
-                 ],
-        default = 'ACTIVE')
+    process_all_materials:  BoolProperty(default = False)
 
 #UI/View3D_tools
-    matbox_maximized:       BoolProperty(default = True)
-    searchbox_maximized:    BoolProperty(default = True)
-    savebox_maximized:      BoolProperty(default = True)
-    meshbox_maximized:      BoolProperty(default = True)
-    scenebox_maximized:     BoolProperty(default = True)
-    destrbox_maximized:     BoolProperty(default = True)
-    destrsetup_maximized:   BoolProperty(default = True)
-    destrdeform_maximized:  BoolProperty(default = True)
+    matbox_maximized:       BoolProperty(default = False)
+    searchbox_maximized:    BoolProperty(default = False)
+    savebox_maximized:      BoolProperty(default = False)
+    meshbox_maximized:      BoolProperty(default = False)
+    scenebox_maximized:     BoolProperty(default = False)
+    destrbox_maximized:     BoolProperty(default = False)
+    destrsetup_maximized:   BoolProperty(default = False)
+    destrdeform_maximized:  BoolProperty(default = False)
 
 #UI/View3D_mesh_tools
-    cleanup_maximized:      BoolProperty(default = True)
-    vert_cleanup_maximized: BoolProperty(default = True)
-    tris_cleanup_maximized: BoolProperty(default = True)
+    cleanup_maximized:      BoolProperty(default = False)
+    vert_cleanup_maximized: BoolProperty(default = False)
+    tris_cleanup_maximized: BoolProperty(default = False)
 
 #UI/Composits
-    cmp_imp_maximized:      BoolProperty(default = True)
-    cmp_exp_maximized:      BoolProperty(default = True)
-    cmp_entities_maximized: BoolProperty(default = True)
-    cmp_tools_maximized:    BoolProperty(default = True)
-    cmp_props_maximized:    BoolProperty(default = True)
-    cmp_place_maximized:    BoolProperty(default = True)
+    cmp_imp_maximized:      BoolProperty(default = False)
+    cmp_exp_maximized:      BoolProperty(default = False)
+    cmp_entities_maximized: BoolProperty(default = False)
+    cmp_tools_maximized:    BoolProperty(default = False)
+    cmp_props_maximized:    BoolProperty(default = False)
+    cmp_place_maximized:    BoolProperty(default = False)
 #UI/Composits/Tools
-    cmp_init_maximized:         BoolProperty(default = True)
-    nodes_to_asset_maximized:   BoolProperty(default = True)
-    node_to_mesh_maximized:     BoolProperty(default = True)
-    basic_converter_maximized:  BoolProperty(default = True)
-    cmp_tm_maximized:           BoolProperty(default = True)
-    cmp_hyerarchy_maximized:    BoolProperty(default = True)
+    cmp_init_maximized:         BoolProperty(default = False)
+    nodes_to_asset_maximized:   BoolProperty(default = False)
+    node_to_mesh_maximized:     BoolProperty(default = False)
+    basic_converter_maximized:  BoolProperty(default = False)
+    cmp_tm_maximized:           BoolProperty(default = False)
+    cmp_hyerarchy_maximized:    BoolProperty(default = False)
 #UI/Project
-    palettes_maximized:     BoolProperty(default = True)
+    palettes_maximized:     BoolProperty(default = False)
 
 #UI/Dag Importer Panel
-    imp_props_maximized:    BoolProperty(default = True)
+    imp_props_maximized:    BoolProperty(default = False)
     # advanced mode (fnmatch)
-    imp_includes_maximized: BoolProperty(default = True)
-    imp_excludes_maximized: BoolProperty(default = True)
+    imp_includes_maximized: BoolProperty(default = False)
+    imp_excludes_maximized: BoolProperty(default = False)
     # expert mode (regex)
-    imp_includes_re_maximized:  BoolProperty(default = True)
-    imp_excludes_re_maximized:  BoolProperty(default = True)
+    imp_includes_re_maximized:  BoolProperty(default = False)
+    imp_excludes_re_maximized:  BoolProperty(default = False)
 
     def draw(self, context):
-        l = self.layout
-        paths = l.box()
+        layout = self.layout
+        paths = layout.box()
         paths.prop(self, 'props_presets_path', text = "ObjProps presets")
-        paths.prop(self, 'cfg_path', text = "dagorShaders.cfg")
-        projects = l.box()
-        draw_custom_header(projects, "Projects", self, 'projects_maximized', control_value = self.projects_maximized)
+        paths.prop(self, 'shader_config_path', text = "dagorShaders.blk")
+        projects = layout.box()
+        draw_custom_header(projects, "Projects", self, 'projects_maximized')
         if self.projects_maximized:
             if self.projects.__len__()>0:
                 projects.prop(self, 'project_active', text = "Active")
@@ -580,43 +553,18 @@ class DagSettings(AddonPreferences):
             add_button = projects.row()
             add_button.scale_y = 2
             add_button.operator('dt.add_project',icon='ADD',text='ADD Project')
-        exp=l.box()
-        exp.prop(self,'experimental_maximized',text='Experimental Features',
-                icon = 'DOWNARROW_HLT'if self.experimental_maximized else 'RIGHTARROW_THIN',
-                emboss=False,expand=True)
+        experimental = layout.box()
+        draw_custom_header(experimental, "Experimental Features", self, 'experimental_maximized')
         if self.experimental_maximized:
-            warning = exp.box()
-            wrow = warning.row()
-            wrow.label(text = '', icon = 'ERROR')
-            wrow.label(text='Might be unstable. Use it on your own risk')
-            wrow.label(text = '', icon = 'ERROR')
-            exp.prop(self, 'use_cmp_editor', toggle = True,
-            icon = 'CHECKBOX_HLT' if self.use_cmp_editor else 'CHECKBOX_DEHLT')
+            draw_custom_toggle(experimental, self, 'hide_dagormat_legacy')
+            draw_custom_toggle(experimental, self, 'use_cmp_editor')
 classes.append(DagSettings)
-
-
-def init_shader_categories():
-    pref = get_preferences()
-    shader_categories = pref.shader_categories
-    dagorShaders = read_config()
-    shader_categories.clear()
-    for shader_class in dagorShaders:
-        new_shader_class = shader_categories.add()
-        new_shader_class.name = shader_class[0].replace('-','')
-        for shader in shader_class[1]:
-            new_shader = new_shader_class.shaders.add()
-            new_shader.name = shader[0]
-            for prop in shader[1]:
-                new_prop = new_shader.props.add()
-                new_prop.name = prop[0]
-                new_prop.type = prop[1]
-    return
 
 
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
-    init_shader_categories()
+    read_shader_config()
     bpy.types.Scene.dag4blend = PointerProperty(type = dag4blend_props)
     return
 

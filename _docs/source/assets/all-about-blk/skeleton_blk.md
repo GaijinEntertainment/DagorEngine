@@ -11,7 +11,7 @@ composite model.
 Let's break down the configuration using the example of a tank with various
 turret and gun options.
 
-```text
+```blk
 name:t="tank_body.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_turret"
@@ -81,7 +81,7 @@ are easier to manage. Before adding another level, ensure its necessity.
 
 A multi-level hierarchy might look like this:
 
-```text
+```blk
 name:t="papa.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_papa"

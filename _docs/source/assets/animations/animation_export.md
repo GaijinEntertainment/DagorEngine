@@ -67,7 +67,7 @@ to ensure proper generation of virtual assets. For example:
 
 - **Enlisted:** Each skinned object must include the following properties:
 
-  ```text
+  ```blk
   animated_node:b=yes
   collidable:b=no
   massType:t="none"
@@ -88,9 +88,9 @@ to ensure proper generation of virtual assets. For example:
 Animations must be described in the `animtree.blk` of the corresponding block.
 For War Thunder-based projects, this involves two blocks:
 
-1. **AnimBlendNodeLeaf{} block:**
+1. **`AnimBlendNodeLeaf{}` block:**
 
-   ```text
+   ```blk
    AnimBlendNodeLeaf{
      a2d:t="animation_file.a2d"  // Animation file name
 
@@ -107,9 +107,9 @@ For War Thunder-based projects, this involves two blocks:
    }
    ```
 
-2. **hub{} block:**
+2. **`hub{}` block:**
 
-   ```text
+   ```blk
    hub{
      name:t="animation_file"  // Animation name
      const:b=yes              // Indicates whether the animation loops
@@ -123,7 +123,7 @@ the game, you must perform a `daBuild`.
 
 The export description for animations in `.blk` files:
 
-```text
+```blk
 file:t=some.a2d
 
 opt:b=yes  // Conservative optimization
@@ -134,7 +134,7 @@ sclEps:r=0.1
 
 For `.folder.blk` files:
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.a2d$"
   className:t="a2d"
@@ -146,5 +146,4 @@ virtual_res_blk{
   }
 }
 ```
-
 

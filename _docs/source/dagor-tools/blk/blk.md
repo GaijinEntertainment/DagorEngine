@@ -166,7 +166,7 @@ Blocks can be of the following types: *sequential*, *nested* and combination of
 
 #### Sequential
 
-```text
+```blk
 block_name{
   param_name:type=value
 }
@@ -177,18 +177,19 @@ block_name{
 
 **Example:**
 
-```text
+```blk
 lod{
   range:r=70;
 }
 lod{
-  range:r=10000; fname:t="billboard_octagon_impostor.lod01.dag";
+  range:r=10000;
+  fname:t="billboard_octagon_impostor.lod01.dag";
 }
 ```
 
 #### Nested
 
-```text
+```blk
 block_name{
   param_name:type=value
   block_name{
@@ -199,7 +200,7 @@ block_name{
 
 **Example:**
 
-```text
+```blk
 contents{
   lod{
     range:r=70;
@@ -209,7 +210,7 @@ contents{
 
 #### Combination of sequential and nested
 
-```text
+```blk
 block_name{
   param_name:type=value
   block_name{
@@ -223,13 +224,14 @@ block_name{
 
 **Example:**
 
-```text
+```blk
 contents{
   lod{
     range:r=70;
   }
   lod{
-    range:r=10000; fname:t="billboard_octagon_impostor.lod01.dag";
+    range:r=10000;
+    fname:t="billboard_octagon_impostor.lod01.dag";
   }
 }
 ```
@@ -285,5 +287,4 @@ The `dagor3_cdk` has some useful tools for working with `.blk`:
 - `blkDiff.exe`: performs a syntactic diff between two `.blk` files.
 - `blkEditor-dev.exe`: Facilitates the creation of a GUI editor with dynamic
   views for `.blk` files.
-
 

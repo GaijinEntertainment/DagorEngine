@@ -119,12 +119,12 @@ The export parameters can be specified either directly through names or via
 
    **Examples**:
 
-   ```text
+   ```blk
    ddsxTexPack:t="combat_suits.dxp.bin"
    gameResPack:t="combat_suits.grp"
    ```
 
-   ```text
+   ```blk
    ddsxTexPack:t="*name_src"
    gameResPack:t="*name_src"
    ```
@@ -136,7 +136,7 @@ The export parameters can be specified either directly through names or via
 
   **Example**:
 
-   ```text
+   ```blk
    ddsxTexPackPrefix:t="aircrafts/"
    ```
 
@@ -145,11 +145,11 @@ The export parameters can be specified either directly through names or via
 
   **Examples**:
 
-   ```text
+   ```blk
    package:t="outer_space"
    ```
 
-   ```text
+   ```blk
    package:t="*"
    ```
 
@@ -171,9 +171,9 @@ The export parameters can be specified either directly through names or via
 
 ```text
   dir_1
-  ├── .folder.blk
-  └── dir_2
-      └── asset
+  ├─ .folder.blk
+  └─ dir_2
+      └─ asset
 ```
 
 - `*name_src`, `*path_src`: the `dir_2` name (or `dir_1/dir_2` path) will be
@@ -238,7 +238,7 @@ from `.folder.blk` files higher in the directory hierarchy, until a
 `stopProcessing:b=true` directive is encountered or all `.folder.blk` files in
 the hierarchy are processed.
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.dds$"
   exclude:t="^(.*_nm)\.dds$"
@@ -277,7 +277,7 @@ For example, for `develop/assets/test/warthunder/model/abc.tif`, the tags would
 be `test`, `warthunder`, and `model`. Specialization block names follow the
 format `tag:TTT{}`, such as:
 
-```text
+```blk
 contents{
   hqMip:i=1
   //...
@@ -321,11 +321,13 @@ subdirectories, not external ones.
 ### Regular Expression Patterns
 
 1. **LOD Files**
-   ```text
+
+   ```blk
    find:t="^(.*)\.lod00\.dag$"
    ```
 2. **Texture and Mask Files**
-   ```text
+
+   ```blk
    find:t="^((.*_mask)|(.*_tex_m))\.tif$"
    ```
 
@@ -349,7 +351,7 @@ subdirectories, not external ones.
 To generate renderings from `.lod00.dag` files and create prefabs from them,
 use:
 
-```text
+```blk
 find:t="^(.*)\.lod00\.dag$"
 ```
 
@@ -358,7 +360,7 @@ find:t="^(.*)\.lod00\.dag$"
 To find and process all files matching `"^(.*_n\.tif$"` and convert them to
 `.dds` format with swizzling, then process all remaining `.tif` files:
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*_n(_dmg|_expl|_inside)?)\.tif$"
   swizzleARGB:t="RAG0"
@@ -372,5 +374,4 @@ virtual_res_blk{
 
 These examples demonstrate how to use regular expressions to find specific file
 types and perform various actions on them within the `.folder.blk` framework.
-
 

@@ -106,7 +106,7 @@ Each bone in the scene must include **Custom Properties** so that the Dagor
 identifies them as bones. Below is the minimum required configuration for the
 crow skeleton:
 
-```text
+```blk
 animated_node:b=yes  // Specifies the object is animated
 collidable:b=no      // Disables all collisions
 massType:t="none"    // No mass, but the object is physical
@@ -124,7 +124,7 @@ least one bone using **Custom Properties** {bdg-dark-line}`2`.
 Without physics, the engine cannot generate a valid skeleton. Below is an
 example configuration for the `head` bone {bdg-dark-line}`1`:
 
-```text
+```blk
 animated_node:b=yes  // Specifies the object is animated
 collidable:b=no      // Enables collision handling, though further settings are required
 massType:t="box"     // Specifies the mass calculation type
@@ -152,15 +152,15 @@ vertex. This parameter is defined in the project's general configuration file,
 
 Example configuration in `application.blk`:
 
-```text
+```blk
 dynModel{
   descListOutPath:t="dynModelDesc"
   separateModelMatToDescBin:b=yes
 
   ignoreMappingInPrepareBillboardMesh:b=yes
   enableMeshNodeCollapse:b=no
-  maxBonesCount:i=318   // This is ineffective! Shader limitations cap bone count at 200.
-                        // Exceeding 200 will result in errors during daBuild.
+  maxBonesCount:i=318   /* This is ineffective! Shader limitations cap bone count at 200.
+                           Exceeding 200 will result in errors during daBuild. */
   setBonePerVertex:i=4  // Number of bones per vertex
 }
 ```
@@ -180,7 +180,7 @@ triangles. If your model exceeds this limit, divide it into multiple pieces.
 For each model with a **Skin modifier**, the following **Custom Properties**
 must be added:
 
-```text
+```blk
 animated_node:b=yes  // Specifies the object is animated
 collidable:b=no      // Disables all collisions
 massType:t="none"    // Indicates no physical mass for this object
@@ -367,7 +367,7 @@ This file contains individual properties and settings for the animation.
 
 **Example:**
 
-```text
+```blk
 name:t="crow_detailed_idle_b.a2d"  // Name of the animation linked to this script
 opt:b=no                           // Conservative optimization disabled.
 posEps:r=0.001                     // Position compression accuracy during project build.
@@ -434,7 +434,7 @@ large number of resources.
 
 `<engine_root>/<project_name>/develop/assets/dev/gameRes/creatures/animation/.folder.blk`
 
-```text
+```blk
 export{
   gameResPack:t="anims.grp" // Export processed animation resources into the specified game resource package
   exported:b=yes            // Perform the export
@@ -465,7 +465,7 @@ This script:
 
 This script is slightly more complex but follows the same structure.
 
-```text
+```blk
 scan_assets:b=yes   // Search for objects
 scan_folders:b=yes  // Search for directories
 
@@ -585,7 +585,7 @@ efficiently.
 
 **Example:** `<engine_root>/<project_name>/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_char.animchar.blk`
 
-```text
+```blk
 //no_anim_dist:r=100    // Distance beyond which animations stop (commented out)
 //no_render_dist:r=200  // Distance beyond which the model stops rendering (commented out)
 //useCharDep:b=no       // Not used here; consult specific documentation if needed
@@ -616,7 +616,7 @@ targets a single resource.
 
 **Example:** `<engine_root>/<project_name>/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_dynmodel.dynmodel.blk`
 
-```text
+```blk
 ref_skeleton:t="crow_detailed_a_skeleton" // Assign the corresponding skeleton
 
 lod{range:r=2;}   // LOD00 switches to LOD01 at 2 meters
@@ -677,13 +677,13 @@ For more information, see
 
 **Script Breakdown:**
 
-```text
+```blk
 export:b=yes              // Process the script
 root:t="fifo3"            // Root node for animation blending
 defaultForeignAnim:b=yes  // Enables blending foreign animations
 ```
 
-```text
+```blk
 nodeMask{         // Defines masks for specific nodes (bones in this case).
   name:t="body"   // Bone name from 3ds Max
   node:t="Bip01"  // Root bone name as recognized by Dagor
@@ -694,7 +694,7 @@ nodeMask{         // Defines masks for specific nodes (bones in this case).
 to ensure compatibility. For example, `Bip01` is historically used for root
 bones in 3ds Max.
 
-```text
+```blk
 stateDesc{             // Specifies all possible animation states for the character.
                        // In this example states represent conditions like "flying"
                        // and "turning right while flying".
@@ -730,7 +730,7 @@ stateDesc{             // Specifies all possible animation states for the charac
 Each animation state is linked to an `AnimBlendNodeLeaf{}` block that specifies
 the actual animation file (`*.a2d`) and its properties.
 
-```text
+```blk
 AnimBlendNodeLeaf{
   a2d:t="crow_detailed_fly_turn_right" // Animation file
 
@@ -750,7 +750,7 @@ AnimBlendNodeLeaf{
 
 Blend controllers manage the mixing of different animation states.
 
-```text
+```blk
 AnimBlendCtrl{
   fifo3{
     name:t="fifo3"         // Name of the controller
@@ -918,5 +918,4 @@ If you encounter any errors or have questions regarding this document, please
 reach out to the author directly at {octicon}`mail;1.4em;sd-text-info`
 <a.vlasov@gaijin.team>.
 ```
-
 

@@ -4,78 +4,86 @@
 
 The Composite Editor is currently under development and is considered an
 experimental feature. As such, it is hidden by default. To enable its
-visibility, you need to check the appropriate box in the add-on settings.
+visibility, you need to check the **Composite Editor** box in the add-on
+settings.
 
-<img src="_images/dag4blend_comp_ed_01.jpg" alt="How to enable" align="center">
-
-<img src="_images/dag4blend_comp_ed_02.jpg" alt="How to enable" align="center">
+<img src="_images/dag4blend_comp_ed_01.png" alt="How to enable" align="center">
 
 The Composite Editor can be found in the **N-panel** under the **Dagor** tab.
-The panel itself is divided into three main sections: **CMP Import**, **CMP
-Export**, and **CMP Tools**.
+The panel is divided into four main sections: **Import**, **Export**, **Tools**
+and **Node Properties**:
+
+<img src="_images/dag4blend_comp_ed_02.png" alt="How to enable" align="center">
 
 ## CMP Import
 
-<img src="_images/dag4blend_comp_ed_03.jpg" alt="CMP import" align="center">
+<img src="_images/dag4blend_comp_ed_03.png" alt="CMP import" align="center">
 
 - **import path**: this is the full path to the `name.composit.blk` file.
   However, if the correct project is selected, you can simply specify
-  `name.composit.blk` or even just `name` – the add-on will locate and import
-  it.
+  `name.composit.blk` or even just `name`, the add-on will locate and import it.
 
 - **refresh cache**: to import subcomposites and geometry, the add-on needs to
-  know where to find them. When this checkbox is enabled, the importer will scan
+  know where to find them. When this option is checked, the importer will scan
   all files in the active project directory once and record where everything is
   located. This list is then used during the import process, which significantly
   speeds up the operation compared to the previous version, where the directory
-  might be searched multiple times across several levels of nesting. If you're
-  importing composites from the same project, you can uncheck this box to save a
-  few seconds, but only if you're certain the paths are up-to-date. A separate
-  cache is maintained for each project.
+  might be searched multiple times across several levels of nesting.
+
+  If you're importing composites from the same project, you can uncheck this box
+  to save a few seconds, but only if you're certain the paths are up-to-date. A
+  separate cache is maintained for each project.
 
 - **recursive**: this option imports not only the specified composite but also
   its subcomposites, which are nodes, and their subcomposites. The algorithm
   should be self-explanatory.
 
 - **with dags**: imports `.lod00.dag` rendinsts and `.dag` prefabs for all
-  composites. If **recursive** is disabled, it only imports geometry directly
-  within the composite being imported; otherwise, it also imports the necessary
-  assets for the subcomposites.
+  composites.
 
-- **with lods**: available only when the previous checkbox is ebabled. This
-  option allows you to import not just `lod00` but all other LODs (level of
-  detail) as well. Keep in mind that this significantly slows down the import
-  process and increases the scene's complexity – useful only when you need to
-  adjust a mesh in a small composite, rather than the position of nodes. For
-  example, if you need to reposition a couple of apples so they don't stick out
-  of a box in a composite, and the apple pile is a single mesh, you still need
-  to update all LODs, not just the first one.
+  If **recursive** is disabled, the import will only place the models found in
+  the `.blend` file, and for all others, it will create empty collections.
 
-If a collection named after the composite already exists, it will be cleared
-during import, and the import will occur within that collection. If the
-collection isn't found, a new one will be created. All nodes are placed in a
-collection named `NODES`; again, if a collection with this name exists, it will
-be used.
+  It makes sense to disable this option if you only need to slightly adjust the
+  position of a specific node, or if you know that the required rendinsts are
+  already present in the file.
 
-If a `.dag` (rendinst or prefab) collection existed before the composite import,
-the asset will not be imported.
+- **with lods**: available only when the **with dags** option is enabled. Allows
+  importing not only `lod00`, but all other LODs (level of detail) as well.
 
-The node type and its name are explicitly set in the **Collection Properties**.
-For rendinsts, this isn't critical since the name is stored in `.lods` rather
-than the nested geometry collections. However, for prefabs, this is important to
-remember – **Override Name** will select the overridden collection name.
+  Keep in mind that this will significantly slow down the import process and
+  make the scene heavier. It's only reasonable to enable it when you need to
+  modify the mesh (not node positions) in a small composite. For example, if you
+  need to move a couple of apples so they don’t stick through the side of a box
+  in a composite, and the pile of apples is a single mesh, you still need to
+  update all LODs, not just the base one.
+
+If a collection named after the composite already exists, it will be cleared and
+reused for import. If it doesn't exist, a new collection will be created.
+
+The importer respects the hierarchy of the `.blend` scene. Rendinsts and prefabs
+are imported into the **GEOMETRY** scene, while composites are imported into
+**COMPOSITS**.
+
+If a `.dag` collection (rendinst or prefab) already existed before importing the
+composite, that asset will not be re-imported.
+
+The node type and name are explicitly written to the **Collection Properties**.
+For rendinsts, this is not critical (since the name is stored in the `*.lods`
+file, not in nested geometry collections), but for prefabs, this is important,
+the **Override Name** option will use the overridden collection name.
 
 ```{note}
 Don't forget to check the log.
 ```
 
-### New Blend File Structure
+### Blend File Structure
 
 The Composite Editor also introduces a new file structure for `.blend` files.
 Instead of having everything in a single scene, the new approach suggests using
 multiple scenes, each organized by content type.
 
-<img src="_images/dag4blend_comp_ed_04.jpg" alt="New blend file structure" align="center">
+<img src="_images/dag4blend_comp_ed_04.png" alt="New blend file structure" align="center">
 
 Scenes in Blender can be thought of as "`.blend` files within a `.blend`
 file". They are independent of each other, meaning that settings like checkbox
@@ -107,7 +115,7 @@ Tools > Scenes** section includes a button for creating or updating the scene
 structure, along with a duplicate scene switcher. This dropdown differs from the
 standard one in that it prevents accidental deletion or duplication of scenes.
 
-<img src="_images/dag4blend_comp_ed_05.jpg" alt="New blend file structure" align="center">
+<img src="_images/dag4blend_comp_ed_05.png" alt="Blend file structure" align="center">
 
 ### Creating Nodes
 
@@ -118,10 +126,10 @@ several approaches:
 
    You can add an Empty object to the scene, enable instancing in the
    **Entities** panel, and select the desired object's collection from the
-   dropdown menu. If instancing is disabled, or enabled but the collection is
-   not specified, the node will be exported as empty.
+   dropdown menu. If instancing is disabled, or the collection is not specified,
+   the node will be exported as empty.
 
-   <img src="_images/dag4blend_comp_ed_06.jpg" alt="Creating nodes" align="center">
+   <img src="_images/dag4blend_comp_ed_06.png" alt="Creating nodes" align="center">
 
 2. **Dragging a Collection**
 
@@ -137,11 +145,11 @@ several approaches:
          :child-direction: row
          :child-align: center
 
-         .. image:: _images/dag4blend_comp_ed_07.jpg
+         .. image:: _images/dag4blend_comp_ed_07.png
             :height: 25em
             :class: image-gap
 
-         .. image:: _images/dag4blend_comp_ed_08.jpg
+         .. image:: _images/dag4blend_comp_ed_08.png
             :height: 25em
    ```
 
@@ -152,7 +160,7 @@ several approaches:
    Add an Empty object and enable instancing through the **Object Properties**
    panel (Blender's native properties, not the add-on's).
 
-   <img src="_images/dag4blend_comp_ed_09.jpg" alt="Creating nodes" align="center">
+   <img src="_images/dag4blend_comp_ed_09.png" alt="Creating nodes" align="center">
 
 The first method is effectively a more flexible version of the third. Why is it
 more flexible? This will be explained below.
@@ -162,7 +170,7 @@ more flexible? This will be explained below.
 To convert a standard node into a random node, simply click the **"+"** button
 in the **Entities** panel.
 
-<img src="_images/dag4blend_comp_ed_10.jpg" alt="Editing nodes" align="center">
+<img src="_images/dag4blend_comp_ed_10.png" alt="Editing nodes" align="center">
 
 The second entity will initially be empty, and you can assign a collection to it
 either through the dropdown menu, by entering the collection name manually, or
@@ -185,21 +193,21 @@ node will revert to a non-random state.
 
 ### Setting Node Types and Changing Display
 
-In composites, it's possible (and sometimes necessary) to specify the node type
-– whether the asset is a rendinst, game object, composite, or prefab. The
-importer determines the type automatically, but when creating new nodes, you'll
-need to specify it manually.
+In composites, it's possible (and sometimes necessary) to specify the node type,
+whether the asset is a rendinst, game object, composite, or prefab. The importer
+determines the type automatically, but when creating new nodes, you'll need to
+specify it manually.
 
 In Blender's editor, an asset is represented by a collection that is drawn over
 an Empty object. Therefore, the type needs to be set in the collection's
 properties. When the Composite Editor is enabled, a new panel, **Type**, is
 added to the **Collection Properties**.
 
-To specify the type, click the **circle** next to the appropriate type – your
+To specify the type, click the **circle** next to the appropriate type, and your
 selection will be highlighted. A newly created collection will show
 **Undefined** as the active value until a type is set.
 
-<img src="_images/dag4blend_comp_ed_11.jpg" alt="Setting node types" align="center">
+<img src="_images/dag4blend_comp_ed_11.png" alt="Setting node types" align="center">
 
 During export, the collection's name (without any suffix like `.lodNN`, `.lods`,
 or `.002`) and its type, if specified, will be recorded. Nodes with instanced
@@ -225,9 +233,9 @@ distracting.
 
 Any collection can be used:
 
-<img src="_images/dag4blend_comp_ed_12.jpg" alt="Setting node types" align="center">
+<img src="_images/dag4blend_comp_ed_12.png" alt="Setting node types" align="center">
 
-### Node Hierarchy in a Composite
+### Node Hierarchy in Composite
 
 To establish a *parent*-*child* relationship among nodes and build a more
 complex hierarchy, use Blender's standard tools.
@@ -236,14 +244,14 @@ You can set a *parent* for a node through the object's properties. However, this
 will cause the matrix to recalculate, resulting in the object visually "jumping"
 as its new "zero" point changes.
 
-<img src="_images/dag4blend_comp_ed_13.jpg" alt="Node hierarchy in a composite" align="center">
+<img src="_images/dag4blend_comp_ed_13.png" alt="Node hierarchy in composite" align="center">
 
-To maintain the node's visual position, use the **Set Parent** command – either
-by pressing `Ctrl`+`P` or through the **Object > Parent** menu.
+To maintain the node's visual position, use the **Set Parent** command, either
+by pressing {bdg-dark-line}`Ctrl+P` or through the **Object > Parent** menu.
 
 To reverse this process and remove the parent while preserving the matrix, use
-the `Alt`+`P` shortcut or select the option in the same **Object > Parent**
-menu.
+the {bdg-dark-line}`Alt+P` shortcut or select the option in the same **Object >
+Parent** menu.
 
 ### Using Blender's Built-in Features
 
@@ -251,7 +259,7 @@ To display nodes as Empty objects, the Composite Editor uses Blender's built-in
 feature: **collection instancing**. As a result, tools that work with collection
 instancing also work with composites.
 
-#### Replacing Node Content Quickly
+#### Replacing Multiple Nodes Content
 
 If you need to quickly replace the content of multiple nodes with the same
 asset:
@@ -260,13 +268,30 @@ asset:
 2. Assign the desired collection to the active node (the order of this step and
    the first one can be swapped – both work the same).
 3. Then, link the same collection to all the selected Empty objects. You can do
-   this by pressing `Ctrl`+`L` and selecting **Link Instance Collection** (the
-   default hotkey), or by accessing the same option through the **Object >
-   Link/Transfer Data** menu if your hotkeys have been customized.
+   this by pressing {bdg-dark-line}`Ctrl+L` and selecting **Link Instance
+   Collection** (the default hotkey),
 
-   <img src="_images/dag4blend_comp_ed_14.jpg" alt="Replacing Node Content" align="center">
+   <img src="_images/dag4blend_comp_ed_14.png" alt="Replacing Multiple Nodes Content" align="center">
 
-   <img src="_images/dag4blend_comp_ed_15.jpg" alt="Replacing Node Content" align="center">
+   or by accessing the same option through the **Object > Link/Transfer Data**
+   menu if your hotkeys have been customized.
+
+   <img src="_images/dag4blend_comp_ed_15.png" alt="Replacing Multiple Nodes Content" align="center">
+
+#### Selecting Identical Nodes
+
+Nodes that share the same instance collection can not only be merged, but also
+selected together:
+
+1. Select the node containing the asset you want to locate in the scene.
+
+2. Use **Select > Select Linked > Instanced Collection** to select all other
+   nodes that reference the same collection.
+
+   <img src="_images/dag4blend_comp_ed_16.png" alt="Selecting Identical Nodes" align="center">
+
+   In the default keymap, this menu can be accessed with
+   {bdg-dark-line}`Shift+L`.
 
 #### Snap to Surface
 
@@ -277,99 +302,187 @@ their pivot points to the surface. Optionally, you can also enable rotation to
 match the surface normal.
 
 ```{important}
-Do not confuse this with the `place_type:i` setting for exported nodes – this
+Do not confuse this with the `place_type:i` setting for exported nodes, this
 specific snapping needs to be set in the **dagObject Properties** of the Empty
 object if required.
 ```
 
 ## CMP Tools
 
-### BBOX to Node
+Contains several main sections.
 
-The **BBOX to Node** tool converts the bounding boxes of all selected objects
-into instances of a chosen collection. This tool is designed to simplify the
-placement of objects like indoor walls, environment probes, wall holes, etc.
-You'll need to create the necessary collections yourself.
+### Scenes
 
-<img src="_images/dag4blend_comp_ed_16.jpg" alt="BBOX to node" align="center">
+A single button initializes the file structure with separate scenes for game
+objects, geometry, composites, etc.
 
-Once the collection is set up, you can hide it and leave it untouched – just add
-a few meshes for future game objects and transform them as needed, whether in
-Object or *Edit* mode. The pivot position is irrelevant; the replacement will
-work as intended. Just be sure to monitor the bounding box before the
-transformation (you can enable its display in the **Object Properties**).
+Pressing the button again restores this structure. For example, to recreate a
+deleted `TRANSFER_COLLECTION` or missing scenes.
 
-Here's an extreme example (such rotations are rarely needed in practice):
+<img src="_images/dag4blend_comp_ed_17.png" alt="Scenes" align="center">
 
-<img src="_images/dag4blend_comp_ed_17.jpg" alt="BBOX to node" align="center">
+### Basic Converters
 
-<img src="_images/dag4blend_comp_ed_18.jpg" alt="BBOX to node" align="center">
+Operators that convert the selected object into another type. For example, an
+instance collection into a mesh, and vice versa.
 
-<img src="_images/dag4blend_comp_ed_19.jpg" alt="BBOX to node" align="center">
+<img src="_images/dag4blend_comp_ed_18.png" alt="Simple Converters" align="center">
 
-For clarity, it's recommended adding a 1-meter cube with `gi_black` to the
-future game object's collection. This will make it easier to temporarily convert
-it back to a mesh for further adjustments.
+- **Nodes to mesh**: converts each selected node into a single mesh.
 
-### To Mesh
+  This operator does not analyze the node contents. If the node includes several
+  LODs or collisions, all of their geometry will be merged into one mesh without
+  any object properties. Custom normals are also not preserved.
 
-The **To Mesh** tool converts selected composite nodes (collection instances)
-into actual geometry.
+  The operator was primarily designed for exporting composites as `.dag` files
+  to 3ds Max, which currently cannot import composites directly.
 
-Once converted, the geometry can be exported to any other format – now it's just
-a mesh. For example, you can transfer the composite to Houdini via Alembic/FBX,
-where a `.dag` export already exists but importing isn't supported yet.
+  It can also be useful in combination with the following operator.
 
-<img src="_images/dag4blend_comp_ed_20.jpg" alt="To mesh" align="center">
+- **Mesh BBOX to node**: converts the bounding boxes of all selected objects
+  into instances of the selected collection. This is intended to simplify
+  placement of objects such as `indoor_wall`, `envi_probe`, `wall_hole`, and so
+  on.
 
-### Explode
+  The required collections must be created manually.
 
-Want to edit a subcomposite directly in place, such as moving a plate on a table
-or adding another one? No problem! The **Explode** tool temporarily disassembles
-the selected composite instance and places its components as *child* objects of
-the original node, which now becomes "empty". You can then make changes – adjust
-transforms, add or remove objects, etc.
+  After that, you can hide the collection completely and leave it untouched.
+  Simply add a few meshes for future game objects and transform them however you
+  like, either in *Object* mode or *Edit* mode. The pivot position does not
+  matter. The replacement will work correctly as long as the bounding box is
+  correct before conversion (its display can be enabled in **Object
+  Properties**).
 
-<img src="_images/dag4blend_comp_ed_21.jpg" alt="Explode" align="center">
+  An extreme example (such rotations are unlikely to be needed in practice):
 
-<img src="_images/dag4blend_comp_ed_22.jpg" alt="Explode" align="center">
+  <img src="_images/dag4blend_comp_ed_19.png" alt="Mesh BBOX to Node" align="center">
 
-Changes can either be reverted to the original state by clicking **Revert** or
-applied using **Rebuild**, which will replace the original collection. Don't
-forget to save these changes by exporting the modified subcomposite.
+  <img src="_images/dag4blend_comp_ed_20.png" alt="Mesh BBOX to Node" align="center">
 
-<img src="_images/dag4blend_comp_ed_23.jpg" alt="Explode" align="center">
+  <img src="_images/dag4blend_comp_ed_21.png" alt="Mesh BBOX to Node" align="center">
 
-However, reassembly is not mandatory – the disassembled composite can be
-exported without issues as an empty node with several children. If desired, you
-can separate them using **Clear Parent and keep transformation** and delete the
-"empty" node altogether. This is useful when you need to replace a multi-level
-random composite with one of its states – disassemble it (you can disassemble
-several nested levels at once) and remove the unnecessary parts.
+  It's recommended to add a 1-meter cube with a `gi_black` material to the
+  collection of the future game object for clarity. This way, you can later
+  temporarily convert it back into a mesh for adjustments.
 
-The **Explode** tool also allows you to disassemble rendinsts and prefabs to
-make changes to their geometry, which can be useful at times. If the source was
-a directory containing all LODs, a disassembled rendinst will appear slightly
-different:
+### Nodes to Asset
 
-<img src="_images/dag4blend_comp_ed_24.jpg" alt="Explode" align="center">
+This section contains more advanced converters with similar functionality. They
+allow you to create a new rendinst or composite from the selected nodes.
 
-Each LOD will be tied to its own "empty" node.
+<img src="_images/dag4blend_comp_ed_22.png" alt="Mesh BBOX to Node" align="center">
 
-To reassemble it, you'll need to select the top-level empty, not the one with
-the LOD number. Unlike a disassembled composite, disassembling a mesh will cause
-an export error, so be sure to either revert the node to its original state or
-apply the changes before exporting.
+#### Parent Node
 
-```{important}
-A known limitation is that this type of editing leaves "garbage" indices, as it
-works through creating copies, and Blender doesn't allow two objects of the
-same type to have identical names. Additionally, **Explode** currently cannot
-retain the *parent*-*child* relationships within the disassembled collection,
-but it does preserve the correct coordinates relative to the composite's "zero"
-point. If the hierarchy is important, you'll need to manually restore it after
-using **Rebuild**.
-```
+Expects an Empty object. If not specified, the center of the new asset will be
+placed at the scene's origin. If specified, the pivot of the new asset will be
+placed at the position of that Empty.
+
+If a selected node is accidentally deleted from the scene, it will still remain
+in the `.blend` file. The button on the right allows you to re-link a mistakenly
+deleted Empty back into the scene.
+
+#### Naming Mode
+
+- In **Collection** mode, you can choose the collection to which the new asset
+  will be sent.
+
+  If none is specified but the parent node has an **Instance Collection**, the
+  new asset will be placed there, replacing its previous contents.
+
+  If no collection is specified either directly or through the parent node, the
+  asset will be named `new_asset` and placed into a collection of the same name.
+
+- In **Name** mode, a collection will be automatically created in the correct
+  scene, and the user only needs to enter the desired asset name.
+
+#### Operators
+
+- **To sub-composite**: creates a new collection containing a composite and
+  moves the selected nodes into it. The new composite will be assigned as the
+  entity of the **Parent Node**.
+
+- **To rendinst node**: breaks down the selected nodes to the rendinst level and
+  organizes the LODs into subcollections so that the rendinsts can be easily
+  exported in **Collections Separated** mode.
+
+  This operator does not take LOD distances into account; it simply checks how
+  many LODs exist in the root objects. All `lod00` objects are placed into a
+  `*.lod00` collection, all `lod01` objects into `*.lod01`, and so on.
+
+  The operator will not execute correctly if any of the selected nodes lack the
+  standard hierarchy, i.e. a collection named `name.lods` containing
+  `name.lod00`, etc.
+
+### Edit Sub-Composites
+
+These operators are designed to modify the hierarchy within composites.
+
+<img src="_images/dag4blend_comp_ed_23.png" alt="Edit Sub-Composites" align="center">
+
+#### Split Node
+
+Breaks down a composite node into its components. For example, it can replace a
+node like `some_building_indoor_stuff_cmp` with the individual props contained
+within that composite.
+
+- If the **recursive** checkbox is enabled, not only the selected composite will
+  be unpacked, but all its sub-composites as well, down to the individual
+  rendinst nodes. Otherwise, only one level will be unpacked.
+
+- If the **destructive** checkbox is enabled, the extracted nodes will appear
+  directly in the root of the collection, and the original node will be
+  permanently deleted. If not enabled, the original node will remain in place
+  but with instancing disabled, and the new nodes will be parented to it. In
+  this case, the following operators can be used.
+
+#### Revert
+
+Works only on nodes previously unpacked using **Split Node**. It deletes all
+child nodes of the unpacked subcomposite and restores instancing, the composite
+will once again be drawn inside the node.
+
+#### Rebuild
+
+Also works only on previously unpacked nodes, but is intended to apply changes
+rather than revert them. The contents of the unpacked composite are replaced
+with the current child nodes of the processed instance.
+
+#### Usage Examples
+
+1. You've imported a building composite with all nested levels. Inside
+   `indoor_stuff`, a picture is positioned incorrectly, it floats in the air
+   with a visible gap from the wall.
+
+   In the building composite, select the `indoor_stuff` node and apply **Split
+   Node**, ensuring both checkboxes are disabled. Now you can move the
+   `indoor_stuff` nodes while seeing their correct position within the final
+   asset. Move the picture flush against the wall, select the original
+   `indoor_stuff` node, and click **Rebuild**. Done, the `indoor_stuff`
+   collection has been updated and can now be exported so the changes appear in
+   Asset Viewer.
+
+   If, after unpacking the composite, you accidentally deleted a table, you can
+   use **Revert** instead of **Rebuild** to return the node to its original
+   state and try again.
+
+2. You've imported a building composite created in daEditorX, where all nodes
+   are placed in the root.
+
+   You need to divide it into subcomposites. Select the decorative wall assets
+   and, in **Name** mode, create a new subcomposite called `my_building_decor`
+   with its origin at the scene center. Repeat the process for `indoor_stuff`
+   and other groups.
+
+3. A level designer assembled wooden floors from many separate planks. It looks
+   good, but destruction behaves poorly, and there are too many nodes per cell
+   in the level.
+
+   Import the composite, select all planks, and create one rendinst instead of a
+   composite made up of dozens of individual planks, assigning meaningful names
+   to each rendinst. If needed, merge nodes within the rendinst and optimize
+   collisions and LODs. The process isn;t fully automated, but it;s a solid
+   starting point for cleanup and optimization.
 
 ## CMP Export
 
@@ -377,7 +490,7 @@ The **CMP Export** section is straightforward: specify the directory path where
 the composite should be exported, along with the collection representing the
 composite to be exported.
 
-<img src="_images/dag4blend_comp_ed_25.jpg" alt="CMP export" align="center">
+<img src="_images/dag4blend_comp_ed_24.png" alt="CMP export" align="center">
 
 ### Parameters
 
@@ -392,7 +505,17 @@ will not be saved. If the imported node has both a matrix and random fields, the
 random parameters will be ignored, and a corresponding notification will be
 logged.
 
-<img src="_images/dag4blend_comp_ed_26.jpg" alt="Parameters" align="center">
+<img src="_images/dag4blend_comp_ed_25.png" alt="Parameters" align="center">
+
+Some of the parameters are also displayed in the Composite Editor, under the
+**Node Properties** panel:
+
+<img src="_images/dag4blend_comp_ed_26.png" alt="Parameters" align="center">
+
+This section shows the list of Entities, their weights, and the special
+parameter **Place Type**. Internally, this is a numerical value, it can still be
+viewed in the standard **Object Properties** list, but here it's presented in a
+more user-friendly way, displaying mode names instead of numeric indices.
 
 ### Limitations of the Composite Editor
 

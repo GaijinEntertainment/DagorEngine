@@ -61,6 +61,9 @@ class QuirrelLexer(RegexLexer):
             (r'^(?=\s|/|<!--)', Text, 'slashstartsregex'),
             include('commentsandwhitespace'),
 
+            # Lambda shorthand expressions like @() or @(v)
+            (r'@(?=\()', Operator),
+
             # Numeric literals
             (r'0[bB][01]+n?', Number.Bin),
             (r'0[oO]?[0-7]+n?', Number.Oct),  # Browsers support "0o7" and "07" (< ES5) notations

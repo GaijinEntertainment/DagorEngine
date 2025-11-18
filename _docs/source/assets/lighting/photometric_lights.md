@@ -43,7 +43,7 @@ directory:
 The following block in the global `.folder.blk` file handles the processing of
 IES files:
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.ies$"
   className:t="tex"
@@ -76,7 +76,7 @@ The light template for daNetGame-based projects is located at:
 
 For example, a wall sconce with two lamps would look like this:
 
-```text
+```blk
 light_sconce_medium{
   _extends:t="omni_light"
   light.max_radius:r=3.5
@@ -154,7 +154,7 @@ profile is always a compromise. You'll notice that the light rays emanate from
 the center rather than from each individual bulb. Nevertheless, the result is
 still visually acceptable.
 
-![Limitations of IES](./_images/photometric_lights_20.jpg)
+<img src="_images/photometric_lights_20.jpg" width="30%" align="center">
 
 ## Photometry
 
@@ -173,7 +173,7 @@ Photometry files should be placed in the `develop/assets/` directory under an
 appropriate folder. To export these assets, add the following block to the
 `.folder.blk`:
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.ies$"
   className:t="tex"
@@ -226,7 +226,7 @@ This option must be applied individually to lights:
 4. Specify the `iesScale:r` and `iesRotation:b` properties with the optimal
    values. (Currently, this process is not automated.)
 
-![How to Use](./_images/photometry_01.jpg)
+   <img src="_images/photometry_01.jpg" align="center" alt="How to Use">
 
 The rotation value also implicitly adjusts the scaling. These specified values
 should be close to the optimal values displayed in the [Asset
@@ -251,7 +251,7 @@ Define the `blurRadius:r` parameter in the `.folder.blk` or the virtual asset
 The light source's content can be restricted to specific angular ranges on both
 axes. The relevant options are:
 
-```text
+```blk
 phiMin:r=0
 phiMax:r=360
 thetaMin:r=0
@@ -287,7 +287,7 @@ To set the photometry for an omni light:
 1. Add the `.ies` files to an asset folder.
 2. Define the photometry of the omni light in the map's `.blk` file:
 
-```text
+```blk
 entity{
   _template:t="omni_light"
   light.direction:p3=0, 1, 0
@@ -345,7 +345,7 @@ These are converted into textures using one of two mapping methods:
 
 - **Octahedral Mapping** (default): Provides better sample distribution.
 
-   ![Octahedral Mapping](./_images/photometry_04.jpg)
+  <img src="_images/photometry_04.jpg" align="center" alt="Octahedral Mapping">
 
 - **Spherical Mapping**: Though implemented, it's not in use due to slightly
   worse performance and uneven sample distribution (dense at the poles, sparse
@@ -391,6 +391,4 @@ To enable spherical mapping:
 
 <img src="_images/photometry_07.jpg" width="49%" class="bg-primary">
 <img src="_images/photometry_08.jpg" width="49%" class="bg-primary">
-
-
 

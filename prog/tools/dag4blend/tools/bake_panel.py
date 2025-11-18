@@ -7,9 +7,8 @@ from os.path    import join, exists
 from os         import rename, remove, makedirs
 from time       import time
 
-from ..helpers.basename             import basename
-from ..helpers.texts                import log
-from ..helpers.get_preferences      import get_local_props
+from ..helpers.texts    import log
+from ..helpers.getters  import get_local_props
 
 classes = []
 
@@ -29,7 +28,7 @@ def popup(msg):
 #adds datablock property and inits UI
 def add_datablock_property(prop_owner, prop_name, data = None, type = 'OBJECT'):
     if prop_name not in prop_owner:
-        prop_owner[prop_name] = None
+        prop_owner[prop_name] = data
     ui = prop_owner.id_properties_ui(prop_name)
     ui.update(id_type = type)
     return

@@ -1,4 +1,7 @@
 import bpy, os
+
+from time   import time
+
 from bpy.props import (BoolProperty,
                         IntProperty,
                         FloatProperty,
@@ -8,195 +11,257 @@ from bpy.props import (BoolProperty,
                         EnumProperty,
                         )
 from os.path    import exists, join
-from bpy.types import Operator, PropertyGroup, Panel
-from  time import time
+from bpy.types import  PropertyGroup, Panel
 
-from .force_clear_materials    import force_clear_materials
-from .build_node_tree           import buildMaterial
-from ..helpers.texts            import *
-from ..helpers.basename         import basename
-from .rw_dagormat_text          import dagormat_from_text, dagormat_to_text
-from ..helpers.props            import fix_type
-from ..helpers.popup            import show_popup
-from ..helpers.get_preferences  import get_preferences
+from ..constants            import DAGTEXNUM
+from .build_node_tree       import build_dagormat_node_tree
+from ..helpers.texts        import *
+from ..helpers.names        import basename
+from .rw_dagormat_text      import dagormat_from_text, dagormat_to_text
+from .dagormat_functions    import cleanup_textures
+from ..helpers.props        import (fix_type,
+                                    get_default_shader_prop_value,
+                                    get_property_type,
+                                    prop_value_to_string,
+                                    )
+from ..helpers.getters      import get_preferences
+from ..ui.draw_elements     import draw_custom_header, draw_custom_toggle
+
+from ..popup.popup_functions    import show_popup
 
 classes = []
 
 #functions
-supported_extensions = ['.dds','.tga','.tif']
 
-#removes duplicates with the same filepath; cleanes up the .001+ indices
-def cleanup_textures():
-    images = bpy.data.images
-    for image in list(images):
-        name = image.name
-        if name[-4] == "." and name[-3:].isnumeric():
-            original_image = images.get(name[:-4])
-            if original_image is None:
-                image.name = image.name[:-4]
-            else:
-                image.user_remap(original_image)
-                bpy.data.images.remove(image)
-    return
-
-#functions/search
-def get_missing_tex(materials):
-    missing_tex=[]
-    for material in materials:
-        T=material.dagormat.textures
-        for tex in T.keys():
-            if T[tex]!='':
-                if basename(tex) not in missing_tex:
-                    if not exists(bpy.data.images[basename(T[tex])].filepath):
-                        if basename(T[tex]) not in missing_tex:
-                            missing_tex.append(basename(T[tex]))
-    return missing_tex
-
-def find_textures(materials):
-    cleanup_textures()
-    missing_tex = get_missing_tex(materials)
-    if missing_tex.__len__()==0:
-        print('nothing to search')
-        return
-    pref = get_preferences()
-    i=int(pref.project_active)
-    search_path = pref.projects[i].path
-
-    for subdir,dirs,files in os.walk(search_path):
-        for file in files:
-            for name in missing_tex:
-                for extension in supported_extensions:
-                    if file.lower()==(name+extension).lower():
-                        print ('Found: '+name)
-                        bpy.data.images[name].source = 'FILE'
-                        bpy.data.images[name].filepath = subdir + os.sep + file
-    return
-
-def find_proxymats(materials):
-    pref = get_preferences()
-    i=int(pref.project_active)
-    search_path = pref.projects[i].path
-    proxymats=[]
-    for material in materials:
-        DM = material.dagormat
-        if DM.is_proxy:
-            if not exists(join(DM.proxy_path,(material.name+'.proxymat.blk'))):
-                if material.name not in proxymats:
-                    proxymats.append(material.name)
-    if proxymats.__len__()>0:
-        for subdir,dirs,files in os.walk(search_path):
-            for file in files:
-                for proxy in proxymats:
-                    if file.endswith('.proxymat.blk') and basename(file)==basename(proxy):
-                        bpy.data.materials[proxy].dagormat.proxy_path=subdir+os.sep
-                        read_proxy_blk(bpy.data.materials[proxy])
-    return
-
-#functions/getters
-def get_shader_categories(self,context):
-    pref = get_preferences()
-    items = []
-    for shader_class in pref.shader_categories:
-        name = shader_class.name
-        item = (name, name, name)
-        items.append(item)
-    return items
-
-def get_shaders(self,context):
-    pref = get_preferences()
-    items = []
-    for cl in pref.shader_categories:
-        if cl.name==self.shader_category_active:
-            shaders=pref.shader_categories[self.shader_category_active]['shaders']
-    for shader in shaders:
-        name = shader['name']
-        item = (name, name, name)
-        items.append(item)
-    current = self.shader_class
-    if (current, current, current) not in items:
-        items.append((current, current, current))
-    return items
-
-#functions/props
-def get_props(self,context):
-    DM = context.object.active_material.dagormat
-    exclude = list(DM.optional.keys())
-    exclude.append('real_two_sided')#already exists in ui
-    items = []
-    pref = get_preferences()
-    found = False
-    for shader_class in pref.shader_categories:
-        for shader in shader_class['shaders']:
-            if shader['name']==DM.shader_class:
-                found = True
-                for prop in shader['props']:
-                    if prop['name'] not in exclude:
-                        item=(prop['name'])
-                        items.append((item,item,item))
-                break
-            if found:
-                break
-        if found:
-            break
-    p = self.prop_name
-    if (p, p, p) not in items:
-        items.append((p,p,p))
-    return items
-
-def upd_prop_active(self, context):
-    pref = get_preferences()
-    self.prop_name = self.prop_active
-    self.prop_value = '???'
-    found = False
-    for shader_class in pref.shader_categories:
-        for shader in shader_class['shaders']:
-            if shader['name'] != self.shader_class:
-                continue
-            for prop in shader['props']:
-                if prop['name'] == self.prop_active:
-                    if prop['type'] == 'text':
-                        self.prop_value='0,0,0,0'
-                    elif prop['type'] == 'bool':
-                        self.prop_value='yes'
-                    elif prop['type'] == 'real':
-                        self.prop_value='0.0'
-                    elif prop['type'] == 'int':
-                        self.prop_value='0'
-                    found = True
-                if found:
-                    break
-            if found:
-                break
-        if found:
-            break
-    return
-
-def upd_prop_name(self, context):
-    if self.prop_active!=self.prop_name:
-        self.prop_active = self.prop_name
-    return
-
-#functions/upd
-def upd_prop_selector(self,context):
-    if self.prop_active == self.prop_name:
-        return
-    if self.use_prop_enum:
-        self.prop_active = self.prop_name
+def prop_range_warning(value, parameters, actual_type):
+    warn = ""
+    type = parameters['type']
+    if type in ['t', 'b']:
+        return warn  # no warnings, text and bool have no soft_min/soft_max
+    if actual_type in ['t', 'b']:
+        return warn  # will have type mismatch warning instead
+    min = parameters.get('soft_min')
+    max = parameters.get('soft_max')
+    if type in ['i', 'r']:
+        value = [value]  # to use same comparing as vector types
+    out_of_range = False
+    if min is not None:
+        for number in value:
+            if number < min:
+                out_of_range = True
     else:
-        self.prop_name = self.prop_active
+        min = "-inf"  # for proper display in warning
+    if max is not None:
+        for number in value:
+            if number > max:
+                out_of_range = True
+    else:
+        max = "inf"
+    if out_of_range:
+        warn = f"Value is out of range! Expected [{min} .. {max}]!"
+    return warn
+
+#  shaders  getters  ###################################################################################################
+def get_shaders_enum(self,context):
+    start = time()
+    pref = get_preferences()
+    all_shader_names = pref.shaders.keys()
+    single_category = self.filter_categories
+    if not self.shader_class in all_shader_names:
+        single_category = False  # can't find a category for unknown shader, showing all shaders instead
+    if single_category:
+        shader_names = pref.shader_categories[pref.shaders[self.shader_class]['category']]['shaders']
+    else:
+        shader_names = all_shader_names
+    current_category = "None"
+    items = []
+    for name in shader_names:
+        if current_category != pref.shaders[name]['category']:
+            current_category = pref.shaders[name]['category']
+            if not single_category:
+                description = pref.shader_categories[current_category].get('description')
+                if description is None:
+                    description = "It's a group, not a shader!"
+                items.append((current_category + ":", current_category + ":", description, 'GROUP', -1))
+        description = pref.shaders[name].get('description')
+        if description is None:
+            description = current_category
+        items.append((name, name, description))
+    if self.shader_class not in shader_names:
+        if self.shader_class == "":
+            items.append(("None", "None", "Can't resolve empty shader class!", 'ERROR', -2))
+        else:
+            items.append((self.shader_class, self.shader_class, "Not found in shader config!", 'ERROR', -2))
+    return items
+
+def get_shader_categories_enum(self, context):
+    items = []
+    pref = get_preferences()
+    for name in pref.shader_categories.keys():
+        description = pref.shader_categories[name].get('description')
+        if description is None:
+            description = name
+        items.append((name, name, description))
+    if self.shader_class not in pref.shaders.keys():
+        items.append(("None", "None", "None"))
+    return items
+
+#shaders    updaters####################################################################################################
+def update_use_shader_enum(self, context):
+    if self.shader_class_enum == "None" and self.shader_class == "":
+        return
+    if self.shader_class == self.shader_class_enum and self.shader_class != "":
+        return
+    if self.use_shader_enum:
+        self.shader_class_enum = "None" if self.shader_class == "" else self.shader_class
+    else:
+        self.shader_class = "" if self.shader_class_enum == "None" else self.shader_class_enum
+    build_dagormat_node_tree(self.id_data)
     return
 
-def clear_tex_paths(material):
-    T = material.dagormat.textures
-    for tex in T.keys():
-        if T[tex]!='':
-            T[tex] = os.path.basename(T[tex])
+def update_shader_class(self, context):
+    build_dagormat_node_tree(self.id_data)
+    if self.shader_class == self.shader_class_enum:
+        return
+    if self.shader_class == "":
+        self.shader_class_enum = "None"
+    else:
+        self.shader_class_enum = self.shader_class
     return
 
+def update_shader_class_enum(self,context):
+    if self.shader_class_enum == "None":
+        if self.shader_class != "":
+            self.shader_class = ""
+        if self.shader_category_enum != "None":
+            self.shader_category_enum = "None"
+        return
+
+    current_shaders = get_shaders_enum(self,context)
+    for element in current_shaders:
+        if element[0] != self.shader_class_enum:
+            continue
+        if element.__len__() != 5:
+            break  # has no specified icon and index, not a category
+        if element[4] == -1:
+            show_popup(message = "Can't assign category name as shader!")
+            self.shader_class_enum = self.shader_class if self.shader_class != "" else "None"
+            return
+
+    if self.shader_class != self.shader_class_enum:
+        self.shader_class = self.shader_class_enum
+
+    pref = get_preferences()
+    if self.shader_class_enum not in pref.shaders.keys():
+        if self.shader_category_enum != "None":
+            self.shader_category_enum = "None"
+        return
+
+    category_to_set = pref.shaders[self.shader_class_enum]['category']
+    if self.shader_category_enum != category_to_set:
+        self.shader_category_enum = category_to_set
+    return
+
+def update_shader_category_enum(self,context):
+    if self.shader_category_enum == "None":
+        return
+    pref = get_preferences()
+    if self.shader_class in pref.shaders.keys():
+        previous_category = pref.shaders[self.shader_class]['category']
+    else:
+        previous_category = "None"
+    if previous_category != self.shader_category_enum:
+        new_category_shaders = pref.shader_categories[self.shader_category_enum]['shaders']
+        self.shader_class = self.shader_class_enum = new_category_shaders[0]
+    return
+
+def upd_category_filter(self,context):
+    self.shader_class_enum = "None" if self.shader_class == "" else self.shader_class
+    return
+
+#props##################################################################################################################
+
+def get_props_enum(self,context):
+    pref = get_preferences()
+    current_shader_config = pref.shaders.get(self.shader_class)
+    if current_shader_config is None:
+        prop_names = []
+    else:
+        prop_names = current_shader_config['props'].keys()
+    exclude_prop_names = list(self.optional.keys())
+    exclude_prop_names.append('real_two_sided')#already exists in ui
+    items = []
+    for key in prop_names:
+        if key in exclude_prop_names:
+            continue
+        items.append((key,key,key))
+    if self.prop_name not in prop_names and self.prop_name not in exclude_prop_names + ["","None"]:
+        items.append((self.prop_name, self.prop_name,"Not found in config!", 'ERROR', -2))
+    if items.__len__() == 0:
+        items.append(("None", "None", "No props available!", 'ERROR', -1))  # preventing bug on displaying first element of list with zero elements
+    return items
+
+def update_prop_mode(self, context):
+    if self.prop_name != '' and self.prop_name_enum != 'None':
+        if self.prop_name == self.prop_name_enum:
+            return
+    if self.use_prop_name_enum:  # just switched to dropdown
+        available_props = get_props_enum(self, context)
+        available_prop_names = [prop[0] for prop in available_props]
+        if self.prop_name in available_prop_names:
+            self.prop_name_enum = self.prop_name
+        else:
+            self.prop_name_enum = available_prop_names[0]
+    else:  # just switched to text
+        self.prop_name = self.prop_name_enum if self.prop_name_enum != "None" else ""
+    return
+
+def update_prop_name_enum(self, context):
+    if not self.use_prop_name_enum:
+        return
+    if self.prop_name_enum == self.prop_name:
+        return
+    self.prop_name = self.prop_name_enum
+    update_prop_value(self, context)
+    return
+
+def update_prop_name(self, context):
+    if self.use_prop_name_enum:
+        return
+    if self.prop_name_enum == self.prop_name:
+        return
+    self.prop_name_enum = elf.prop_name
+    update_prop_value(self, context)
+    return
+
+def update_prop_value(self, context):  # not direct update, called only from other name updaters
+    pref = get_preferences()
+    current_shader_config = pref.shaders.get(self.shader_class)
+    if current_shader_config is None:
+        return
+    current_prop = current_shader_config['props'].get(self.prop_name)
+    if current_prop is None:  # every prop is added already, dropdown is empty`
+        current_prop = {}
+    default_value = current_prop.get('default')
+    current_type = current_prop.get('type')
+    if current_prop is None:
+        return
+    if default_value is not None:
+        self.prop_value = prop_value_to_string(default_value, current_type)
+        return
+    if current_type is not None:
+        default_value = get_default_shader_prop_value(self.shader_class, self.prop_name)
+        self.prop_value = prop_value_to_string(default_value, current_type)
+    return
+
+
+#other##################################################################################################################
 def update_tex_paths(material):
     T = material.dagormat.textures
     for tex in T.keys():
         tex_name=basename(T[tex])#no extention needed
+        if tex_name.find("*?") > -1:
+            tex_name = tex_name[:tex_name.find('*?')]
         if T[tex]=='':
             continue
         elif exists(T[tex]):
@@ -216,43 +281,9 @@ def update_backface_culling(self, context):
 
 def update_material(self,context):
     material = self.id_data
-    buildMaterial(material)
+    build_dagormat_node_tree(material)
     return
 
-def upd_shader_selector(self, context):
-    if self.shader_class_active == self.shader_class:
-        return
-    if self.use_shader_enum:
-        self.shader_class_active = self.shader_class
-    else:
-        self.shader_class = self.shader_class_active
-    return
-
-def upd_shader_category(self,context):
-    if self.shader_class == self.shader_class_active:
-        return
-    pref = get_preferences()
-    for shader in pref.shader_categories[self.shader_category_active]['shaders']:
-        if self.shader_class == shader['name']:
-            self.shader_class_active = self.shader_class
-            return
-    self.shader_class_active = pref.shader_categories[self.shader_category_active]['shaders'][0]['name']
-    return
-
-def upd_active_shader(self,context):
-    if self.shader_class == self.shader_class_active:
-        return
-    self.shader_class = self.shader_class_active
-    return
-
-def update_shader_class(self, context):
-    if self.shader_class_active != self.shader_class:
-        self.shader_class_active = self.shader_class
-    if self.use_prop_enum and not self.prop_active == self.prop_name:
-            self.prop_active = self.prop_name
-    material = self.id_data
-    buildMaterial(material)
-    return
 
 def update_proxy_path(self,context):
     if context.active_object is None or context.active_object.active_material is None:
@@ -269,357 +300,6 @@ def update_proxy_path(self,context):
     if DM.proxy_path[-1]!=os.sep:
         DM.proxy_path=DM.proxy_path+os.sep
     return
-
-#functions/proxy_rw
-def read_proxy_blk(material):
-    proxymat = get_text_clear('dagormat_temp')
-    DM = material.dagormat
-    file = open(join(DM.proxy_path,material.name+'.proxymat.blk'),'r')
-    lines=file.readlines()
-    for line in lines:
-        proxymat.write(line.replace(' ',''))
-    file.close()
-    dagormat_from_text(material, proxymat)
-    buildMaterial(material)
-    return
-
-def write_proxy_blk(mat, custom_dirpath = ""):
-    text = get_text_clear('dagormat_temp')
-    dagormat_to_text(mat, text)
-    DM = mat.dagormat
-    dirpath = DM.proxy_path if custom_dirpath == "" else custom_dirpath
-    filename = mat.name + ".proxymat.blk"
-    if DM.is_proxy:
-        file = open(join(dirpath, filename),'w')
-        for line in text.lines:
-            if line.body.__len__() > 0:
-                file.write(line.body+'\n')
-        file.close()
-    return
-
-#operators
-#operators/upd
-class DAGOR_OT_dagormats_update(Operator):
-    '''
-    Rebuild dagormat, link nodegroups from library when not found in current file
-    '''
-    bl_idname = "dt.dagormats_update"
-    bl_label = "rebuild dagormats"
-    bl_options = {'UNDO'}
-
-    all_materials: BoolProperty(default = True)
-
-    def execute(self,context):
-        start = time()
-        if self.all_materials:
-            materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        else:
-            materials = [context.object.active_material]
-        for material in materials:
-            buildMaterial(material)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return{'FINISHED'}
-classes.append(DAGOR_OT_dagormats_update)
-
-
-class DAGOR_OT_dagormats_force_update(Operator):
-    '''
-    Rebuild all dagormats with replacement of existing nodegroups
-    '''
-    bl_idname = "dt.dagormats_force_update"
-    bl_label = "FORCE REBUILD"
-    bl_options = {'UNDO'}
-
-    def execute(self,context):
-        start = time()
-        materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        force_clear_materials()
-        for material in materials:
-            buildMaterial(material)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return{'FINISHED'}
-classes.append(DAGOR_OT_dagormats_force_update)
-
-
-#operators/proxy
-class DAGOR_OT_read_proxy(Operator):
-    bl_idname = "dt.dagormat_read_proxy"
-    bl_label = "read proxymat"
-    bl_description = "build dagormat from .proxymat.blk"
-    bl_options = {'UNDO'}
-
-    def execute(self,context):
-        try:
-            material = context.material
-        except:
-            material = None
-        if material is None:
-            show_popup(message = 'Material is not specified!',title = 'Error!',icon = 'ERROR')
-            return{'CANCELLED'}
-        DM = material.dagormat
-        if DM.is_proxy==False:
-            show_popup(message = "Material is'n proxy!", title = 'Error!', icon = 'ERROR')
-            return{'CANCELLED'}
-        proxy_file = join(DM.proxy_path, material.name+'.proxymat.blk')
-        if not exists(proxy_file):
-            show_popup(message="Can not find " + proxy_file, title='Error!', icon='ERROR')
-            return{'CANCELLED'}
-        read_proxy_blk(material)
-        return{'FINISHED'}
-classes.append(DAGOR_OT_read_proxy)
-
-
-class DAGOR_OT_write_proxy(Operator):
-    bl_idname = "dt.dagormat_write_proxy"
-    bl_label = "write proxymat"
-    bl_description = "save dagormat to .proxymat.blk"
-    bl_options = {'UNDO'}
-
-    material_name: StringProperty(default = "")  # used when called not from UI
-
-    def execute(self,context):
-        try:
-            material = context.material  # was it defined via context_pointer_set?
-        except:
-            material = bpy.data.materials.get(self.material_name)
-        if material is None:
-            show_popup(message = 'Material was not specified!', title = 'Error!', icon = 'ERROR')
-            return{'CANCELLED'}
-        DM=material.dagormat
-        if DM.is_proxy==False:
-            show_popup(message = "not a proxy material!", title = 'Error!', icon = 'ERROR')
-            return{'CANCELLED'}
-        if not exists(DM.proxy_path):
-            show_popup(message = "Can not find " + DM.proxy_path, title = 'Error!', icon = 'ERROR')
-            return{'CANCELLED'}
-        write_proxy_blk(material)
-        return{'FINISHED'}
-classes.append(DAGOR_OT_write_proxy)
-
-
-#operators/search
-class DAGOR_OT_FindProxymats(Operator):
-    bl_idname = "dt.find_proxymats"
-    bl_label = "find proxymats"
-    bl_description = "search for .proxymat.blk files"
-    bl_options = {'UNDO'}
-
-    all_materials: BoolProperty(default = True)
-
-    @classmethod
-    def poll(self, context):
-        pref = get_preferences()
-        if pref.projects.__len__() == 0:
-            return False
-        index = int(pref.project_active)
-        if not exists(pref.projects[index].path):
-            return False
-        return True
-
-    @classmethod
-    def description(cls, context, properties):
-        pref = get_preferences()
-        if pref.projects.__len__() == 0:
-            return "Please, configure at least one project!"
-        index = int(pref.project_active)
-        if not exists(pref.projects[index].path):
-            return "Can't search in non-existing directory! Please, specify project path"
-        return "Search for missing proxymats in the current project directory"
-
-    def execute(self,context):
-        if self.all_materials:
-            materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        else:
-            materials = [context.object.active_material]
-        start=time()
-        find_proxymats(materials)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return{'FINISHED'}
-classes.append(DAGOR_OT_FindProxymats)
-
-
-class DAGOR_OT_FindTextures(Operator):
-    bl_idname = "dt.find_textures"
-    bl_label = "find textures"
-    bl_options = {'UNDO'}
-
-    all_materials: BoolProperty(default = True)
-
-    @classmethod
-    def poll(self, context):
-        pref = get_preferences()
-        if pref.projects.__len__() == 0:
-            return False
-        index = int(pref.project_active)
-        if not exists(pref.projects[index].path):
-            return False
-        return True
-
-    @classmethod
-    def description(cls, context, properties):
-        pref = get_preferences()
-        if pref.projects.__len__() == 0:
-            return "Please, configure at least one project!"
-        index = int(pref.project_active)
-        if not exists(pref.projects[index].path):
-            return "Can't search in non-existing directory! Please, specify project path"
-        return "Search for missing textures in the current project directory"
-
-    def execute(self,context):
-        if self.all_materials:
-            materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        else:
-            materials = [context.object.active_material]
-        start=time()
-        find_textures(materials)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return{'FINISHED'}
-classes.append(DAGOR_OT_FindTextures)
-
-
-#operators/text editing
-class DAGOR_OT_dagormat_to_text(Operator):
-    bl_idname = "dt.dagormat_to_text"
-    bl_label = "dagormat to text"
-    bl_description = "Write dagormat to text"
-    bl_options = {'UNDO'}
-
-    material_name: StringProperty(default = "")  # used when called not from UI
-    silent:        BoolProperty(default = False)
-
-    def execute(self,context):
-        try:
-            material = context.material  # was it defined via context_pointer_set?
-        except:
-            material = bpy.data.materials.get(self.material_name)
-        if material is None:
-            show_popup(message = 'Material was not specified!', title = 'Error!', icon = 'ERROR')
-            return {'CANCELLED'}
-        text = get_text_clear('dagormat_temp')
-        dagormat_to_text(material,text)
-        if not self.silent:
-            show_text(text)  # only if it wasn't opened
-            show_popup(message='Check "dagormat_temp" in text editor',title='Done',icon='INFO')
-        return{'FINISHED'}
-classes.append(DAGOR_OT_dagormat_to_text)
-
-
-class DAGOR_OT_dagormat_from_text(Operator):
-    bl_idname = "dt.dagormat_from_text"
-    bl_label = "dagormat from text"
-    bl_description = "Apply dagormat settings from text"
-    bl_options = {'UNDO'}
-
-    def execute(self,context):
-        try:
-            material = context.material
-        except:
-            try:
-                material = [context.object.active_material]
-            except:
-                material = None
-
-        if material is None or bpy.data.texts.get('dagormat_temp') is None:
-            show_popup(message = 'No text to process!',title = 'Error!',icon = 'ERROR')
-            return {'CANCELLED'}
-        text = get_text('dagormat_temp')
-        dagormat_from_text(material, text)
-        buildMaterial(material)
-        return {'FINISHED'}
-classes.append(DAGOR_OT_dagormat_from_text)
-
-
-#operators/parameters
-class DAGOR_OT_addMaterialParam(Operator):
-    bl_idname = "dt.add_mat_param"
-    bl_label = "optional dagormat parameter:"
-    bl_description = "Add optional parameter"
-    bl_options = {'UNDO'}
-
-    name:  StringProperty(name = "", default = 'prop')
-    value: StringProperty(name = "", default = '1.0')
-
-    def execute(self, context):
-        value=fix_type(self.value)
-        context.active_object.active_material.dagormat.optional[self.name] = value
-        return {'FINISHED'}
-classes.append(DAGOR_OT_addMaterialParam)
-
-
-class DAGOR_OT_removeMaterialParam(Operator):
-    bl_idname = "dt.remove_mat_param"
-    bl_label = "remove"
-    bl_description = "Remove parameter"
-    bl_options = {'UNDO'}
-
-    param: StringProperty(name = "")
-
-    def execute(self, context):
-        del context.active_object.active_material.dagormat.optional[self.param]
-        return {'FINISHED'}
-classes.append(DAGOR_OT_removeMaterialParam)
-
-
-#operators/textures
-class DAGOR_OT_clear_tex_paths(Operator):
-    bl_idname = "dt.clear_tex_paths"
-    bl_label = "clear textures"
-    bl_description = "Keep only base names, without paths"
-    bl_options = {'UNDO'}
-
-    all_materials: BoolProperty(default = True)
-
-    def execute(self,context):
-        if self.all_materials:
-            materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        else:
-            materials = [context.object.active_material]
-        start=time()
-        for material in materials:
-            clear_tex_paths(material)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return {'FINISHED'}
-classes.append(DAGOR_OT_clear_tex_paths)
-
-
-class DAGOR_OT_upd_tex_paths(Operator):
-    bl_idname = "dt.update_tex_paths"
-    bl_label = "update texture paths"
-    bl_description = "Replace unexisting texture paths by paths from loaded images"
-    bl_options = {'UNDO'}
-
-    all_materials: BoolProperty(default = True)
-
-    def execute(self,context):
-        if self.all_materials:
-            materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
-        else:
-            materials = [context.object.active_material]
-        start=time()
-        for material in materials:
-            update_tex_paths(material)
-        show_popup(message=f'finished in {round(time()-start,5)} sec')
-        return {'FINISHED'}
-classes.append(DAGOR_OT_upd_tex_paths)
-
-
-class DAGOR_OT_set_mat_sides(Operator):
-    bl_idname = "dt.set_mat_sides"
-    bl_label = ""
-    bl_description = "How backfaces should be processed?"
-    bl_options = {'UNDO'}
-# 0 = single_sided, 1 = two_sided, 2 = real_two_sided
-    sides: IntProperty(default = 0, min = 0, max = 2)
-    @classmethod
-    def poll(self, context):
-        return context.active_object.active_material is not None
-
-    def execute(self, context):
-        DM = context.DM #set in UI right before call
-        DM.sides = self.sides
-        return {'FINISHED'}
-classes.append(DAGOR_OT_set_mat_sides)
-
 
 #properties
 class dagor_optional(PropertyGroup):
@@ -639,34 +319,43 @@ class dagor_textures(PropertyGroup):
     tex8:  StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
     tex9:  StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
     tex10: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
+    tex11: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
+    tex12: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
+    tex13: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
+    tex14: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
+    tex15: StringProperty(default='',subtype='FILE_PATH',description='global path or image name',update=update_material)
 classes.append(dagor_textures)
 
 
 class dagormat(PropertyGroup):
-#single properties
+#legacy properties
     ambient:        FloatVectorProperty(default=(0.5,0.5,0.5),max=1.0,min=0.0,subtype='COLOR')
     specular:       FloatVectorProperty(default=(0.0,0.0,0.0),max=1.0,min=0.0,subtype='COLOR')
     diffuse:        FloatVectorProperty(default=(1.0,1.0,1.0),max=1.0,min=0.0,subtype='COLOR')
     emissive:       FloatVectorProperty(default=(0.0,0.0,0.0),max=1.0,min=0.0,subtype='COLOR')
     power:          FloatProperty(default=0.0)
+
 # 0 - single_sided, 1 - two_sided, 2 - real_two_sided
     sides:          IntProperty(default = 0, min = 0, max = 2, update = update_backface_culling)
 #shader_class related stuff
-    shader_class:           StringProperty(default = 'rendinst_simple',update = update_shader_class)
-    use_shader_enum:        BoolProperty(default = False, description = 'use old shader selector',
-                                            update = upd_shader_selector)
-    shader_category_active: EnumProperty(items = get_shader_categories, update = upd_shader_category)
-    shader_class_active:    EnumProperty(items = get_shaders, update = upd_active_shader)
+    shader_class:           StringProperty(default = '', update = update_shader_class)
+    filter_categories:      BoolProperty(default = False, name = "Filter by category", description = "Show all shaders or just current category?",
+        update = upd_category_filter)
+    use_shader_enum:        BoolProperty(default = False, description = 'use dropdowns for shaders and categories',
+                                            update = update_use_shader_enum)
+    shader_category_enum:   EnumProperty(items = get_shader_categories_enum, update = update_shader_category_enum)
+    shader_class_enum:      EnumProperty(items = get_shaders_enum, update = update_shader_class_enum)
 #property groups
     textures:   PointerProperty(type=dagor_textures)
     optional:   PointerProperty(type=dagor_optional)
 #temporary props for UI
-    prop_name:          StringProperty (default='atest', update = upd_prop_name, name = "Name")
+    prop_name:          StringProperty (default='atest', update = update_prop_name, name = "Name")
     prop_value:         StringProperty (default='127', name = "Value")
-    prop_active:        EnumProperty   (items = get_props, update = upd_prop_active)
-    use_prop_enum:  BoolProperty(default=False, description = 'show as dropdown list',  update = upd_prop_selector)
+    prop_name_enum:        EnumProperty   (items = get_props_enum, update = update_prop_name_enum)
+    use_prop_name_enum:  BoolProperty(default = False, description = 'show as dropdown list',
+        update = update_prop_mode)
 #proxymat related properties
-    is_proxy:   BoolProperty   (default=False,description='is it proxymat?')
+    is_proxy:   BoolProperty   (name = "Is proxymat", default=False, description='is it a proxymat?')
     proxy_path: StringProperty (default='', subtype = 'FILE_PATH', description='/<Material.name>.proxymat.blk',
                                 update=update_proxy_path)
 classes.append(dagormat)
@@ -689,184 +378,363 @@ class DAGOR_PT_dagormat(Panel):
         return True
 
     def draw_sides_switcher(self,context, layout):
-        DM = bpy.context.object.active_material.dagormat
-        sides = DM.sides
-        box = layout.box()
-        col = box.column(align = True)
+        DM = context.object.active_material.dagormat
+        column = layout.column(align = True)
+        row = column.row()
+        row.label(text = "Backfacing mode:")
+        row = column.row(align = True)
+        row.context_pointer_set(name = "prop_owner", data = DM)#called in operator
+
+        button = row.operator('dt.set_value', text = "1sided", depress = DM.sides == 0)
+        button.prop_value = "0"
+        button.prop_name = 'sides'
+        button.description = 'Transparent backfaces'
+
+        button = row.operator('dt.set_value', text = "2sided", depress = DM.sides == 1)
+        button.prop_name = "sides"
+        button.prop_value = "1"
+        button.description = 'Backfaces are displayed via shader'
+
+        button = row.operator('dt.set_value', text = "real2sided", depress = DM.sides == 2)
+        button.prop_name = 'sides'
+        button.prop_value = "2"
+        button.description = 'Backfaces made by copying and flipping all the triangles with this shader (Dagor only)'
+        return
+
+    def draw_legacy_properties(self, context, layout):
         pref = get_preferences()
-        bool = pref.backfacing_maximized
-        labels = ['single_sided', 'two_sided', 'real_two_sided']
-        row = col.row(align = True)
-        row.prop(pref, 'backfacing_maximized', text = "", emboss = False,
-            icon = 'DOWNARROW_HLT' if bool else 'RIGHTARROW')
-        row.prop(pref, 'backfacing_maximized', emboss = False,
-            text = "Backface mode:" if bool else f"Backface mode: {labels[sides]}")
-        if not bool:
+        if pref.hide_dagormat_legacy:
             return
-        col.context_pointer_set(name = "DM", data = DM)#called in operator
+        DM = context.object.active_material.dagormat
+        legacy_props = layout.box()
+        draw_custom_header(legacy_props, "Legacy properties", pref, 'legacy_maximized', icon = 'GHOST_DISABLED')
+        if not pref.legacy_maximized:
+            return
+        colors=legacy_props.row()
+        colors.prop(DM, 'ambient', text='')
+        colors.prop(DM, 'specular', text='')
+        colors.prop(DM, 'diffuse', text='')
+        colors.prop(DM, 'emissive', text='')
+        legacy_props.prop   (DM, 'power')
+        return
 
-        row = col.row(align = True)
-        row.operator('dt.set_mat_sides', text = "single_sided",
-            depress = sides == 0,
-            icon ='RADIOBUT_ON' if sides == 0 else 'RADIOBUT_OFF').sides = 0
+    def draw_shader_selector(self, context, layout):
+        pref = get_preferences()
+        DM = context.object.active_material.dagormat
+        if DM.use_shader_enum:
+            row = layout.row()
+            row.prop(DM, 'shader_class_enum',text = 'shader')
+            buttons = row.row(align = True)
+            buttons.prop(DM, 'filter_categories', text = '', icon = 'FILTER', emboss = True)
+            buttons.prop(DM, 'use_shader_enum', text = "", icon = 'MENU_PANEL')
 
-        row = col.row(align = True)
-        row.operator('dt.set_mat_sides', text = "two_sided",
-            depress = sides == 1,
-            icon ='RADIOBUT_ON' if sides == 1 else 'RADIOBUT_OFF').sides = 1
+            if DM.filter_categories:
+                row = layout.row()
+                row.prop(DM,'shader_category_enum', text='category')
+                offset_row = row.row(align = True)
+                offset_row.label(icon = 'BLANK1')  # for alignment, placed under buttuns
+                offset_row.label(icon = 'BLANK1')
+        else:
+            row = layout.row()
+            row.prop(DM, 'shader_class', text = 'shader')
+            row.prop(DM, 'use_shader_enum', text = "", icon='MENU_PANEL')
+        return
 
-        row = col.row(align = True)
-        row.operator('dt.set_mat_sides', text = "real_two_sided",
-            depress = sides == 2,
-            icon ='RADIOBUT_ON' if sides == 2 else 'RADIOBUT_OFF').sides = 2
+    def draw_main(self, context, layout):
+        DM = context.object.active_material.dagormat
+        pref = get_preferences()
+        box = layout.box()
+        header = draw_custom_header(box, "Main", pref, 'dagormat_main_maximized', icon = 'MATERIAL', label_offset = 1)
+        button_layout = header.row()
+        button_layout.operator('dt.refresh_shaders_config', text = "", icon = 'FILE_REFRESH')
+        if not pref.dagormat_main_maximized:
+            return
+        content = box.column()
+        content.enabled = not DM.is_proxy
+        self.draw_legacy_properties(context, content)
+        self.draw_sides_switcher(context, content.box())
+        self.draw_shader_selector(context, content.box())
+        return
+
+    def draw_textures(self, context, layout):
+        DM = context.object.active_material.dagormat
+        pref = get_preferences()
+        textures=layout.box()
+        draw_custom_header(textures, "Textures", pref, 'tex_maximized', icon = 'IMAGE')
+        if not pref.tex_maximized:
+            return
+        content = textures.column(align = True)
+        content.enabled = not DM.is_proxy
+        T = DM.textures
+        table = content.split(factor = 0.06, align = True)
+        ids = table.column()
+        paths = table.column()
+        for i in range(DAGTEXNUM):
+            ids.label(text = f'{i}')
+            paths.prop(T, f'tex{i}', text='')
+        return
+
+    def draw_dagormat_prop(self, context, layout, owner, name, expected_type = None, warning = ""):
+        actual_type = get_property_type(owner, name)
+        row = layout.row()  # adds round corners instead of gluing boxes together
+        box = row.box()
+    #checking if label can fit in the same row as value
+        ui_scale = context.preferences.view.ui_scale
+        region_width = context.region.width
+        approx_char_width = 8 * ui_scale
+        approx_max_name_len = int(((region_width - 50 * ui_scale)/3)/approx_char_width)
+    #name on a separate row
+        if name.__len__() > approx_max_name_len or actual_type == 'm':
+            param_row = box.row()
+            name_row = param_row.row()
+            buttons_row = param_row.row()
+            name_row.label(text = name)
+            value_row = box.row()
+    # name on a row with the value
+        else:
+            split = box.split(factor = 0.3)
+            split.label(text = name)
+            param_row = split.row()
+            value_row = param_row.row()
+            buttons_row = param_row.row()
+    # buttons
+        type_mismatch = expected_type != actual_type and expected_type is not None
+        show_warning = warning != "" or type_mismatch
+        if show_warning:
+            message = ""
+            if type_mismatch:
+                message += f'Type mismatch! Expected "{expected_type}", got "{actual_type}"'
+            if warning != "":
+                if type_mismatch:
+                    message += "; "
+                message += warning
+            error_button = buttons_row.operator('dt.show_popup', icon = 'ERROR', emboss = False)
+            error_button.message = message
+            error_button.title = 'WARNING:'
+            error_button.icon = 'ERROR'
+        remove = buttons_row.operator('dt.dagormat_prop_remove',text='',icon='TRASH')
+        remove.prop_name = name
+        remove.group_name = ""
+    # matrix
+        if actual_type == 'm':
+            column = value_row.column(align = True)
+            row = column.row()
+            row_a = row.row(align = True)
+            row_a.prop(owner, f'["{name}"]', index = 0, text = "")
+            row_a.prop(owner, f'["{name}"]', index = 1, text = "")
+            row_a.prop(owner, f'["{name}"]', index = 2, text = "")
+            row = column.row()
+            row_b = row.row(align = True)
+            row_b.prop(owner, f'["{name}"]', index = 3, text = "")
+            row_b.prop(owner, f'["{name}"]', index = 4, text = "")
+            row_b.prop(owner, f'["{name}"]', index = 5, text = "")
+            row = column.row()
+            row_c = row.row(align = True)
+            row_c.prop(owner, f'["{name}"]', index = 6, text = "")
+            row_c.prop(owner, f'["{name}"]', index = 7, text = "")
+            row_c.prop(owner, f'["{name}"]', index = 8, text = "")
+            row = column.row()
+            row_d = row.row(align = True)
+            row_d.prop(owner, f'["{name}"]', index = 9, text = "")
+            row_d.prop(owner, f'["{name}"]', index = 10, text = "")
+            row_d.prop(owner, f'["{name}"]', index = 11, text = "")
+            return
+    #bool
+        if actual_type == 'b':
+            value_row.prop(owner, f'["{name}"]', toggle = True,
+                text = 'yes' if owner[name] else 'no',
+                icon = 'CHECKBOX_HLT' if owner[name] else 'CHECKBOX_DEHLT')
+            return
+        else:
+    #color
+            ui_props = owner.id_properties_ui(name).as_dict()
+            if ui_props.get('subtype') == 'COLOR':
+                color_column = value_row.column(align = True)
+                numbers = color_column.row(align = True)
+                numbers.prop(owner, f'["{name}"]', text = "", index = 0)
+                numbers.prop(owner, f'["{name}"]', text = "", index = 1)
+                numbers.prop(owner, f'["{name}"]', text = "", index = 2)
+                numbers.prop(owner, f'["{name}"]', text = "", index = 3)
+                color_column.prop(owner, f'["{name}"]', text = "")
+    #other
+            else:
+                value_row.prop(owner, f'["{name}"]', text = "")
+        return
+
+    def draw_optional(self, context, layout):
+        DM = context.object.active_material.dagormat
+        pref = get_preferences()
+        box = layout.box()
+        header = draw_custom_header(box, "Optional", pref, 'optional_maximized', icon = 'NONE', label_offset = 2)
+        button_layout = header.row(align = True)
+        button_layout.operator('dt.refresh_dagormat_ui', icon = 'FILE_REFRESH', text = "")
+        remove = button_layout.operator('dt.dagormat_prop_remove', icon = 'TRASH')
+        remove.prop_name = ""
+        remove.group_name = "all"
+
+        if not pref.optional_maximized:
+            return
+        content = box.column()
+        content.enabled = not DM.is_proxy
+
+        addbox = content.box()
+        addbox.operator("dt.dagormat_prop_add", text = "ADD", icon = "ADD")
+
+        prew = addbox.row(align = True)
+        if DM.use_prop_name_enum:
+            prew.prop(DM,'prop_name_enum', text = '')
+        else:
+            prew.prop(DM,'prop_name', text = '')
+        prew.label(text = '', icon = 'FORWARD')
+        prew.prop(DM, 'prop_value', text = '')
+        prew.prop(DM, 'use_prop_name_enum', icon = 'MENU_PANEL', text = '')
+        props_box = content.column(align = True)
+        current_shader_config = pref.shaders.get(DM.shader_class)
+        if current_shader_config is not None:
+            known_props = current_shader_config['props']
+            known_props_names = known_props.keys()
+        else:
+            known_props_names = []
+        props_to_draw = list(DM.optional.keys())
+        current_group = None
+        current_layout = props_box
+        uncategorized_layout = None
+        for name in known_props_names:
+            if not name in props_to_draw:
+                continue
+            props_to_draw.remove(name)
+            new_group = known_props[name].get('property_group')
+            if new_group is not None:
+                if new_group != current_group:
+                    props_box.separator()
+                    current_group = new_group
+                    current_layout = props_box.box()
+                    current_header = current_layout.row()
+                    category_description = current_shader_config['prop_groups'][current_group].get('description')
+                    if category_description is None:
+                        current_header.label(text = current_group, icon = 'GROUP')
+                    else:
+                        description_button = current_header.operator('dt.show_popup', icon = 'INFO', emboss = False)
+                        description_button.message = category_description
+                        description_button.title = current_group + ":"
+                        description_button.icon = 'INFO'
+                        current_header.label(text = current_group)
+                    remove = current_header.operator('dt.dagormat_prop_remove', icon = 'TRASH')
+                    remove.prop_name = ""
+                    remove.group_name = current_group
+                    current_layout = current_layout.column(align = True)
+            else:
+                if uncategorized_layout is None:
+                    uncategorized_layout = props_box.box()
+                    uncategorized_header = uncategorized_layout.row()
+                    uncategorized_header.label(icon = 'GROUP', text = "Uncategorized")
+                    remove = uncategorized_header.operator('dt.dagormat_prop_remove', icon = 'TRASH')
+                    remove.prop_name = ""
+                    remove.group_name = "Uncategorized"
+                    uncategorized_layout = uncategorized_layout.column(align = True)
+                current_layout = uncategorized_layout
+
+            actual_type = get_property_type(DM.optional, name)
+            warn = prop_range_warning(DM.optional[name], known_props[name], actual_type)
+
+            self.draw_dagormat_prop(context, current_layout, DM.optional, name,
+                                    expected_type = known_props[name]['type'], warning = warn)
+        if props_to_draw.__len__() > 0:
+            props_to_draw.sort()  # easier to manage in alphabetic order
+            props_box.separator()
+            current_layout = props_box.box()
+            header_row = current_layout.row()
+            error_button = header_row.operator('dt.show_popup', icon = 'ERROR', emboss = False)
+            error_button.message = f'These parameters are not found in the "{DM.shader_class}" config'
+            error_button.icon = 'ERROR'
+            error_button.title = "WARNING:"
+            header_row.label(text = "Unknown")
+            remove = header_row.operator('dt.dagormat_prop_remove', icon = 'TRASH')
+            remove.prop_name = ""
+            remove.group_name = "Unknown"
+            props_column = current_layout.column(align = True)
+            for name in props_to_draw:
+                self.draw_dagormat_prop(context, props_column, DM.optional, name)
+        return
+
+    def draw_proxymat(self, context, layout):
+        active_material = context.object.active_material
+        DM = active_material.dagormat
+        pref = get_preferences()
+        box = layout.box()
+        draw_custom_header(box, "Proxy", pref, 'proxy_maximized', icon = 'FILE')
+        if not pref.proxy_maximized:
+            return
+        draw_custom_toggle(box, DM, 'is_proxy')
+        column = box.column()
+        column.label(text='Proxymat folder:')
+        column.prop(DM,'proxy_path',text='')
+        column.operator('dt.dagormat_read_proxy', text = '(Re)load from file',icon = 'RECOVER_LAST')
+        column.operator('dt.dagormat_write_proxy', text = 'Save proxymat',icon = 'FILE_TICK')
+        column.enabled = DM.is_proxy
+        return
+
+    def draw_tools(self, context, layout):
+        active_material = context.object.active_material
+        DM = active_material.dagormat
+        pref = get_preferences()
+        tools = layout.box()
+        draw_custom_header(tools, "Tools", pref, 'tools_maximized', icon = 'TOOL_SETTINGS')
+        if not pref.tools_maximized:
+            return
+        text=tools.box()
+        text.label(icon = 'TEXT', text = "Text editing")
+#Text Editing
+        text_ed=text.row()
+        text_ed.operator('dt.dagormat_to_text',text='Open as text', icon = 'TEXT')
+        text_ed.operator('dt.dagormat_from_text',text='Apply from text', icon = 'TEXT')
+#Search
+        shared=tools.box()
+        mode=shared.row(align = True)
+        mode.context_pointer_set(name = "prop_owner", data = pref)
+
+        single = mode.operator('dt.set_value', text = 'Current material', depress = not pref.process_all_materials)
+        single.prop_value = ('0')
+        single.prop_name = 'process_all_materials'
+        single.description = 'Process only active material'
+
+        all = mode.operator('dt.set_value', text = "All materials", depress = pref.process_all_materials)
+        all.prop_value = '1'
+        all.prop_name = 'process_all_materials'
+        all.description = "Process every dagormat in the blend file"
+
+        shared.label(text='Search', icon='VIEWZOOM')
+        search = shared.column(align = True)
+
+        row = search.row()
+        find_textures = row.operator('dt.find_textures', text = 'Find missing textures',icon = 'TEXTURE')
+        if pref.process_all_materials or DM.is_proxy:
+            row = search.row()
+            row.operator('dt.find_proxymats',
+                         text = 'Find missing proxymats' if pref.process_all_materials else 'Find missing proxymat',
+                         icon = 'MATERIAL')
+#Operators
+        shared.label(text='Process', icon = 'TOOL_SETTINGS')
+        process = shared.column(align = True)
+        row = process.row()
+        row.operator('dt.dagormats_update', icon = 'MATERIAL')
+        if pref.process_all_materials:
+            row = process.row()
+            row.operator('dt.dagormats_force_update', icon = 'MATERIAL')
+        row = process.row()
+        row.operator('dt.update_tex_paths', text = 'Update texture paths', icon = 'TEXTURE')
+        row = process.row()
+        row.operator('dt.clear_tex_paths', text = 'Clear texture paths',  icon = 'TEXTURE')
+
         return
 
     def draw(self,context):
         layout = self.layout
-        pref = get_preferences()
-        if bpy.context.object:
-            if bpy.context.object.active_material:
-                material_active = bpy.context.object.active_material
-                DM=material_active.dagormat
-#Material
-                layout.prop(DM,'is_proxy',toggle=True, text='is proxymat',
-                            icon = 'CHECKBOX_HLT'if DM.is_proxy else 'CHECKBOX_DEHLT')
-                if not DM.is_proxy:
-                    mat=layout.box()
-                    header=mat.row()
-                    header.prop(pref, 'mat_maximized',
-                        icon = 'DOWNARROW_HLT'if pref.mat_maximized else 'RIGHTARROW_THIN',
-                        emboss=False,text='Main',expand=True)
-                    header.label(text='',icon='MATERIAL')
-                    if pref.mat_maximized:
-                        self.draw_sides_switcher(context, mat)
-                        colors=mat.row()
-                        colors.prop(DM, 'ambient', text='')
-                        colors.prop(DM, 'specular', text='')
-                        colors.prop(DM, 'diffuse', text='')
-                        colors.prop(DM, 'emissive', text='')
-                        mat.prop   (DM, 'power')
-                        cl=mat.row ()
-
-                        if DM.use_shader_enum:
-                            cl.prop (DM,  'shader_class_active',text='shader')
-                            cl.prop (DM,'use_shader_enum', icon='MENU_PANEL', text='')
-                            cl=mat.row()
-                            cl.prop(DM,'shader_category_active', text='category')
-                        else:
-                            cl.prop (DM,  'shader_class',text='shader')
-                            cl.prop (DM,'use_shader_enum', icon='MENU_PANEL', text='')
-#Material/Textures
-                    tex=layout.box()
-                    tex = tex.column(align = True)
-                    header=tex.row()
-                    header.prop(pref, 'tex_maximized',
-                        icon = 'DOWNARROW_HLT'if pref.tex_maximized else 'RIGHTARROW_THIN',
-                        emboss=False,text='Textures')
-                    header.label(text='',icon='IMAGE')
-                    if pref.tex_maximized:
-                        tex.separator()
-                        T=DM.textures
-                        tex.prop(T, 'tex0', text='')
-                        tex.prop(T, 'tex1', text='')
-                        tex.prop(T, 'tex2', text='')
-                        tex.prop(T, 'tex3', text='')
-                        tex.prop(T, 'tex4', text='')
-                        tex.prop(T, 'tex5', text='')
-                        tex.prop(T, 'tex6', text='')
-                        tex.prop(T, 'tex7', text='')
-                        tex.prop(T, 'tex8', text='')
-                        tex.prop(T, 'tex9', text='')
-                        tex.prop(T, 'tex10',text='')
-#Material/Optional
-                    opt=layout.box()
-                    header=opt.row()
-                    header.prop(pref, 'opt_maximized',
-                        icon = 'DOWNARROW_HLT'if pref.opt_maximized else 'RIGHTARROW_THIN',
-                        emboss=False,text='Optional')
-                    header.label(text='',icon='THREE_DOTS')
-                    if pref.opt_maximized:
-                        addbox=opt.box()
-                        add=addbox.operator("dt.add_mat_param",text="ADD",icon="ADD")
-                        add.name=DM.prop_name
-                        add.value=DM.prop_value
-                        prew=addbox.row(align = True)
-                        if DM.use_prop_enum:
-                            prew.prop(DM,'prop_active',text='')
-                        else:
-                            prew.prop(DM,'prop_name',text='')
-                        prew.label(text='',icon='FORWARD')
-                        prew.prop(DM,'prop_value',text='')
-                        prew.prop(DM,'use_prop_enum', icon='MENU_PANEL', text='')
-                        col = opt.column(align = True)
-                        for key in DM.optional.keys():
-                            prop=col.box()
-                            prop = prop.column(align = True)
-                            rem=prop.row()
-                            rem.label(text=key)
-                            rem.operator('dt.remove_mat_param',text='',icon='TRASH').param=key
-                            value=prop.row()
-                            value.prop(DM.optional, '["'+key+'"]',text='')
-#Proxymat
-                else:
-                    proxy=layout.box()
-                    header=proxy.row()
-                    header.prop(pref, 'proxy_maximized',
-                        icon = 'DOWNARROW_HLT'if pref.proxy_maximized else 'RIGHTARROW_THIN',
-                        emboss = False, text = 'Proxy')
-                    header.label(text = '', icon = 'MATERIAL')
-                    if pref.proxy_maximized:
-                        proxy.label(text='Proxymat folder:')
-                        proxy.prop(DM,'proxy_path',text='')
-                        proxy.context_pointer_set(name = "material", data = material_active)
-                        proxy.operator('dt.dagormat_read_proxy', text = '(Re)load from file',icon = 'RECOVER_LAST')
-                        proxy.operator('dt.dagormat_write_proxy',text = 'Save proxymat',icon = 'FILE_TICK')
-#Tools
-                tools=layout.box()
-                header=tools.row()
-                header.prop(pref, 'tools_maximized',
-                    icon = 'DOWNARROW_HLT'if pref.tools_maximized else 'RIGHTARROW_THIN',
-                    emboss=False, text='Tools')
-                header.label(text="", icon='TOOL_SETTINGS')
-                if pref.tools_maximized:
-                    text=tools.box()
-                    text.label(icon = 'TEXT', text = "Text editing")
-#Tools/Text Editing
-                    text_ed=text.row()
-                    text_ed.context_pointer_set(name = "material", data = bpy.context.object.active_material)
-                    text_ed.operator('dt.dagormat_to_text',text='Open as text', icon = 'TEXT')
-                    text_ed.operator('dt.dagormat_from_text',text='Apply from text', icon = 'TEXT')
-#Tools/Search
-
-                    shared=tools.box()
-                    mode=shared.row(align = True)
-                    mode.prop(pref, 'process_materials', expand = True)
-                    shared.label(text='Search', icon='VIEWZOOM')
-
-                    search = shared.column(align = True)
-
-                    row = search.row()
-                    find_textures = row.operator('dt.find_textures',text='Find missing textures',icon='TEXTURE')
-                    find_textures.all_materials = pref.process_materials == 'ALL'
-                    if DM.is_proxy or pref.process_materials == 'ALL':
-                        row = search.row()
-                        find_proxy = row.operator('dt.find_proxymats',text='Find missing proxymat', icon='MATERIAL')
-                        find_proxy.all_materials = pref.process_materials == 'ALL'
-#Tools/Operators
-                    shared.label(text='Process',icon = 'TOOL_SETTINGS')
-                    process = shared.column(align = True)
-                    row = process.row()
-                    rebuild = row.operator('dt.dagormats_update', text='Rebuild', icon = 'MATERIAL')
-                    rebuild.all_materials = pref.process_materials == 'ALL'
-                    if pref.process_materials == 'ALL':
-                        row = process.row()
-                        rebuild = row.operator('dt.dagormats_force_update', icon = 'MATERIAL')
-                    row = process.row()
-                    update_paths = row.operator('dt.update_tex_paths',text='Update texture paths', icon='TEXTURE')
-                    update_paths.all_materials = pref.process_materials == 'ALL'
-                    row = process.row()
-                    clear_paths = row.operator('dt.clear_tex_paths',text='Clear texture paths',  icon='TEXTURE')
-                    clear_paths.all_materials = pref.process_materials == 'ALL'
+        self.draw_proxymat(context, layout)
+        self.draw_main(context, layout)
+        self.draw_textures(context, layout)
+        self.draw_optional(context, layout)
+        self.draw_tools(context, layout)
         return
 classes.append(DAGOR_PT_dagormat)
 
