@@ -11,6 +11,7 @@ permissions:
 
 env:
   DOXYGEN_VERSION: '1.9.7'
+  DOXYGEN_VER__:   '1_9_7'
 
 jobs:
   docs:
@@ -22,7 +23,7 @@ jobs:
           python-version: 3.11
       - name: Install dependencies
         run: |
-          wget -q https://www.doxygen.nl/files/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
+          wget -q https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VER__}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
           tar -zxvf doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz doxygen-${DOXYGEN_VERSION}/bin/doxygen
           mv doxygen-${DOXYGEN_VERSION}/bin/doxygen /usr/local/bin/
           rm -rf doxygen-${DOXYGEN_VERSION} doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
